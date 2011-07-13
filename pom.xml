@@ -26,14 +26,13 @@ THE SOFTWARE.
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.jenkins-ci.main</groupId>
-    <artifactId>pom</artifactId>
-    <version>1.422-SNAPSHOT</version>
-    <relativePath>../pom.xml</relativePath>
+    <groupId>org.jenkins-ci</groupId>
+    <artifactId>jenkins</artifactId>
+    <version>1.22</version>
   </parent>
 
   <artifactId>remoting</artifactId>
-  <packaging>jar</packaging>
+  <version>2.0-SNAPSHOT</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -72,9 +71,28 @@ THE SOFTWARE.
       <version>1.4</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jvnet.hudson</groupId>
+      <artifactId>test-annotations</artifactId>
+      <version>1.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- for JRE requirement check annotation -->
+      <groupId>org.jvnet</groupId>
+      <artifactId>animal-sniffer-annotation</artifactId>
+      <version>1.0</version>
+      <optional>true</optional><!-- no need to have this at runtime -->
+    </dependency>
   </dependencies>
 
   <build>
+    <resources>
+      <resource>
+        <directory>${basedir}/src/filter/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -106,17 +124,21 @@ THE SOFTWARE.
           </archive>
         </configuration>
       </plugin>
-      <plugin>
-        <artifactId>maven-jarsigner-plugin</artifactId>
-        <version>1.2</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>sign</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+        <plugin>
+          <artifactId>maven-jarsigner-plugin</artifactId>
+          <version>1.2</version>
+          <configuration>
+            <!--
+              during the development, debug profile will cause
+              the jars to be signed by a self-certified dummy public key.
+
+              For release, you should define the real values in ~/.m2/settings.xml
+            -->
+            <alias>${hudson.sign.alias}</alias>
+            <storepass>${hudson.sign.storepass}</storepass>
+            <keystore>${hudson.sign.keystore}</keystore>
+          </configuration>
+        </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
@@ -135,6 +157,46 @@ THE SOFTWARE.
           </execution>
         </executions>
       </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>1.7</version>
+          <executions>
+            <execution>
+              <id>timestamp-property</id>
+              <goals>
+                <goal>timestamp-property</goal>
+              </goals>
+              <configuration>
+                <name>now</name>
+                <pattern>MM/dd/yyyy HH:mm z</pattern>
+                <locale>en_US</locale>
+              </configuration>
+            </execution>
+            <!--execution>
+              <id>version-property</id>
+              <goals>
+                <goal>regex-property</goal>
+              </goals>
+              <configuration>
+                <name>build.version</name>
+                <value>${project.version}</value>
+                <regex>-SNAPSHOT</regex>
+                <replacement>-SNAPSHOT (${build.type}-${now}-${user.name})</replacement>
+              </configuration>
+            </execution-->
+          </executions>
+        </plugin>
     </plugins>
   </build>
+
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
+    <url>https://github.com/jenkinsci/remoting</url>
+  </scm>
+  
+  <properties>
+    <build.version>${project.version}</build.version>
+  </properties>
 </project>
