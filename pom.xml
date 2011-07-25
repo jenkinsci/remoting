@@ -93,6 +93,9 @@ THE SOFTWARE.
         <directory>${basedir}/src/filter/resources</directory>
         <filtering>true</filtering>
       </resource>
+      <resource>
+        <directory>${basedir}/src/main/resources</directory>
+      </resource>
     </resources>
     <plugins>
       <plugin>
