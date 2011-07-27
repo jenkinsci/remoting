@@ -198,37 +198,37 @@ THE SOFTWARE.
           </execution>
         </executions>
       </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.7</version>
-          <executions>
-            <execution>
-              <id>timestamp-property</id>
-              <goals>
-                <goal>timestamp-property</goal>
-              </goals>
-              <configuration>
-                <name>now</name>
-                <pattern>MM/dd/yyyy HH:mm z</pattern>
-                <locale>en_US</locale>
-              </configuration>
-            </execution>
-            <execution>
-              <id>version-property</id>
-              <goals>
-                <goal>regex-property</goal>
-              </goals>
-              <configuration>
-                <name>build.version</name>
-                <value>${project.version}</value>
-                <regex>-SNAPSHOT</regex>
-                <replacement>-SNAPSHOT (${build.type}-${now}-${user.name})</replacement>
-                <failIfNoMatch>false</failIfNoMatch>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.7</version>
+        <executions>
+          <execution>
+            <id>timestamp-property</id>
+            <goals>
+              <goal>timestamp-property</goal>
+            </goals>
+            <configuration>
+              <name>now</name>
+              <pattern>MM/dd/yyyy HH:mm z</pattern>
+              <locale>en_US</locale>
+            </configuration>
+          </execution>
+          <execution>
+            <id>version-property</id>
+            <goals>
+              <goal>regex-property</goal>
+            </goals>
+            <configuration>
+              <name>build.version</name>
+              <value>${project.version}</value>
+              <regex>-SNAPSHOT</regex>
+              <replacement>-SNAPSHOT (${build.type}-${now}-${user.name})</replacement>
+              <failIfNoMatch>false</failIfNoMatch>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <!-- make sure our code doesn't have 1.6 dependencies except where we know it -->
         <groupId>org.codehaus.mojo</groupId>
