@@ -40,6 +40,36 @@ THE SOFTWARE.
     Contains the bootstrap code to bridge separate JVMs into a single semi-shared space.
     Reusable outside Jenkins.
   </description>
+  <licenses>
+    <license>
+      <name>The MIT license</name>
+      <url>http://www.opensource.org/licenses/mit-license.php</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
+    <url>https://github.com/jenkinsci/remoting</url>
+  </scm>
+
+  <properties>
+    <build.type>private</build.type>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>m.g.o-public</id>
+      <url>http://maven.glassfish.org/content/groups/public/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
 
   <dependencies>
     <!-- test dependencies -->
@@ -184,7 +214,7 @@ THE SOFTWARE.
                 <locale>en_US</locale>
               </configuration>
             </execution>
-            <!--execution>
+            <execution>
               <id>version-property</id>
               <goals>
                 <goal>regex-property</goal>
@@ -194,43 +224,13 @@ THE SOFTWARE.
                 <value>${project.version}</value>
                 <regex>-SNAPSHOT</regex>
                 <replacement>-SNAPSHOT (${build.type}-${now}-${user.name})</replacement>
+                <failIfNoMatch>false</failIfNoMatch>
               </configuration>
-            </execution-->
+            </execution>
           </executions>
         </plugin>
     </plugins>
   </build>
-
-  <scm>
-    <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
-    <url>https://github.com/jenkinsci/remoting</url>
-  </scm>
-  
-  <properties>
-    <build.version>${project.version}</build.version>
-  </properties>
-
-  <repositories>
-    <repository>
-      <id>m.g.o-public</id>
-      <url>http://maven.glassfish.org/content/groups/public/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
-
-  <licenses>
-    <license>
-      <name>The MIT license</name>
-      <url>http://www.opensource.org/licenses/mit-license.php</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
 
   <profiles>
     <profile>
