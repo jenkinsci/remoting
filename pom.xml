@@ -56,6 +56,9 @@ THE SOFTWARE.
 
   <properties>
     <build.type>private</build.type>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <repositories>
