@@ -128,21 +128,28 @@ THE SOFTWARE.
           </archive>
         </configuration>
       </plugin>
-        <plugin>
-          <artifactId>maven-jarsigner-plugin</artifactId>
-          <version>1.2</version>
-          <configuration>
-            <!--
-              during the development, debug profile will cause
-              the jars to be signed by a self-certified dummy public key.
+      <plugin>
+        <artifactId>maven-jarsigner-plugin</artifactId>
+        <version>1.2</version>
+        <configuration>
+          <!--
+            during the development, debug profile will cause
+            the jars to be signed by a self-certified dummy public key.
 
-              For release, you should define the real values in ~/.m2/settings.xml
-            -->
-            <alias>${hudson.sign.alias}</alias>
-            <storepass>${hudson.sign.storepass}</storepass>
-            <keystore>${hudson.sign.keystore}</keystore>
-          </configuration>
-        </plugin>
+            For release, you should define the real values in ~/.m2/settings.xml
+          -->
+          <alias>${hudson.sign.alias}</alias>
+          <storepass>${hudson.sign.storepass}</storepass>
+          <keystore>${hudson.sign.keystore}</keystore>
+        </configuration>
+        <executions>
+          <execution>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
