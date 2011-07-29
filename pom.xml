@@ -245,6 +245,12 @@ THE SOFTWARE.
           </signature>
         </configuration>
       </plugin>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <releaseProfiles>release</releaseProfiles>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
