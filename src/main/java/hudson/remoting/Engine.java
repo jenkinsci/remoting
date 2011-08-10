@@ -172,7 +172,7 @@ public class Engine extends Thread {
                         }
                         if(port ==null) {
                             if(firstError==null)
-                                firstError = new Exception(url+" is not Hudson");
+                                firstError = new Exception(url+" is not Jenkins");
                             continue;
                         }
                     } finally {
