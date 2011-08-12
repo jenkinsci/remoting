@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import dalvik.system.DexFile;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -74,6 +76,8 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     private final Set<URL> prefetchedJars = new HashSet<URL>();
 
+    private final Set<DexFile> dexFiles = new HashSet<DexFile>();
+
     public static ClassLoader create(ClassLoader parent, IClassLoader proxy) {
         if(proxy instanceof ClassLoaderProxy) {
             // when the remote sends 'RemoteIClassLoader' as the proxy, on this side we get it
@@ -100,6 +104,15 @@ final class RemoteClassLoader extends URLClassLoader {
 
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         try {
+            // try to load from local dex files first
+            if (Capability.IS_ANDROID) {
+                for (DexFile dx : dexFiles) {
+                    Class c = dx.loadClass(name, this);
+                    if (c!=null)
+                        return c;
+                }
+            }
+            
             // first attempt to load from locally fetched jars
             return super.findClass(name);
         } catch (ClassNotFoundException e) {
@@ -144,11 +157,25 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
-    private Class<?> loadClassFile(String name, byte[] bytes) {
-        // define package
-        definePackage(name);
+    private Class<?> loadClassFile(String name, byte[] bytes) throws ClassNotFoundException {
+        if (Capability.IS_ANDROID) {
+            try {
+                // TODO: load bytes into a file
+                File f = null;
+                DexFile dx = new DexFile(f);
+                dexFiles.add(dx);
+                Class c = dx.loadClass(name, this);
+                if (c==null)    throw new ClassNotFoundException("Server didn't send us the dex file that contains "+name);
+                return c;
+            } catch (IOException e) {
+                throw (ClassNotFoundException)new ClassNotFoundException("Failed to load "+name).initCause(e);
+            }
+        } else {
+            // define package
+            definePackage(name);
 
-        return defineClass(name, bytes, 0, bytes.length);
+            return defineClass(name, bytes, 0, bytes.length);
+        }
     }
 
     /**
