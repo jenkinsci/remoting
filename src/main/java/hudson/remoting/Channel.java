@@ -418,6 +418,11 @@ public class Channel implements VirtualChannel, IChannel {
                                 this.ois = new ObjectInputStreamEx(mode.wrap(is),base);
                                 new ReaderThread(name).start();
 
+                                if (remoteCapability.requireDexFile() && !capability.canProduceDexFile())
+                                    throw new IOException("The remote requires DEX file but this side cannot provide it");
+                                if (capability.requireDexFile() && !remoteCapability.canProduceDexFile())
+                                    throw new IOException("This side requires DEX file but the remote cannot provide it");
+
                                 return;
                             case 2:
                                 cap = Capability.read(is);

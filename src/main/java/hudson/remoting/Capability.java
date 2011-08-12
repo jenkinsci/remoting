@@ -33,7 +33,7 @@ public final class Capability implements Serializable {
     }
 
     Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING);
+        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_CAN_SEND_DEX|(IS_ANDROID?MASK_REQUIRE_DEX:0));
     }
 
     /**
@@ -53,6 +53,14 @@ public final class Capability implements Serializable {
      */
     public boolean supportsPipeThrottling() {
         return (mask& MASK_PIPE_THROTTLING)!=0;
+    }
+
+    public boolean requireDexFile() {
+        return (mask&MASK_REQUIRE_DEX)!=0;
+    }
+
+    public boolean canProduceDexFile() {
+        return (mask&MASK_CAN_SEND_DEX)!=0;
     }
 
     /**
@@ -103,9 +111,21 @@ public final class Capability implements Serializable {
      */
     private static final long MASK_PIPE_THROTTLING = 4L;
 
+    /**
+     * Bit indicates that we need the remote to send us dex files, instead of class files.
+     */
+    private static final long MASK_REQUIRE_DEX = 8L;
+
+    /**
+     * Bit indicates that we can send out dex file.
+     */
+    private static final long MASK_CAN_SEND_DEX = 16L;
+
     static final byte[] PREAMBLE;
 
     public static final Capability NONE = new Capability(0);
+
+    /*package*/ static final boolean IS_ANDROID;
 
     static {
         try {
@@ -113,5 +133,6 @@ public final class Capability implements Serializable {
         } catch (UnsupportedEncodingException e) {
             throw new AssertionError(e);
         }
+        IS_ANDROID = System.getProperty("java.vm.name").equalsIgnoreCase("Dalvik");
     }
 }
