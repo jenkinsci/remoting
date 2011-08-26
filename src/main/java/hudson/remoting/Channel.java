@@ -110,6 +110,11 @@ public class Channel implements VirtualChannel, IChannel {
     private final ObjectInputStream ois;
     private final ObjectOutputStream oos;
     /**
+     * {@link OutputStream} that's given to the constructor. This is the hand-off with the lower layer.
+     */
+    private final OutputStream underlyingOutput;
+
+    /**
      * Human readable description of where this channel is connected to. Used during diagnostic output
      * and error reports.
      */
@@ -358,6 +363,7 @@ public class Channel implements VirtualChannel, IChannel {
         this.name = name;
         this.executor = exec;
         this.isRestricted = restricted;
+        this.underlyingOutput = os;
 
         if (base==null)
             base = getClass().getClassLoader();
@@ -916,6 +922,22 @@ public class Channel implements VirtualChannel, IChannel {
 
     public Object waitForRemoteProperty(Object key) throws InterruptedException {
         return remoteChannel.waitForProperty(key);
+    }
+
+    /**
+     * Obtain the output stream passed to the constructor.
+     *
+     * @deprecated
+     *      Future version of the remoting module may add other modes of creating channel
+     *      that doesn't involve stream pair. Therefore, we aren't committing to this method.
+     *      This method isn't a part of the committed API of the channel class.
+     * @return
+     *      While the current version always return a non-null value, the caller must not
+     *      make that assumption for the above reason. This method may return null in the future version
+     *      to indicate that the {@link Channel} is not sitting on top of a stream pair.
+     */
+    public OutputStream getUnderlyingOutput() {
+        return underlyingOutput;
     }
 
     /**

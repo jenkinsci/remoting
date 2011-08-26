@@ -361,9 +361,9 @@ public class Launcher {
 
         // this will prevent programs from accidentally writing to System.out
         // and messing up the stream.
-        OutputStream os = System.out;
+        OutputStream os = new StandardOutputStream();
         System.setOut(System.err);
-        main(System.in,os, mode,ping);
+        main(System.in, os, mode, ping);
     }
 
     private static void ttyCheck() {
