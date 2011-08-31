@@ -241,6 +241,13 @@ public class Channel implements VirtualChannel, IChannel {
      */
     private volatile long lastHeard;
 
+    /**
+     * Single-thread executor for running pipe I/O operations.
+     *
+     * It is executed in a separate thread to avoid blocking the channel reader thread
+     * in case read/write blocks. It is single thread to ensure FIFO; I/O needs to execute
+     * in the same order the remote peer told us to execute them.
+     */
     /*package*/ final ExecutorService pipeWriter;
 
     /**
