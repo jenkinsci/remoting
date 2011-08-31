@@ -378,7 +378,7 @@ public class Channel implements VirtualChannel, IChannel {
 
         if(export(this,false)!=1)
             throw new AssertionError(); // export number 1 is reserved for the channel itself
-        remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,false,false);
+        remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false);
 
         // write the magic preamble.
         // certain communication channel, such as forking JVM via ssh,

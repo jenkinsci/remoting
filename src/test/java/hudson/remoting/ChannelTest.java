@@ -86,6 +86,31 @@ public class ChannelTest extends RmiTestBase {
         fail("in this scenario, remote will unexport this");
     }
 
+    public void testGetSetProperty() throws Exception {
+        channel.setProperty("foo","bar");
+        assertEquals("bar", channel.getProperty("foo"));
+        assertEquals("bar",channel.waitForProperty("foo"));
+
+        ChannelProperty<Class> typedProp = new ChannelProperty<Class>(Class.class,"a type-safe property");
+        channel.setProperty(typedProp, Void.class);
+        assertEquals(Void.class, channel.getProperty(typedProp));
+        assertEquals(Void.class, channel.waitForProperty(typedProp));
+    }
+
+    public void testWaitForRemoteProperty() throws Exception {
+        Future<Void> f = channel.callAsync(new WaitForRemotePropertyCallable());
+        assertEquals("bar", channel.waitForRemoteProperty("foo"));
+        assertTrue(f.isDone());
+    }
+
+    private static class WaitForRemotePropertyCallable implements Callable<Void, Exception> {
+        public Void call() throws Exception {
+            Thread.sleep(500);
+            Channel.current().setProperty("foo","bar");
+            return null;
+        }
+    }
+
     public interface Greeter {
         void greet(String name);
     }

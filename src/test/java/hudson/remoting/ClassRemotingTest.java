@@ -27,12 +27,17 @@ import junit.framework.Test;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.EmptyVisitor;
 
+import java.io.IOException;
+
 /**
  * Test class image forwarding.
  *
  * @author Kohsuke Kawaguchi
  */
 public class ClassRemotingTest extends RmiTestBase {
+
+    private static final String CLASSNAME = "hudson.remoting.test.TestCallable";
+
     public void test1() throws Throwable {
         // call a class that's only available on DummyClassLoader, so that on the remote channel
         // it will be fetched from this class loader and not from the system classloader.
@@ -56,7 +61,30 @@ public class ClassRemotingTest extends RmiTestBase {
         assertEquals(r[2],r[3]);
     }
 
+    /**
+     * Tests the use of user-defined classes in remote property access
+     */
+    public void testRemoteProperty() throws Exception {
+        DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
+        Callable c = (Callable) cl.loadClass("hudson.remoting.test.TestCallable").newInstance();
+        assertSame(c.getClass().getClassLoader(), cl);
+
+        channel.setProperty("test",c);
+
+        channel.call(new RemotePropertyVerifier());
+    }
+
     public static Test suite() throws Exception {
         return buildSuite(ClassRemotingTest.class);
+    }
+
+    private static class RemotePropertyVerifier implements Callable<Object, IOException> {
+        public Object call() throws IOException {
+            Object o = Channel.current().getRemoteProperty("test");
+            assertEquals(o.getClass().getName(), CLASSNAME);
+            assertTrue(Channel.class.getClassLoader() != o.getClass().getClassLoader());
+            assertTrue(o.getClass().getClassLoader() instanceof RemoteClassLoader);
+            return null;
+        }
     }
 }
