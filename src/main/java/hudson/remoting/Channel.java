@@ -923,10 +923,20 @@ public class Channel implements VirtualChannel, IChannel {
         }
     }
 
+    /**
+     * Gets the property set on the remote peer.
+     *
+     * @return null
+     *      if the property of the said key isn't set.
+     */
     public Object getRemoteProperty(Object key) {
         return remoteChannel.getProperty(key);
     }
 
+    /**
+     * Gets the property set on the remote peer.
+     * This method blocks until the property is set by the remote peer.
+     */
     public Object waitForRemoteProperty(Object key) throws InterruptedException {
         return remoteChannel.waitForProperty(key);
     }
