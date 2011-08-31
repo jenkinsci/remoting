@@ -894,7 +894,7 @@ public class Channel implements VirtualChannel, IChannel {
     }
 
     public <T> T getProperty(ChannelProperty<T> key) {
-        return key.type.cast(properties.get(key));
+        return key.type.cast(getProperty((Object) key));
     }
 
     /**
@@ -910,6 +910,10 @@ public class Channel implements VirtualChannel, IChannel {
         }
     }
 
+    public <T> T waitForProperty(ChannelProperty<T> key) throws InterruptedException {
+        return key.type.cast(waitForProperty((Object) key));
+    }
+
     /**
      * Sets the property value on this side of the channel.
      * 
@@ -923,6 +927,11 @@ public class Channel implements VirtualChannel, IChannel {
         }
     }
 
+    public <T> T setProperty(ChannelProperty<T> key, T value) {
+        return key.type.cast(setProperty((Object) key, value));
+    }
+
+
     /**
      * Gets the property set on the remote peer.
      *
@@ -933,12 +942,20 @@ public class Channel implements VirtualChannel, IChannel {
         return remoteChannel.getProperty(key);
     }
 
+    public <T> T getRemoteProperty(ChannelProperty<T> key) {
+        return key.type.cast(getRemoteProperty((Object) key));
+    }
+
     /**
      * Gets the property set on the remote peer.
      * This method blocks until the property is set by the remote peer.
      */
     public Object waitForRemoteProperty(Object key) throws InterruptedException {
         return remoteChannel.waitForProperty(key);
+    }
+
+    public <T> T waitForRemoteProperty(ChannelProperty<T> key) throws InterruptedException {
+        return key.type.cast(waitForRemoteProperty((Object) key));
     }
 
     /**
