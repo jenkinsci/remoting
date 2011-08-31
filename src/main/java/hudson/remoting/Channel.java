@@ -1061,6 +1061,7 @@ public class Channel implements VirtualChannel, IChannel {
                         throw ioe;
                     } catch (ClassNotFoundException e) {
                         logger.log(Level.SEVERE, "Unable to read a command (channel " + name + ")",e);
+                        continue;
                     } finally {
                         commandsReceived++;
                     }
@@ -1080,6 +1081,14 @@ public class Channel implements VirtualChannel, IChannel {
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "I/O error in channel "+name,e);
                 terminate(e);
+            } catch (RuntimeException e) {
+                logger.log(Level.SEVERE, "Unexpected error in channel "+name,e);
+                terminate((IOException)new IOException("Unexpected reader termination").initCause(e));
+                throw e;
+            } catch (Error e) {
+                logger.log(Level.SEVERE, "Unexpected error in channel "+name,e);
+                terminate((IOException)new IOException("Unexpected reader termination").initCause(e));
+                throw e;
             } finally {
                 pipeWriter.shutdown();
             }
