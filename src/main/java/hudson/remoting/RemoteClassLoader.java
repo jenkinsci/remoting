@@ -148,7 +148,11 @@ final class RemoteClassLoader extends URLClassLoader {
         // define package
         definePackage(name);
 
-        return defineClass(name, bytes, 0, bytes.length);
+        try {
+            return defineClass(name, bytes, 0, bytes.length);
+        } catch (ClassFormatError e) {
+            throw (ClassFormatError)new ClassFormatError("Failed to load "+name).initCause(e);
+        }
     }
 
     /**
