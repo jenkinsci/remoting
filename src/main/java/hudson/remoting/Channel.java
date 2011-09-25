@@ -877,6 +877,8 @@ public class Channel implements VirtualChannel, IChannel {
      *      they'll get a stack trace indicating that the channel has already been closed. This diagnosis,
      *      if provided, will further chained to that exception, providing more contextual information
      *      about why the channel was closed.
+     *
+     * @since 2.8
      */
     public synchronized void close(Throwable diagnosis) throws IOException {
         if(outClosed!=null)  return;  // already closed
