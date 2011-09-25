@@ -97,15 +97,23 @@ public abstract class PingThread extends Thread {
 
     private void ping() throws IOException, InterruptedException {
         Future<?> f = channel.callAsync(new Ping());
-        try {
-            f.get(timeout,MILLISECONDS);
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof RequestAbortedException)
-                return; // connection has shut down orderly.
-            onDead(e);
-        } catch (TimeoutException e) {
-            onDead(e);
-        }
+        long start = System.currentTimeMillis();
+        long end = start +timeout;
+
+        long remaining;
+        do {
+            remaining = end-System.currentTimeMillis();
+            try {
+                f.get(Math.max(0,remaining),MILLISECONDS);
+                return;
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof RequestAbortedException)
+                    return; // connection has shut down orderly.
+                onDead(e);
+            } catch (TimeoutException e) {
+                onDead(new TimeoutException("Ping started on "+start+" hasn't completed at "+System.currentTimeMillis()).initCause(e));
+            }
+        } while(remaining>0);
     }
 
     /**
