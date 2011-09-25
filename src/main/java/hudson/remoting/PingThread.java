@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi
+ * Copyright (c) 2004-2010, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -88,7 +88,7 @@ public abstract class PingThread extends Thread {
         } catch (ChannelClosedException e) {
             LOGGER.fine(getName()+" is closed. Terminating");
         } catch (IOException e) {
-            onDead();
+            onDead(e);
         } catch (InterruptedException e) {
             // use interruption as a way to terminate the ping thread.
             LOGGER.fine(getName()+" is interrupted. Terminating");
@@ -102,16 +102,27 @@ public abstract class PingThread extends Thread {
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RequestAbortedException)
                 return; // connection has shut down orderly.
-            onDead();
+            onDead(e);
         } catch (TimeoutException e) {
-            onDead();
+            onDead(e);
         }
     }
 
     /**
      * Called when ping failed.
+     *
+     * @deprecated as of 2.8
+     *      Override {@link #onDead(Throwable)} to receive the cause, but also override this method
+     *      and provide a fallback behaviour to be backward compatible with earlier version of remoting library.
      */
     protected abstract void onDead();
+
+    /**
+     * Called when ping failed.
+     */
+    protected void onDead(Throwable diagnosis) {
+        onDead();   // fall back
+    }
 
     private static final class Ping implements Callable<Void, IOException> {
         private static final long serialVersionUID = 1L;
