@@ -820,6 +820,10 @@ public class Channel implements VirtualChannel, IChannel {
      * {@link ObjectOutputStream}, and it's the last command to be read.
      */
     private static final class CloseCommand extends Command {
+        private CloseCommand(Throwable cause) {
+            super(cause);
+        }
+
         protected void execute(Channel channel) {
             try {
                 channel.close();
@@ -862,10 +866,23 @@ public class Channel implements VirtualChannel, IChannel {
      * {@inheritDoc}
      */
     public synchronized void close() throws IOException {
+        close(null);
+    }
+
+    /**
+     * Closes the channel.
+     *
+     * @param diagnosis
+     *      If someone (either this side or the other side) tries to use a channel that's already closed,
+     *      they'll get a stack trace indicating that the channel has already been closed. This diagnosis,
+     *      if provided, will further chained to that exception, providing more contextual information
+     *      about why the channel was closed.
+     */
+    public synchronized void close(Throwable diagnosis) throws IOException {
         if(outClosed!=null)  return;  // already closed
 
-        send(new CloseCommand());
-        outClosed = new IOException();   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
+        send(new CloseCommand(diagnosis));
+        outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
         try {
             oos.close();
         } catch (IOException e) {
