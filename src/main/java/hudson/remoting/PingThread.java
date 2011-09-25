@@ -119,7 +119,7 @@ public abstract class PingThread extends Thread {
     /**
      * Called when ping failed.
      *
-     * @deprecated as of 2.8
+     * @deprecated as of 2.9
      *      Override {@link #onDead(Throwable)} to receive the cause, but also override this method
      *      and provide a fallback behaviour to be backward compatible with earlier version of remoting library.
      */
@@ -127,6 +127,8 @@ public abstract class PingThread extends Thread {
 
     /**
      * Called when ping failed.
+     *
+     * @since 2.9
      */
     protected void onDead(Throwable diagnosis) {
         onDead();   // fall back
