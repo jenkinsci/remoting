@@ -116,6 +116,12 @@ public class Main {
     }
 
     public void main() throws IOException, InterruptedException {
+        Engine engine = createEngine();
+        engine.start();
+        engine.join();
+    }
+
+    public Engine createEngine() {
         Engine engine = new Engine(
                 headlessMode ? new CuiListener() : new GuiListener(),
                 urls, args.get(0), args.get(1));
@@ -124,8 +130,7 @@ public class Main {
         if(credentials!=null)
             engine.setCredentials(credentials);
         engine.setNoReconnect(noReconnect);
-        engine.start();
-        engine.join();
+        return engine;
     }
 
     /**
