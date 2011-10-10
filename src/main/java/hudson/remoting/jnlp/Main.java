@@ -118,7 +118,14 @@ public class Main {
     public void main() throws IOException, InterruptedException {
         Engine engine = createEngine();
         engine.start();
-        engine.join();
+        try {
+            engine.join();
+        } finally {
+            // if we are programmatically driven by other code,
+            // allow them to interrupt our blocking main thread
+            // to kill the on-going connection to Jenkins
+            engine.interrupt();
+        }
     }
 
     public Engine createEngine() {
