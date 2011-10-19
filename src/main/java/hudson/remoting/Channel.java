@@ -838,6 +838,9 @@ public class Channel implements VirtualChannel, IChannel {
         public String toString() {
             return "close";
         }
+
+        // this value is compatible with remoting < 2.8. I made an incompatible change in 2.8 that got corrected in 2.11.
+        static final long serialVersionUID = 972857271608138115L;
     }
 
     /**
