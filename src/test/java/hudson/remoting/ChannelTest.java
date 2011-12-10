@@ -1,10 +1,14 @@
 package hudson.remoting;
 
+import hudson.remoting.ChannelRunner.Fork;
+import hudson.remoting.ChannelRunner.InProcessCompatibilityMode;
 import org.jvnet.hudson.test.Bug;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
+import java.net.URL;
+import java.net.URLClassLoader;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -143,6 +147,24 @@ public class ChannelTest extends RmiTestBase {
         public Object call() throws IOException {
             System.gc();
             return null;
+        }
+    }
+
+    public void testClassLoaderHolder() throws Exception {
+        URLClassLoader ucl = new URLClassLoader(new URL[0]);
+        ClassLoaderHolder h = channel.call(new Echo<ClassLoaderHolder>(new ClassLoaderHolder(ucl)));
+        assertSame(ucl,h.get());
+    }
+
+    private static class Echo<T> implements Callable<T,RuntimeException> {
+        private final T t;
+
+        Echo(T t) {
+            this.t = t;
+        }
+
+        public T call() throws RuntimeException {
+            return t;
         }
     }
 }

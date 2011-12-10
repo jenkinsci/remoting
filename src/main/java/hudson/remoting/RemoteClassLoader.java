@@ -23,8 +23,11 @@
  */
 package hudson.remoting;
 
+import hudson.remoting.RemoteClassLoaderHook.Mode;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -127,9 +130,19 @@ final class RemoteClassLoader extends URLClassLoader {
                 if (cl instanceof RemoteClassLoader) {
                     RemoteClassLoader rcl = (RemoteClassLoader) cl;
                     Class<?> c = rcl.findLoadedClass(name);
-                    if (c==null)
-                        c = rcl.loadClassFile(name,cf.classImage);
-                    return c;
+                    if (c!=null)    return c;
+
+                    if (cf.classImage!=null)
+                        return rcl.loadClassFile(name,cf.classImage);
+                    else {// we asked for one class, we got a whole jar
+                        try {
+                            File jar = makeResource(cf.checkedFileName(), cf.jarImage);
+                            rcl.addURL(jar.toURI().toURL());
+                            return rcl.findClass(name);
+                        } catch (IOException x) {
+                            throw new Error("Failed to fetch jar file when loading "+name,x);
+                        }
+                    }
                 } else {
                     return cl.loadClass(name);
                 }
@@ -319,16 +332,51 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
-    static class ClassFile implements Serializable {
+    /**
+     * Response to a remote class loading request.
+     *
+     * Represents a class file and the classloader to own it, or a whole jar file and the classloader to own it.
+     */
+    public /*only because proxy accesses it*/ static class ClassFile implements Serializable {
         /**
          * oid of the classloader that should load this class.
          */
         final int classLoader;
+
+        // either classImage or jarImage is non-null, but not both at the same time
+
+        /**
+         * Class file to load.
+         */
         final byte[] classImage;
+
+        /**
+         * Jar file to load.
+         *
+         * @see Capability#MASK_JAR_FETCHING
+         */
+        final byte[] jarImage;
+
+        final String jarFileName;
 
         ClassFile(int classLoader, byte[] classImage) {
             this.classLoader = classLoader;
             this.classImage = classImage;
+            this.jarImage = null;
+            this.jarFileName = null;
+        }
+
+        ClassFile(int classLoader, byte[] jarImage, String jarFileName) {
+            this.classLoader = classLoader;
+            this.classImage = null;
+            this.jarImage = jarImage;
+            this.jarFileName = jarFileName;
+        }
+
+        String checkedFileName() {
+            if (jarFileName.indexOf('/')!=-1 || jarFileName.indexOf('\\')!=-1)
+                throw new IllegalArgumentException(jarFileName);
+            return jarFileName;
         }
 
         private static final long serialVersionUID = 1L;
@@ -337,7 +385,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * Remoting interface.
      */
-    /*package*/ static interface IClassLoader {
+    public static interface IClassLoader {
         byte[] fetchJar(URL url) throws IOException;
         byte[] fetch(String className) throws ClassNotFoundException;
         ClassFile fetch2(String className) throws ClassNotFoundException;
@@ -393,7 +441,11 @@ final class RemoteClassLoader extends URLClassLoader {
         	if (!USE_BOOTSTRAP_CLASSLOADER && cl==PSEUDO_BOOTSTRAP) {
         		throw new ClassNotFoundException("Classloading from bootstrap classloader disabled");
         	}
-        	
+
+            Mode mode = channel.getRemoteClassLoaderHook().loadClass(cl, className);
+            if (mode==null)
+                throw new ClassNotFoundException("Refused to load "+className);
+
             InputStream in = cl.getResourceAsStream(className.replace('.', '/') + ".class");
             if(in==null)
                 throw new ClassNotFoundException(className);
@@ -406,7 +458,8 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         public ClassFile fetch2(String className) throws ClassNotFoundException {
-            ClassLoader ecl = cl.loadClass(className).getClassLoader();
+            Class<?> c = cl.loadClass(className);
+            ClassLoader ecl = c.getClassLoader();
             if (ecl == null) {
             	if (USE_BOOTSTRAP_CLASSLOADER) {
             		ecl = PSEUDO_BOOTSTRAP;
@@ -416,6 +469,24 @@ final class RemoteClassLoader extends URLClassLoader {
             }
 
             try {
+                Mode mode = channel.getRemoteClassLoaderHook().loadClass(cl, className);
+                if (mode==null)
+                    throw new ClassNotFoundException("Refused to load "+className);
+                if (mode==Mode.JAR_FILE && channel.remoteCapability.supportsJarFetching()) {
+                    // try to send a jar file if we can
+                    try {
+                        File jar = Which.jarFile(c);
+                        if (jar.isFile()) {
+                            return new ClassFile(
+                                    exportId(ecl,channel),
+                                    readFully(new FileInputStream(jar)), jar.getName());
+                        }
+                    } catch (IllegalArgumentException e) {
+                        // fail to determine the jar file
+                    }
+                    // fall back to sending a class file
+                }
+
                 return new ClassFile(
                         exportId(ecl,channel),
                         readFully(ecl.getResourceAsStream(className.replace('.', '/') + ".class")));
@@ -464,15 +535,18 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         private byte[] readFully(InputStream in) throws IOException {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            try {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-            byte[] buf = new byte[8192];
-            int len;
-            while((len=in.read(buf))>0)
-                baos.write(buf,0,len);
-            in.close();
+                byte[] buf = new byte[8192];
+                int len;
+                while((len=in.read(buf))>0)
+                    baos.write(buf,0,len);
 
-            return baos.toByteArray();
+                return baos.toByteArray();
+            } finally {
+                in.close();
+            }
         }
 
         public boolean equals(Object that) {
