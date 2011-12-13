@@ -9,6 +9,7 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -104,7 +105,7 @@ public class ChannelTest extends RmiTestBase {
     public void testWaitForRemoteProperty() throws Exception {
         Future<Void> f = channel.callAsync(new WaitForRemotePropertyCallable());
         assertEquals("bar", channel.waitForRemoteProperty("foo"));
-        assertTrue(f.isDone());
+        f.get(1, TimeUnit.SECONDS);
     }
 
     private static class WaitForRemotePropertyCallable implements Callable<Void, Exception> {
