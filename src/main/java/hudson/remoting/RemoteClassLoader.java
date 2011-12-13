@@ -55,7 +55,7 @@ import java.util.HashSet;
  *
  * @author Kohsuke Kawaguchi
  */
-final class RemoteClassLoader extends URLClassLoader {
+public final class RemoteClassLoader extends URLClassLoader {
     /**
      * Proxy to the code running on remote end.
      */
@@ -94,6 +94,11 @@ final class RemoteClassLoader extends URLClassLoader {
 
     public Channel getChannel() {
         return channel;
+    }
+
+    @Override
+    public void addURL(URL url) {
+        super.addURL(url);
     }
 
     /**
