@@ -56,7 +56,6 @@ import java.util.HashSet;
  * @author Kohsuke Kawaguchi
  */
 final class RemoteClassLoader extends URLClassLoader {
-	
     /**
      * Proxy to the code running on remote end.
      */
@@ -93,6 +92,10 @@ final class RemoteClassLoader extends URLClassLoader {
         this.channel = RemoteInvocationHandler.unwrap(proxy);
     }
 
+    public Channel getChannel() {
+        return channel;
+    }
+
     /**
      * If this {@link RemoteClassLoader} represents a classloader from the specified channel,
      * return its exported OID. Otherwise return -1.
@@ -106,8 +109,15 @@ final class RemoteClassLoader extends URLClassLoader {
             // first attempt to load from locally fetched jars
             return super.findClass(name);
         } catch (ClassNotFoundException e) {
-            if(channel.isRestricted())
+            switch (channel.getRemoteClassLoaderInterceptor().findClass(this, name)) {
+            case RETRY_LOCAL:
+                return super.findClass(name);
+            case FAIL:
                 throw e;
+            case REMOTE:
+                break;  // fall through
+            }
+
             // delegate to remote
             if (channel.remoteCapability.supportsMultiClassLoaderRPC()) {
                 /*
@@ -137,6 +147,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     else {// we asked for one class, we got a whole jar
                         try {
                             File jar = makeResource(cf.checkedFileName(), cf.jarImage);
+                            channel.getRemoteClassLoaderInterceptor().verifyJarFile(this,name,jar);
                             rcl.addURL(jar.toURI().toURL());
                             return rcl.findClass(name);
                         } catch (IOException x) {
@@ -157,9 +168,11 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
-    private Class<?> loadClassFile(String name, byte[] bytes) {
+    private Class<?> loadClassFile(String name, byte[] bytes) throws ClassNotFoundException {
         // define package
         definePackage(name);
+
+        channel.getRemoteClassLoaderInterceptor().verifyClassFile(this, name, bytes);
 
         try {
             return defineClass(name, bytes, 0, bytes.length);
@@ -184,33 +197,59 @@ final class RemoteClassLoader extends URLClassLoader {
         definePackage(packageName, null, null, null, null, null, null, null);
     }
 
-    public URL findResource(String name) {
+    /**
+     * Attempts to resolve the resource within this classloader.
+     *
+     * @return
+     *      {@link #NOT_IN_CACHE} if we can't find it but we might find it remotely.
+     *      {@code null} if we are sure that this resource isn't available in this classloader.
+     *      Otherwise the resource found.
+     */
+    private URL findLocalResource(String name) throws IOException {
         // first attempt to load from locally fetched jars
         URL url = super.findResource(name);
-        if(url!=null || channel.isRestricted())   return url;
+        if(url!=null)   return url;
 
+        if(resourceMap.containsKey(name)) {
+            File f = resourceMap.get(name);
+            if(f==null) return null;    // no such resource
+            if(f.exists())
+                // be defensive against external factors that might have deleted this file, since we use /tmp
+                // see http://www.nabble.com/Surefire-reports-tt17554215.html
+                return f.toURI().toURL();
+        }
+
+        return NOT_IN_CACHE;
+    }
+
+    public URL findResource(String name) {
         try {
-            if(resourceMap.containsKey(name)) {
-                File f = resourceMap.get(name);
-                if(f==null) return null;    // no such resource
-                if(f.exists())
-                    // be defensive against external factors that might have deleted this file, since we use /tmp
-                    // see http://www.nabble.com/Surefire-reports-tt17554215.html
-                    return f.toURI().toURL();
-            }
+            URL url = findLocalResource(name);
+            if (url!=NOT_IN_CACHE)
+                return url;
 
-            long startTime = System.nanoTime();
-            byte[] image = proxy.getResource(name);
-            channel.resourceLoadingTime.addAndGet(System.nanoTime()-startTime);
-            channel.resourceLoadingCount.incrementAndGet();
-            if(image==null) {
-                resourceMap.put(name,null);
-                return null;
+            switch (channel.getRemoteClassLoaderInterceptor().findResource(this, name)) {
+            case RETRY_LOCAL:   // try hitting local cache one more time and then fail
+                url = findLocalResource(name);
+                if (url==NOT_IN_CACHE)  return null;
+                return url;
+            case FAIL:
+                return null;    // not found
+            default:
+            case REMOTE:
+                long startTime = System.nanoTime();
+                byte[] image = proxy.getResource(name);
+                channel.resourceLoadingTime.addAndGet(System.nanoTime()-startTime);
+                channel.resourceLoadingCount.incrementAndGet();
+                if(image==null) {
+                    resourceMap.put(name,null);
+                    return null;
+                }
+
+                File res = makeResource(name, image);
+                resourceMap.put(name,res);
+                return res.toURI().toURL();
             }
-    
-            File res = makeResource(name, image);
-            resourceMap.put(name,res);
-            return res.toURI().toURL();
         } catch (IOException e) {
             throw new Error("Unable to load resource "+name,e);
         }
@@ -226,9 +265,6 @@ final class RemoteClassLoader extends URLClassLoader {
     }
 
     public Enumeration<URL> findResources(String name) throws IOException {
-        if(channel.isRestricted())
-            return new Vector<URL>().elements();
-
         // TODO: use the locally fetched jars to speed up the look up
         // the challenge is how to combine the list from local jars
         // and the remote list
@@ -240,17 +276,26 @@ final class RemoteClassLoader extends URLClassLoader {
                 return urls.elements();
         }
 
-        long startTime = System.nanoTime();
-        byte[][] images = proxy.getResources(name);
-        channel.resourceLoadingTime.addAndGet(System.nanoTime()-startTime);
-        channel.resourceLoadingCount.incrementAndGet();
+        switch (channel.getRemoteClassLoaderInterceptor().findResources(this, name)) {
+        case FAIL:
+            return EMPTY_URLS;
+        case RETRY_LOCAL:
+            // TODO: should we look at resourcesMap or super.findResources?
+            return super.findResources(name);
+        default:
+        case REMOTE:
+            long startTime = System.nanoTime();
+            byte[][] images = proxy.getResources(name);
+            channel.resourceLoadingTime.addAndGet(System.nanoTime()-startTime);
+            channel.resourceLoadingCount.incrementAndGet();
 
-        files = new Vector<File>();
-        for( byte[] image: images )
-            files.add(makeResource(name,image));
-        resourcesMap.put(name,files);
+            files = new Vector<File>();
+            for( byte[] image: images )
+                files.add(makeResource(name,image));
+            resourcesMap.put(name,files);
 
-        return toURLs(files).elements();
+            return toURLs(files).elements();
+        }
     }
 
     // FIXME move to utils
@@ -631,4 +676,16 @@ final class RemoteClassLoader extends URLClassLoader {
      * and their versions can be potentially different.
      */
     public static boolean USE_BOOTSTRAP_CLASSLOADER = Boolean.getBoolean(RemoteClassLoader.class.getName() + ".useBootstrapClassLoader");
+
+    private static final Enumeration<URL> EMPTY_URLS = new Vector<URL>().elements();
+
+    private static final URL NOT_IN_CACHE;
+
+    static {
+        try {
+            NOT_IN_CACHE = new URL("file:not-in-cache");
+        } catch (MalformedURLException e) {
+            throw new Error(e);
+        }
+    }
 }

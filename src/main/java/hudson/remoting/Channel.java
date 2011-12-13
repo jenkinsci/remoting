@@ -257,6 +257,8 @@ public class Channel implements VirtualChannel, IChannel {
 
     private volatile RemoteClassLoaderHook remoteClassLoaderHook = RemoteClassLoaderHook.DEFAULT;
 
+    private volatile RemoteClassLoaderInterceptor remoteClassLoaderInterceptor = RemoteClassLoaderInterceptor.DEFAULT;
+
     /**
      * Communication mode.
      * @since 1.161
@@ -658,6 +660,15 @@ public class Channel implements VirtualChannel, IChannel {
     public void setRemoteClassLoaderHook(RemoteClassLoaderHook hook) {
         if (hook ==null)    hook = RemoteClassLoaderHook.DEFAULT;
         this.remoteClassLoaderHook = hook;
+    }
+
+    public RemoteClassLoaderInterceptor getRemoteClassLoaderInterceptor() {
+        return remoteClassLoaderInterceptor;
+    }
+
+    public void setRemoteClassLoaderInterceptor(RemoteClassLoaderInterceptor i) {
+        if (i==null)    i = RemoteClassLoaderInterceptor.DEFAULT;
+        this.remoteClassLoaderInterceptor = i;
     }
 
     /*package*/ PipeWindow getPipeWindow(int oid) {
