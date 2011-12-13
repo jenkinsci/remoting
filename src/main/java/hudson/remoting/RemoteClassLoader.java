@@ -114,7 +114,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     In multi-classloader setup, RemoteClassLoaders do not retain the relationships among the original classloaders,
                     so each RemoteClassLoader ends up loading classes on its own without delegating to other RemoteClassLoaders.
 
-                    See the classloader X/Y examples in HUDSON-5048 for the depiction of the problem.
+                    See the classloader X/Y examples in JENKINS-5048 for the depiction of the problem.
 
                     So instead, we find the right RemoteClassLoader to load the class on per class basis.
                     The communication is optimized for the single classloader use, by always returning the class file image
