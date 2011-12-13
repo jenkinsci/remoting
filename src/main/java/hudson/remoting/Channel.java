@@ -255,6 +255,8 @@ public class Channel implements VirtualChannel, IChannel {
      */
     /*package*/ final ClassLoader baseClassLoader;
 
+    private volatile RemoteClassLoaderHook remoteClassLoaderHook = RemoteClassLoaderHook.DEFAULT;
+
     /**
      * Communication mode.
      * @since 1.161
@@ -647,6 +649,15 @@ public class Channel implements VirtualChannel, IChannel {
 
     public boolean preloadJar(ClassLoader local, URL... jars) throws IOException, InterruptedException {
         return call(new PreloadJarTask(jars,local));
+    }
+
+    public RemoteClassLoaderHook getRemoteClassLoaderHook() {
+        return remoteClassLoaderHook;
+    }
+
+    public void setRemoteClassLoaderHook(RemoteClassLoaderHook hook) {
+        if (hook ==null)    hook = RemoteClassLoaderHook.DEFAULT;
+        this.remoteClassLoaderHook = hook;
     }
 
     /*package*/ PipeWindow getPipeWindow(int oid) {

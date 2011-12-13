@@ -33,7 +33,7 @@ public final class Capability implements Serializable {
     }
 
     Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING);
+        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_JAR_FETCHING);
     }
 
     /**
@@ -52,7 +52,14 @@ public final class Capability implements Serializable {
      * @see ProxyOutputStream
      */
     public boolean supportsPipeThrottling() {
-        return (mask& MASK_PIPE_THROTTLING)!=0;
+        return (mask&MASK_PIPE_THROTTLING)!=0;
+    }
+
+    /**
+     * Does the implementation supports fetching a jar file as a response to a classloading request?
+     */
+    public boolean supportsJarFetching() {
+        return (mask&MASK_JAR_FETCHING)!=0;
     }
 
     /**
@@ -102,6 +109,11 @@ public final class Capability implements Serializable {
      * Bit that indicates the use of TCP-like window control for {@link ProxyOutputStream}.
      */
     private static final long MASK_PIPE_THROTTLING = 4L;
+
+    /**
+     * Bit that indicates we understand {@link RemoteClassLoader.ClassFile#jarImage}.
+     */
+    private static final long MASK_JAR_FETCHING = 8L;
 
     static final byte[] PREAMBLE;
 
