@@ -28,6 +28,10 @@ package hudson.remoting;
  * this hook is called to determine if we should refuse, give them one class file,
  * or a whole jar file.
  *
+ * <p>
+ * This mechanism is useful to selectively export classes to the remote node for protection,
+ * as well as the performance optimization.
+ *
  * @author Kohsuke Kawaguchi
  * @since 2.12
  * @see Channel#setRemoteClassLoaderHook(RemoteClassLoaderHook) 
