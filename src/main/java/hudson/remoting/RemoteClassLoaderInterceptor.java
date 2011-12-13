@@ -33,7 +33,7 @@ import java.net.URL;
  * @author Kohsuke Kawaguchi
  */
 public abstract class RemoteClassLoaderInterceptor {
-    enum Mode {
+    public enum Mode {
         RETRY_LOCAL,
         REMOTE,
         FAIL

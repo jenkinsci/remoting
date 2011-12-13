@@ -37,7 +37,7 @@ package hudson.remoting;
  * @see Channel#setRemoteClassLoaderHook(RemoteClassLoaderHook) 
  */
 public abstract class RemoteClassLoaderHook {
-    enum Mode {
+    public enum Mode {
         CLASS_FILE,
         JAR_FILE
     }
