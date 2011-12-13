@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import hudson.remoting.ChannelRunner.InProcessCompatibilityMode;
 import junit.framework.Test;
 
 import java.io.Serializable;
@@ -11,6 +12,8 @@ import java.net.URLClassLoader;
  */
 public class RemoteClassLoaderHookTest extends RmiTestBase implements Serializable {
     public void testLoadJar() throws Exception {
+        if (channelRunner instanceof InProcessCompatibilityMode)    return; // only works in full mode
+
         URLClassLoader cl = new URLClassLoader(new URL[]{
                 getClass().getClassLoader().getResource("someJar.jar")});
         final ClassLoaderHolder h = new ClassLoaderHolder(cl);
