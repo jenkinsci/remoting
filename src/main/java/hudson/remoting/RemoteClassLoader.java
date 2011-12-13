@@ -152,7 +152,7 @@ public final class RemoteClassLoader extends URLClassLoader {
                     else {// we asked for one class, we got a whole jar
                         try {
                             File jar = makeResource(cf.checkedFileName(), cf.jarImage);
-                            channel.getRemoteClassLoaderInterceptor().verifyJarFile(this,name,jar);
+                            channel.getRemoteClassLoaderInterceptor().verifyJarFile(rcl,name,jar);
                             rcl.addURL(jar.toURI().toURL());
                             return rcl.findClass(name);
                         } catch (IOException x) {
