@@ -801,6 +801,9 @@ public class Channel implements VirtualChannel, IChannel {
 
     /**
      * Returns true if this channel is currently does not load classes from the remote peer.
+     *
+     * This is a security measure to communicate with the remote peer that you don't trust,
+     * as this prevents code injection.
      */
     public boolean isRestricted() {
         return isRestricted;
