@@ -41,6 +41,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -48,6 +49,7 @@ import java.io.File;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileWriter;
+import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -88,6 +90,9 @@ public class Launcher {
     // no-op, but left for backward compatibility
     @Option(name="-ping")
     public boolean ping = true;
+
+    @Option(name="-slaveLog", usage="create local slave error log")
+    public File slaveLog = null;
 
     @Option(name="-text",usage="encode communication with the master with base64. " +
             "Useful for running slave over 8-bit unsafe protocol like telnet")
@@ -175,6 +180,9 @@ public class Launcher {
     }
 
     public void run() throws Exception {
+        if (slaveLog!=null) {
+            System.setErr(new PrintStream(new TeeOutputStream(System.err,new FileOutputStream(slaveLog))));
+        }
         if(auth!=null) {
             final int idx = auth.indexOf(':');
             if(idx<0)   throw new CmdLineException(null, "No ':' in the -auth option");
