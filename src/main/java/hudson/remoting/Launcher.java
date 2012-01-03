@@ -48,6 +48,7 @@ import java.io.File;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileWriter;
+import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -88,6 +89,9 @@ public class Launcher {
     // no-op, but left for backward compatibility
     @Option(name="-ping")
     public boolean ping = true;
+
+    @Option(name="-slaveLog", usage="create local slave error log")
+    public boolean slaveLog = false;
 
     @Option(name="-text",usage="encode communication with the master with base64. " +
             "Useful for running slave over 8-bit unsafe protocol like telnet")
@@ -175,6 +179,13 @@ public class Launcher {
     }
 
     public void run() throws Exception {
+         if(slaveLog){
+            OutputStream str= System.err;
+            File file = new File(System.getenv("WORKSPACE"), "slave-log.log");
+            PrintStream stream = new PrintStream(file);
+            OutputListener listenerOut = new OutputListener(stream);
+            System.setErr(new PrintStream(listenerOut.createListenableOutputStream(str))); //set listenable error stream
+        }
         if(auth!=null) {
             final int idx = auth.indexOf(':');
             if(idx<0)   throw new CmdLineException(null, "No ':' in the -auth option");
