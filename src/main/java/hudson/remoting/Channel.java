@@ -120,7 +120,7 @@ public class Channel implements VirtualChannel, IChannel {
      */
     private final String name;
     private volatile boolean isRestricted;
-    /*package*/ final ExecutorService executor;
+    /*package*/ final InterceptingExecutorService executor;
 
     /**
      * If non-null, the incoming link is already shut down,
@@ -368,7 +368,7 @@ public class Channel implements VirtualChannel, IChannel {
 
     /*package*/ Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted, ClassLoader base, Capability capability) throws IOException {
         this.name = name;
-        this.executor = exec;
+        this.executor = new InterceptingExecutorService(exec);
         this.isRestricted = restricted;
         this.underlyingOutput = os;
 
@@ -767,6 +767,24 @@ public class Channel implements VirtualChannel, IChannel {
         return listeners.remove(l);
     }
 
+    /**
+     * Adds a {@link CallableFilter} that gets a chance to decorate every {@link Callable}s that run locally
+     * sent by the other peer.
+     * 
+     * This is useful to tweak the environment those closures are run, such as setting up the thread context
+     * environment.
+     */
+    public void addLocalExecutionInterceptor(CallableFilter filter) {
+        executor.addFilter(filter);
+    }
+
+    /**
+     * Rmoves the filter introduced by {@link #addLocalExecutionInterceptor(CallableFilter)}.
+     */
+    public void removeLocalExecutionInterceptor(CallableFilter filter) {
+        executor.removeFilter(filter);
+    }
+    
     /**
      * Waits for this {@link Channel} to be closed down.
      *
