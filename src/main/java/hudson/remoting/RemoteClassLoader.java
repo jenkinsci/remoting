@@ -318,7 +318,7 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
-    static class ClassFile implements Serializable {
+    public static class ClassFile implements Serializable {
         /**
          * oid of the classloader that should load this class.
          */
@@ -336,7 +336,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * Remoting interface.
      */
-    /*package*/ static interface IClassLoader {
+    public static interface IClassLoader {
         byte[] fetchJar(URL url) throws IOException;
         byte[] fetch(String className) throws ClassNotFoundException;
         ClassFile fetch2(String className) throws ClassNotFoundException;
