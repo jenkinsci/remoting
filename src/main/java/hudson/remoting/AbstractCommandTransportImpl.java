@@ -8,13 +8,13 @@ import java.io.ObjectOutputStream;
 /**
  * @author Kohsuke Kawaguchi
  */
-public abstract class AbstractCommandTransportImpl extends CommandTransport {
+public abstract class AbstractCommandTransportImpl extends SynchronousCommandTransport {
     public abstract byte[] readBlock(Channel channel) throws IOException, ClassNotFoundException;
 
     public abstract void writeBlock(Channel channel, byte[] payload) throws IOException;
 
     @Override
-    public Command read(Channel channel) throws IOException, ClassNotFoundException {
+    public Command read() throws IOException, ClassNotFoundException {
         byte[] payload = readBlock(channel);
 
         Channel old = Channel.setCurrent(channel);
@@ -26,7 +26,7 @@ public abstract class AbstractCommandTransportImpl extends CommandTransport {
     }
 
     @Override
-    public void write(Channel channel, Command cmd, boolean last) throws IOException {
+    public void write(Command cmd, boolean last) throws IOException {
         Channel old = Channel.setCurrent(channel);
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();

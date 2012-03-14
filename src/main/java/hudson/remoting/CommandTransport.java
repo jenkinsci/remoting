@@ -52,43 +52,99 @@ public abstract class CommandTransport {
     }
 
     /**
+     * SPI implemented by {@link Channel} so that the transport can pass the received command
+     * to {@link Channel} for processing.
+     */
+    public static interface CommandReceiver {
+        /**
+         * Notifies the channel that a new {@link Command} was received from the other side.
+         * 
+         * {@link Channel} performs all the error recovery of the error resulting from the command invocation.
+         * {@link Channel} implements this method in a non-reentrant fashion; a transport can invoke this method
+         * from different threads, but as the class javadoc states, the transport must
+         * guarantee in-order delivery of the commands, and that means you cannot call this method
+         * concurrently.
+         */
+        void handle(Command cmd);
+    }
+
+    /**
+     * Abstraction of the connection hand-shaking.
+     *
+     * <p>
+     * Before two channels can talk to each other,
+     */
+    public abstract Capability getRemoteCapability() throws IOException;
+
+    /**
+     * Starts the transport.
+     * 
+     * This method is called once and only once at the end of the initialization of {@link Channel},
+     * after the {@link #getRemoteCapability()} is invoked.
+     * 
+     * The first purpose of this method is to provide a reference back to {@link Channel}, and
+     * the second purpose of this method is to allow {@link CommandTransport} to message pumping,
+     * where it starts receiving commands from the other side and pass them onto {@link CommandReceiver}.
+     * 
+     * This abstraction enables asynchronous processing &mdash; for example you can have a single thread
+     * serving a large number of {@link Channel}s via NIO.
+     * 
+     * For subtypes that prefer synchronous operation, extend from {@link SynchronousCommandTransport}.
+     * 
+     * <h2>Closing the read pump</h2>
+     * <p>
+     * {@link Channel} implements {@linkplain Channel.CloseCommand its own "end of command stream" marker}, and
+     * therefore under the orderly shutdown scenario, it doesn't rely on the transport to provide EOF-like
+     * marker. Instead, {@link Channel} will call your {@link #closeRead()} (from the same thread
+     * that invoked {@link CommandReceiver#handle(Command)}) to indicate that it is done with the reading.
+     * 
+     * <p>
+     * If the transport encounters any error from the lower layer (say, the underlying TCP/IP socket
+     * encountered a REST), then call {@link Channel#terminate(IOException)} to initiate the abnormal
+     * channel termination. This in turn calls {@link #closeRead()} to shutdown the reader side.
      * 
      */
-    public abstract Capability getRemoteCapability(Channel channel) throws IOException;
+    public abstract void setup(Channel channel, CommandReceiver receiver);
 
     /**
      * Called by {@link Channel} to send one command to the other side.
      * 
-     * @param channel
-     *      The calling {@link Channel} object, provided as a contextual information.
+     * {@link Channel} serializes the invocation of this method for ordering.
+     *
+     * Asynchronous transport must serialize the given command object before
+     * returning from this method, as its content can be modified by the calling
+     * thread as soon as this method returns. Also, if an asynchronous transport
+     * chooses to return from this method without committing data to the network,
+     * then it is also responsible for a flow control (by blocking this method
+     * if too many commands are queueing up waiting for the network to unclog.)
+     *
      * @param cmd
      *      The command object that needs to be sent. Never null.
      * @param last
-     *      Indicates that this is the last command.
+     *      Informational flag that indicates that this is the last
+     *      call of the {@link #write(Command, boolean)}.
      */
-    abstract void write(Channel channel, Command cmd, boolean last) throws IOException;
+    abstract void write(Command cmd, boolean last) throws IOException;
 
     /**
      * Called to close the write side of the transport, allowing the underlying transport
      * to be shut down.
-     *
-     * @param channel
-     *      The calling {@link Channel} object, provided as a contextual information.
+     * 
+     * <p>
+     * If the {@link Channel} aborts the communication, this method may end up invoked
+     * asynchronously, concurrently, and multiple times. The implementation must protect
+     * against that.
      */
-    public abstract void closeWrite(Channel channel) throws IOException;
+    public abstract void closeWrite() throws IOException;
 
     /**
-     * Called by {@link Channel} to read the next command to arrive from the stream.
-     *
-     * @param channel
-     *      The calling {@link Channel} object, provided as a contextual information.
-     * @param cmd
-     *      The command object that needs to be sent. Never null.
-     * @param last
-     *      Indicates that this is the last command.
+     * Called to indicate that the no further input is expected and any resources
+     * associated with reading commands should be freed.
+     * 
+     * {@link Channel#isInClosed()} can be also used to test if the command reading
+     * should terminate.
      */
-    abstract Command read(Channel channel) throws IOException, ClassNotFoundException, InterruptedException;
-    public abstract void closeRead(Channel channel) throws IOException;
+    public abstract void closeRead() throws IOException;
 
     /**
      * Historical artifact left for backward compatibility, necessary only for retaining

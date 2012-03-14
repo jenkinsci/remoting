@@ -12,7 +12,7 @@ import java.io.OutputStream;
 /**
  * @author Kohsuke Kawaguchi
  */
-/*package*/ final class ByteStreamCommandTransport extends CommandTransport {
+/*package*/ final class ByteStreamCommandTransport extends SynchronousCommandTransport {
     private final ObjectInputStream ois;
     private final ObjectOutputStream oos;
     private final Capability remoteCapability;
@@ -26,11 +26,11 @@ import java.io.OutputStream;
     }
 
     @Override
-    public Capability getRemoteCapability(Channel channel) throws IOException {
+    public Capability getRemoteCapability() throws IOException {
         return remoteCapability;
     }
 
-    public final void write(Channel channel, Command cmd, boolean last) throws IOException {
+    public final void write(Command cmd, boolean last) throws IOException {
         Channel old = Channel.setCurrent(channel);
         try {
             oos.writeObject(cmd);
@@ -38,15 +38,22 @@ import java.io.OutputStream;
         } finally {
             Channel.setCurrent(old);
         }
+
+        // unless this is the last command, have OOS and remote OIS forget all the objects we sent
+        // in this command. Otherwise it'll keep objects in memory unnecessarily.
+        // However, this may fail if the command was the close, because that's supposed to be the last command
+        // ever sent. It is possible for our ReaderThread to receive the reflecting close call from the other side
+        // and close the output before the sending code gets to here.
+        // See the comment from jglick on JENKINS-3077 about what happens if we do oos.reset().
         if(!last)
             oos.reset();
     }
 
-    public void closeWrite(Channel channel) throws IOException {
+    public void closeWrite() throws IOException {
         oos.close();
     }
 
-    public final Command read(Channel channel) throws IOException, ClassNotFoundException {
+    public final Command read() throws IOException, ClassNotFoundException {
         Channel old = Channel.setCurrent(channel);
         try {
             return (Command)ois.readObject();
@@ -55,7 +62,7 @@ import java.io.OutputStream;
         }
     }
 
-    public void closeRead(Channel channel) throws IOException {
+    public void closeRead() throws IOException {
         ois.close();
     }
 

@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.PipeWindow.Key;
 import hudson.remoting.PipeWindow.Real;
@@ -30,10 +31,8 @@ import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.PortForwarder;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -107,7 +106,7 @@ import java.util.concurrent.ThreadFactory;
  * @author Kohsuke Kawaguchi
  */
 public class Channel implements VirtualChannel, IChannel {
-    private final CommandTransport stream;
+    private final CommandTransport transport;
 
     /**
      * {@link OutputStream} that's given to the constructor. This is the hand-off with the lower layer.
@@ -373,11 +372,11 @@ public class Channel implements VirtualChannel, IChannel {
         this(name,exec, ByteStreamCommandTransport.create(mode, is, os, header, base, capability),restricted,base);
     }
 
-    public Channel(String name, ExecutorService exec, CommandTransport stream, boolean restricted, ClassLoader base) throws IOException {
+    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
         this.name = name;
         this.executor = new InterceptingExecutorService(exec);
         this.isRestricted = restricted;
-        this.underlyingOutput = stream.getUnderlyingStream();
+        this.underlyingOutput = transport.getUnderlyingStream();
 
         if (base==null)
             base = getClass().getClassLoader();
@@ -387,12 +386,24 @@ public class Channel implements VirtualChannel, IChannel {
             throw new AssertionError(); // export number 1 is reserved for the channel itself
         remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false);
 
-        this.remoteCapability = stream.getRemoteCapability(this);
+        this.remoteCapability = transport.getRemoteCapability();
         this.pipeWriter = createPipeWriter();
 
-        this.stream = stream;
+        this.transport = transport;
 
-        new ReaderThread(name).start();
+        transport.setup(this, new CommandReceiver() {
+            public void handle(Command cmd) {
+                lastHeard = System.currentTimeMillis();
+                if (logger.isLoggable(Level.FINE))
+                    logger.fine("Received " + cmd);
+                try {
+                    cmd.execute(Channel.this);
+                } catch (Throwable t) {
+                    logger.log(Level.SEVERE, "Failed to execute command " + cmd + " (channel " + Channel.this.name + ")", t);
+                    logger.log(Level.SEVERE, "This command is created here", cmd.createdAt);
+                }
+            }
+        });
     }
 
     /**
@@ -445,11 +456,7 @@ public class Channel implements VirtualChannel, IChannel {
         if(logger.isLoggable(Level.FINE))
             logger.fine("Send "+cmd);
 
-        // unless this is the last command, have OOS and remote OIS forget all the objects we sent
-        // in this command. Otherwise it'll keep objects in memory unnecessarily.
-        // However, this may fail if the command was the close, because that's supposed to be the last command
-        // ever sent. See the comment from jglick on JENKINS-3077 about what happens if we do oos.reset().
-        stream.write(this, cmd, cmd instanceof CloseCommand);
+        transport.write(cmd, cmd instanceof CloseCommand);
         commandsSent++;
     }
 
@@ -665,6 +672,11 @@ public class Channel implements VirtualChannel, IChannel {
         if (e==null)    throw new IllegalArgumentException();
         outClosed=inClosed=e;
         try {
+            transport.closeRead();
+        } catch (IOException x) {
+            logger.log(Level.WARNING, "Failed to close down the reader side of the transport",x);
+        }
+        try {
             synchronized(pendingCalls) {
                 for (Request<?,?> req : pendingCalls.values())
                     req.abort(e);
@@ -771,7 +783,7 @@ public class Channel implements VirtualChannel, IChannel {
     /**
      * Notifies the remote peer that we are closing down.
      *
-     * Execution of this command also triggers the {@link ReaderThread} to shut down
+     * Execution of this command also triggers the {@link SynchronousCommandTransport.ReaderThread} to shut down
      * and quit. The {@link CloseCommand} is always the last command to be sent on
      * {@link ObjectOutputStream}, and it's the last command to be read.
      */
@@ -845,7 +857,7 @@ public class Channel implements VirtualChannel, IChannel {
         send(new CloseCommand(diagnosis));
         outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
         try {
-            stream.closeWrite(this);
+            transport.closeWrite();
         } catch (IOException e) {
             // there's a race condition here.
             // the remote peer might have already responded to the close command
@@ -1023,6 +1035,10 @@ public class Channel implements VirtualChannel, IChannel {
         private static final long serialVersionUID = 1L;
     }
 
+    public String getName() {
+        return name;
+    }
+
     @Override
     public String toString() {
         return super.toString()+":"+name;
@@ -1044,65 +1060,6 @@ public class Channel implements VirtualChannel, IChannel {
      */
     public long getLastHeard() {
         return lastHeard;
-    }
-
-    private final class ReaderThread extends Thread {
-        private int commandsReceived = 0;
-        private int commandsExecuted = 0;
-
-        public ReaderThread(String name) {
-            super("Channel reader thread: "+name);
-        }
-
-        @Override
-        public void run() {
-            try {
-                while(inClosed==null) {
-                    Command cmd = null;
-                    try {
-                        cmd = stream.read(Channel.this);
-                        lastHeard = System.currentTimeMillis();
-                    } catch (EOFException e) {
-                        IOException ioe = new IOException("Unexpected termination of the channel");
-                        ioe.initCause(e);
-                        throw ioe;
-                    } catch (ClassNotFoundException e) {
-                        logger.log(Level.SEVERE, "Unable to read a command (channel " + name + ")",e);
-                        continue;
-                    } finally {
-                        commandsReceived++;
-                    }
-
-                    if(logger.isLoggable(Level.FINE))
-                        logger.fine("Received "+cmd);
-                    try {
-                        cmd.execute(Channel.this);
-                    } catch (Throwable t) {
-                        logger.log(Level.SEVERE, "Failed to execute command "+cmd+ " (channel " + name + ")",t);
-                        logger.log(Level.SEVERE, "This command is created here",cmd.createdAt);
-                    } finally {
-                        commandsExecuted++;
-                    }
-                }
-                stream.closeRead(Channel.this);
-            } catch (InterruptedException e) {
-                logger.log(Level.SEVERE, "I/O error in channel "+name,e);
-                terminate((InterruptedIOException)new InterruptedIOException().initCause(e));
-            } catch (IOException e) {
-                logger.log(Level.SEVERE, "I/O error in channel "+name,e);
-                terminate(e);
-            } catch (RuntimeException e) {
-                logger.log(Level.SEVERE, "Unexpected error in channel "+name,e);
-                terminate((IOException)new IOException("Unexpected reader termination").initCause(e));
-                throw e;
-            } catch (Error e) {
-                logger.log(Level.SEVERE, "Unexpected error in channel "+name,e);
-                terminate((IOException)new IOException("Unexpected reader termination").initCause(e));
-                throw e;
-            } finally {
-                pipeWriter.shutdown();
-            }
-        }
     }
 
     /*package*/ static Channel setCurrent(Channel channel) {
