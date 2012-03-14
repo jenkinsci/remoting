@@ -258,7 +258,8 @@ public class Channel implements VirtualChannel, IChannel {
     /*package*/ final ClassLoader baseClassLoader;
 
     /**
-     * Communication mode.
+     * Communication mode used in conjunction with {@link ClassicCommandTransport}.
+     * 
      * @since 1.161
      */
     public enum Mode {
@@ -369,7 +370,7 @@ public class Channel implements VirtualChannel, IChannel {
     }
 
     /*package*/ Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted, ClassLoader base, Capability capability) throws IOException {
-        this(name,exec, ByteStreamCommandTransport.create(mode, is, os, header, base, capability),restricted,base);
+        this(name,exec, ClassicCommandTransport.create(mode, is, os, header, base, capability),restricted,base);
     }
 
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
@@ -402,6 +403,10 @@ public class Channel implements VirtualChannel, IChannel {
                     logger.log(Level.SEVERE, "Failed to execute command " + cmd + " (channel " + Channel.this.name + ")", t);
                     logger.log(Level.SEVERE, "This command is created here", cmd.createdAt);
                 }
+            }
+
+            public void terminate(IOException e) {
+                Channel.this.terminate(e);
             }
         });
     }

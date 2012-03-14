@@ -23,6 +23,9 @@
  */
 package hudson.remoting;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 /**
@@ -71,6 +74,24 @@ abstract class Command implements Serializable {
      *      The {@link Channel} of the remote system.
      */
     protected abstract void execute(Channel channel);
+    
+    void writeTo(Channel channel, ObjectOutputStream oos) throws IOException {
+        Channel old = Channel.setCurrent(channel);
+        try {
+            oos.writeObject(this);
+        } finally {
+            Channel.setCurrent(old);
+        }
+    }
+    
+    static Command readFrom(Channel channel, ObjectInputStream ois) throws IOException, ClassNotFoundException {
+        Channel old = Channel.setCurrent(channel);
+        try {
+            return (Command)ois.readObject();
+        } finally {
+            Channel.setCurrent(old);
+        }
+    }
 
     private static final long serialVersionUID = 1L;
 

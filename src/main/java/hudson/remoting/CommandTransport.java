@@ -1,6 +1,8 @@
 package hudson.remoting;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 
 /**
@@ -31,16 +33,16 @@ import java.io.OutputStream;
  * </dl>
  * 
  * <p>
- * {@linkplain ByteStreamCommandTransport the default traditional implementation} implements
+ * {@linkplain ClassicCommandTransport the default traditional implementation} implements
  * this on top of a TCP-like bi-directional byte stream, but {@link Channel} can work with
  * any {@link CommandTransport} that provides a similar hook.
  *
  * <h2>Serialization of {@link Command}</h2>
  * <p>
  * {@link Command} objects need to be serialized and deseralized in a specific environment
- * so that {@link Command}s can access {@link Channel} that's using it. Since such logic
- * can change, we don't allow this class to be directly subtyped. Please extend from
- * {@link AbstractCommandTransportImpl} instead.
+ * so that {@link Command}s can access {@link Channel} that's using it. Because of this,
+ * a transport needs to use {@link Command#writeTo(Channel, ObjectOutputStream)} and
+ * {@link Command#readFrom(Channel, ObjectInputStream)}.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -55,17 +57,29 @@ public abstract class CommandTransport {
      * SPI implemented by {@link Channel} so that the transport can pass the received command
      * to {@link Channel} for processing.
      */
-    public static interface CommandReceiver {
+    static interface CommandReceiver {
         /**
          * Notifies the channel that a new {@link Command} was received from the other side.
          * 
+         * <p>
          * {@link Channel} performs all the error recovery of the error resulting from the command invocation.
          * {@link Channel} implements this method in a non-reentrant fashion; a transport can invoke this method
          * from different threads, but as the class javadoc states, the transport must
          * guarantee in-order delivery of the commands, and that means you cannot call this method
          * concurrently.
+         * 
+         * @param cmd
+         *      The command received. This object must be read from {@link ObjectInputStream} via
+         *      {@link Command#readFrom(Channel, ObjectInputStream)}
          */
         void handle(Command cmd);
+        
+        /**
+         * Indicates that the transport has encountered a problem.
+         * This tells the channel that it shouldn't expect future invocation of {@link #handle(Command)},
+         * and it'll abort the communication.
+         */
+        void terminate(IOException e);
     }
 
     /**
@@ -100,17 +114,18 @@ public abstract class CommandTransport {
      * 
      * <p>
      * If the transport encounters any error from the lower layer (say, the underlying TCP/IP socket
-     * encountered a REST), then call {@link Channel#terminate(IOException)} to initiate the abnormal
+     * encountered a REST), then call {@link CommandReceiver#terminate(IOException)} to initiate the abnormal
      * channel termination. This in turn calls {@link #closeRead()} to shutdown the reader side.
-     * 
      */
     public abstract void setup(Channel channel, CommandReceiver receiver);
 
     /**
      * Called by {@link Channel} to send one command to the other side.
      * 
-     * {@link Channel} serializes the invocation of this method for ordering.
+     * {@link Channel} serializes the invocation of this method for ordering. That is,
+     * at any given point in time only one thread executes this method.
      *
+     * <p>
      * Asynchronous transport must serialize the given command object before
      * returning from this method, as its content can be modified by the calling
      * thread as soon as this method returns. Also, if an asynchronous transport
@@ -119,7 +134,8 @@ public abstract class CommandTransport {
      * if too many commands are queueing up waiting for the network to unclog.)
      *
      * @param cmd
-     *      The command object that needs to be sent. Never null.
+     *      The command object that needs to be sent. Never null. This must be
+     *      serialized via {@link Command#writeTo(Channel, ObjectOutputStream)}
      * @param last
      *      Informational flag that indicates that this is the last
      *      call of the {@link #write(Command, boolean)}.

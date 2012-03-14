@@ -32,7 +32,7 @@ public final class Capability implements Serializable {
         this.mask = mask;
     }
 
-    Capability() {
+    public Capability() {
         this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING);
     }
 

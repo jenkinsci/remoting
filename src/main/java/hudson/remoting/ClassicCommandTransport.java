@@ -10,15 +10,21 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 
 /**
+ * The default {@link CommandTransport} that has been used historically.
+ * 
+ * <p>
+ * This implementation builds a {@link SynchronousCommandTransport} on top of a plain bi-directional byte stream.
+ * {@link Mode} support allows this to be built on 8-bit unsafe transport, such as telnet.
+ * 
  * @author Kohsuke Kawaguchi
  */
-/*package*/ final class ByteStreamCommandTransport extends SynchronousCommandTransport {
+/*package*/ final class ClassicCommandTransport extends SynchronousCommandTransport {
     private final ObjectInputStream ois;
     private final ObjectOutputStream oos;
     private final Capability remoteCapability;
     private final OutputStream underlyingStream;
 
-    private ByteStreamCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, OutputStream underlyingStream, Capability remoteCapability) {
+    private ClassicCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, OutputStream underlyingStream, Capability remoteCapability) {
         this.ois = ois;
         this.oos = oos;
         this.underlyingStream = underlyingStream;
@@ -31,13 +37,8 @@ import java.io.OutputStream;
     }
 
     public final void write(Command cmd, boolean last) throws IOException {
-        Channel old = Channel.setCurrent(channel);
-        try {
-            oos.writeObject(cmd);
-            oos.flush();        // make sure the command reaches the other end.
-        } finally {
-            Channel.setCurrent(old);
-        }
+        cmd.writeTo(channel,oos);
+        oos.flush();        // make sure the command reaches the other end.
 
         // unless this is the last command, have OOS and remote OIS forget all the objects we sent
         // in this command. Otherwise it'll keep objects in memory unnecessarily.
@@ -54,12 +55,7 @@ import java.io.OutputStream;
     }
 
     public final Command read() throws IOException, ClassNotFoundException {
-        Channel old = Channel.setCurrent(channel);
-        try {
-            return (Command)ois.readObject();
-        } finally {
-            Channel.setCurrent(old);
-        }
+        return Command.readFrom(channel,ois);
     }
 
     public void closeRead() throws IOException {
@@ -73,7 +69,7 @@ import java.io.OutputStream;
 
     public static CommandTransport create(Mode mode, InputStream is, OutputStream os, OutputStream header, ClassLoader base, Capability capability) throws IOException {
         if (base==null)
-            base = ByteStreamCommandTransport.class.getClassLoader();
+            base = ClassicCommandTransport.class.getClassLoader();
 
         // write the magic preamble.
         // certain communication channel, such as forking JVM via ssh,
@@ -121,7 +117,7 @@ import java.io.OutputStream;
                                         throw new IOException("Protocol negotiation failure");
                                 }
 
-                                return new ByteStreamCommandTransport(
+                                return new ClassicCommandTransport(
                                         new ObjectInputStreamEx(mode.wrap(is),base),
                                         oos, os, cap);
                             case 2:

@@ -14,7 +14,7 @@ import java.util.logging.Logger;
  *     
  * @author Kohsuke Kawaguchi
  */
-abstract class SynchronousCommandTransport extends CommandTransport {
+public abstract class SynchronousCommandTransport extends CommandTransport {
     protected Channel channel;
 
     /**
