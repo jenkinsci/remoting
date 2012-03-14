@@ -33,7 +33,6 @@ import hudson.remoting.forward.PortForwarder;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -107,10 +106,13 @@ import java.util.concurrent.ThreadFactory;
  * @author Kohsuke Kawaguchi
  */
 public class Channel implements VirtualChannel, IChannel {
-    private final ObjectInputStream ois;
-    private final ObjectOutputStream oos;
+    private final CommandTransport stream;
+
     /**
      * {@link OutputStream} that's given to the constructor. This is the hand-off with the lower layer.
+     *
+     * @deprecated
+     *      See {@link #getUnderlyingOutput()}.
      */
     private final OutputStream underlyingOutput;
 
@@ -221,7 +223,7 @@ public class Channel implements VirtualChannel, IChannel {
     /**
      * Proxy to the remote {@link Channel} object.
      */
-    private IChannel remoteChannel;
+    private final IChannel remoteChannel;
 
     /**
      * Capability of the remote {@link Channel}.
@@ -289,7 +291,7 @@ public class Channel implements VirtualChannel, IChannel {
          * if the preamble is "AAB", we'll fail to find a preamble
          * in "AAAB".
          */
-        private final byte[] preamble;
+        /*package*/ final byte[] preamble;
 
         Mode(String preamble) {
             try {
@@ -367,10 +369,14 @@ public class Channel implements VirtualChannel, IChannel {
     }
 
     /*package*/ Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted, ClassLoader base, Capability capability) throws IOException {
+        this(name,exec, ByteStreamCommandTransport.create(mode, is, os, header, base, capability),restricted,base);
+    }
+
+    public Channel(String name, ExecutorService exec, CommandTransport stream, boolean restricted, ClassLoader base) throws IOException {
         this.name = name;
         this.executor = new InterceptingExecutorService(exec);
         this.isRestricted = restricted;
-        this.underlyingOutput = os;
+        this.underlyingOutput = stream.getUnderlyingStream();
 
         if (base==null)
             base = getClass().getClassLoader();
@@ -380,74 +386,12 @@ public class Channel implements VirtualChannel, IChannel {
             throw new AssertionError(); // export number 1 is reserved for the channel itself
         remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false);
 
-        // write the magic preamble.
-        // certain communication channel, such as forking JVM via ssh,
-        // may produce some garbage at the beginning (for example a remote machine
-        // might print some warning before the program starts outputting its own data.)
-        //
-        // so use magic preamble and discard all the data up to that to improve robustness.
+        this.remoteCapability = stream.getRemoteCapability();
+        this.pipeWriter = createPipeWriter();
 
-        capability.writePreamble(os);
+        this.stream = stream;
 
-        ObjectOutputStream oos = null;
-        if(mode!= Mode.NEGOTIATE) {
-            os.write(mode.preamble);
-            oos = new ObjectOutputStream(mode.wrap(os));
-            oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
-        }
-
-        {// read the input until we hit preamble
-            Mode[] modes={Mode.BINARY,Mode.TEXT};
-            byte[][] preambles = new byte[][]{Mode.BINARY.preamble, Mode.TEXT.preamble, Capability.PREAMBLE};
-            int[] ptr=new int[3];
-            Capability cap = new Capability(0); // remote capacity that we obtained. If we don't hear from remote, assume no capability
-
-            while(true) {
-                int ch = is.read();
-                if(ch==-1)
-                    throw new EOFException("unexpected stream termination");
-
-                for(int i=0;i<preambles.length;i++) {
-                    byte[] preamble = preambles[i];
-                    if(preamble[ptr[i]]==ch) {
-                        if(++ptr[i]==preamble.length) {
-                            switch (i) {
-                            case 0:
-                            case 1:
-                                // transmission mode negotiation
-                                if(mode==Mode.NEGOTIATE) {
-                                    // now we know what the other side wants, so send the consistent preamble
-                                    mode = modes[i];
-                                    os.write(mode.preamble);
-                                    oos = new ObjectOutputStream(mode.wrap(os));
-                                    oos.flush();
-                                } else {
-                                    if(modes[i]!=mode)
-                                        throw new IOException("Protocol negotiation failure");
-                                }
-                                this.oos = oos;
-                                this.remoteCapability = cap;
-                                this.pipeWriter = createPipeWriter();
-                                this.ois = new ObjectInputStreamEx(mode.wrap(is),base);
-                                new ReaderThread(name).start();
-
-                                return;
-                            case 2:
-                                cap = Capability.read(is);
-                                break;
-                            }
-                            ptr[i]=0; // reset
-                        }
-                    } else {
-                        // didn't match.
-                        ptr[i]=0;
-                    }
-                }
-
-                if(header!=null)
-                    header.write(ch);
-            }
-        }
+        new ReaderThread(name).start();
     }
 
     /**
@@ -499,20 +443,13 @@ public class Channel implements VirtualChannel, IChannel {
             throw new ChannelClosedException(outClosed);
         if(logger.isLoggable(Level.FINE))
             logger.fine("Send "+cmd);
-        Channel old = Channel.setCurrent(this);
-        try {
-            oos.writeObject(cmd);
-            oos.flush();        // make sure the command reaches the other end.
-        } finally {
-            Channel.setCurrent(old);
-            commandsSent++;
-        }
+
         // unless this is the last command, have OOS and remote OIS forget all the objects we sent
         // in this command. Otherwise it'll keep objects in memory unnecessarily.
         // However, this may fail if the command was the close, because that's supposed to be the last command
-        // ever sent. See the comment from jglick on HUDSON-3077 about what happens if we do oos.reset(). 
-        if(!(cmd instanceof CloseCommand))
-            oos.reset();
+        // ever sent. See the comment from jglick on JENKINS-3077 about what happens if we do oos.reset().
+        stream.write(this, cmd, cmd instanceof CloseCommand);
+        commandsSent++;
     }
 
     /**
@@ -907,7 +844,7 @@ public class Channel implements VirtualChannel, IChannel {
         send(new CloseCommand(diagnosis));
         outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
         try {
-            oos.close();
+            stream.closeWrite();
         } catch (IOException e) {
             // there's a race condition here.
             // the remote peer might have already responded to the close command
@@ -1122,13 +1059,8 @@ public class Channel implements VirtualChannel, IChannel {
                 while(inClosed==null) {
                     Command cmd = null;
                     try {
-                        Channel old = Channel.setCurrent(Channel.this);
-                        try {
-                            cmd = (Command)ois.readObject();
-                            lastHeard = System.currentTimeMillis();
-                        } finally {
-                            Channel.setCurrent(old);
-                        }
+                        cmd = stream.read(Channel.this);
+                        lastHeard = System.currentTimeMillis();
                     } catch (EOFException e) {
                         IOException ioe = new IOException("Unexpected termination of the channel");
                         ioe.initCause(e);
@@ -1151,7 +1083,7 @@ public class Channel implements VirtualChannel, IChannel {
                         commandsExecuted++;
                     }
                 }
-                ois.close();
+                stream.closeRead();
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "I/O error in channel "+name,e);
                 terminate(e);
