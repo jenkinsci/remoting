@@ -72,6 +72,9 @@ import java.io.OutputStream;
     }
 
     public static CommandTransport create(Mode mode, InputStream is, OutputStream os, OutputStream header, ClassLoader base, Capability capability) throws IOException {
+        if (base==null)
+            base = ByteStreamCommandTransport.class.getClassLoader();
+
         // write the magic preamble.
         // certain communication channel, such as forking JVM via ssh,
         // may produce some garbage at the beginning (for example a remote machine
