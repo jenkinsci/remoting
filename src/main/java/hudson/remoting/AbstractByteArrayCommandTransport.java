@@ -14,6 +14,7 @@ import java.util.logging.Logger;
  * for transport implementers to worry about.
  *
  * @author Kohsuke Kawaguchi
+ * @since 2.13
  */
 public abstract class AbstractByteArrayCommandTransport extends CommandTransport {
     protected Channel channel;

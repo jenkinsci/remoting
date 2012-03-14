@@ -373,6 +373,21 @@ public class Channel implements VirtualChannel, IChannel {
         this(name,exec, ClassicCommandTransport.create(mode, is, os, header, base, capability),restricted,base);
     }
 
+    /**
+     * Creates a new channel.
+     *
+     * @param name
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
+     * @param exec
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
+     * @param transport
+     *      The transport that we run {@link Channel} on top of.
+     * @param base
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
+     * @param restricted
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
+     * @since 2.13
+     */
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
         this.name = name;
         this.executor = new InterceptingExecutorService(exec);

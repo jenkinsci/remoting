@@ -17,6 +17,7 @@ import java.io.OutputStream;
  * {@link Mode} support allows this to be built on 8-bit unsafe transport, such as telnet.
  * 
  * @author Kohsuke Kawaguchi
+ * @since 2.13
  */
 /*package*/ final class ClassicCommandTransport extends SynchronousCommandTransport {
     private final ObjectInputStream ois;

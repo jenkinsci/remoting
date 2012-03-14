@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;
  * for transport implementers to worry about.
  * 
  * @author Kohsuke Kawaguchi
+ * @since 2.13
  */
 public abstract class AbstractSynchronousByteArrayCommandTransport extends SynchronousCommandTransport {
     /**

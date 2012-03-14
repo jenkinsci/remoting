@@ -45,6 +45,7 @@ import java.io.OutputStream;
  * {@link Command#readFrom(Channel, ObjectInputStream)}.
  *
  * @author Kohsuke Kawaguchi
+ * @since 2.13
  */
 public abstract class CommandTransport {
     /**
