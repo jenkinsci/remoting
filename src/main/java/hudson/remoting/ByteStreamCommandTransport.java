@@ -16,19 +16,21 @@ import java.io.OutputStream;
     private final ObjectInputStream ois;
     private final ObjectOutputStream oos;
     private final Capability remoteCapability;
+    private final OutputStream underlyingStream;
 
-    private ByteStreamCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, Capability remoteCapability) {
+    private ByteStreamCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, OutputStream underlyingStream, Capability remoteCapability) {
         this.ois = ois;
         this.oos = oos;
+        this.underlyingStream = underlyingStream;
         this.remoteCapability = remoteCapability;
     }
 
     @Override
-    public Capability getRemoteCapability() throws IOException {
+    public Capability getRemoteCapability(Channel channel) throws IOException {
         return remoteCapability;
     }
 
-    public void write(Channel channel, Command cmd, boolean last) throws IOException {
+    public final void write(Channel channel, Command cmd, boolean last) throws IOException {
         Channel old = Channel.setCurrent(channel);
         try {
             oos.writeObject(cmd);
@@ -40,11 +42,11 @@ import java.io.OutputStream;
             oos.reset();
     }
 
-    public void closeWrite() throws IOException {
+    public void closeWrite(Channel channel) throws IOException {
         oos.close();
     }
 
-    public Command read(Channel channel) throws IOException, ClassNotFoundException {
+    public final Command read(Channel channel) throws IOException, ClassNotFoundException {
         Channel old = Channel.setCurrent(channel);
         try {
             return (Command)ois.readObject();
@@ -53,8 +55,13 @@ import java.io.OutputStream;
         }
     }
 
-    public void closeRead() throws IOException {
+    public void closeRead(Channel channel) throws IOException {
         ois.close();
+    }
+
+    @Override
+    OutputStream getUnderlyingStream() {
+        return underlyingStream;
     }
 
     public static CommandTransport create(Mode mode, InputStream is, OutputStream os, OutputStream header, ClassLoader base, Capability capability) throws IOException {
@@ -106,8 +113,7 @@ import java.io.OutputStream;
 
                                 return new ByteStreamCommandTransport(
                                         new ObjectInputStreamEx(mode.wrap(is),base),
-                                        oos,
-                                        cap);
+                                        oos, os, cap);
                             case 2:
                                 cap = Capability.read(is);
                                 break;

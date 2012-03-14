@@ -33,6 +33,7 @@ import hudson.remoting.forward.PortForwarder;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
@@ -386,7 +387,7 @@ public class Channel implements VirtualChannel, IChannel {
             throw new AssertionError(); // export number 1 is reserved for the channel itself
         remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false);
 
-        this.remoteCapability = stream.getRemoteCapability();
+        this.remoteCapability = stream.getRemoteCapability(this);
         this.pipeWriter = createPipeWriter();
 
         this.stream = stream;
@@ -844,7 +845,7 @@ public class Channel implements VirtualChannel, IChannel {
         send(new CloseCommand(diagnosis));
         outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
         try {
-            stream.closeWrite();
+            stream.closeWrite(this);
         } catch (IOException e) {
             // there's a race condition here.
             // the remote peer might have already responded to the close command
@@ -1083,7 +1084,10 @@ public class Channel implements VirtualChannel, IChannel {
                         commandsExecuted++;
                     }
                 }
-                stream.closeRead();
+                stream.closeRead(Channel.this);
+            } catch (InterruptedException e) {
+                logger.log(Level.SEVERE, "I/O error in channel "+name,e);
+                terminate((InterruptedIOException)new InterruptedIOException().initCause(e));
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "I/O error in channel "+name,e);
                 terminate(e);
