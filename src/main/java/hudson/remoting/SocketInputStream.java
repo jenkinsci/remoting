@@ -49,5 +49,7 @@ public class SocketInputStream extends FilterInputStream {
     @Override
     public void close() throws IOException {
         socket.shutdownInput();
+        if (socket.isOutputShutdown())
+            socket.close();
     }
 }
