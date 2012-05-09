@@ -1107,7 +1107,7 @@ public class Channel implements VirtualChannel, IChannel {
 
     private static final Logger logger = Logger.getLogger(Channel.class.getName());
 
-    public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class+".pipeWindowSize",128*1024);
+    public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",128*1024);
 
 //    static {
 //        ConsoleHandler h = new ConsoleHandler();
