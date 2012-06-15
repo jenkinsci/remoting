@@ -193,7 +193,8 @@ public final class Pipe implements Serializable {
         }
 
         protected void execute(final Channel channel) {
-            channel.pipeWriter.submit(new Runnable() {
+            // ordering barrier not needed for this I/O call, so not giving I/O ID.
+            channel.pipeWriter.submit(0,new Runnable() {
                 public void run() {
                     try {
                         final ProxyOutputStream ros = (ProxyOutputStream) channel.getExportedObject(oidRos);

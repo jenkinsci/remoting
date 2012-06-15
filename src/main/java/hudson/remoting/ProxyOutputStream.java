@@ -120,7 +120,7 @@ final class ProxyOutputStream extends OutputStream {
                     throw (IOException)new InterruptedIOException().initCause(e);
                 }
 
-                channel.send(new Chunk(oid,b,off,sendable));
+                channel.send(new Chunk(channel.newIoId(),oid,b,off,sendable));
                 window.decrease(sendable);
                 off+=sendable;
                 len-=sendable;
@@ -130,7 +130,7 @@ final class ProxyOutputStream extends OutputStream {
 
     public synchronized void flush() throws IOException {
         if(channel!=null)
-            channel.send(new Flush(oid));
+            channel.send(new Flush(channel.newIoId(),oid));
     }
 
     public synchronized void close() throws IOException {
@@ -140,7 +140,7 @@ final class ProxyOutputStream extends OutputStream {
     }
 
     private void doClose() throws IOException {
-        channel.send(new EOF(oid));
+        channel.send(new EOF(channel.newIoId(),oid));
         channel = null;
         oid = -1;
     }
@@ -150,50 +150,26 @@ final class ProxyOutputStream extends OutputStream {
         super.finalize();
         // if we haven't done so, release the exported object on the remote side.
         if(channel!=null) {
-            channel.send(new Unexport(oid));
+            channel.send(new Unexport(channel.newIoId(),oid));
             channel = null;
             oid = -1;
         }
     }
 
     /**
-     * I/O operations in remoting gets executed by a separate pipe thread asynchronously.
-     * So if a closure performs some I/O (such as writing to the RemoteOutputStream) then returns,
-     * it is possible that the calling thread unblocks before the I/O actually completes.
-     * <p>
-     * This race condition creates a truncation problem like JENKINS-9189 or JENKINS-7871.
-     * The initial fix for this was to introduce {@link Channel#syncLocalIO()}, but given the
-     * recurrence in JENKINS-9189, I concluded that it's too error prone to expect the user of the
-     * remoting to make such a call in the right place.
-     * <p>
-     * So the goal of this code is to automatically ensure the proper ordering of the return from
-     * the {@link Request#call(Channel)} and the I/O operations done during the call. We do this
-     * by attributing I/O call to a {@link Request}, then keeping track of the last I/O operation
-     * performed.
-     */
-    private static void markForIoSync(Channel channel, int requestId, java.util.concurrent.Future<?> ioOp) {
-        Request<?,?> call = channel.pendingCalls.get(requestId);
-        // call==null if:
-        //  1) the remote peer uses old version that doesn't set the requestId field
-        //  2) a bug in the code, but in that case we are being defensive
-        if (call!=null)
-            call.lastIo = ioOp;
-    }
-
-
-    /**
      * {@link Command} for sending bytes.
      */
     private static final class Chunk extends Command {
         private final int oid;
-        private final int requestId = Request.getCurrentRequestId();
+        private final int ioId;
         private final byte[] buf;
 
-        public Chunk(int oid, byte[] buf, int start, int len) {
+        public Chunk(int ioId, int oid, byte[] buf, int start, int len) {
             // to improve the performance when a channel is used purely as a pipe,
             // don't record the stack trace. On FilePath.writeToTar case, the stack trace and the OOS header
             // takes up about 1.5K.
             super(false);
+            this.ioId = ioId;
             this.oid = oid;
             if (start==0 && len==buf.length)
                 this.buf = buf;
@@ -205,7 +181,7 @@ final class ProxyOutputStream extends OutputStream {
 
         protected void execute(final Channel channel) {
             final OutputStream os = (OutputStream) channel.getExportedObject(oid);
-            markForIoSync(channel,requestId,channel.pipeWriter.submit(new Runnable() {
+            channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
                     try {
                         os.write(buf);
@@ -234,7 +210,7 @@ final class ProxyOutputStream extends OutputStream {
                         }
                     }
                 }
-            }));
+            });
         }
 
         public String toString() {
@@ -249,16 +225,17 @@ final class ProxyOutputStream extends OutputStream {
      */
     private static final class Flush extends Command {
         private final int oid;
-        private final int requestId = Request.getCurrentRequestId();
+        private final int ioId;
 
-        public Flush(int oid) {
+        public Flush(int ioId, int oid) {
             super(false);
+            this.ioId = ioId;
             this.oid = oid;
         }
 
         protected void execute(Channel channel) {
             final OutputStream os = (OutputStream) channel.getExportedObject(oid);
-            markForIoSync(channel,requestId,channel.pipeWriter.submit(new Runnable() {
+            channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
                     try {
                         os.flush();
@@ -266,7 +243,7 @@ final class ProxyOutputStream extends OutputStream {
                         // ignore errors
                     }
                 }
-            }));
+            });
         }
 
         public String toString() {
@@ -284,13 +261,15 @@ final class ProxyOutputStream extends OutputStream {
      */
     private static class Unexport extends Command {
         private final int oid;
+        private final int ioId;
 
-        public Unexport(int oid) {
+        public Unexport(int ioId, int oid) {
+            this.ioId = ioId;
             this.oid = oid;
         }
 
         protected void execute(final Channel channel) {
-            channel.pipeWriter.submit(new Runnable() {
+            channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
                     channel.unexport(oid);
                 }
@@ -309,16 +288,17 @@ final class ProxyOutputStream extends OutputStream {
      */
     private static final class EOF extends Command {
         private final int oid;
-        private final int requestId = Request.getCurrentRequestId();
+        private final int ioId;
 
-        public EOF(int oid) {
+        public EOF(int ioId, int oid) {
+            this.ioId = ioId;
             this.oid = oid;
         }
 
 
         protected void execute(final Channel channel) {
             final OutputStream os = (OutputStream) channel.getExportedObject(oid);
-            markForIoSync(channel,requestId,channel.pipeWriter.submit(new Runnable() {
+            channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
                     channel.unexport(oid);
                     try {
@@ -327,7 +307,7 @@ final class ProxyOutputStream extends OutputStream {
                         // ignore errors
                     }
                 }
-            }));
+            });
         }
 
         public String toString() {

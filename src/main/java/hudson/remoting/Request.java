@@ -65,6 +65,15 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      */
     private final int id;
 
+    /**
+     * Set by the sender to the ID of the last I/O issued from the sender thread.
+     * The receiver will ensure that this I/O operation has completed before carrying out the task.
+     *
+     * <p>
+     * If the sender doesn't support this, the receiver will see 0.
+     */
+    private int lastIoId;
+
     private volatile Response<RSP,EXC> response;
 
     /**
@@ -73,10 +82,10 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
     protected volatile transient Future<?> future;
 
     /**
-     * If this request performed some I/O back in the caller side during the remote call execution, set to last such
-     * operation, so that we can block until its completion.
+     * Set by {@link Response} to point to the I/O ID issued from the other side that this request needs to
+     * synchronize with, before declaring the call to be complete.
      */
-    /*package*/ volatile transient Future<?> lastIo;
+    /*package*/ volatile transient int responseIoId;
 
     protected Request() {
         synchronized(Request.class) {
@@ -99,6 +108,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      If the {@link #perform(Channel)} throws an exception.
      */
     public final RSP call(Channel channel) throws EXC, InterruptedException, IOException {
+        lastIoId = channel.lastIoId();
+
         // Channel.send() locks channel, and there are other call sequences
         // (  like Channel.terminate()->Request.abort()->Request.onCompleted()  )
         // that locks channel -> request, so lock objects in the same order
@@ -133,12 +144,11 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                     t.setName(name);
                 }
 
-                if (lastIo!=null)
-                    try {
-                        lastIo.get();
-                    } catch (ExecutionException e) {
-                        // ignore the I/O error
-                    }
+                try {
+                    channel.pipeWriter.get(responseIoId).get();
+                } catch (ExecutionException e) {
+                    // ignore the I/O error
+                }
 
                 Object exc = response.exception;
 
@@ -177,6 +187,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      */
     public final hudson.remoting.Future<RSP> callAsync(final Channel channel) throws IOException {
         response=null;
+        lastIoId = channel.lastIoId();
 
         channel.pendingCalls.put(id,this);
         channel.send(this);
@@ -270,7 +281,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * Aborts the processing. The calling thread will receive an exception. 
      */
     /*package*/ void abort(IOException e) {
-        onCompleted(new Response(id,new RequestAbortedException(e)));
+        onCompleted(new Response(id,0,new RequestAbortedException(e)));
     }
 
     /**
@@ -279,19 +290,29 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
     protected final void execute(final Channel channel) {
         channel.executingCalls.put(id,this);
         future = channel.executor.submit(new Runnable() {
+
+            private int startIoId;
+
+            private int calcLastIoId() {
+                int endIoId = channel.lastIoId();
+                if (startIoId==endIoId) return 0;
+                return endIoId;
+            }
+
             public void run() {
                 try {
                     Command rsp;
-                    CURRENT.set(Request.this);
+                    startIoId = channel.lastIoId();
                     try {
+                        // make sure any I/O preceding this has completed
+                        channel.pipeWriter.get(lastIoId).get();
+
                         RSP r = Request.this.perform(channel);
                         // normal completion
-                        rsp = new Response<RSP,EXC>(id,r);
+                        rsp = new Response<RSP,EXC>(id,calcLastIoId(),r);
                     } catch (Throwable t) {
                         // error return
-                        rsp = new Response<RSP,Throwable>(id,t);
-                    } finally {
-                        CURRENT.set(null);
+                        rsp = new Response<RSP,Throwable>(id,calcLastIoId(),t);
                     }
                     if(chainCause)
                         rsp.createdAt.initCause(createdAt);
@@ -325,16 +346,6 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * This will substantially increase the network traffic, but useful for debugging.
      */
     public static boolean chainCause = Boolean.getBoolean(Request.class.getName()+".chainCause");
-
-    /**
-     * Set to the {@link Request} object during {@linkplain #perform(Channel) the execution of the call}.
-     */
-    /*package*/ static ThreadLocal<Request> CURRENT = new ThreadLocal<Request>();
-
-    /*package*/ static int getCurrentRequestId() {
-        Request r = CURRENT.get();
-        return r!=null ? r.id : 0;
-    }
 
     /**
      * Interrupts the execution of the remote computation.

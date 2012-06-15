@@ -137,7 +137,22 @@ public class Channel implements VirtualChannel, IChannel {
      */
     private volatile Throwable outClosed = null;
 
+    /**
+     * Requests that are sent to the remote side for execution, yet we are waiting locally until
+     * we hear back their responses.
+     */
     /*package*/ final Map<Integer,Request<?,?>> pendingCalls = new Hashtable<Integer,Request<?,?>>();
+
+    /**
+     * Remembers last I/O ID issued from locally to the other side, per thread.
+     * int[1] is used as a holder of int.
+     */
+    private final ThreadLocal<int[]> lastIoId = new ThreadLocal<int[]>() {
+        @Override
+        protected int[] initialValue() {
+            return new int[1];
+        }
+    };
 
     /**
      * Records the {@link Request}s being executed on this channel, sent by the remote peer.
@@ -215,6 +230,8 @@ public class Channel implements VirtualChannel, IChannel {
      */
     public final AtomicInteger resourceLoadingCount = new AtomicInteger();
 
+    private final AtomicInteger ioId = new AtomicInteger();
+
     /**
      * Property bag that contains application-specific stuff.
      */
@@ -250,7 +267,7 @@ public class Channel implements VirtualChannel, IChannel {
      * in case read/write blocks. It is single thread to ensure FIFO; I/O needs to execute
      * in the same order the remote peer told us to execute them.
      */
-    /*package*/ final ExecutorService pipeWriter;
+    /*package*/ final PipeWriter pipeWriter;
 
     /**
      * ClassLaoder that remote classloaders should use as the basis.
@@ -403,7 +420,7 @@ public class Channel implements VirtualChannel, IChannel {
         remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false);
 
         this.remoteCapability = transport.getRemoteCapability();
-        this.pipeWriter = createPipeWriter();
+        this.pipeWriter = new PipeWriter(createPipeWriterExecutor());
 
         this.transport = transport;
 
@@ -453,7 +470,7 @@ public class Channel implements VirtualChannel, IChannel {
      * reader thread (thus prevent blockage.) Otherwise let the channel reader thread do it,
      * which is the historical behaviour.
      */
-    private ExecutorService createPipeWriter() {
+    private ExecutorService createPipeWriterExecutor() {
         if (remoteCapability.supportsPipeThrottling())
             return Executors.newSingleThreadExecutor(new ThreadFactory() {
                 public Thread newThread(Runnable r) {
@@ -1025,6 +1042,28 @@ public class Channel implements VirtualChannel, IChannel {
     }
 
     /**
+     * Dispenses the unique I/O ID.
+     *
+     * When a {@link Channel} requests an activity that happens in {@link #pipeWriter},
+     * the sender assigns unique I/O ID to this request, which enables later
+     * commands to sync up with their executions.
+     *
+     * @see PipeWriter
+     */
+    /*package*/ int newIoId() {
+        int v = ioId.incrementAndGet();
+        lastIoId.get()[0] = v;
+        return v;
+    }
+
+    /**
+     * Gets the last I/O ID issued by the calling thread, or 0 if none is recorded.
+     */
+    /*package*/ int lastIoId() {
+        return lastIoId.get()[0];
+    }
+
+    /**
      * Blocks until all the I/O packets sent before this gets fully executed by the remote side, then return.
      *
      * @throws IOException
@@ -1034,15 +1073,34 @@ public class Channel implements VirtualChannel, IChannel {
         call(new IOSyncer());
     }
 
+//  Barrier doesn't work because IOSyncer is a Callable and not Command
+//  (yet making it Command would break JENKINS-5977, which introduced this split in the first place!)
+//    /**
+//     * Non-blocking version of {@link #syncIO()} that has a weaker commitment.
+//     *
+//     * This method only guarantees that any later remote commands will happen after all the I/O packets sent before
+//     * this method call gets fully executed. This is faster in that it it doesn't wait for a response
+//     * from the other side, yet it normally achieves the desired semantics.
+//     */
+//    public void barrierIO() throws IOException {
+//        callAsync(new IOSyncer());
+//    }
+
     public void syncLocalIO() throws InterruptedException {
+        Thread t = Thread.currentThread();
+        String old = t.getName();
+        t.setName("I/O sync: "+old);
         try {
-            pipeWriter.submit(new Runnable() {
+            // no one waits for the completion of this Runnable, so not using I/O ID
+            pipeWriter.submit(0,new Runnable() {
                 public void run() {
                     // noop
                 }
             }).get();
         } catch (ExecutionException e) {
             throw new AssertionError(e); // impossible
+        } finally {
+            t.setName(old);
         }
     }
 

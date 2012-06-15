@@ -37,17 +37,30 @@ final class Response<RSP,EXC extends Throwable> extends Command {
      */
     private final int id;
 
+    /**
+     * Set by the sender to the ID of the last I/O issued during the command execution.
+     * The receiver will ensure that this I/O operation has completed before carrying out the task.
+     *
+     * <p>
+     * If the sender doesn't support this, the receiver will see 0.
+     *
+     * @see PipeWriter
+     */
+    private int lastIoId;
+
     final RSP returnValue;
     final EXC exception;
 
-    Response(int id, RSP returnValue) {
+    Response(int id, int lastIoId, RSP returnValue) {
         this.id = id;
+        this.lastIoId = lastIoId;
         this.returnValue = returnValue;
         this.exception = null;
     }
 
-    Response(int id, EXC exception) {
+    Response(int id, int lastIoId, EXC exception) {
         this.id = id;
+        this.lastIoId = lastIoId;
         this.returnValue = null;
         this.exception = exception;
     }
@@ -60,6 +73,8 @@ final class Response<RSP,EXC extends Throwable> extends Command {
         Request req = channel.pendingCalls.get(id);
         if(req==null)
             return; // maybe aborted
+        req.responseIoId = lastIoId;
+
         req.onCompleted(this);
         channel.pendingCalls.remove(id);
     }
