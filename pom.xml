@@ -158,6 +158,9 @@ THE SOFTWARE.
             <manifest>
               <mainClass>hudson.remoting.Launcher</mainClass>
             </manifest>
+            <manifestEntries>
+              <Version>${project.version}</Version>
+            </manifestEntries>
           </archive>
         </configuration>
       </plugin>
