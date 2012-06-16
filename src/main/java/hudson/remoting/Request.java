@@ -87,6 +87,14 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      */
     /*package*/ volatile transient int responseIoId;
 
+    /**
+     *
+     * @deprecated as of 2.16
+     *      {@link PipeWriter} does this job better, but kept for backward compatibility to communicate
+     *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
+     */
+    /*package*/ volatile transient Future<?> lastIo;
+
     protected Request() {
         synchronized(Request.class) {
             id = nextId++;
@@ -143,6 +151,13 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                 } finally {
                     t.setName(name);
                 }
+
+                if (lastIo != null)
+                    try {
+                        lastIo.get();
+                    } catch (ExecutionException e) {
+                        // ignore the I/O error
+                    }
 
                 try {
                     channel.pipeWriter.get(responseIoId).get();
@@ -302,6 +317,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
             public void run() {
                 try {
                     Command rsp;
+                    CURRENT.set(Request.this);
                     startIoId = channel.lastIoId();
                     try {
                         // make sure any I/O preceding this has completed
@@ -313,6 +329,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                     } catch (Throwable t) {
                         // error return
                         rsp = new Response<RSP,Throwable>(id,calcLastIoId(),t);
+                    } finally {
+                        CURRENT.set(null);
                     }
                     if(chainCause)
                         rsp.createdAt.initCause(createdAt);
@@ -346,6 +364,20 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * This will substantially increase the network traffic, but useful for debugging.
      */
     public static boolean chainCause = Boolean.getBoolean(Request.class.getName()+".chainCause");
+
+    /**
+     * Set to the {@link Request} object during {@linkplain #perform(Channel) the execution of the call}.
+     *
+     * @deprecated as of 2.16
+     *      {@link PipeWriter} does this job better, but kept for backward compatibility to communicate
+     *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
+     */
+    /*package*/ static ThreadLocal<Request> CURRENT = new ThreadLocal<Request>();
+
+    /*package*/ static int getCurrentRequestId() {
+        Request r = CURRENT.get();
+        return r!=null ? r.id : 0;
+    }
 
     /**
      * Interrupts the execution of the remote computation.
