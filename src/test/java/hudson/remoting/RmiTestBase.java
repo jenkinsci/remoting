@@ -40,8 +40,8 @@ import junit.framework.TestSuite;
 })
 public abstract class RmiTestBase extends TestCase {
 
-    protected Channel channel;
-    protected ChannelRunner channelRunner = new InProcess();
+    protected transient Channel channel;
+    protected transient ChannelRunner channelRunner = new InProcess();
 
     protected void setUp() throws Exception {
         System.out.println("Starting "+getName());
