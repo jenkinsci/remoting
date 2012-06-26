@@ -78,11 +78,11 @@ public class CapturingOutputStream extends OutputStream {
 
     @Override
     public void write(byte[] b, int off, int len) throws IOException {
-        capture.add(Arrays.copyOfRange(b, off, len));
+        capture.add(Arrays.copyOfRange(b, off, off + len));
         underlyingStream.write(b, off, len);
     }
 
     public void dump() {
-        this.capture.dump();
+        new ByteArrayRingBufferDumper().dump(capture);
     }
 }

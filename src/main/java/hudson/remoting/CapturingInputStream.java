@@ -89,7 +89,7 @@ public class CapturingInputStream extends InputStream {
     }
 
     public void dump() {
-        this.capture.dump();
+        new ByteArrayRingBufferDumper().dump(capture);
     }
     
     private void capture(int off, int len) throws IOException {
@@ -104,7 +104,7 @@ public class CapturingInputStream extends InputStream {
             try {
                 underlyingStream.mark(len+1);
                 underlyingStream.read(b, off, len);
-                capture.add(off==0? b : Arrays.copyOfRange(b, off, len));
+                capture.add(off==0? b : Arrays.copyOfRange(b, off, off + len));
             } finally {
                 underlyingStream.reset();
             }
