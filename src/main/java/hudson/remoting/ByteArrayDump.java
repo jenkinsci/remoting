@@ -47,9 +47,7 @@ public class ByteArrayDump {
 
         if (mod > 0) {
             f.format("%04x: ", rows * 16);
-            for (int index = 0; index < mod; index++) {
-                dumpRow(f, buf, rows * 16, mod);
-            }
+            dumpRow(f, buf, rows * 16, mod);
         }
 
         f.flush();

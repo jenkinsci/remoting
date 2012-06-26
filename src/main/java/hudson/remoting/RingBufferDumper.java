@@ -62,15 +62,19 @@ public class RingBufferDumper {
         if (ring.getHeadSize() > 0) {
             stream.println("Head items");
             for (int i = 0; i < ring.getHeadSize(); i++) {
+            stream.printf("===[Item %d]===\n", i);
                 dumpOne(ring.getBuffer()[i], stream);
            }
+            stream.flush();
         }
 
         if (ring.getTailSize() > 0 && ring.getNumAdds() > ring.getHeadSize()) {
             stream.println("Tail items");
             for (int i = 0; i < ring.getTailSize(); i++) {
+                stream.printf("===[Item %d]===\n", i);
                 dumpOne(ring.getBuffer()[i], stream);
             }
+            stream.flush();
         }
     }
 
