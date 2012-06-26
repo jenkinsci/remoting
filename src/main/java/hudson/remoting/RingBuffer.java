@@ -23,7 +23,6 @@
  */
 package hudson.remoting;
 
-import java.io.PrintStream;
 import java.lang.reflect.Array;
 
 
@@ -98,42 +97,12 @@ public class RingBuffer<T> {
     }
 
 
-    /**
-     * Dumps the contents of the ring buffer to stderr.
-     *
-     * This is the same as calling
-     * <blockquote>
-     * <code>
-         dump(System.err);
-       </code>
-     * </blockquote>
-     */
-    public void dump() {
-        dump(System.err);
+    int getHeadSize() {
+        return this.headSize;
     }
 
-    /**
-     * Dumps the contents of the ring buffer to the specified print stream.
-     * 
-     * @param stream
-     */
-    public void dump(PrintStream stream) {
-        stream.printf("Buffer stats: %d head items, %d tail items, %d total adds\n",
-                this.headSize, this.tailSize, this.numAdds);
-
-        if (this.headSize > 0) {
-            stream.println("Head items");
-            for (int i = 0; i < this.headSize; i++) {
-                stream.println(this.buffer[i].toString());
-            }
-        }
-
-        if (this.tailSize > 0 && this.numAdds > this.headSize) {
-            stream.println("Tail items");
-            for (int i = 0; i < this.tailSize; i++) {
-                stream.println(this.buffer[calcTailLoopIndex(i)].toString());
-            }
-        }
+    int getTailSize() {
+        return this.tailSize;
     }
 
     /**
@@ -143,8 +112,8 @@ public class RingBuffer<T> {
      * @return 0 based index, or -1 if no insertion would happen
      */
     protected int calcAddIndex() {
-        if (this.numAdds < this.headSize) {
-            return this.numAdds;
+        if (this.getNumAdds() < this.getHeadSize()) {
+            return this.getNumAdds();
         } else {
             return calcTailIndex();
         }
@@ -157,8 +126,8 @@ public class RingBuffer<T> {
      * @return 0 based index, or -1 if next add would not store an element
      */
     protected int calcTailIndex() {
-        if (this.tailSize > 0) {
-            return (this.numAdds % this.tailSize) + this.headSize;
+        if (this.getTailSize() > 0) {
+            return (this.getNumAdds() % this.getTailSize()) + this.getHeadSize();
         } else {
             return -1;
         }
@@ -173,14 +142,13 @@ public class RingBuffer<T> {
      * @return
      */
     protected int calcTailLoopIndex(int index) {
-        if (index >= this.tailSize) {
+        if (index >= this.getTailSize()) {
             throw new IndexOutOfBoundsException("index must be less than tail size");
         }
         int base = calcTailIndex();
-        return ((base + index) % this.tailSize) + this.headSize;
+        return ((base + index) % this.getTailSize()) + this.getHeadSize();
     }
 
-    // Exposed for testing
     T[] getBuffer() {
         return (T[])this.buffer;
     }
