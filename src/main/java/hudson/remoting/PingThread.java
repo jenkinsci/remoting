@@ -110,6 +110,7 @@ public abstract class PingThread extends Thread {
                 if (e.getCause() instanceof RequestAbortedException)
                     return; // connection has shut down orderly.
                 onDead(e);
+                return;
             } catch (TimeoutException e) {
                 onDead(new TimeoutException("Ping started on "+start+" hasn't completed at "+System.currentTimeMillis()).initCause(e));
             }
