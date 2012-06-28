@@ -23,12 +23,18 @@ import java.io.OutputStream;
     private final ObjectInputStream ois;
     private final ObjectOutputStream oos;
     private final Capability remoteCapability;
-    private final OutputStream underlyingStream;
+    private final InputStream underlyingInputStream;
+    private final OutputStream underlyingOutputStream;
 
-    private ClassicCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, OutputStream underlyingStream, Capability remoteCapability) {
+    private static int CAPTURE_OUTPUT = Integer.getInteger(ClassicCommandTransport.class.getName() + ".captureOutput", 0);
+    private static int CAPTURE_INPUT = Integer.getInteger(ClassicCommandTransport.class.getName() + ".captureInput", 0);
+    
+
+    private ClassicCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, InputStream underlyingInput, OutputStream underlyingStream, Capability remoteCapability) {
         this.ois = ois;
         this.oos = oos;
-        this.underlyingStream = underlyingStream;
+        this.underlyingInputStream = underlyingInput;
+        this.underlyingOutputStream = underlyingStream;
         this.remoteCapability = remoteCapability;
     }
 
@@ -38,17 +44,22 @@ import java.io.OutputStream;
     }
 
     public final void write(Command cmd, boolean last) throws IOException {
-        cmd.writeTo(channel,oos);
-        oos.flush();        // make sure the command reaches the other end.
+        try {
+            cmd.writeTo(channel,oos);
+            oos.flush();        // make sure the command reaches the other end.
 
-        // unless this is the last command, have OOS and remote OIS forget all the objects we sent
-        // in this command. Otherwise it'll keep objects in memory unnecessarily.
-        // However, this may fail if the command was the close, because that's supposed to be the last command
-        // ever sent. It is possible for our ReaderThread to receive the reflecting close call from the other side
-        // and close the output before the sending code gets to here.
-        // See the comment from jglick on JENKINS-3077 about what happens if we do oos.reset().
-        if(!last)
-            oos.reset();
+            // unless this is the last command, have OOS and remote OIS forget all the objects we sent
+            // in this command. Otherwise it'll keep objects in memory unnecessarily.
+            // However, this may fail if the command was the close, because that's supposed to be the last command
+            // ever sent. It is possible for our ReaderThread to receive the reflecting close call from the other side
+            // and close the output before the sending code gets to here.
+            // See the comment from jglick on JENKINS-3077 about what happens if we do oos.reset().
+            if(!last)
+                oos.reset();
+        } catch (IOException e) {
+            dumpDiagnostics();
+            throw e;
+        }
     }
 
     public void closeWrite() throws IOException {
@@ -56,7 +67,12 @@ import java.io.OutputStream;
     }
 
     public final Command read() throws IOException, ClassNotFoundException {
-        return Command.readFrom(channel,ois);
+        try {
+            return Command.readFrom(channel,ois);
+        } catch (IOException e) {
+            dumpDiagnostics();
+            throw e;
+        }
     }
 
     public void closeRead() throws IOException {
@@ -65,7 +81,18 @@ import java.io.OutputStream;
 
     @Override
     OutputStream getUnderlyingStream() {
-        return underlyingStream;
+        return underlyingOutputStream;
+    }
+
+    void dumpDiagnostics() {
+        if (this.underlyingInputStream instanceof CapturingInputStream) {
+            System.err.println("Captured input stream: ");
+            ((CapturingInputStream)this.underlyingInputStream).dump();
+        }
+        if (this.underlyingOutputStream instanceof CapturingOutputStream) {
+            System.err.println("Captured output stream: ");
+            ((CapturingOutputStream)this.underlyingOutputStream).dump();
+        }
     }
 
     public static CommandTransport create(Mode mode, InputStream is, OutputStream os, OutputStream header, ClassLoader base, Capability capability) throws IOException {
@@ -111,6 +138,9 @@ import java.io.OutputStream;
                                     // now we know what the other side wants, so send the consistent preamble
                                     mode = modes[i];
                                     os.write(mode.preamble);
+                                    if (ClassicCommandTransport.CAPTURE_OUTPUT > 0) {
+                                        os = new CapturingOutputStream(os, ClassicCommandTransport.CAPTURE_OUTPUT);
+                                    }
                                     oos = new ObjectOutputStream(mode.wrap(os));
                                     oos.flush();
                                 } else {
@@ -118,9 +148,12 @@ import java.io.OutputStream;
                                         throw new IOException("Protocol negotiation failure");
                                 }
 
+                                if (ClassicCommandTransport.CAPTURE_INPUT > 0) {
+                                    is = new CapturingInputStream(is, ClassicCommandTransport.CAPTURE_INPUT);
+                                }
                                 return new ClassicCommandTransport(
                                         new ObjectInputStreamEx(mode.wrap(is),base),
-                                        oos, os, cap);
+                                        oos, is, os, cap);
                             case 2:
                                 cap = Capability.read(is);
                                 break;
