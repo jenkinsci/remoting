@@ -117,7 +117,7 @@ public abstract class PingThread extends Thread {
             }
         } while(remaining>0);
 
-        onDead(new TimeoutException("Ping started on "+start+" hasn't completed at "+System.currentTimeMillis()).initCause(e));
+        onDead(new TimeoutException("Ping started on "+start+" hasn't completed at "+System.currentTimeMillis()));//.initCause(e)
     }
 
     /**
