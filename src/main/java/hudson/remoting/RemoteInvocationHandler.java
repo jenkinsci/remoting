@@ -249,6 +249,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             Class<?>[] params = m.getParameterTypes();
             for( int i=0; i<arguments.length; i++ )
                 types[i] = params[i].getName();
+            assert types.length == arguments.length;
         }
 
         public Serializable call() throws Throwable {
@@ -286,7 +287,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 if(!m.getName().equals(methodName))
                     continue;
                 Class<?>[] paramTypes = m.getParameterTypes();
-                if(types.length!=arguments.length)
+                if(paramTypes.length!=arguments.length)
                     continue;
                 for( int i=0; i<types.length; i++ ) {
                     if(!types[i].equals(paramTypes[i].getName()))
