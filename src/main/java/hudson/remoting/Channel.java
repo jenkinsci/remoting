@@ -705,7 +705,9 @@ public class Channel implements VirtualChannel, IChannel {
      * @param e
      *      The error that caused the connection to be aborted. Never null.
      */
-    protected synchronized void terminate(IOException e) {
+    protected void terminate(IOException e) {
+        try {
+            synchronized (this) {
         if (e==null)    throw new IllegalArgumentException();
         outClosed=inClosed=e;
         try {
@@ -728,7 +730,9 @@ public class Channel implements VirtualChannel, IChannel {
             }
         } finally {
             notifyAll();
-
+        }
+            } // JENKINS-14909: leave synch block
+        } finally {
             if (e instanceof OrderlyShutdown)   e = null;
             for (Listener l : listeners.toArray(new Listener[listeners.size()]))
                 l.onClosed(this,e);
