@@ -118,6 +118,12 @@ THE SOFTWARE.
       <version>1.0</version>
       <optional>true</optional><!-- no need to have this at runtime -->
     </dependency>
+    <dependency>
+      <groupId>com.github.stephenc.findbugs</groupId>
+      <artifactId>findbugs-annotations</artifactId>
+      <version>1.3.9-1</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
 
   <build>

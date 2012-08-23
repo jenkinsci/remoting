@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.PipeWindow.Key;
@@ -705,6 +706,7 @@ public class Channel implements VirtualChannel, IChannel {
      * @param e
      *      The error that caused the connection to be aborted. Never null.
      */
+    @SuppressWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
     protected void terminate(IOException e) {
         try {
             synchronized (this) {
@@ -734,7 +736,7 @@ public class Channel implements VirtualChannel, IChannel {
             } // JENKINS-14909: leave synch block
         } finally {
             if (e instanceof OrderlyShutdown)   e = null;
-            for (Listener l : listeners.toArray(new Listener[listeners.size()]))
+            for (Listener l : listeners.toArray(new Listener[0]))
                 l.onClosed(this,e);
         }
     }
