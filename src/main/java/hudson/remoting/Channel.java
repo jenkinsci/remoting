@@ -706,38 +706,39 @@ public class Channel implements VirtualChannel, IChannel {
      * @param e
      *      The error that caused the connection to be aborted. Never null.
      */
+    @java.lang.SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     @SuppressWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
     protected void terminate(IOException e) {
         try {
             synchronized (this) {
-        if (e==null)    throw new IllegalArgumentException();
-        outClosed=inClosed=e;
-        try {
-            transport.closeRead();
-        } catch (IOException x) {
-            logger.log(Level.WARNING, "Failed to close down the reader side of the transport",x);
-        }
-        try {
-            synchronized(pendingCalls) {
-                for (Request<?,?> req : pendingCalls.values())
-                    req.abort(e);
-                pendingCalls.clear();
-            }
-            synchronized (executingCalls) {
-                for (Request<?, ?> r : executingCalls.values()) {
-                    java.util.concurrent.Future<?> f = r.future;
-                    if(f!=null) f.cancel(true);
+                if (e == null) throw new IllegalArgumentException();
+                outClosed = inClosed = e;
+                try {
+                    transport.closeRead();
+                } catch (IOException x) {
+                    logger.log(Level.WARNING, "Failed to close down the reader side of the transport", x);
                 }
-                executingCalls.clear();
-            }
-        } finally {
-            notifyAll();
-        }
+                try {
+                    synchronized (pendingCalls) {
+                        for (Request<?, ?> req : pendingCalls.values())
+                            req.abort(e);
+                        pendingCalls.clear();
+                    }
+                    synchronized (executingCalls) {
+                        for (Request<?, ?> r : executingCalls.values()) {
+                            java.util.concurrent.Future<?> f = r.future;
+                            if (f != null) f.cancel(true);
+                        }
+                        executingCalls.clear();
+                    }
+                } finally {
+                    notifyAll();
+                }
             } // JENKINS-14909: leave synch block
         } finally {
-            if (e instanceof OrderlyShutdown)   e = null;
+            if (e instanceof OrderlyShutdown) e = null;
             for (Listener l : listeners.toArray(new Listener[0]))
-                l.onClosed(this,e);
+                l.onClosed(this, e);
         }
     }
 
