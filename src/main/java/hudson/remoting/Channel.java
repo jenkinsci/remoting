@@ -32,11 +32,8 @@ import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.PortForwarder;
 
-<<<<<<< HEAD
-=======
 import java.io.Closeable;
 import java.io.EOFException;
->>>>>>> implement Closeable to take advantages of Closeables.closeQuietly, etc
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
