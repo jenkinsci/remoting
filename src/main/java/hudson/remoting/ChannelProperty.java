@@ -24,12 +24,14 @@
 
 package hudson.remoting;
 
+import java.io.Serializable;
+
 /**
  * A convenient key type for {@link Channel#getProperty(Object)} and {@link Channel#setProperty(Object, Object)}
  *
  * @author Kohsuke Kawaguchi
  */
-public class ChannelProperty<T> {
+public class ChannelProperty<T> implements Serializable {
     public final Class<T> type;
     public final String displayName;
 
@@ -37,4 +39,6 @@ public class ChannelProperty<T> {
         this.type = type;
         this.displayName = displayName;
     }
+
+    private static final long serialVersionUID = 1L;
 }
