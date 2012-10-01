@@ -33,7 +33,6 @@ import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.PortForwarder;
 
 import java.io.Closeable;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
