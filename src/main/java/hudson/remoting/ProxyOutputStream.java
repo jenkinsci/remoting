@@ -215,6 +215,9 @@ final class ProxyOutputStream extends OutputStream {
                     try {
                         os.write(buf);
                     } catch (IOException e) {
+                        if ("org.apache.catalina.connector.ClientAbortException".equals(e.getClass().getName())){
+                            e = new IOException("org.apache.catalina.connector.ClientAbortException:" + e.getMessage());
+                        }
                         try {
                             channel.send(new NotifyDeadWriter(e,oid));
                         } catch (ChannelClosedException x) {
