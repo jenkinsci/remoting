@@ -32,6 +32,7 @@ import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.PortForwarder;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
@@ -106,7 +107,7 @@ import java.util.concurrent.ThreadFactory;
  *
  * @author Kohsuke Kawaguchi
  */
-public class Channel implements VirtualChannel, IChannel {
+public class Channel implements VirtualChannel, IChannel, Closeable {
     private final CommandTransport transport;
 
     /**
