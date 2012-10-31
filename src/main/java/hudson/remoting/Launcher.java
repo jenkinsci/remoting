@@ -319,6 +319,8 @@ public class Launcher {
     }
 
     private void runOnSocket(Socket s) throws IOException, InterruptedException {
+        // we take care of buffering on our own
+        s.setTcpNoDelay(true);
         main(new BufferedInputStream(new SocketInputStream(s)),
              new BufferedOutputStream(new SocketOutputStream(s)), mode,ping);
     }
