@@ -319,6 +319,12 @@ public class Launcher {
     }
 
     private void runOnSocket(Socket s) throws IOException, InterruptedException {
+        // this prevents a connection from silently terminated by the router in between or the other peer
+        // and that goes without unnoticed. However, the time out is often very long (for example 2 hours
+        // by default in Linux) that this alone is enough to prevent that.
+        s.setKeepAlive(true);
+        // we take care of buffering on our own
+        s.setTcpNoDelay(true);
         main(new BufferedInputStream(new SocketInputStream(s)),
              new BufferedOutputStream(new SocketOutputStream(s)), mode,ping);
     }
