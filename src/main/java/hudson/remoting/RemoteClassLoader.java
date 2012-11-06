@@ -418,9 +418,12 @@ final class RemoteClassLoader extends URLClassLoader {
             }
 
             try {
+                InputStream in = ecl.getResourceAsStream(className.replace('.', '/') + ".class");
+                if(in==null)
+                    throw new ClassNotFoundException(className);
                 return new ClassFile(
                         exportId(ecl,channel),
-                        readFully(ecl.getResourceAsStream(className.replace('.', '/') + ".class")));
+                        readFully(in));
             } catch (IOException e) {
                 throw new ClassNotFoundException();
             }
