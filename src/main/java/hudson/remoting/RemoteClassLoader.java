@@ -29,17 +29,19 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.net.URL;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Vector;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Set;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Loads class files from the other peer through {@link Channel}.
@@ -73,6 +75,8 @@ final class RemoteClassLoader extends URLClassLoader {
      * Note that URLs in this set are URLs on the other peer.
      */
     private final Set<URL> prefetchedJars = new HashSet<URL>();
+    
+    private final Lock classFileLock = new ReentrantLock(true); 
 
     public static ClassLoader create(ClassLoader parent, IClassLoader proxy) {
         if(proxy instanceof ClassLoaderProxy) {
@@ -126,9 +130,15 @@ final class RemoteClassLoader extends URLClassLoader {
                 ClassLoader cl = channel.importedClassLoaders.get(cf.classLoader);
                 if (cl instanceof RemoteClassLoader) {
                     RemoteClassLoader rcl = (RemoteClassLoader) cl;
-                    Class<?> c = rcl.findLoadedClass(name);
-                    if (c==null)
-                        c = rcl.loadClassFile(name,cf.classImage);
+                    Class<?> c;
+                    classFileLock.lock();
+                    try {
+                        c = rcl.findLoadedClass(name);
+                        if (c==null)
+                            c = rcl.loadClassFile(name,cf.classImage);
+                    } finally {
+                    	classFileLock.unlock();
+                    }
                     return c;
                 } else {
                     return cl.loadClass(name);
