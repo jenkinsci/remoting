@@ -104,6 +104,9 @@ public class Main {
             // some user reported that this happens on their JVM: http://d.hatena.ne.jp/tueda_wolf/20080723
         }
 
+        // if we run in Mac, put the menu bar where the user expects it
+        System.setProperty("apple.laf.useScreenMenuBar", "true");
+
         Main m = new Main();
         CmdLineParser p = new CmdLineParser(m);
         p.parseArgument(args);
