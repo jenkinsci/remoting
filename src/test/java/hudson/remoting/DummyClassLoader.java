@@ -23,8 +23,6 @@
  */
 package hudson.remoting;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +30,7 @@ import java.io.File;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
 import java.net.URL;
+import org.apache.commons.io.IOUtils;
 
 /**
  * Used to load a dummy class <tt>hudson.remoting.test.TestCallable</tt>
@@ -40,16 +39,34 @@ import java.net.URL;
  * @author Kohsuke Kawaguchi
  */
 class DummyClassLoader extends ClassLoader {
+
+    private final String logicalName;
+    private final String physicalPath;
+    private final String logicalPath;
+
     public DummyClassLoader(ClassLoader parent) {
+        this(parent, false);
+    }
+
+    public DummyClassLoader(ClassLoader parent, boolean child) {
         super(parent);
+        if (child) {
+            logicalName = "hudson.rem0ting.TestCallable$Sub";
+            physicalPath = "hudson/remoting/TestCallable$Sub.class";
+            logicalPath = "hudson/rem0ting/TestCallable$Sub.class";
+        } else {
+            logicalName = "hudson.rem0ting.TestCallable";
+            physicalPath = "hudson/remoting/TestCallable.class";
+            logicalPath = "hudson/rem0ting/TestCallable.class";
+        }
     }
 
 
     protected Class<?> findClass(String name) throws ClassNotFoundException {
-        if(name.equals("hudson.remoting.test.TestCallable")) {
+        if(name.equals(logicalName)) {
             // rename a class
             try {
-                byte[] bytes = loadTransformedClassImage(name);
+                byte[] bytes = loadTransformedClassImage();
                 return defineClass(name,bytes,0,bytes.length);
             } catch (IOException e) {
                 throw new ClassNotFoundException("Bytecode manipulation failed",e);
@@ -59,28 +76,21 @@ class DummyClassLoader extends ClassLoader {
         return super.findClass(name);
     }
 
-    private byte[] loadTransformedClassImage(final String name) throws IOException {
-        InputStream in = getResourceAsStream("hudson/remoting/TestCallable.class");
-
-        // rename a class
-        ClassReader cr = new ClassReader(in);
-        ClassWriter w = new ClassWriter(cr,true) {
-            public void visit(int version, int access, String _name, String sig, String superName, String[] interfaces) {
-                super.visit(version, access, name.replace('.','/'), sig, superName, interfaces);
-            }
-        };
-        cr.accept(w,false);
-
-        return w.toByteArray();
+    private byte[] loadTransformedClassImage() throws IOException {
+        InputStream in = getResourceAsStream(physicalPath);
+        String data = IOUtils.toString(in, "ISO-8859-1");
+        // Single-character substitutions will not change length fields in bytecode etc.
+        String data2 = data.replaceAll("remoting(.)Test", "rem0ting$1Test");
+        return data2.getBytes("ISO-8859-1");
     }
 
 
     protected URL findResource(String name) {
-        if(name.equals("hudson/remoting/test/TestCallable.class")) {
+        if (name.equals(logicalPath)) {
             try {
                 File f = File.createTempFile("rmiTest","class");
                 OutputStream os = new FileOutputStream(f);
-                os.write(loadTransformedClassImage("hudson.remoting.test.TestCallable"));
+                os.write(loadTransformedClassImage());
                 os.close();
                 f.deleteOnExit();
                 return f.toURI().toURL();

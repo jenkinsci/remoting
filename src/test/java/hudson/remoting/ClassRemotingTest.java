@@ -29,6 +29,9 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.EmptyVisitor;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import org.jvnet.hudson.test.Bug;
 
 /**
  * Test class image forwarding.
@@ -37,13 +40,13 @@ import java.io.IOException;
  */
 public class ClassRemotingTest extends RmiTestBase {
 
-    private static final String CLASSNAME = "hudson.remoting.test.TestCallable";
+    private static final String CLASSNAME = "hudson.rem0ting.TestCallable";
 
     public void test1() throws Throwable {
         // call a class that's only available on DummyClassLoader, so that on the remote channel
         // it will be fetched from this class loader and not from the system classloader.
         DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
-        Callable c = (Callable) cl.loadClass("hudson.remoting.test.TestCallable").newInstance();
+        Callable c = (Callable) cl.loadClass(CLASSNAME).newInstance();
 
         Object[] r = (Object[]) channel.call(c);
 
@@ -72,12 +75,43 @@ public class ClassRemotingTest extends RmiTestBase {
             return;
 
         DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
-        Callable c = (Callable) cl.loadClass("hudson.remoting.test.TestCallable").newInstance();
+        Callable c = (Callable) cl.loadClass(CLASSNAME).newInstance();
         assertSame(c.getClass().getClassLoader(), cl);
 
         channel.setProperty("test",c);
 
         channel.call(new RemotePropertyVerifier());
+    }
+
+    @Bug(6604)
+    public void testRaceCondition() throws Throwable {
+        DummyClassLoader parent = new DummyClassLoader(ClassRemotingTest.class.getClassLoader());
+        DummyClassLoader child1 = new DummyClassLoader(parent, true);
+        final Callable<Object,Exception> c1 = (Callable) child1.loadClass(CLASSNAME + "$Sub").newInstance();
+        assertEquals(child1, c1.getClass().getClassLoader());
+        assertEquals(parent, c1.getClass().getSuperclass().getClassLoader());
+        DummyClassLoader child2 = new DummyClassLoader(parent, true);
+        final Callable<Object,Exception> c2 = (Callable) child2.loadClass(CLASSNAME + "$Sub").newInstance();
+        assertEquals(child2, c2.getClass().getClassLoader());
+        assertEquals(parent, c2.getClass().getSuperclass().getClassLoader());
+        ExecutorService svc = Executors.newFixedThreadPool(2);
+        RemoteClassLoader.TESTING = true;
+        try {
+            java.util.concurrent.Future<Object> f1 = svc.submit(new java.util.concurrent.Callable<Object>() {
+                public Object call() throws Exception {
+                    return channel.call(c1);
+                }
+            });
+            java.util.concurrent.Future<Object> f2 = svc.submit(new java.util.concurrent.Callable<Object>() {
+                public Object call() throws Exception {
+                    return channel.call(c2);
+                }
+            });
+            f1.get();
+            f2.get();
+        } finally {
+            RemoteClassLoader.TESTING = false;
+        }
     }
 
     public static Test suite() throws Exception {

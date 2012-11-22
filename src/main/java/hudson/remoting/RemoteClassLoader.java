@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.URLClassLoader;
@@ -40,6 +41,8 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Loads class files from the other peer through {@link Channel}.
@@ -53,6 +56,8 @@ import java.util.HashSet;
  * @author Kohsuke Kawaguchi
  */
 final class RemoteClassLoader extends URLClassLoader {
+
+    private static final Logger LOGGER = Logger.getLogger(RemoteClassLoader.class.getName());
 	
     /**
      * Proxy to the code running on remote end.
@@ -126,10 +131,19 @@ final class RemoteClassLoader extends URLClassLoader {
                 ClassLoader cl = channel.importedClassLoaders.get(cf.classLoader);
                 if (cl instanceof RemoteClassLoader) {
                     RemoteClassLoader rcl = (RemoteClassLoader) cl;
-                    Class<?> c = rcl.findLoadedClass(name);
-                    if (c==null)
-                        c = rcl.loadClassFile(name,cf.classImage);
-                    return c;
+                    synchronized (_getClassLoadingLock(rcl, name)) {
+                        Class<?> c = rcl.findLoadedClass(name);
+                        if (TESTING) {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException x) {
+                                assert false : x;
+                            }
+                        }
+                        if (c==null)
+                            c = rcl.loadClassFile(name,cf.classImage);
+                        return c;
+                    }
                 } else {
                     return cl.loadClass(name);
                 }
@@ -143,6 +157,31 @@ final class RemoteClassLoader extends URLClassLoader {
             }
         }
     }
+
+    private static Method gCLL;
+    static {
+        try {
+            gCLL = ClassLoader.class.getDeclaredMethod("getClassLoadingLock", String.class);
+            gCLL.setAccessible(true);
+        } catch (NoSuchMethodException x) {
+            // OK, Java 6
+        } catch (Exception x) {
+            LOGGER.log(Level.WARNING, null, x);
+        }
+    }
+    private static Object _getClassLoadingLock(RemoteClassLoader rcl, String name) {
+        // Java 7: return rcl.getClassLoadingLock(name);
+        if (gCLL != null) {
+            try {
+                return gCLL.invoke(rcl, name);
+            } catch (Exception x) {
+                LOGGER.log(Level.WARNING, null, x);
+            }
+        }
+        return rcl;
+    }
+    /** JENKINS-6604 */
+    static boolean TESTING;
 
     private Class<?> loadClassFile(String name, byte[] bytes) {
         // define package

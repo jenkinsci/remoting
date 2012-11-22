@@ -58,4 +58,6 @@ public class TestCallable implements Callable {
         return r;
     }
 
+    public static class Sub extends TestCallable {}
+
 }
