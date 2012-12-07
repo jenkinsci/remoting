@@ -595,6 +595,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Classloading will consult the preloaded jars before performing
      * network transfer of class files.
      *
+     * <p><strong>Beware</strong> that this method is not useful in all configurations.
+     * If a {@link RemoteClassLoader} has another {@link RemoteClassLoader} as a
+     * {@linkplain ClassLoader#getParent parent}, which would be typical, then preloading
+     * a JAR in it will not reduce network round-trips: each class load still has to call
+     * {@link ClassLoader#loadClass(String, boolean) loadClass} on the parent, which will
+     * wind up checking the remote side just to get a negative answer.
+     *
      * @param classLoaderRef
      *      This parameter is used to identify the remote classloader
      *      that will prefetch the specified jar files. That is, prefetching
