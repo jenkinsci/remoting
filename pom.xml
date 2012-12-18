@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.26</version>
+    <version>1.29</version>
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
@@ -99,6 +99,7 @@ THE SOFTWARE.
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
       <version>1.4</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>
@@ -207,6 +208,19 @@ THE SOFTWARE.
               <includeScope>provided</includeScope>
               <includeArtifactIds>args4j</includeArtifactIds>
               <includeGroupIds>args4j</includeGroupIds>
+            </configuration>
+          </execution>
+          <execution>
+            <id>bundle-commons-codec</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+              <includeScope>provided</includeScope>
+              <includeArtifactIds>commons-codec</includeArtifactIds>
+              <includeGroupIds>commons-codec</includeGroupIds>
             </configuration>
           </execution>
         </executions>
