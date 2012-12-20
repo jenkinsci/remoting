@@ -29,9 +29,13 @@ import java.io.ByteArrayOutputStream;
 /**
  * {@link Callable} used to verify the classloader used.
  *
+ * <p>
+ * This class can be also used as an exception to test that behaviour.
+ *
  * @author Kohsuke Kawaguchi
+ * @see DummyClassLoader
  */
-public class TestCallable implements Callable {
+public class TestCallable extends Exception implements Callable {
     public Object call() throws Throwable {
         Object[] r = new Object[4];
 

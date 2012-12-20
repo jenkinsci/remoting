@@ -34,7 +34,8 @@ import org.apache.commons.io.IOUtils;
 
 /**
  * Used to load a dummy class <tt>hudson.remoting.test.TestCallable</tt>
- * out of nowhere, to test {@link RemoteClassLoader}.
+ * out of nowhere, to test {@link RemoteClassLoader} by creating a class
+ * that only exists on one side of the channel but not the other.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -58,6 +59,22 @@ class DummyClassLoader extends ClassLoader {
             logicalName = "hudson.rem0ting.TestCallable";
             physicalPath = "hudson/remoting/TestCallable.class";
             logicalPath = "hudson/rem0ting/TestCallable.class";
+        }
+    }
+
+    /**
+     * Loads a class that looks like an exact clone of {@link TestCallable} under
+     * a different class name.
+     */
+    public Object newTestCallable() {
+        try {
+            return loadClass("hudson.rem0ting.TestCallable").newInstance();
+        } catch (InstantiationException e) {
+            throw new Error(e);
+        } catch (IllegalAccessException e) {
+            throw new Error(e);
+        } catch (ClassNotFoundException e) {
+            throw new Error(e);
         }
     }
 

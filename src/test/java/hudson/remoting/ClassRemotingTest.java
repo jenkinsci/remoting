@@ -46,7 +46,7 @@ public class ClassRemotingTest extends RmiTestBase {
         // call a class that's only available on DummyClassLoader, so that on the remote channel
         // it will be fetched from this class loader and not from the system classloader.
         DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
-        Callable c = (Callable) cl.loadClass(CLASSNAME).newInstance();
+        Callable c = (Callable) cl.newTestCallable();
 
         Object[] r = (Object[]) channel.call(c);
 
@@ -75,7 +75,7 @@ public class ClassRemotingTest extends RmiTestBase {
             return;
 
         DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
-        Callable c = (Callable) cl.loadClass(CLASSNAME).newInstance();
+        Callable c = (Callable) cl.newTestCallable();
         assertSame(c.getClass().getClassLoader(), cl);
 
         channel.setProperty("test",c);

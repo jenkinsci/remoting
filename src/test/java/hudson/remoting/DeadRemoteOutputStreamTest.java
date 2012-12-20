@@ -8,7 +8,6 @@ import java.io.Serializable;
  * @author Kohsuke Kawaguchi
  */
 public class DeadRemoteOutputStreamTest extends RmiTestBase implements Serializable {
-    private static final class DeadIOException extends IOException {}
 
     /**
      * If the remote writing end reports {@link IOException}, then the writing end shall
@@ -19,7 +18,8 @@ public class DeadRemoteOutputStreamTest extends RmiTestBase implements Serializa
             @Override
             public void write(int b) throws IOException {
                 System.gc();
-                throw new DeadIOException();
+                DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
+                throw (IOException)new IOException(MESSAGE).initCause((Exception) cl.newTestCallable());
             }
         });
 
@@ -37,12 +37,12 @@ public class DeadRemoteOutputStreamTest extends RmiTestBase implements Serializa
                     }
                     fail("Expected to see the failure");
                 } catch (IOException e) {
-                    assertTrue(e.getCause() instanceof DeadIOException);
+                    assertTrue(e.getMessage().contains(MESSAGE));
                 }
                 return null;
             }
         });
     }
 
-
+    public static final String MESSAGE = "dead man walking";
 }
