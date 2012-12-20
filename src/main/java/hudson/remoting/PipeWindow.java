@@ -48,7 +48,7 @@ import static java.util.logging.Level.*;
  * @author Kohsuke Kawaguchi
  */
 abstract class PipeWindow {
-    protected Throwable dead;
+    protected volatile Throwable dead;
 
     abstract void increase(int delta);
 
