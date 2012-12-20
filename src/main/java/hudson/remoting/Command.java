@@ -50,8 +50,10 @@ abstract class Command implements Serializable {
         this(true);
     }
 
-    protected Command(Throwable cause) {
-        this.createdAt = new Source(cause);
+    protected Command(Channel channel, Throwable cause) {
+        // Command object needs to be deserializable on the other end without requiring custom classloading,
+        // so we wrap this in MimicException
+        this.createdAt = new Source(MimicException.make(channel,cause));
     }
 
     /**

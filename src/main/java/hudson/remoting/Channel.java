@@ -840,8 +840,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * {@link ObjectOutputStream}, and it's the last command to be read.
      */
     private static final class CloseCommand extends Command {
-        private CloseCommand(Throwable cause) {
-            super(cause);
+        private CloseCommand(Channel channel, Throwable cause) {
+            super(channel,cause);
         }
 
         protected void execute(Channel channel) {
@@ -906,7 +906,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public synchronized void close(Throwable diagnosis) throws IOException {
         if(outClosed!=null)  return;  // already closed
 
-        send(new CloseCommand(diagnosis));
+        send(new CloseCommand(this,diagnosis));
         outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
         try {
             transport.closeWrite();

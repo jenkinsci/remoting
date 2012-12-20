@@ -216,7 +216,7 @@ final class ProxyOutputStream extends OutputStream {
                         os.write(buf);
                     } catch (IOException e) {
                         try {
-                            channel.send(new NotifyDeadWriter(e,oid));
+                            channel.send(new NotifyDeadWriter(channel,e,oid));
                         } catch (ChannelClosedException x) {
                             // the other direction can be already closed if the connection
                             // shut down is initiated from this side. In that case, remain silent.
@@ -385,8 +385,8 @@ final class ProxyOutputStream extends OutputStream {
     private static final class NotifyDeadWriter extends Command {
         private final int oid;
 
-        private NotifyDeadWriter(Throwable cause, int oid) {
-            super(cause);
+        private NotifyDeadWriter(Channel channel,Throwable cause, int oid) {
+            super(channel,cause);
             this.oid = oid;
         }
 

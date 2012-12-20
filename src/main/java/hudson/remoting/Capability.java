@@ -33,7 +33,7 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING);
+        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION);
     }
 
     /**
@@ -53,6 +53,10 @@ public final class Capability implements Serializable {
      */
     public boolean supportsPipeThrottling() {
         return (mask& MASK_PIPE_THROTTLING)!=0;
+    }
+
+    public boolean hasMimicException() {
+        return (mask&MASK_MIMIC_EXCEPTION)!=0;
     }
 
     /**
@@ -102,6 +106,11 @@ public final class Capability implements Serializable {
      * Bit that indicates the use of TCP-like window control for {@link ProxyOutputStream}.
      */
     private static final long MASK_PIPE_THROTTLING = 4L;
+
+    /**
+     * Supports {@link MimicException}.
+     */
+    private static final long MASK_MIMIC_EXCEPTION = 8L;
 
     static final byte[] PREAMBLE;
 

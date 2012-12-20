@@ -2,7 +2,9 @@ package hudson.remoting;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.StringWriter;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -37,7 +39,10 @@ public class DeadRemoteOutputStreamTest extends RmiTestBase implements Serializa
                     }
                     fail("Expected to see the failure");
                 } catch (IOException e) {
-                    assertTrue(e.getMessage().contains(MESSAGE));
+                    StringWriter sw = new StringWriter();
+                    e.printStackTrace(new PrintWriter(sw));
+                    String whole = sw.toString();
+                    assertTrue(whole, whole.contains(MESSAGE) && whole.contains("hudson.rem0ting.TestCallable"));
                 }
                 return null;
             }
