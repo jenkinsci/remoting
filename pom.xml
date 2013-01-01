@@ -98,7 +98,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
-      <version>1.4</version>
+      <version>1.7</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
