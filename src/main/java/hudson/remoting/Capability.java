@@ -59,7 +59,7 @@ public final class Capability implements Serializable {
         return (mask&MASK_MIMIC_EXCEPTION)!=0;
     }
 
-    /** @since XXX */
+    /** @since 2.21 */
     public boolean supportsPrefetch() {
         return (mask & MASK_PREFETCH) != 0;
     }

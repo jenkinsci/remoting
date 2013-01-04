@@ -411,6 +411,7 @@ final class RemoteClassLoader extends URLClassLoader {
         byte[] fetchJar(URL url) throws IOException;
         byte[] fetch(String className) throws ClassNotFoundException;
         ClassFile fetch2(String className) throws ClassNotFoundException;
+        /** @since 2.21 */
         Map<String,ClassFile> fetch3(String className) throws ClassNotFoundException;
         byte[] getResource(String name) throws IOException;
         byte[][] getResources(String name) throws IOException;
