@@ -33,7 +33,7 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION);
+        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_PREFETCH);
     }
 
     /**
@@ -57,6 +57,11 @@ public final class Capability implements Serializable {
 
     public boolean hasMimicException() {
         return (mask&MASK_MIMIC_EXCEPTION)!=0;
+    }
+
+    /** @since XXX */
+    public boolean supportsPrefetch() {
+        return (mask & MASK_PREFETCH) != 0;
     }
 
     /**
@@ -96,21 +101,28 @@ public final class Capability implements Serializable {
      * If we ever use up all 64bits of long, we can probably come back and reuse this bit, as by then
      * hopefully any such remoting.jar deployment is long gone. 
      */
-    private static final long MASK_UNUSED1 = 1L;
+    @SuppressWarnings("PointlessBitwiseExpression")
+    private static final long MASK_UNUSED1 = 1 << 0;
+    
     /**
      * Bit that indicates the use of {@link MultiClassLoaderSerializer}.
      */
-    private static final long MASK_MULTI_CLASSLOADER = 2L;
+    private static final long MASK_MULTI_CLASSLOADER = 1 << 1;
 
     /**
      * Bit that indicates the use of TCP-like window control for {@link ProxyOutputStream}.
      */
-    private static final long MASK_PIPE_THROTTLING = 4L;
+    private static final long MASK_PIPE_THROTTLING = 1 << 2;
 
     /**
      * Supports {@link MimicException}.
      */
-    private static final long MASK_MIMIC_EXCEPTION = 8L;
+    private static final long MASK_MIMIC_EXCEPTION = 1 << 3;
+
+    /** 
+     * Supports sending along related class files optimistically so as to avoid round-trips.
+     */
+    private static final long MASK_PREFETCH = 1 << 4;
 
     static final byte[] PREAMBLE;
 

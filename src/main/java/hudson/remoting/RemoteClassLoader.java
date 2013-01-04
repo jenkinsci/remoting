@@ -39,10 +39,12 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
 
 /**
  * Loads class files from the other peer through {@link Channel}.
@@ -78,6 +80,8 @@ final class RemoteClassLoader extends URLClassLoader {
      * Note that URLs in this set are URLs on the other peer.
      */
     private final Set<URL> prefetchedJars = new HashSet<URL>();
+
+    private final Map<String,ClassFile> prefetchedClasses = new HashMap<String,ClassFile>();
 
     public static ClassLoader create(ClassLoader parent, IClassLoader proxy) {
         if(proxy instanceof ClassLoaderProxy) {
@@ -124,7 +128,32 @@ final class RemoteClassLoader extends URLClassLoader {
                     then the class file image is wasted.)
                  */
                 long startTime = System.nanoTime();
-                ClassFile cf = proxy.fetch2(name);
+                ClassFile cf;
+                if (channel.remoteCapability.supportsPrefetch()) {
+                    synchronized (prefetchedClasses) {
+                        cf = prefetchedClasses.remove(name);
+                    }
+                    if (cf == null) {
+                        Map<String,ClassFile> all = proxy.fetch3(name);
+                        synchronized (prefetchedClasses) {
+                            for (Map.Entry<String,ClassFile> entry : all.entrySet()) {
+                                if (entry.getKey().equals(name)) {
+                                    cf = entry.getValue();
+                                    LOGGER.log(Level.FINER, "fetch3 on {0}", name);
+                                } else {
+                                    prefetchedClasses.put(entry.getKey(), entry.getValue());
+                                    LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[] {name, entry.getKey()});
+                                }
+                            }
+                        }
+                        assert cf != null;
+                    } else {
+                        LOGGER.log(Level.FINER, "had already fetched {0}", name);
+                    }
+                } else {
+                    LOGGER.log(Level.FINER, "fetch2 on {0}", name);
+                    cf = proxy.fetch2(name);
+                }
                 channel.classLoadingTime.addAndGet(System.nanoTime()-startTime);
                 channel.classLoadingCount.incrementAndGet();
 
@@ -382,6 +411,7 @@ final class RemoteClassLoader extends URLClassLoader {
         byte[] fetchJar(URL url) throws IOException;
         byte[] fetch(String className) throws ClassNotFoundException;
         ClassFile fetch2(String className) throws ClassNotFoundException;
+        Map<String,ClassFile> fetch3(String className) throws ClassNotFoundException;
         byte[] getResource(String name) throws IOException;
         byte[][] getResources(String name) throws IOException;
     }
@@ -418,6 +448,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /*package*/ static final class ClassLoaderProxy implements IClassLoader {
         final ClassLoader cl;
         final Channel channel;
+        private final Set<String> prefetched = new HashSet<String>();
 
         public ClassLoaderProxy(ClassLoader cl, Channel channel) {
         	assert cl != null;
@@ -466,6 +497,32 @@ final class RemoteClassLoader extends URLClassLoader {
             } catch (IOException e) {
                 throw new ClassNotFoundException();
             }
+        }
+
+        public Map<String,ClassFile> fetch3(String className) throws ClassNotFoundException {
+            ClassFile cf = fetch2(className);
+            if (!channel.remoteCapability.supportsPrefetch()) {
+                return Collections.singletonMap(className, cf);
+            }
+            Map<String,ClassFile> all = new HashMap<String,ClassFile>();
+            all.put(className, cf);
+            synchronized (prefetched) {
+                prefetched.add(className);
+            }
+            for (String other : analyze(cf.classImage)) {
+                synchronized (prefetched) {
+                    if (!prefetched.add(other)) {
+                        continue;
+                    }
+                }
+                try {
+                    // XXX could even traverse second-level dependencies, etc.
+                    all.put(other, fetch2(other));
+                } catch (ClassNotFoundException x) {
+                    // ignore: might not be real class name, etc.
+                }
+            }
+            return all;
         }
 
         public byte[] getResource(String name) throws IOException {
@@ -581,6 +638,10 @@ final class RemoteClassLoader extends URLClassLoader {
             return proxy.fetch2(className);
         }
 
+        public Map<String,ClassFile> fetch3(String className) throws ClassNotFoundException {
+            return proxy.fetch3(className);
+        }
+
         public byte[] getResource(String name) throws IOException {
             return proxy.getResource(name);
         }
@@ -596,6 +657,16 @@ final class RemoteClassLoader extends URLClassLoader {
         private static final long serialVersionUID = 1L;
     }
 
+    private static Iterable<String> analyze(byte[] bytecode) {
+        // Other options include ASM and org.apache.tools.ant.taskdefs.optional.depend.constantpool.ConstantPool.
+        try {
+            return ConstantPoolScanner.dependencies(bytecode);
+        } catch (IOException x) {
+            LOGGER.log(Level.WARNING, "could not parse bytecode", x);
+            return Collections.emptySet();
+        }
+    }
+ 
     /**
      * If set to true, classes loaded by the bootstrap classloader will be also remoted to the remote JVM.
      * By default, classes that belong to the bootstrap classloader will NOT be remoted, as each JVM gets its own JRE
