@@ -102,27 +102,27 @@ public final class Capability implements Serializable {
      * hopefully any such remoting.jar deployment is long gone. 
      */
     @SuppressWarnings("PointlessBitwiseExpression")
-    private static final long MASK_UNUSED1 = 1 << 0;
+    private static final long MASK_UNUSED1 = 1L << 0;
     
     /**
      * Bit that indicates the use of {@link MultiClassLoaderSerializer}.
      */
-    private static final long MASK_MULTI_CLASSLOADER = 1 << 1;
+    private static final long MASK_MULTI_CLASSLOADER = 1L << 1;
 
     /**
      * Bit that indicates the use of TCP-like window control for {@link ProxyOutputStream}.
      */
-    private static final long MASK_PIPE_THROTTLING = 1 << 2;
+    private static final long MASK_PIPE_THROTTLING = 1L << 2;
 
     /**
      * Supports {@link MimicException}.
      */
-    private static final long MASK_MIMIC_EXCEPTION = 1 << 3;
+    private static final long MASK_MIMIC_EXCEPTION = 1L << 3;
 
     /** 
      * Supports sending along related class files optimistically so as to avoid round-trips.
      */
-    private static final long MASK_PREFETCH = 1 << 4;
+    private static final long MASK_PREFETCH = 1L << 4;
 
     static final byte[] PREAMBLE;
 
