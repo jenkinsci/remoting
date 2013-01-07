@@ -1032,8 +1032,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @return
      */
     public ListeningPort createLocalToRemotePortForwarding(int recvPort, String forwardHost, int forwardPort) throws IOException, InterruptedException {
-        return new PortForwarder( recvPort,
-            ForwarderFactory.create(this,forwardHost,forwardPort));
+        PortForwarder portForwarder = new PortForwarder(recvPort,
+                ForwarderFactory.create(this, forwardHost, forwardPort));
+        portForwarder.start();
+        return portForwarder;
     }
 
     /**
