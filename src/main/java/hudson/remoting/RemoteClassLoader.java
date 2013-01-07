@@ -526,9 +526,6 @@ final class RemoteClassLoader extends URLClassLoader {
 
         public Map<String,ClassFile> fetch3(String className) throws ClassNotFoundException {
             ClassFile cf = fetch2(className);
-            if (!channel.remoteCapability.supportsPrefetch()) {
-                return Collections.singletonMap(className, cf);
-            }
             Map<String,ClassFile> all = new HashMap<String,ClassFile>();
             all.put(className, cf);
             synchronized (prefetched) {
