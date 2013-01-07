@@ -81,6 +81,9 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     private final Set<URL> prefetchedJars = new HashSet<URL>();
 
+    /**
+     * {@link ClassFile}s that were sent by remote as pre-fetch.
+     */
     private final Map<String,ClassFile> prefetchedClasses = new HashMap<String,ClassFile>();
 
     public static ClassLoader create(ClassLoader parent, IClassLoader proxy) {
@@ -409,9 +412,27 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     public static interface IClassLoader {
         byte[] fetchJar(URL url) throws IOException;
+
+        /**
+         * Retrieves the bytecode of a class.
+         */
         byte[] fetch(String className) throws ClassNotFoundException;
+
+        /**
+         * Multi-classloader aware version of {@link #fetch(String)}.
+         * In addition to the byte code, we get the reference to the classloader
+         * that's supposed to load this.
+         */
         ClassFile fetch2(String className) throws ClassNotFoundException;
-        /** @since 2.21 */
+        /**
+         * {@link #fetch2(String)} plus pre-fetch.
+         *
+         * The callee may return additional {@link ClassFile}s that it expects
+         * to get loaded in a near future. This avoids repeated invocations of {@link #fetch2(String)}
+         * thereby reducing the # of roundtrips.
+         *
+         * @since 2.21
+         */
         Map<String,ClassFile> fetch3(String className) throws ClassNotFoundException;
         byte[] getResource(String name) throws IOException;
         byte[][] getResources(String name) throws IOException;
@@ -449,6 +470,9 @@ final class RemoteClassLoader extends URLClassLoader {
     /*package*/ static final class ClassLoaderProxy implements IClassLoader {
         final ClassLoader cl;
         final Channel channel;
+        /**
+         * Class names that we've already sent to the other side as pre-fetch.
+         */
         private final Set<String> prefetched = new HashSet<String>();
 
         public ClassLoaderProxy(ClassLoader cl, Channel channel) {
