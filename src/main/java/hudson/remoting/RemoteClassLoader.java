@@ -84,7 +84,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * {@link ClassFile}s that were sent by remote as pre-fetch.
      */
-    private final Map<String,ClassFile> prefetchedClasses = new HashMap<String,ClassFile>();
+    private final Map<String,ClassFile> prefetchedClasses = Collections.synchronizedMap(new HashMap<String,ClassFile>());
 
     public static ClassLoader create(ClassLoader parent, IClassLoader proxy) {
         if(proxy instanceof ClassLoaderProxy) {
@@ -133,9 +133,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 long startTime = System.nanoTime();
                 ClassFile cf;
                 if (channel.remoteCapability.supportsPrefetch()) {
-                    synchronized (prefetchedClasses) {
-                        cf = prefetchedClasses.remove(name);
-                    }
+                    cf = prefetchedClasses.remove(name);
                     if (cf == null) {
                         Map<String,ClassFile> all = proxy.fetch3(name);
                         synchronized (prefetchedClasses) {
@@ -149,6 +147,19 @@ final class RemoteClassLoader extends URLClassLoader {
                                 }
                             }
                         }
+
+                        // if the prefetched classes are meant to be loaded by other classloader,
+                        // deliver the images to them.
+                        for (Map.Entry<String,ClassFile> entry : all.entrySet()) {
+                            int id = entry.getValue().classLoader;
+                            // TODO: this id->ClassLoader look up is too expensive
+                            ClassLoader cl = channel.importedClassLoaders.get(id);
+                            if (cl instanceof RemoteClassLoader) {
+                                RemoteClassLoader rcl = (RemoteClassLoader) cl;
+                                rcl.prefetchedClasses.put(entry.getKey(),entry.getValue());
+                            }
+                        }
+
                         assert cf != null;
                     } else {
                         LOGGER.log(Level.FINER, "had already fetched {0}", name);
@@ -216,6 +227,10 @@ final class RemoteClassLoader extends URLClassLoader {
     static boolean TESTING;
 
     private Class<?> loadClassFile(String name, byte[] bytes) {
+        // if someone else is forcing us to load a class by giving as bytecode,
+        // discard our prefetched version since we'll never use them.
+        prefetchedClasses.remove(name);
+
         // define package
         definePackage(name);
 
