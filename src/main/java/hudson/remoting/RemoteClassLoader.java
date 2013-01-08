@@ -29,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.MalformedURLException;
@@ -84,7 +85,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * {@link ClassFile}s that were sent by remote as pre-fetch.
      */
-    private final Map<String,ClassFile> prefetchedClasses = Collections.synchronizedMap(new HashMap<String,ClassFile>());
+    private final Map<String,ClassReference> prefetchedClasses = Collections.synchronizedMap(new HashMap<String,ClassReference>());
 
     public static ClassLoader create(ClassLoader parent, IClassLoader proxy) {
         if(proxy instanceof ClassLoaderProxy) {
@@ -131,32 +132,25 @@ final class RemoteClassLoader extends URLClassLoader {
                     then the class file image is wasted.)
                  */
                 long startTime = System.nanoTime();
-                ClassFile cf;
+                ClassReference cf;
                 if (channel.remoteCapability.supportsPrefetch()) {
                     cf = prefetchedClasses.remove(name);
                     if (cf == null) {
                         Map<String,ClassFile> all = proxy.fetch3(name);
                         synchronized (prefetchedClasses) {
                             for (Map.Entry<String,ClassFile> entry : all.entrySet()) {
+                                ClassReference ref = new ClassReference(channel,entry.getValue());
                                 if (entry.getKey().equals(name)) {
-                                    cf = entry.getValue();
+                                    cf = ref;
                                     LOGGER.log(Level.FINER, "fetch3 on {0}", name);
                                 } else {
-                                    prefetchedClasses.put(entry.getKey(), entry.getValue());
+                                    prefetchedClasses.put(entry.getKey(), ref);
                                     LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[] {name, entry.getKey()});
                                 }
-                            }
-                        }
-
-                        // if the prefetched classes are meant to be loaded by other classloader,
-                        // deliver the images to them.
-                        for (Map.Entry<String,ClassFile> entry : all.entrySet()) {
-                            int id = entry.getValue().classLoader;
-                            // TODO: this id->ClassLoader look up is too expensive
-                            ClassLoader cl = channel.importedClassLoaders.get(id);
-                            if (cl instanceof RemoteClassLoader) {
-                                RemoteClassLoader rcl = (RemoteClassLoader) cl;
-                                rcl.prefetchedClasses.put(entry.getKey(),entry.getValue());
+                                if (ref.classLoader instanceof RemoteClassLoader) {
+                                    RemoteClassLoader rcl = (RemoteClassLoader) ref.classLoader;
+                                    rcl.prefetchedClasses.put(entry.getKey(), ref);
+                                }
                             }
                         }
 
@@ -166,12 +160,12 @@ final class RemoteClassLoader extends URLClassLoader {
                     }
                 } else {
                     LOGGER.log(Level.FINER, "fetch2 on {0}", name);
-                    cf = proxy.fetch2(name);
+                    cf = new ClassReference(channel,proxy.fetch2(name));
                 }
                 channel.classLoadingTime.addAndGet(System.nanoTime()-startTime);
                 channel.classLoadingCount.incrementAndGet();
 
-                ClassLoader cl = channel.importedClassLoaders.get(cf.classLoader);
+                ClassLoader cl = cf.classLoader;
                 if (cl instanceof RemoteClassLoader) {
                     RemoteClassLoader rcl = (RemoteClassLoader) cl;
                     synchronized (_getClassLoadingLock(rcl, name)) {
@@ -407,6 +401,18 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
+    // for local ref
+    public static class ClassReference {
+        final ClassLoader classLoader;
+        final byte[] classImage;
+
+        public ClassReference(Channel channel, ClassFile wireFormat) {
+            this.classLoader = channel.importedClassLoaders.get(wireFormat.classLoader);
+            this.classImage = wireFormat.classImage;
+        }
+    }
+
+    // for wire
     public static class ClassFile implements Serializable {
         /**
          * oid of the classloader that should load this class.
