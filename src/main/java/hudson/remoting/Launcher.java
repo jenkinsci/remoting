@@ -268,7 +268,7 @@ public class Launcher {
                         byte[] decrypted = cipher.doFinal(baos.toByteArray());
                         input = new ByteArrayInputStream(decrypted);
                     } catch (GeneralSecurityException x) {
-                        throw new IOException(x);
+                        throw (IOException)new IOException("Failed to decrypt the JNLP file. Invalid secret key?").initCause(x);
                     }
                 }
                 if(contentType==null || !contentType.startsWith(expectedContentType)) {
