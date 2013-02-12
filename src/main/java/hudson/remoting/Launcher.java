@@ -288,13 +288,8 @@ public class Launcher {
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
                 NodeList argElements = dom.getElementsByTagName("argument");
                 List<String> jnlpArgs = new ArrayList<String>();
-                for( int i=0; i<argElements.getLength(); i++ ) {
-                    String text = argElements.item(i).getTextContent();
-                    if (secret != null && i == 0 && text.equals("SLAVE_SECRET")) {
-                        text = secret;
-                    }
-                    jnlpArgs.add(text);
-                }
+                for( int i=0; i<argElements.getLength(); i++ )
+                        jnlpArgs.add(argElements.item(i).getTextContent());
                 if (slaveJnlpCredentials != null) {
                     jnlpArgs.add("-credentials");
                     jnlpArgs.add(slaveJnlpCredentials);
