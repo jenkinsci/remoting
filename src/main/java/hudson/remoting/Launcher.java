@@ -48,6 +48,8 @@ import java.io.OutputStream;
 import java.io.File;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileWriter;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -61,6 +63,7 @@ import java.net.InetSocketAddress;
 import java.net.HttpURLConnection;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -72,6 +75,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.KeyManagementException;
 import java.security.SecureRandom;
 import java.util.Properties;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Entry point for running a {@link Channel}. This is the main method of the slave JVM.
@@ -106,6 +111,9 @@ public class Launcher {
 
     @Option(name="-jnlpCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String slaveJnlpCredentials = null;
+
+    @Option(name="-secret", metaVar="HEX_SECRET", usage="Slave connection secret to use instead of -jnlpCredentials.")
+    public String secret;
 
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader.")
@@ -220,6 +228,12 @@ public class Launcher {
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
         while (true) {
             try {
+                if (secret != null) {
+                    slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
+                    if (slaveJnlpCredentials != null) {
+                        throw new IOException("-jnlpCredentials and -secret are mutually exclusive");
+                    }
+                }
                 URLConnection con = slaveJnlpURL.openConnection();
                 if (con instanceof HttpURLConnection && slaveJnlpCredentials != null) {
                     HttpURLConnection http = (HttpURLConnection) con;
@@ -240,24 +254,46 @@ public class Launcher {
 
                 // check if this URL points to a .jnlp file
                 String contentType = con.getHeaderField("Content-Type");
-                if(contentType==null || !contentType.startsWith("application/x-java-jnlp-file")) {
+                String expectedContentType = secret == null ? "application/x-java-jnlp-file" : "application/octet-stream";
+                InputStream input = con.getInputStream();
+                if (secret != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    int c;
+                    while ((c = input.read()) != -1) {
+                        baos.write(c);
+                    }
+                    try {
+                        Cipher cipher = Cipher.getInstance("AES");
+                        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(fromHexString(secret.substring(0, Math.min(secret.length(), 32))), "AES"));
+                        byte[] decrypted = cipher.doFinal(baos.toByteArray());
+                        input = new ByteArrayInputStream(decrypted);
+                    } catch (GeneralSecurityException x) {
+                        throw new IOException(x);
+                    }
+                }
+                if(contentType==null || !contentType.startsWith(expectedContentType)) {
                     // load DOM anyway, but if it fails to parse, that's probably because this is not an XML file to begin with.
                     try {
-                        dom = loadDom(slaveJnlpURL, con);
+                        dom = loadDom(slaveJnlpURL, input);
                     } catch (SAXException e) {
                         throw new IOException(slaveJnlpURL+" doesn't look like a JNLP file; content type was "+contentType);
                     } catch (IOException e) {
                         throw new IOException(slaveJnlpURL+" doesn't look like a JNLP file; content type was "+contentType);
                     }
                 } else {
-                    dom = loadDom(slaveJnlpURL, con);
+                    dom = loadDom(slaveJnlpURL, input);
                 }
 
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
                 NodeList argElements = dom.getElementsByTagName("argument");
                 List<String> jnlpArgs = new ArrayList<String>();
-                for( int i=0; i<argElements.getLength(); i++ )
-                        jnlpArgs.add(argElements.item(i).getTextContent());
+                for( int i=0; i<argElements.getLength(); i++ ) {
+                    String text = argElements.item(i).getTextContent();
+                    if (secret != null && i == 0 && text.equals("SLAVE_SECRET")) {
+                        text = secret;
+                    }
+                    jnlpArgs.add(text);
+                }
                 if (slaveJnlpCredentials != null) {
                     jnlpArgs.add("-credentials");
                     jnlpArgs.add(slaveJnlpCredentials);
@@ -283,9 +319,17 @@ public class Launcher {
         }
     }
 
-    private static Document loadDom(URL slaveJnlpURL, URLConnection con) throws ParserConfigurationException, SAXException, IOException {
+    // from hudson.Util
+    private static byte[] fromHexString(String data) {
+        byte[] r = new byte[data.length() / 2];
+        for (int i = 0; i < data.length(); i += 2)
+            r[i / 2] = (byte) Integer.parseInt(data.substring(i, i + 2), 16);
+        return r;
+    }
+
+    private static Document loadDom(URL slaveJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-        return db.parse(con.getInputStream(),slaveJnlpURL.toExternalForm());
+        return db.parse(is, slaveJnlpURL.toExternalForm());
     }
 
     /**
