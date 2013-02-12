@@ -31,6 +31,7 @@ import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.CmdLineException;
 
+import javax.crypto.spec.IvParameterSpec;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -257,15 +258,15 @@ public class Launcher {
                 String expectedContentType = secret == null ? "application/x-java-jnlp-file" : "application/octet-stream";
                 InputStream input = con.getInputStream();
                 if (secret != null) {
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    int c;
-                    while ((c = input.read()) != -1) {
-                        baos.write(c);
-                    }
+                    byte[] payload = toByteArray(input);
+                    // the first 16 bytes (128bit) are initialization vector
+
                     try {
                         Cipher cipher = Cipher.getInstance("AES");
-                        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(fromHexString(secret.substring(0, Math.min(secret.length(), 32))), "AES"));
-                        byte[] decrypted = cipher.doFinal(baos.toByteArray());
+                        cipher.init(Cipher.DECRYPT_MODE,
+                                new SecretKeySpec(fromHexString(secret.substring(0, Math.min(secret.length(), 32))), "AES/CFB8/NoPadding"),
+                                new IvParameterSpec(payload,0,16));
+                        byte[] decrypted = cipher.doFinal(payload,16,payload.length-16);
                         input = new ByteArrayInputStream(decrypted);
                     } catch (GeneralSecurityException x) {
                         throw (IOException)new IOException("Failed to decrypt the JNLP file. Invalid secret key?").initCause(x);
@@ -317,6 +318,15 @@ public class Launcher {
                 // retry
             }
         }
+    }
+
+    private byte[] toByteArray(InputStream input) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int c;
+        while ((c = input.read()) != -1) {
+            baos.write(c);
+        }
+        return baos.toByteArray();
     }
 
     // from hudson.Util
