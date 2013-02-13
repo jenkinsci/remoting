@@ -262,9 +262,9 @@ public class Launcher {
                     // the first 16 bytes (128bit) are initialization vector
 
                     try {
-                        Cipher cipher = Cipher.getInstance("AES");
+                        Cipher cipher = Cipher.getInstance("AES/CFB8/NoPadding");
                         cipher.init(Cipher.DECRYPT_MODE,
-                                new SecretKeySpec(fromHexString(secret.substring(0, Math.min(secret.length(), 32))), "AES/CFB8/NoPadding"),
+                                new SecretKeySpec(fromHexString(secret.substring(0, Math.min(secret.length(), 32))), "AES"),
                                 new IvParameterSpec(payload,0,16));
                         byte[] decrypted = cipher.doFinal(payload,16,payload.length-16);
                         input = new ByteArrayInputStream(decrypted);
