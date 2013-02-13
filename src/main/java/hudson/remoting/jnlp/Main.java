@@ -148,7 +148,7 @@ public class Main {
      */
     private static final class CuiListener implements EngineListener {
         private CuiListener() {
-            LOGGER.info("Hudson agent is running in headless mode.");
+            LOGGER.info("Jenkins agent is running in headless mode.");
         }
 
         public void status(String msg, Throwable t) {
