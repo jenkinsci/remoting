@@ -227,14 +227,14 @@ public class Launcher {
      * Parses the connection arguments from JNLP file given in the URL.
      */
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
+        if (secret != null) {
+            slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
+            if (slaveJnlpCredentials != null) {
+                throw new IOException("-jnlpCredentials and -secret are mutually exclusive");
+            }
+        }
         while (true) {
             try {
-                if (secret != null) {
-                    slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
-                    if (slaveJnlpCredentials != null) {
-                        throw new IOException("-jnlpCredentials and -secret are mutually exclusive");
-                    }
-                }
                 URLConnection con = slaveJnlpURL.openConnection();
                 if (con instanceof HttpURLConnection && slaveJnlpCredentials != null) {
                     HttpURLConnection http = (HttpURLConnection) con;
