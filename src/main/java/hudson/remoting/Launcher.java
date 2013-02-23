@@ -137,7 +137,7 @@ public class Launcher {
     public File tcpPortFile=null;
 
 
-    @Option(name="-auth",metaVar="user:pass",usage="If your Hudson is security-enabeld, specify a valid user name and password.")
+    @Option(name="-auth",metaVar="user:pass",usage="If your Hudson is security-enabled, specify a valid user name and password.")
     public String auth = null;
 
     public InetSocketAddress connectionTarget = null;
@@ -160,7 +160,7 @@ public class Launcher {
      */
     @Option(name="-noCertificateCheck")
     public void setNoCertificateCheck(boolean _) throws NoSuchAlgorithmException, KeyManagementException {
-        System.out.println("Skipping HTTPS certificate checks altoghether. Note that this is not secure at all.");
+        System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, new TrustManager[]{new NoCheckTrustManager()}, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
@@ -343,7 +343,7 @@ public class Launcher {
      */
     private void runAsTcpServer() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
-        // and avoid hanging foreever
+        // and avoid hanging forever
         ServerSocket ss = new ServerSocket(0,1);
         ss.setSoTimeout(30*1000);
 
@@ -381,7 +381,7 @@ public class Launcher {
      */
     private void runAsTcpClient() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
-        // and avoid hanging foreever
+        // and avoid hanging forever
         Socket s = new Socket(connectionTarget.getAddress(),connectionTarget.getPort());
 
         runOnSocket(s);
