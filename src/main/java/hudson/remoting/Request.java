@@ -25,6 +25,7 @@ package hudson.remoting;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -136,19 +137,70 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                 // so that thread dump would give us more useful information.
                 Thread t = Thread.currentThread();
                 final String name = t.getName();
+                int interruptCount = 0;
+                final String markerStr = " interrupthack: " + name + ": ";
                 try {
                     // wait until the response arrives
                     t.setName(name+" / waiting for "+channel);
-                    while(response==null && !channel.isInClosed())
+                    int nextTimeout = -1;
+                    InterruptedException lastInterruptedEx = null;
+                    while(response==null && !channel.isInClosed()) {
                         // I don't know exactly when this can happen, as pendingCalls are cleaned up by Channel,
                         // but in production I've observed that in rare occasion it can block forever, even after a channel
                         // is gone. So be defensive against that.
-                        wait(30*1000);
+                        try {
+                            if (nextTimeout >= 0) {
+                                int tmpTimeout = nextTimeout;
+                                nextTimeout = -1;
+                                wait(tmpTimeout);
+                            } else {
+                                wait(30*1000);
+                            }
+
+                            // unsure about necessity of this check, but it should do no harm either
+                            if (lastInterruptedEx != null && (future == null || future.isCancelled() || future.isDone())) {
+                                final String logStr = (new Timestamp(System.currentTimeMillis())).toString() + markerStr
+                                        + "old InterruptException re-throw triggered by future";
+                                System.out.println(logStr);
+                                logger.severe(logStr);
+                                throw lastInterruptedEx;
+                            }
+
+                        } catch (InterruptedException ex) {
+                            ++interruptCount;
+                            if (response != null || channel.isInClosed() || channel.isOutClosed() 
+                                    || future == null || future.isCancelled() || future.isDone()) {
+                                
+                                final String logStr = (new Timestamp(System.currentTimeMillis())).toString() + markerStr
+                                        + "re-throwing valid InterruptedException '" + ex.getMessage() + "', count " + interruptCount
+                                        + " (response " + (response != null) +  ", chans closed in/out " + channel.isInClosed() + '/' + channel.isOutClosed()
+                                        + ", future " + (future==null ? "null" :  "cancel/done " + future.isCancelled() + '/' + future.isDone())
+                                        + ')';
+                                System.out.println(logStr);
+                                logger.severe(logStr);
+                                throw ex;
+                            }
+                            else {
+                                lastInterruptedEx = ex;
+                                final String logStr = (new Timestamp(System.currentTimeMillis())).toString() + markerStr
+                                        + "ignoring spurious InterruptedException #" + interruptCount;
+                                System.out.println(logStr);
+                                logger.severe(logStr);
+                                nextTimeout = 1000;
+                            }
+                        }
+                    }
 
                     if (response==null)
                         // channel is closed and we still don't have a response
                         throw new RequestAbortedException(null);
                 } finally {
+                    if (interruptCount > 0) {
+                        final String logStr = (new Timestamp(System.currentTimeMillis())).toString() + markerStr
+                                + "finally block interruptedException count " + interruptCount;
+                        System.out.println(logStr);
+                        logger.severe(logStr);
+                    }
                     t.setName(name);
                 }
 
