@@ -25,6 +25,7 @@ package hudson.remoting;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -136,19 +137,63 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                 // so that thread dump would give us more useful information.
                 Thread t = Thread.currentThread();
                 final String name = t.getName();
+                int interruptCount = 0;
+                final String markerStr = "interrupthack: " + name + ":";
                 try {
                     // wait until the response arrives
                     t.setName(name+" / waiting for "+channel);
-                    while(response==null && !channel.isInClosed())
+                    int nextTimeout = -1;
+                    InterruptedException lastInterruptedEx = null;
+                    while(response==null && !channel.isInClosed()) {
                         // I don't know exactly when this can happen, as pendingCalls are cleaned up by Channel,
                         // but in production I've observed that in rare occasion it can block forever, even after a channel
                         // is gone. So be defensive against that.
-                        wait(30*1000);
+                        try {
+                            if (nextTimeout >= 0) {
+                                int tmpTimeout = nextTimeout;
+                                nextTimeout = -1;
+                                wait(tmpTimeout);
+                            } else {
+                                wait(30*1000);
+                            }
+
+                            // unsure about necessity of this check, but it should do no harm either
+                            if (lastInterruptedEx != null && (future == null || future.isCancelled() || future.isDone())) {
+                                logger.log(Level.SEVERE, "{0} {1} old InterruptException re-throw triggered by 'future' member variable",
+                                        new Object[] { new Timestamp(System.currentTimeMillis()), markerStr });
+                                throw lastInterruptedEx;
+                            }
+
+                        } catch (InterruptedException ex) {
+                            ++interruptCount;
+                            if (response != null || channel.isInClosed() || channel.isOutClosed() 
+                                    || future == null || future.isCancelled() || future.isDone()) {
+                                
+                                logger.log(Level.SEVERE, "{0} {1} re-throwing valid InterruptedException #{2} \"{3}\""
+                                        + " (response {4}, in chan closed {5}, out chan closed {6},"
+                                        + " future {7})",
+                                        new Object[] { new Timestamp(System.currentTimeMillis()), markerStr, interruptCount, ex.getMessage(),
+                                            (response != null), channel.isInClosed(), channel.isOutClosed(),
+                                            (future==null ? "null" :  "cancel/done " + future.isCancelled() + '/' + future.isDone()) });
+                                throw ex;
+                            }
+                            else {
+                                lastInterruptedEx = ex;
+                                logger.log(Level.SEVERE, "{0} {1} ignoring spurious InterruptedException #{2}",
+                                        new Object[] { new Timestamp(System.currentTimeMillis()), markerStr, interruptCount });
+                                nextTimeout = 3000; // next time, check state sooner than default 30s
+                            }
+                        }
+                    }
 
                     if (response==null)
                         // channel is closed and we still don't have a response
                         throw new RequestAbortedException(null);
                 } finally {
+                    if (interruptCount > 0) {
+                        logger.log(Level.SEVERE, "{0} {1} finally block interruptedException count {2}",
+                                new Object[] { new Timestamp(System.currentTimeMillis()), markerStr, interruptCount });
+                    }
                     t.setName(name);
                 }
 
