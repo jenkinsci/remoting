@@ -112,10 +112,27 @@ final class ProxyOutputStream extends OutputStream {
                 tmp = new ByteArrayOutputStream();
             tmp.write(b,off,len);
         } else {
+            final int max = window.max();
+
             while (len>0) {
                 int sendable;
                 try {
-                    sendable = Math.min(window.get(),len);
+                    /*
+                        To avoid fragmentation of the pipe window, at least demand that 10% of the pipe window
+                        be reclaimed.
+
+                        Imagine a large latency network where we are always low on the window size,
+                        and we are continuously sending data of irregular size. In such a circumstance,
+                        a fragmentation will happen. We start sending out a small Chunk at a time (say 4 bytes),
+                        and when its Ack comes back, it gets immediately consumed by another out-bound Chunk of 4 bytes.
+
+                        Clearly, it's better to wait a bit until we have a sizable pipe window, then send out
+                        a bigger Chunk, since Chunks have static overheads. This code does just that.
+
+                        (Except when what we are trying to send as a whole is smaller than the current available
+                        window size, in which case there's no point in waiting.)
+                     */
+                    sendable = Math.min(window.get(Math.min(max/10,len)),len);
                     /*
                         Imagine if we have a lot of data to send and the pipe window is fully available.
                         If we create one Chunk that fully uses the window size, we need to wait for the
@@ -132,7 +149,7 @@ final class ProxyOutputStream extends OutputStream {
                         overhead in our Command structure, around 100-200 bytes), so I'm just starting
                         with 2. Further analysis would be needed to determine the best value.
                      */
-                    sendable = Math.min(sendable, window.max()/2);
+                    sendable = Math.min(sendable, max /2);
                 } catch (InterruptedException e) {
                     throw (IOException)new InterruptedIOException().initCause(e);
                 }

@@ -66,23 +66,25 @@ abstract class PipeWindow {
     /**
      * Returns the current available window size.
      *
-     * Unlike {@link #get()}, this method will never wait for the space to become available.
+     * Unlike {@link #get(int)}, this method will never wait for the space to become available.
      */
     abstract int peek();
 
     /**
      * Returns the current available window size.
      *
-     * If the available window size is 0, this method blocks until some space becomes available.
+     * If the available window size is smaller than the specified minimum size,
+     * this method blocks until some space becomes available.
      *
      * @throws IOException
      *      If we learned that there is an irrecoverable problem on the remote side that prevents us from writing.
      * @throws InterruptedException
      *      If a thread was interrupted while blocking.
      * @return
-     *      Positive integer > 0.
+     *      The available window size >= min.
+     * @param min
      */
-    abstract int get() throws InterruptedException, IOException;
+    abstract int get(int min) throws InterruptedException, IOException;
 
     /**
      * When we send out some bytes to the network, we decrease the window size by calling this method.
@@ -123,7 +125,7 @@ abstract class PipeWindow {
             return Integer.MAX_VALUE;
         }
 
-        int get() throws InterruptedException, IOException {
+        int get(int min) throws InterruptedException, IOException {
             checkDeath();
             return Integer.MAX_VALUE;
         }
@@ -196,27 +198,18 @@ abstract class PipeWindow {
 
         /**
          * Blocks until some space becomes available.
-         *
-         * <p>
-         * If the window size is empty, induce some delay outside the synchronized block,
-         * to avoid fragmenting the window size. That is, if a bunch of small ACKs come in a sequence,
-         * bundle them up into a bigger size before making a call.
          */
-        public int get() throws InterruptedException, IOException {
+        public int get(int min) throws InterruptedException, IOException {
             checkDeath();
             synchronized (this) {
-                if (available>0)
+                if (available>=min)
                     return available;
 
-                while (available<=0) {
+                while (available<min) {
                     wait();
                     checkDeath();
                 }
-            }
 
-            Thread.sleep(10);
-
-            synchronized (this) {
                 return available;
             }
         }
