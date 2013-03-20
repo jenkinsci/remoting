@@ -1182,7 +1182,22 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     private static final Logger logger = Logger.getLogger(Channel.class.getName());
 
-    public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",128*1024);
+    /**
+     * Default pipe window size.
+     *
+     * <p>
+     * This controls the amount of bytes that can be in flight. Value too small would fail to efficiently utilize
+     * a high-latency/large-bandwidth network, but a value too large would cause the risk of a large memory consumption
+     * when a pipe clogs (that is, the receiver isn't consuming bytes we are sending fast enough.)
+     *
+     * <p>
+     * If we have a gigabit ethernet (with effective transfer rate of 100M bps) and 20ms latency, the pipe will hold
+     * (100M bits/sec * 0.02sec / 8 bits/byte = 0.25MB. So 1MB or so is big enough for most network, and hopefully
+     * this is an acceptable enough memory consumption in case of clogging.
+     *
+     * @see PipeWindow
+     */
+    public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",1024*1024);
 
 //    static {
 //        ConsoleHandler h = new ConsoleHandler();
