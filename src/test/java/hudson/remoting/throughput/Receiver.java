@@ -19,6 +19,7 @@ public class Receiver {
         while (true) {
             System.out.println("Ready");
             Socket s = ss.accept();
+            s.setTcpNoDelay(true);
             System.out.println("Accepted");
             Channel ch = new Channel("bogus", Executors.newCachedThreadPool(),
                     new SocketInputStream(s),new SocketOutputStream(s));

@@ -34,6 +34,7 @@ public class Sender {
 
         while (true) {
             Socket s = new Socket("127.0.0.2",Receiver.PORT);
+            s.setTcpNoDelay(true);
             Channel ch = new Channel("bogus", Executors.newCachedThreadPool(),
                     new SocketInputStream(s),new SocketOutputStream(s));
 
