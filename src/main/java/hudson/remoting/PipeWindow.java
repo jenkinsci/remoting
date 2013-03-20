@@ -50,20 +50,35 @@ import static java.util.logging.Level.*;
 abstract class PipeWindow {
     protected volatile Throwable dead;
 
+    /**
+     * When we receive Ack from the receiver, we increase the window size by calling this method.
+     */
     abstract void increase(int delta);
 
+    /**
+     * Returns the current available window size.
+     *
+     * Unlike {@link #get()}, this method will never wait for the space to become available.
+     */
     abstract int peek();
 
     /**
-     * Blocks until some space becomes available.
+     * Returns the current available window size.
+     *
+     * If the available window size is 0, this method blocks until some space becomes available.
      *
      * @throws IOException
      *      If we learned that there is an irrecoverable problem on the remote side that prevents us from writing.
      * @throws InterruptedException
      *      If a thread was interrupted while blocking.
+     * @return
+     *      Positive integer > 0.
      */
     abstract int get() throws InterruptedException, IOException;
 
+    /**
+     * When we send out some bytes to the network, we decrease the window size by calling this method.
+     */
     abstract void decrease(int delta);
 
     /**
