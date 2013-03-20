@@ -424,6 +424,9 @@ public class Launcher {
         // and messing up the stream.
         OutputStream os = new StandardOutputStream();
         System.setOut(System.err);
+
+        // System.in/out appear to be already buffered (at least that was the case in Linux and Windows as of Java6)
+        // so we are not going to double-buffer these.
         main(System.in, os, mode, ping);
     }
 

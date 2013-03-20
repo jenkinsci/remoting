@@ -10,6 +10,8 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.junit.Assert;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,7 +38,8 @@ public class Sender {
             Socket s = new Socket("127.0.0.2",Receiver.PORT);
             s.setTcpNoDelay(true);
             Channel ch = new Channel("bogus", Executors.newCachedThreadPool(),
-                    new SocketInputStream(s),new SocketOutputStream(s));
+                    new BufferedInputStream(new SocketInputStream(s)),
+                    new BufferedOutputStream(new SocketOutputStream(s)));
 
             final Pipe p = Pipe.createLocalToRemote();
             Future<byte[]> f = ch.callAsync(new Callable<byte[], Exception>() {

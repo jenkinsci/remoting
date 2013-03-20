@@ -4,6 +4,8 @@ import hudson.remoting.Channel;
 import hudson.remoting.SocketInputStream;
 import hudson.remoting.SocketOutputStream;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.Executors;
@@ -22,7 +24,8 @@ public class Receiver {
             s.setTcpNoDelay(true);
             System.out.println("Accepted");
             Channel ch = new Channel("bogus", Executors.newCachedThreadPool(),
-                    new SocketInputStream(s),new SocketOutputStream(s));
+                    new BufferedInputStream(new SocketInputStream(s)),
+                    new BufferedOutputStream(new SocketOutputStream(s)));
             ch.join();
             s.close();
         }
