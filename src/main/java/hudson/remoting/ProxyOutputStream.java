@@ -116,6 +116,23 @@ final class ProxyOutputStream extends OutputStream {
                 int sendable;
                 try {
                     sendable = Math.min(window.get(),len);
+                    /*
+                        Imagine if we have a lot of data to send and the pipe window is fully available.
+                        If we create one Chunk that fully uses the window size, we need to wait for the
+                        whole Chunk to get to the other side, then the Ack to come back to this side,
+                        before we can send a next Chunk. While the Ack is traveling back to us, we have
+                        to sit idle. This fails to utilize available bandwidth.
+
+                        A better strategy is to create a smaller Chunk, say half the window size.
+                        This allows the other side to send back the ack while we are sending the second
+                        Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
+                        to overlap, and that improves the utilization.
+
+                        It's not clear what the best size of the chunk to send (there's a certain
+                        overhead in our Command structure, around 100-200 bytes), so I'm just starting
+                        with 2. Further analysis would be needed to determine the best value.
+                     */
+                    sendable = Math.min(sendable, window.max()/2);
                 } catch (InterruptedException e) {
                     throw (IOException)new InterruptedIOException().initCause(e);
                 }

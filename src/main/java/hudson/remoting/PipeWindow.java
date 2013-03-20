@@ -51,6 +51,14 @@ abstract class PipeWindow {
     protected volatile Throwable dead;
 
     /**
+     * Returns the current maximum window size.
+     *
+     * <p>
+     * This is the size of the available window size if all the currrently in-flight bytes get acked.
+     */
+    abstract int max();
+
+    /**
      * When we receive Ack from the receiver, we increase the window size by calling this method.
      */
     abstract void increase(int delta);
@@ -103,6 +111,11 @@ abstract class PipeWindow {
      * Fake implementation used when the receiver side doesn't support throttling.
      */
     static class Fake extends PipeWindow {
+        @Override
+        int max() {
+            return Integer.MAX_VALUE;
+        }
+
         void increase(int delta) {
         }
 
@@ -140,6 +153,7 @@ abstract class PipeWindow {
     }
 
     static class Real extends PipeWindow {
+        private final int initial;
         private int available;
         /**
          * Total bytes that left our side of the channel.
@@ -160,6 +174,12 @@ abstract class PipeWindow {
             this.key = key;
             this.oid = key.oid;
             this.available = initialSize;
+            this.initial = initialSize;
+        }
+
+        @Override
+        int max() {
+            return initial;
         }
 
         public synchronized void increase(int delta) {
