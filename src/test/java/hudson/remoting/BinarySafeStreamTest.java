@@ -33,8 +33,6 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Random;
 
-import org.apache.commons.codec.binary.Base64;
-
 /**
  * @author Kohsuke Kawaguchi
  */
@@ -57,7 +55,7 @@ public class BinarySafeStreamTest extends TestCase {
 
     public void testSingleWrite() throws IOException {
         byte[] ds = getDataSet(65536);
-        String master = new String(Base64.encodeBase64(ds));
+        String master = Base64.encode(ds);
 
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         OutputStream o = BinarySafeStream.wrap(buf);
@@ -68,7 +66,7 @@ public class BinarySafeStreamTest extends TestCase {
 
     public void testChunkedWrites() throws IOException {
         byte[] ds = getDataSet(65536);
-        String master = new String(Base64.encodeBase64(ds));
+        String master = Base64.encode(ds);
 
         Random r = new Random(0);
         for( int i=0; i<16; i++) {
@@ -125,7 +123,7 @@ public class BinarySafeStreamTest extends TestCase {
         int ptr=0;
 
         for( int i=0; i<s.length(); i+=4 ) {
-            byte[] buf = Base64.decodeBase64(s.substring(i,i+4).getBytes());
+            byte[] buf = Base64.decode(s.substring(i,i+4));
             for (int j = 0; j < buf.length; j++) {
                 if(buf[j]!=dataSet[ptr])
                     fail("encoding error at offset "+ptr);
