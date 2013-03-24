@@ -51,7 +51,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.net.URL;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -329,22 +328,42 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         protected InputStream wrap(InputStream is) { return is; }
     }
 
+    /**
+     * @deprecated as of 2.24
+     *      Use {@link ChannelBuilder}
+     */
     public Channel(String name, ExecutorService exec, InputStream is, OutputStream os) throws IOException {
         this(name,exec,Mode.BINARY,is,os,null);
     }
 
+    /**
+     * @deprecated as of 2.24
+     *      Use {@link ChannelBuilder}
+     */
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os) throws IOException {
         this(name,exec,mode,is,os,null);
     }
 
+    /**
+     * @deprecated as of 2.24
+     *      Use {@link ChannelBuilder}
+     */
     public Channel(String name, ExecutorService exec, InputStream is, OutputStream os, OutputStream header) throws IOException {
         this(name,exec,Mode.BINARY,is,os,header);
     }
 
+    /**
+     * @deprecated as of 2.24
+     *      Use {@link ChannelBuilder}
+     */
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header) throws IOException {
         this(name,exec,mode,is,os,header,false);
     }
 
+    /**
+     * @deprecated as of 2.24
+     *      Use {@link ChannelBuilder}
+     */
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted) throws IOException {
         this(name,exec,mode,is,os,header,restricted,null);
     }
@@ -352,70 +371,46 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Creates a new channel.
      *
-     * @param name
-     *      Human readable name of this channel. Used for debug/logging. Can be anything.
-     * @param exec
-     *      Commands sent from the remote peer will be executed by using this {@link Executor}.
-     * @param mode
-     *      The encoding to be used over the stream.
-     * @param is
-     *      Stream connected to the remote peer. It's the caller's responsibility to do
-     *      buffering on this stream, if that's necessary.
-     * @param os
-     *      Stream connected to the remote peer. It's the caller's responsibility to do
-     *      buffering on this stream, if that's necessary.
-     * @param header
-     *      If non-null, receive the portion of data in <tt>is</tt> before
-     *      the data goes into the "binary mode". This is useful
-     *      when the established communication channel might include some data that might
-     *      be useful for debugging/trouble-shooting.
-     * @param base
-     *      Specify the classloader used for deserializing remote commands.
-     *      This is primarily related to {@link #getRemoteProperty(Object)}. Sometimes two parties
-     *      communicate over a channel and pass objects around as properties, but those types might not be
-     *      visible from the classloader loading the {@link Channel} class. In such a case, specify a classloader
-     *      so that those classes resolve. If null, {@code Channel.class.getClassLoader()} is used.
      * @param restricted
-     *      If true, this channel won't accept {@link Command}s that allow the remote end to execute arbitrary closures
-     *      --- instead they can only call methods on objects that are exported by this channel.
-     *      This also prevents the remote end from loading classes into JVM.
-     *
-     *      Note that it still allows the remote end to deserialize arbitrary object graph
-     *      (provided that all the classes are already available in this JVM), so exactly how
-     *      safe the resulting behavior is is up to discussion.
+     * @deprecated as of 2.24
+     *      Use {@link ChannelBuilder}
      */
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted, ClassLoader base) throws IOException {
         this(name,exec,mode,is,os,header,restricted,base,new Capability());
     }
 
     /*package*/ Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted, ClassLoader base, Capability capability) throws IOException {
-        this(name,exec, ClassicCommandTransport.create(mode, is, os, header, base, capability),restricted,base);
+        this(new ChannelBuilder(name,exec)
+                .withMode(mode)
+                .withBaseLoader(base)
+                .withCapability(capability)
+                .withHeaderStream(header)
+                .withRestricted(restricted), is, os);
     }
 
     /**
-     * Creates a new channel.
-     *
-     * @param name
-     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
-     * @param exec
-     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
-     * @param transport
-     *      The transport that we run {@link Channel} on top of.
-     * @param base
-     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
-     * @param restricted
-     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
+     * @deprecated as of 2.24
+     *      Use {@link ChannelBuilder}
      * @since 2.13
      */
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
-        this.name = name;
-        this.executor = new InterceptingExecutorService(exec);
-        this.isRestricted = restricted;
+        this(new ChannelBuilder(name,exec)
+                .withBaseLoader(base)
+                .withRestricted(restricted), transport);
+
+    }
+
+    /*package*/ Channel(ChannelBuilder settings, InputStream is, OutputStream os) throws IOException {
+        this(settings, settings.negotiate(is,os));
+    }
+
+    /*package*/ Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
+        this.name = settings.getName();
+        this.executor = new InterceptingExecutorService(settings.getExecutors());
+        this.isRestricted = settings.isRestricted();
         this.underlyingOutput = transport.getUnderlyingStream();
 
-        if (base==null)
-            base = getClass().getClassLoader();
-        this.baseClassLoader = base;
+        this.baseClassLoader = settings.getBaseLoader();
 
         if(export(this,false)!=1)
             throw new AssertionError(); // export number 1 is reserved for the channel itself
