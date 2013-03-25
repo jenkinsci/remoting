@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -40,11 +41,11 @@ public class Main {
         Selector sel = Selector.open();
 
         {
-            SelectableFileChannel c1 = f.create(unwrap(open("tail", "-f", "/tmp/test")));
+            SocketChannel c1 = f.create(unwrap(open("tail", "-f", "/tmp/test")));
             c1.configureBlocking(false);
             c1.register(sel, SelectionKey.OP_READ).attach("tail -f /tmp/test1");
 
-            SelectableFileChannel c2 = f.create(unwrap(open("tail", "-f", "/tmp/test2")));
+            SocketChannel c2 = f.create(unwrap(open("tail", "-f", "/tmp/test2")));
             c2.configureBlocking(false);
             c2.register(sel, SelectionKey.OP_READ).attach("tail -f /tmp/test2");
         }
@@ -53,7 +54,7 @@ public class Main {
             sel.select();
             for (SelectionKey sk : sel.selectedKeys()) {
                 System.out.println("==== "+sk.attachment());
-                SelectableFileChannel c = (SelectableFileChannel)sk.channel();
+                SocketChannel c = (SocketChannel)sk.channel();
 
                 ByteBuffer buf = ByteBuffer.allocate(1024);
                 c.read(buf);

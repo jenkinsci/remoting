@@ -78,23 +78,23 @@ public class SelectableFileChannelFactory {
         return null;    // unknown type
     }
 
-    public SelectableFileChannel create(InputStream in) throws IOException {
+    public SocketChannel create(InputStream in) throws IOException {
         return create(unwrap(in));
     }
 
-    public SelectableFileChannel create(OutputStream out) throws IOException {
+    public SocketChannel create(OutputStream out) throws IOException {
         return create(unwrap(out));
     }
 
-    public SelectableFileChannel create(FileInputStream in) throws IOException {
+    public SocketChannel create(FileInputStream in) throws IOException {
         return create(in.getFD());
     }
 
-    public SelectableFileChannel create(FileOutputStream out) throws IOException {
+    public SocketChannel create(FileOutputStream out) throws IOException {
         return create(out.getFD());
     }
 
-    public SelectableFileChannel create(FileDescriptor fd) {
+    public SocketChannel create(FileDescriptor fd) {
         if (File.pathSeparatorChar==';')
             return null; // not selectable on Windows
 
@@ -111,7 +111,7 @@ public class SelectableFileChannelFactory {
             $m.setAccessible(true);
             $m.invoke(fd);
 
-            return new SelectableFileChannel((SocketChannel)$c.newInstance(SelectorProvider.provider(), fd, null));
+            return (SocketChannel)$c.newInstance(SelectorProvider.provider(), fd, null);
         } catch (NoSuchMethodException e) {
             warn(e);
             return null;

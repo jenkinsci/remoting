@@ -1,0 +1,2 @@
+- Add framing support in remoting proper and expose it as a capability
+- NioChannelHub needs to notice the end of a command and send it for parsing

@@ -15,6 +15,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -122,8 +123,8 @@ public class NioChannelHub implements Runnable {
 
             @Override
             protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
-                SelectableFileChannel r = factory.create(is);
-                SelectableFileChannel w = factory.create(os);
+                SocketChannel r = factory.create(is);
+                SocketChannel w = factory.create(os);
                 if (r!=null && r!=null && mode==Mode.BINARY && true/*TODO: check if framing is suported*/) {
                     ChannelPair cp = new ChannelPair(r, w, cap);
                     cp.register();
