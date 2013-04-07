@@ -149,27 +149,25 @@ public class NioChannelHub implements Runnable {
                 return;
             }
 
-            Iterator<SelectionKey> itr = selector.selectedKeys().iterator();
-            while (itr.hasNext()) {
-                SelectionKey key = itr.next();
-                ChannelPair p = (ChannelPair)key.attachment();
+            for (SelectionKey key : selector.selectedKeys()) {
+                ChannelPair p = (ChannelPair) key.attachment();
 
                 try {
                     if (key.isReadable()) {
-                        if (p.rb.receive(p.rr)==-1) {
+                        if (p.rb.receive(p.rr) == -1) {
                             cancelKey(key);
                             p.rb.close();
                         }
                         // TODO: framing and parsing
                     }
                     if (key.isWritable()) {
-                        if (p.wb.send(p.ww)==-1) {
+                        if (p.wb.send(p.ww) == -1) {
                             // done with sending all the data
                             cancelKey(key);
                         }
                     }
                 } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Communication problem",e);
+                    LOGGER.log(Level.WARNING, "Communication problem", e);
                     p.abort(e);
                 }
             }
