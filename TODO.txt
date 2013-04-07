@@ -4,3 +4,6 @@
 Phase 2:
     Socket connecting NioChunnelHub to thread-driven Channel inside the same process
 
+TODOs:
+    - multi-threaded acceptors
+    - chunking support in remoting + capability negotiation

@@ -154,56 +154,68 @@ public class NioChannelHub implements Runnable {
             }
 
             for (SelectionKey key : selector.selectedKeys()) {
-                ChannelPair p = (ChannelPair) key.attachment();
+                Object a = key.attachment();
+                if (a instanceof ChannelPair) {
+                    ChannelPair p = (ChannelPair) a;
 
-                try {
-                    if (key.isReadable()) {
-                        if (p.rb.receive(p.rr) == -1) {
-                            cancelKey(key);
-                            p.rb.close();
-                        }
+                    try {
+                        if (key.isReadable()) {
+                            if (p.rb.receive(p.rr) == -1) {
+                                cancelKey(key);
+                                p.rb.close();
+                            }
 
-                        final byte[] buf = new byte[2]; // space for reading the chunk header
-                        int pos=0;
-                        int packetSize=0;
-                        while (true) {
-                            if (p.rb.peek(pos,buf)<buf.length)
-                                break;  // we don't have enough
-                            int header = ChunkHeader.parse(buf);
-                            int chunk = ChunkHeader.length(header);
-                            pos+=buf.length+chunk;
-                            packetSize+=chunk;
-                            boolean last = ChunkHeader.isLast(header);
-                            if (last && pos<=p.rb.readable()) {// do we have the whole packet in our buffer?
-                                // read in the whole packet
-                                byte[] packet = new byte[packetSize];
-                                int r_ptr = 0;
-                                while (packetSize>0) {
-                                    int r = p.rb.readNonBlocking(buf);
-                                    assert r==buf.length;
-                                    chunk = ChunkHeader.length(ChunkHeader.parse(buf));
-                                    p.rb.readNonBlocking(packet,r_ptr,chunk);
-                                    packetSize-=chunk;
-                                    r_ptr+=chunk;
+                            final byte[] buf = new byte[2]; // space for reading the chunk header
+                            int pos=0;
+                            int packetSize=0;
+                            while (true) {
+                                if (p.rb.peek(pos,buf)<buf.length)
+                                    break;  // we don't have enough
+                                int header = ChunkHeader.parse(buf);
+                                int chunk = ChunkHeader.length(header);
+                                pos+=buf.length+chunk;
+                                packetSize+=chunk;
+                                boolean last = ChunkHeader.isLast(header);
+                                if (last && pos<=p.rb.readable()) {// do we have the whole packet in our buffer?
+                                    // read in the whole packet
+                                    byte[] packet = new byte[packetSize];
+                                    int r_ptr = 0;
+                                    while (packetSize>0) {
+                                        int r = p.rb.readNonBlocking(buf);
+                                        assert r==buf.length;
+                                        chunk = ChunkHeader.length(ChunkHeader.parse(buf));
+                                        p.rb.readNonBlocking(packet, r_ptr, chunk);
+                                        packetSize-=chunk;
+                                        r_ptr+=chunk;
+                                    }
+                                    assert packetSize==0;
+
+                                    p.receiver.handle(packet);
                                 }
-                                assert packetSize==0;
-
-                                p.receiver.handle(packet);
                             }
                         }
-                    }
-                    if (key.isWritable()) {
-                        if (p.wb.send(p.ww) == -1) {
-                            // done with sending all the data
-                            cancelKey(key);
+                        if (key.isWritable()) {
+                            if (p.wb.send(p.ww) == -1) {
+                                // done with sending all the data
+                                cancelKey(key);
+                            }
                         }
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, "Communication problem", e);
+                        p.abort(e);
                     }
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Communication problem", e);
-                    p.abort(e);
+                } else {
+                    onSelected(key);
                 }
             }
         }
+    }
+
+    /**
+     * Called when the unknown key registered to the selector is selected.
+     */
+    protected void onSelected(SelectionKey key) {
+
     }
 
     private void abortAll(Exception e) {
@@ -223,6 +235,10 @@ public class NioChannelHub implements Runnable {
             key.cancel();
             IOUtils.closeQuietly(key.channel());
         }
+    }
+
+    public Selector getSelector() {
+        return selector;
     }
 
     private static final Logger LOGGER = Logger.getLogger(NioChannelHub.class.getName());
