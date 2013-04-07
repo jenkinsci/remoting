@@ -164,6 +164,7 @@ public class ChannelBuilder {
 
         if(mode!= Mode.NEGOTIATE) {
             os.write(mode.preamble);
+            os.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
         }
 
         {// read the input until we hit preamble
@@ -189,6 +190,7 @@ public class ChannelBuilder {
                                     // now we know what the other side wants, so send the consistent preamble
                                     mode = modes[i];
                                     os.write(mode.preamble);
+                                    os.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
                                 } else {
                                     if(modes[i]!=mode)
                                         throw new IOException("Protocol negotiation failure");
