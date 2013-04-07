@@ -18,7 +18,7 @@ import static java.nio.channels.SelectionKey.*;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class SocketMain {
+public class SocketServerMain {
     public static void main(String[] args) throws Exception {
         final ExecutorService es = Executors.newCachedThreadPool();
 
@@ -39,7 +39,9 @@ public class SocketMain {
                                 // TODO: this is where we do more config
                                 Socket socket = con.socket();
                                 // TODO: does this actually produce async channel?
-                                Channel ch = newChannelBuilder(con.toString(), es).build(socket.getInputStream(), socket.getOutputStream());
+                                Channel ch = newChannelBuilder(con.toString(), es)
+                                        .withHeaderStream(new FlushEveryByteStream(System.out))
+                                        .build(socket.getInputStream(), socket.getOutputStream());
                                 LOGGER.info("Connected to " + ch);
                             } catch (IOException e) {
                                 LOGGER.log(Level.WARNING, "Handshake failed", e);
@@ -57,5 +59,5 @@ public class SocketMain {
     }
 
     private static final int FRAME_SIZE = 4096;
-    private static final Logger LOGGER = Logger.getLogger(SocketMain.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(SocketServerMain.class.getName());
 }
