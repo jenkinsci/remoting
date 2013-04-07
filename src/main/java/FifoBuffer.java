@@ -358,11 +358,38 @@ public class FifoBuffer implements Closeable {
         }
     }
 
+    public int peek(int offset, byte[] data) {
+        return peek(offset,data,0,data.length);
+    }
+
+    public int read(byte[] buf) throws InterruptedException {
+        return read(buf,0,buf.length);
+    }
+
     /**
      *
      * @see InputStream#read(byte[],int,int)
      */
     public int read(byte[] buf, int start, int len) throws InterruptedException {
+        if (len==0)     return 0;   // the only case where we can legally return 0
+        synchronized (lock) {
+            while (true) {
+                int r = readNonBlocking(buf,start,len);
+                if (r!=0)   return r;
+                lock.wait();    // wait until the writer gives us something
+            }
+        }
+    }
+
+    public int readNonBlocking(byte[] buf) {
+        return readNonBlocking(buf,0,buf.length);
+    }
+
+    /**
+     *
+     * @see InputStream#read(byte[],int,int)
+     */
+    public int readNonBlocking(byte[] buf, int start, int len) {
         if (len==0)     return 0;
 
         int read = 0;   // total # of bytes read
@@ -383,7 +410,8 @@ public class FifoBuffer implements Closeable {
                         releaseRing();
                         return -1;  // no more data
                     }
-                    lock.wait(); // wait until the writer gives us something
+
+                    return 0; // nothing to read
                 }
 
                 r.read(buf,start,chunk);
