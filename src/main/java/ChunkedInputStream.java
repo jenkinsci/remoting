@@ -47,13 +47,13 @@ public class ChunkedInputStream extends InputStream {
      */
     private boolean readLength() throws IOException {
         while (remaining==0) {
-            onBreak();
-
             int b1 = base.read();
             int b2 = base.read();
             if (b1<0 || b2<0)   return true; // EOF
 
-            remaining = (b1<<8)+b2;
+            if ((b1&0x80)==0)
+                onBreak();
+            remaining = ((b1<<8)&0x7F)+b2;
         }
         return false;
     }

@@ -18,7 +18,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
@@ -80,16 +79,16 @@ public class NioChannelHub implements Runnable {
                 byte[] header = new byte[2];
 
                 int pos = 0;
-                while (true) {
+                boolean last;
+                do {
                     int frame = Math.min(transportFrameSize,bytes.length-pos);
-                    header[0] = (byte)(frame>>8);
+                    last = frame!=transportFrameSize;
+                    header[0] = (byte)((last?0x80:0)|(frame>>8));
                     header[1] = (byte)(frame);
                     wb.write(header,0,header.length);
-                    if (frame==0)       return; // end of the block marker
-
                     wb.write(bytes,pos,frame);
                     pos+=frame;
-                }
+                } while(!last);
             } catch (InterruptedException e) {
                 throw new InterruptedIOException();
             }
@@ -118,6 +117,7 @@ public class NioChannelHub implements Runnable {
 
     public NioChannelHub(int transportFrameSize) throws IOException {
         selector = Selector.open();
+        assert 0<transportFrameSize && transportFrameSize<=Short.MAX_VALUE;
         this.transportFrameSize = transportFrameSize;
     }
 

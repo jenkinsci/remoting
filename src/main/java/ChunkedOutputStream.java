@@ -8,6 +8,11 @@ import java.io.OutputStream;
  * This class implements that semantics by allowing the caller to make {@link #sendBreak()} to
  * signify a boundary between two byte[]s.
  *
+ * <p>
+ * The header is 2 bytes, in the network order. The first bit designates whether this chunk
+ * is the last chunk (0 if this is the last chunk), and the remaining 15 bits designate the
+ * length of the chunk as unsigned number.
+ *
  * @author Kohsuke Kawaguchi
  */
 public class ChunkedOutputStream extends OutputStream {
@@ -17,7 +22,7 @@ public class ChunkedOutputStream extends OutputStream {
     private final OutputStream base;
 
     public ChunkedOutputStream(int frameSize, OutputStream base) {
-        assert 0<frameSize && frameSize<=0x1000;
+        assert 0<frameSize && frameSize<=Short.MAX_VALUE;
 
         this.buf = new byte[frameSize];
         size = 0;
@@ -57,13 +62,13 @@ public class ChunkedOutputStream extends OutputStream {
      * Sends a boundary of a packet.
      */
     public void sendBreak() throws IOException {
-        sendFrame();
+        sendFrame(false);
         base.flush();
     }
 
     @Override
     public void close() throws IOException {
-        sendFrame();
+        sendFrame(false);
         base.close();
     }
 
@@ -72,11 +77,11 @@ public class ChunkedOutputStream extends OutputStream {
      */
     private void drain() throws IOException {
         if (capacity()==0)
-            sendFrame();
+            sendFrame(true);
     }
 
-    private void sendFrame() throws IOException {
-        base.write(size>>8);
+    private void sendFrame(boolean hasMore) throws IOException {
+        base.write((hasMore?0x80:0)|(size>>8));
         base.write(size&0xFF);
         base.write(buf,0,size);
         size = 0;
