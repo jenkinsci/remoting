@@ -37,6 +37,13 @@ public class Main {
      */
 
     public static void main(String[] args) throws Exception {
+        testProcessSelection();
+    }
+
+    /**
+     * Tests NIO with pipe to child processes.
+     */
+    private static void testProcessSelection() throws Exception {
         SelectableFileChannelFactory f = new SelectableFileChannelFactory();
         Selector sel = Selector.open();
 
