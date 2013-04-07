@@ -51,9 +51,10 @@ public class ChunkedInputStream extends InputStream {
             int b2 = base.read();
             if (b1<0 || b2<0)   return true; // EOF
 
-            if ((b1&0x80)==0)
+            int header = ChunkHeader.parse(b1, b2);
+            if (ChunkHeader.isLast(header))
                 onBreak();
-            remaining = ((b1<<8)&0x7F)+b2;
+            remaining = ChunkHeader.length(header);
         }
         return false;
     }

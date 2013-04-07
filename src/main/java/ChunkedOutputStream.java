@@ -8,11 +8,6 @@ import java.io.OutputStream;
  * This class implements that semantics by allowing the caller to make {@link #sendBreak()} to
  * signify a boundary between two byte[]s.
  *
- * <p>
- * The header is 2 bytes, in the network order. The first bit designates whether this chunk
- * is the last chunk (0 if this is the last chunk), and the remaining 15 bits designate the
- * length of the chunk as unsigned number.
- *
  * @author Kohsuke Kawaguchi
  */
 public class ChunkedOutputStream extends OutputStream {
