@@ -31,6 +31,9 @@ import java.util.logging.Logger;
  */
 public class NioChannelHub implements Runnable {
     private final Selector selector;
+    /**
+     * Maximum size of the chunk.
+     */
     private final int transportFrameSize;
     private final SelectableFileChannelFactory factory = new SelectableFileChannelFactory();
 
@@ -74,13 +77,14 @@ public class NioChannelHub implements Runnable {
         @Override
         public void writeBlock(Channel channel, byte[] bytes) throws IOException {
             try {
-                byte[] header = new byte[1];
+                byte[] header = new byte[2];
 
                 int pos = 0;
                 while (true) {
                     int frame = Math.min(transportFrameSize,bytes.length-pos);
-                    header[0] = (byte)frame;
-                    wb.write(header,0,1);
+                    header[0] = (byte)(frame>>8);
+                    header[1] = (byte)(frame);
+                    wb.write(header,0,header.length);
                     if (frame==0)       return; // end of the block marker
 
                     wb.write(bytes,pos,frame);

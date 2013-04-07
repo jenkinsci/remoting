@@ -1,2 +1,6 @@
-- Add framing support in remoting proper and expose it as a capability
 - NioChannelHub needs to notice the end of a command and send it for parsing
+
+
+Phase 2:
+    Socket connecting NioChunnelHub to thread-driven Channel inside the same process
+

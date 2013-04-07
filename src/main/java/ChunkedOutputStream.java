@@ -2,6 +2,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
+ * Sends a series of byte[] in such a way that the NIO receiver can easily discover boundaries.
+ *
+ * <p>
+ * This class implements that semantics by allowing the caller to make {@link #sendBreak()} to
+ * signify a boundary between two byte[]s.
+ *
  * @author Kohsuke Kawaguchi
  */
 public class ChunkedOutputStream extends OutputStream {
