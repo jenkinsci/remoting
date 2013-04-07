@@ -46,6 +46,19 @@ public class FifoBuffer implements Closeable {
             this.off = off;
         }
 
+        Pointer copy() {
+            return new Pointer(p,off);
+        }
+
+        void forward(int offset) {
+            while (offset>0) {
+                int ch = chunk();
+                assert 0<ch && ch<=offset;
+                offset -= ch;
+                off += ch;
+            }
+        }
+
         /**
          * Figure out the number of bytes that can be read/written in one array copy.
          */
@@ -153,6 +166,11 @@ public class FifoBuffer implements Closeable {
         w = new Pointer(p,0);
     }
 
+    /**
+     * Set limit to the number of maximum bytes this buffer can hold.
+     *
+     * Write methods will block if the size reaches the limit.
+     */
     public void setLimit(int newLimit) {
         synchronized (lock) {
             limit = newLimit;
@@ -164,7 +182,7 @@ public class FifoBuffer implements Closeable {
     }
 
     /**
-     * Number of bytes readable
+     * Number of bytes availble in this buffer that are readable.
      */
     int readable() {
         synchronized (lock) {
@@ -236,6 +254,9 @@ public class FifoBuffer implements Closeable {
         }
     }
 
+    /**
+     * Read bytes from a channel and stores it into this buffer.
+     */
     public int receive(ReadableByteChannel ch) throws IOException {
         int written = 0;
         while (true) {
@@ -304,16 +325,36 @@ public class FifoBuffer implements Closeable {
             r = w = null;
     }
 
+//    /**
+//     * Returns a {@link ByteBuffer} for peeking into
+//     */
+//    public ByteBuffer peek(int max) {
+//        synchronized (lock) {
+//            if (closed) {
+//                releaseRing();
+//                return null;
+//            }
+//            return r.asBuffer(Math.min(max, readable()));
+//        }
+//    }
+
     /**
-     * Returns a {@link ByteBuffer} for peeking into
+     * Peek the specified number of bytes ({@code len}) at the specified offset in this buffer ({@code offset})
+     * and places it into the specified position ({@code start}) of the array ({@code data})
+     *
+     * @return
+     *      number of bytes actually peeked. Can be 0 if the offset goes beyond the current readable size in this buffer.
+     *      Never negative.
      */
-    public ByteBuffer peek(int max) {
+    public int peek(int offset, byte[] data, int start, int len) {
         synchronized (lock) {
-            if (closed) {
-                releaseRing();
-                return null;
-            }
-            return r.asBuffer(Math.min(max, readable()));
+            len = Math.min(len, readable()-offset); // can't read beyond the end of the readable buffer
+            if (len<=0) return 0;
+
+            Pointer v = this.r.copy();
+            v.forward(offset);
+            v.read(data,start,len);
+            return len;
         }
     }
 
