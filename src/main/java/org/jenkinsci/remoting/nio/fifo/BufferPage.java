@@ -1,4 +1,4 @@
-package fifo;
+package org.jenkinsci.remoting.nio.fifo;
 
 /**
  * Unit of buffer, singly linked and lazy created as needed.

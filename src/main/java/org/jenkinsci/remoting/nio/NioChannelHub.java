@@ -1,3 +1,5 @@
+package org.jenkinsci.remoting.nio;
+
 import hudson.remoting.AbstractByteArrayCommandTransport;
 import hudson.remoting.Capability;
 import hudson.remoting.Channel;

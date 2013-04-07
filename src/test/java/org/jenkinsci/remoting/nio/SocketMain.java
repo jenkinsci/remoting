@@ -1,3 +1,5 @@
+package org.jenkinsci.remoting.nio;
+
 import hudson.remoting.Channel;
 
 import java.io.IOException;
@@ -38,7 +40,7 @@ public class SocketMain {
                                 Socket socket = con.socket();
                                 // TODO: does this actually produce async channel?
                                 Channel ch = newChannelBuilder(con.toString(), es).build(socket.getInputStream(), socket.getOutputStream());
-                                LOGGER.info("Connected to "+ch);
+                                LOGGER.info("Connected to " + ch);
                             } catch (IOException e) {
                                 LOGGER.log(Level.WARNING, "Handshake failed", e);
                             }

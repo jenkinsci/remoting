@@ -1,4 +1,4 @@
-package fifo;
+package org.jenkinsci.remoting.nio.fifo;
 
 /**
  * @author Kohsuke Kawaguchi

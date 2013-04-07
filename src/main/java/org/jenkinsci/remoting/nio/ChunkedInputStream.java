@@ -1,3 +1,5 @@
+package org.jenkinsci.remoting.nio;
+
 import java.io.IOException;
 import java.io.InputStream;
 

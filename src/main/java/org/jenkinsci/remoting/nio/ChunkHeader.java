@@ -1,3 +1,5 @@
+package org.jenkinsci.remoting.nio;
+
 /**
  * Parsing of the chunk header.
  *

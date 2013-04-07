@@ -1,3 +1,5 @@
+package org.jenkinsci.remoting.nio;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -382,7 +384,7 @@ public class FifoBuffer implements Closeable {
     }
 
     public int readNonBlocking(byte[] buf) {
-        return readNonBlocking(buf,0,buf.length);
+        return readNonBlocking(buf, 0, buf.length);
     }
 
     /**
