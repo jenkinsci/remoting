@@ -155,11 +155,10 @@ public class ChannelBuilder {
 
         capability.writePreamble(os);
 
-        ObjectOutputStream oos = null;
+        Mode mode = this.getMode();
+
         if(mode!= Mode.NEGOTIATE) {
             os.write(mode.preamble);
-            oos = new ObjectOutputStream(mode.wrap(os));
-            oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
         }
 
         {// read the input until we hit preamble
@@ -185,14 +184,12 @@ public class ChannelBuilder {
                                     // now we know what the other side wants, so send the consistent preamble
                                     mode = modes[i];
                                     os.write(mode.preamble);
-                                    oos = new ObjectOutputStream(mode.wrap(os));
-                                    oos.flush();
                                 } else {
                                     if(modes[i]!=mode)
                                         throw new IOException("Protocol negotiation failure");
                                 }
 
-                                return makeTransport(os, new ObjectInputStreamEx(mode.wrap(is), base), oos, cap);
+                                return makeTransport(is, os, mode, cap);
                             case 2:
                                 cap = Capability.read(is);
                                 break;
@@ -211,7 +208,23 @@ public class ChannelBuilder {
         }
     }
 
-    protected CommandTransport makeTransport(OutputStream os, ObjectInputStream ois, ObjectOutputStream oos, Capability cap) throws IOException {
-        return new ClassicCommandTransport(ois,oos,os,cap);
+    /**
+     * Instantiate a transport.
+     *
+     * @param is
+     *      The negotiated input stream that hides
+     * @param os
+     *      {@linkplain CommandTransport#getUnderlyingStream() the underlying stream}.
+     *      @param
+     * @param cap
+     *      Capabilities of the other side, as determined during the handshaking.
+     */
+    protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
+        ObjectOutputStream oos = new ObjectOutputStream(mode.wrap(os));
+        oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
+
+        return new ClassicCommandTransport(
+                new ObjectInputStreamEx(mode.wrap(is),getBaseLoader()),
+                oos,os,cap);
     }
 }
