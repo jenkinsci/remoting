@@ -5,9 +5,9 @@ import hudson.remoting.Channel.Mode;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.Socket;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
@@ -133,6 +133,11 @@ public class ChannelBuilder {
      */
     public Channel build(InputStream is, OutputStream os) throws IOException {
         return new Channel(this,negotiate(is,os));
+    }
+
+    public Channel build(Socket s) throws IOException {
+        // support half-close properly
+        return build(new SocketInputStream(s),new SocketOutputStream(s));
     }
 
     public Channel build(CommandTransport transport) throws IOException {
