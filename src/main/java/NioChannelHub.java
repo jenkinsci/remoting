@@ -162,7 +162,35 @@ public class NioChannelHub implements Runnable {
                             cancelKey(key);
                             p.rb.close();
                         }
-                        // TODO: framing and parsing
+
+                        final byte[] buf = new byte[2]; // space for reading the chunk header
+                        int pos=0;
+                        int packetSize=0;
+                        while (true) {
+                            if (p.rb.peek(pos,buf)<buf.length)
+                                break;  // we don't have enough
+                            int header = ChunkHeader.parse(buf);
+                            int chunk = ChunkHeader.length(header);
+                            pos+=buf.length+chunk;
+                            packetSize+=chunk;
+                            boolean last = ChunkHeader.isLast(header);
+                            if (last && pos<=p.rb.readable()) {// do we have the whole packet in our buffer?
+                                // read in the whole packet
+                                byte[] packet = new byte[packetSize];
+                                int r_ptr = 0;
+                                while (packetSize>0) {
+                                    int r = p.rb.readNonBlocking(buf);
+                                    assert r==buf.length;
+                                    chunk = ChunkHeader.length(ChunkHeader.parse(buf));
+                                    p.rb.readNonBlocking(packet,r_ptr,chunk);
+                                    packetSize-=chunk;
+                                    r_ptr+=chunk;
+                                }
+                                assert packetSize==0;
+
+                                p.receiver.handle(packet);
+                            }
+                        }
                     }
                     if (key.isWritable()) {
                         if (p.wb.send(p.ww) == -1) {
