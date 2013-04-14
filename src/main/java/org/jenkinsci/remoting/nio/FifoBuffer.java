@@ -284,6 +284,10 @@ public class FifoBuffer implements Closeable {
         }
     }
 
+    public void write(byte[] buf) throws InterruptedException {
+        write(buf,0,buf.length);
+    }
+
     public void write(byte[] buf, int start, int len) throws InterruptedException {
         while (len>0) {
             int chunk;

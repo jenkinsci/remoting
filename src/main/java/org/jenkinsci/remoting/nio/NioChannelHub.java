@@ -76,13 +76,14 @@ public class NioChannelHub implements Runnable {
 
         public void reregister() throws IOException {
             int writeFlag = wb.readable()>0 ? OP_WRITE : 0; // do we want to write?
+            int readFlag = receiver!=null ? OP_READ : 0; // once we have the setup method called, we are ready
 
             if (r==w) {
                 r.configureBlocking(false);
-                r.register(selector, OP_READ|writeFlag).attach(this);
+                r.register(selector, readFlag|writeFlag).attach(this);
             } else {
                 r.configureBlocking(false);
-                r.register(selector, OP_READ).attach(this);
+                r.register(selector, readFlag).attach(this);
                 w.configureBlocking(false);
                 w.register(selector, writeFlag).attach(this);
             }
@@ -98,20 +99,16 @@ public class NioChannelHub implements Runnable {
         @Override
         public void writeBlock(Channel channel, byte[] bytes) throws IOException {
             try {
-                byte[] header = new byte[2];
-
+                boolean hasMore;
                 int pos = 0;
-                boolean last;
                 do {
-                    int frame = Math.min(transportFrameSize,bytes.length-pos);
-                    last = frame!=transportFrameSize;
-                    header[0] = (byte)((last?0x80:0)|(frame>>8));
-                    header[1] = (byte)(frame);
-                    wb.write(header,0,header.length);
+                    int frame = Math.min(transportFrameSize, bytes.length - pos); // # of bytes we send in this chunk
+                    hasMore = frame + pos < bytes.length;
+                    wb.write(ChunkHeader.pack(frame, hasMore));
                     wb.write(bytes,pos,frame);
                     scheduleReregister();
                     pos+=frame;
-                } while(!last);
+                } while(hasMore);
             } catch (InterruptedException e) {
                 throw new InterruptedIOException();
             }
@@ -120,6 +117,7 @@ public class NioChannelHub implements Runnable {
         @Override
         public void setup(ByteArrayReceiver receiver) {
             this.receiver = receiver;
+            scheduleReregister();   // ready to read bytes now
         }
 
         @Override
