@@ -227,11 +227,15 @@ public class ChannelBuilder {
      *      Capabilities of the other side, as determined during the handshaking.
      */
     protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
-        ObjectOutputStream oos = new ObjectOutputStream(mode.wrap(os));
-        oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
+        if (cap.supportsChunking())
+            return new ChunkedCommandTransport(cap, mode.wrap(is), mode.wrap(os));
+        else {
+            ObjectOutputStream oos = new ObjectOutputStream(mode.wrap(os));
+            oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
 
-        return new ClassicCommandTransport(
-                new ObjectInputStreamEx(mode.wrap(is),getBaseLoader()),
-                oos,os,cap);
+            return new ClassicCommandTransport(
+                    new ObjectInputStreamEx(mode.wrap(is),getBaseLoader()),
+                    oos,os,cap);
+        }
     }
 }

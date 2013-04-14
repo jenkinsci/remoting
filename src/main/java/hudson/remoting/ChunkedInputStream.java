@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 /**
  * Opposite of {@link ChunkedOutputStream}.
@@ -19,13 +20,18 @@ class ChunkedInputStream extends InputStream {
      */
     private int remaining;
 
+    /**
+     * True if we are reading the last block of a chunk.
+     */
+    private boolean isLast;
+
     public ChunkedInputStream(InputStream base) {
         this.base = base;
     }
 
     @Override
     public int read() throws IOException {
-        if (readLength())   return -1;
+        if (nextPayload())   return -1;
         int x = base.read();
         remaining--;
         return x;
@@ -33,7 +39,7 @@ class ChunkedInputStream extends InputStream {
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-        if (readLength())   return -1;
+        if (nextPayload())   return -1;
 
         len = Math.min(remaining,len);
 
@@ -47,17 +53,25 @@ class ChunkedInputStream extends InputStream {
     /**
      * If we are supposed to read the length of the next chunk, do so.
      */
-    private boolean readLength() throws IOException {
+    private boolean nextPayload() throws IOException {
         while (remaining==0) {
-            int b1 = base.read();
-            int b2 = base.read();
-            if (b1<0 || b2<0)   return true; // EOF
-
-            int header = ChunkHeader.parse(b1, b2);
-            if (ChunkHeader.isLast(header))
-                onBreak();
-            remaining = ChunkHeader.length(header);
+            if (readHeader())
+                return true;
         }
+        return false;
+    }
+
+    private boolean readHeader() throws IOException {
+        if (remaining>0)    return false;
+
+        int b1 = base.read();
+        int b2 = base.read();
+        if (b1<0 || b2<0) return true; // EOF
+
+        int header = ChunkHeader.parse(b1, b2);
+        if (isLast=ChunkHeader.isLast(header))
+            onBreak();
+        remaining = ChunkHeader.length(header);
         return false;
     }
 
@@ -65,5 +79,21 @@ class ChunkedInputStream extends InputStream {
      * Signifies the chunk boundary.
      */
     protected void onBreak() {
+    }
+
+    public void readUntilBreak(OutputStream sink) throws IOException {
+        byte[] buf = new byte[4096];
+        while (true) {
+            if (remaining>0) {
+                int read = read(buf, 0, Math.min(remaining,buf.length));
+                if (read==-1)
+                    throw new IOException("Unexpected EOF");
+                sink.write(buf,0,read);
+                if (isLast && remaining==0)
+                    return; // we've read the all payload of the last chunk
+            } else {
+                readHeader(); // move on to the next chunk
+            }
+        }
     }
 }

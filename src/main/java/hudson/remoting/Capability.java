@@ -33,7 +33,7 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION);
+        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_CHUNKED_ENCODING);
     }
 
     /**
@@ -57,6 +57,14 @@ public final class Capability implements Serializable {
 
     public boolean hasMimicException() {
         return (mask&MASK_MIMIC_EXCEPTION)!=0;
+    }
+
+    /**
+     * Supports chunking to designate a command boundary.
+     * This is necessary for the NIO transport to work.
+     */
+    public boolean supportsChunking() {
+        return (mask&MASK_CHUNKED_ENCODING)!=0;
     }
 
     /**
@@ -111,6 +119,11 @@ public final class Capability implements Serializable {
      * Supports {@link MimicException}.
      */
     private static final long MASK_MIMIC_EXCEPTION = 8L;
+
+    /**
+     * Supports chunked encoding.
+     */
+    private static final long MASK_CHUNKED_ENCODING = 16L;
 
     static final byte[] PREAMBLE;
 
