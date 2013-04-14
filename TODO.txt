@@ -1,9 +1,8 @@
-- NioChannelHub needs to notice the end of a command and send it for parsing
-
+- if we don't have anything to write, don't register the OP_WRITE
 
 Phase 2:
     Socket connecting NioChunnelHub to thread-driven Channel inside the same process
 
 TODOs:
-    - multi-threaded acceptors
+    - multi-threaded acceptors?
     - chunking support in remoting + capability negotiation

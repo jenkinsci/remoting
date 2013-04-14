@@ -1,10 +1,10 @@
 package org.jenkinsci.remoting.nio;
 
 import hudson.remoting.AbstractByteArrayCommandTransport;
+import hudson.remoting.Callable;
 import hudson.remoting.Capability;
 import hudson.remoting.Channel;
 import hudson.remoting.Channel.Mode;
-import hudson.remoting.ChannelBuilder;
 import hudson.remoting.CommandTransport;
 import org.apache.commons.io.IOUtils;
 
@@ -17,10 +17,12 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,6 +39,12 @@ public class NioChannelHub implements Runnable {
      */
     private final int transportFrameSize;
     private final SelectableFileChannelFactory factory = new SelectableFileChannelFactory();
+
+    /**
+     * Used to schedule work that can be only done synchronously with the {@link Selector#select()} call.
+     */
+    private final Queue<Callable<Void,IOException>> selectorTasks
+            = new ConcurrentLinkedQueue<Callable<Void, IOException>>();
 
     class ChannelPair extends AbstractByteArrayCommandTransport {
         final SelectableChannel r,w;
@@ -123,17 +131,24 @@ public class NioChannelHub implements Runnable {
         this.transportFrameSize = transportFrameSize;
     }
 
-    public ChannelBuilder newChannelBuilder(String name, ExecutorService es) {
-        return new ChannelBuilder(name,es) {
+    public NioChannelBuilder newChannelBuilder(String name, ExecutorService es) {
+        return new NioChannelBuilder(name,es) {
             // TODO: handle text mode
 
             @Override
             protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
-                SocketChannel r = factory.create(is);
-                SocketChannel w = factory.create(os);
+                if (r==null)    r = factory.create(is);
+                if (w==null)    w = factory.create(os);
                 if (r!=null && r!=null && mode==Mode.BINARY && true/*TODO: check if framing is suported*/) {
-                    ChannelPair cp = new ChannelPair(r, w, cap);
-                    cp.register();
+                    r.configureBlocking(false);
+                    w.configureBlocking(false);
+                    final ChannelPair cp = new ChannelPair(r, w, cap);
+                    scheduleSelectorTask(new Callable<Void, IOException>() {
+                        public Void call() throws IOException {
+                            cp.register();
+                            return null;
+                        }
+                    });
                     return cp;
                 }
                 else
@@ -142,9 +157,20 @@ public class NioChannelHub implements Runnable {
         };
     }
 
+    private void scheduleSelectorTask(Callable<Void, IOException> task) {
+        selectorTasks.add(task);
+        selector.wakeup();
+    }
+
     public void run() {
         while (true) {
             try {
+                while (true) {
+                    Callable<Void, IOException> t = selectorTasks.poll();
+                    if (t==null)    break;
+                    t.call();
+                }
+
                 selector.select();
             } catch (ClosedSelectorException e) {
                 abortAll(e);
@@ -155,8 +181,12 @@ public class NioChannelHub implements Runnable {
                 return;
             }
 
-            for (SelectionKey key : selector.selectedKeys()) {
+            Iterator<SelectionKey> itr = selector.selectedKeys().iterator();
+            while (itr.hasNext()) {
+                SelectionKey key = itr.next();
+                itr.remove();
                 Object a = key.attachment();
+
                 if (a instanceof ChannelPair) {
                     ChannelPair p = (ChannelPair) a;
 
