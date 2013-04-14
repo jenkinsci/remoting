@@ -33,28 +33,23 @@ public class SocketClientMain {
                 .build(s);
         LOGGER.info("Established. Type some text to see it echoed back");
 
-        final String arg = "Hello!";
-        ch.call(new Callable<String,Exception>() {
+        LOGGER.info("Got "+echo(ch,"Hello!"));
+
+
+        BufferedReader r = new BufferedReader(new InputStreamReader(System.in));
+        String line;
+        while ((line=r.readLine())!=null) {
+            LOGGER.info("Got "+echo(ch, line));
+        }
+    }
+
+    private static String echo(Channel ch, final String arg) throws Exception {
+        return ch.call(new Callable<String,Exception>() {
             public String call() throws Exception {
                 LOGGER.info("Echoing back "+arg);
                 return arg;
             }
         });
-        LOGGER.info("Got "+arg);
-
-
-//        BufferedReader r = new BufferedReader(new InputStreamReader(System.in));
-//        String line;
-//        while ((line=r.readLine())!=null) {
-//            final String arg = line;
-//            ch.call(new Callable<String,Exception>() {
-//                public String call() throws Exception {
-//                    LOGGER.info("Echoing back "+arg);
-//                    return arg;
-//                }
-//            });
-//            LOGGER.info("Got "+arg);
-//        }
     }
 
     private static final Logger LOGGER = Logger.getLogger(SocketClientMain.class.getName());
