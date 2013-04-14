@@ -30,4 +30,11 @@ public class ChunkHeader {
     public static int length(int header) {
         return header&0x7FFF;
     }
+
+    public static byte[] pack(int length, boolean hasMore) {
+        byte[] header = new byte[2];
+        header[0] = (byte)((hasMore?0x80:0)|(length>>8));
+        header[1] = (byte)(length);
+        return header;
+    }
 }

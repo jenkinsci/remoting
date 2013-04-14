@@ -78,8 +78,7 @@ class ChunkedOutputStream extends OutputStream {
     }
 
     private void sendFrame(boolean hasMore) throws IOException {
-        base.write((hasMore?0x80:0)|(size>>8));
-        base.write(size&0xFF);
+        base.write(ChunkHeader.pack(size,hasMore));
         base.write(buf,0,size);
         size = 0;
     }
