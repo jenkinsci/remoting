@@ -89,10 +89,12 @@ public class SelectableFileChannelFactory {
     }
 
     public SocketChannel create(FileInputStream in) throws IOException {
+        if (in==null)   return null;
         return create(in.getFD());
     }
 
     public SocketChannel create(FileOutputStream out) throws IOException {
+        if (out==null)   return null;
         return create(out.getFD());
     }
 
