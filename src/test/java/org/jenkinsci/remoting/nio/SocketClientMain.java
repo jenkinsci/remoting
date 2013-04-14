@@ -27,15 +27,7 @@ public class SocketClientMain {
         final ExecutorService es = Executors.newCachedThreadPool();
         Socket s = new Socket("localhost",9953);
         LOGGER.info("Cnonected");
-        Channel ch = new ChannelBuilder("client", es) {
-            @Override
-            protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
-                return super.makeTransport(
-                        new ChunkedInputStream(is),
-                        new ChunkedOutputStream(8192,os),
-                        mode, cap);
-            }
-        }
+        Channel ch = new ChannelBuilder("client", es)
                 .withHeaderStream(new FlushEveryByteStream(System.out))
                 .withMode(Mode.BINARY)
                 .build(s);

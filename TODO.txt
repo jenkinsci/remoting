@@ -1,4 +1,6 @@
-- if we don't have anything to write, don't register the OP_WRITE
+- client needs to send a break between commands
+  -> ... which means the remoting core needs to be chunking aware, and therefore
+     AbstractByteArrayCommandTransport can just use one ObjectOutputStream per command
 
 Phase 2:
     Socket connecting NioChunnelHub to thread-driven Channel inside the same process

@@ -5,6 +5,7 @@ import hudson.remoting.Callable;
 import hudson.remoting.Capability;
 import hudson.remoting.Channel;
 import hudson.remoting.Channel.Mode;
+import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 import org.apache.commons.io.IOUtils;
 
@@ -26,6 +27,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static java.nio.channels.SelectionKey.*;
 
 /**
  *
@@ -71,9 +74,18 @@ public class NioChannelHub implements Runnable {
             this.remoteCapability = remoteCapability;
         }
 
-        public void register() throws IOException {
-            r.register(selector, SelectionKey.OP_READ).attach(this);
-            w.register(selector, SelectionKey.OP_WRITE).attach(this);
+        public void reregister() throws IOException {
+            int writeFlag = wb.readable()>0 ? OP_WRITE : 0; // do we want to write?
+
+            if (r==w) {
+                r.configureBlocking(false);
+                r.register(selector, OP_READ|writeFlag).attach(this);
+            } else {
+                r.configureBlocking(false);
+                r.register(selector, OP_READ).attach(this);
+                w.configureBlocking(false);
+                w.register(selector, writeFlag).attach(this);
+            }
         }
 
         public void abort(Exception e) {
@@ -97,6 +109,7 @@ public class NioChannelHub implements Runnable {
                     header[1] = (byte)(frame);
                     wb.write(header,0,header.length);
                     wb.write(bytes,pos,frame);
+                    scheduleReregister();
                     pos+=frame;
                 } while(!last);
             } catch (InterruptedException e) {
@@ -123,6 +136,18 @@ public class NioChannelHub implements Runnable {
         public void closeRead() throws IOException {
             cancelKey(r);
         }
+
+        /**
+         * Update the operations for which we are registered.
+         */
+        private void scheduleReregister() {
+            scheduleSelectorTask(new Callable<Void, IOException>() {
+                public Void call() throws IOException {
+                    reregister();
+                    return null;
+                }
+            });
+        }
     }
 
     public NioChannelHub(int transportFrameSize) throws IOException {
@@ -140,15 +165,8 @@ public class NioChannelHub implements Runnable {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
                 if (r!=null && r!=null && mode==Mode.BINARY && true/*TODO: check if framing is suported*/) {
-                    r.configureBlocking(false);
-                    w.configureBlocking(false);
                     final ChannelPair cp = new ChannelPair(r, w, cap);
-                    scheduleSelectorTask(new Callable<Void, IOException>() {
-                        public Void call() throws IOException {
-                            cp.register();
-                            return null;
-                        }
-                    });
+                    cp.scheduleReregister();
                     return cp;
                 }
                 else
@@ -188,53 +206,55 @@ public class NioChannelHub implements Runnable {
                 Object a = key.attachment();
 
                 if (a instanceof ChannelPair) {
-                    ChannelPair p = (ChannelPair) a;
+                    ChannelPair cp = (ChannelPair) a;
 
                     try {
                         if (key.isReadable()) {
-                            if (p.rb.receive(p.rr) == -1) {
+                            if (cp.rb.receive(cp.rr) == -1) {
                                 cancelKey(key);
-                                p.rb.close();
+                                cp.rb.close();
                             }
 
                             final byte[] buf = new byte[2]; // space for reading the chunk header
                             int pos=0;
                             int packetSize=0;
                             while (true) {
-                                if (p.rb.peek(pos,buf)<buf.length)
+                                if (cp.rb.peek(pos,buf)<buf.length)
                                     break;  // we don't have enough
                                 int header = ChunkHeader.parse(buf);
                                 int chunk = ChunkHeader.length(header);
                                 pos+=buf.length+chunk;
                                 packetSize+=chunk;
                                 boolean last = ChunkHeader.isLast(header);
-                                if (last && pos<=p.rb.readable()) {// do we have the whole packet in our buffer?
+                                if (last && pos<=cp.rb.readable()) {// do we have the whole packet in our buffer?
                                     // read in the whole packet
                                     byte[] packet = new byte[packetSize];
                                     int r_ptr = 0;
                                     while (packetSize>0) {
-                                        int r = p.rb.readNonBlocking(buf);
+                                        int r = cp.rb.readNonBlocking(buf);
                                         assert r==buf.length;
                                         chunk = ChunkHeader.length(ChunkHeader.parse(buf));
-                                        p.rb.readNonBlocking(packet, r_ptr, chunk);
+                                        cp.rb.readNonBlocking(packet, r_ptr, chunk);
                                         packetSize-=chunk;
                                         r_ptr+=chunk;
                                     }
                                     assert packetSize==0;
 
-                                    p.receiver.handle(packet);
+                                    cp.receiver.handle(packet);
                                 }
                             }
-                        }
+                        } else
                         if (key.isWritable()) {
-                            if (p.wb.send(p.ww) == -1) {
+                            if (cp.wb.send(cp.ww) == -1) {
                                 // done with sending all the data
                                 cancelKey(key);
+                            } else {
+                                cp.reregister();
                             }
                         }
                     } catch (IOException e) {
                         LOGGER.log(Level.WARNING, "Communication problem", e);
-                        p.abort(e);
+                        cp.abort(e);
                     }
                 } else {
                     onSelected(key);
