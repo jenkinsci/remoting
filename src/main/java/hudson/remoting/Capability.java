@@ -62,6 +62,8 @@ public final class Capability implements Serializable {
     /**
      * Supports chunking to designate a command boundary.
      * This is necessary for the NIO transport to work.
+     *
+     * @see ChunkedOutputStream
      */
     public boolean supportsChunking() {
         return (mask&MASK_CHUNKED_ENCODING)!=0;
