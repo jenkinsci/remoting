@@ -78,12 +78,13 @@ public class NioChannelHub implements Runnable {
             int writeFlag = wb.readable()>0 ? OP_WRITE : 0; // do we want to write?
             int readFlag = receiver!=null ? OP_READ : 0; // once we have the setup method called, we are ready
 
-            if (r==w) {
+            if (r.isOpen()) {
+                int rflag = (r==w) ? readFlag|writeFlag : readFlag;
                 r.configureBlocking(false);
-                r.register(selector, readFlag|writeFlag).attach(this);
-            } else {
-                r.configureBlocking(false);
-                r.register(selector, readFlag).attach(this);
+                r.register(selector, rflag).attach(this);
+            }
+
+            if (r!=w && w.isOpen()) {
                 w.configureBlocking(false);
                 w.register(selector, writeFlag).attach(this);
             }

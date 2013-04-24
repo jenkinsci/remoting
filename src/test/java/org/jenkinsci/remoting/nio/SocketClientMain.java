@@ -31,16 +31,13 @@ public class SocketClientMain {
                 .withHeaderStream(new FlushEveryByteStream(System.out))
                 .withMode(Mode.BINARY)
                 .build(s);
-        LOGGER.info("Established. Type some text to see it echoed back");
+        LOGGER.info("Established.");
 
         LOGGER.info("Got "+echo(ch,"Hello!"));
 
-
-        BufferedReader r = new BufferedReader(new InputStreamReader(System.in));
-        String line;
-        while ((line=r.readLine())!=null) {
-            LOGGER.info("Got "+echo(ch, line));
-        }
+        ch.close();
+        ch.join();
+        es.shutdown();
     }
 
     private static String echo(Channel ch, final String arg) throws Exception {

@@ -2,9 +2,18 @@
   -> ... which means the remoting core needs to be chunking aware, and therefore
      AbstractByteArrayCommandTransport can just use one ObjectOutputStream per command
 
+- server doesn't echo back CloseCommand correctly because it's using single SelectableChannel
+  and ChannelPair.closeRead() closes the writer before stuff gets sent.
+  Half close needs to be handled properly
+
 Phase 2:
-    Socket connecting NioChunnelHub to thread-driven Channel inside the same process
+    Socket connecting NioChannelHub to thread-driven Channel inside the same process
+
+Phase 3:
+    process-based channel client connected to NioChannelHub
+
+Phase 3:
+    client-side NioChannelHub
 
 TODOs:
     - multi-threaded acceptors?
-    - chunking support in remoting + capability negotiation
