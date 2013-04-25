@@ -160,7 +160,7 @@ public class Launcher {
      */
     @Option(name="-noCertificateCheck")
     public void setNoCertificateCheck(boolean _) throws NoSuchAlgorithmException, KeyManagementException {
-        System.out.println("Skipping HTTPS certificate checks altoghether. Note that this is not secure at all.");
+        System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, new TrustManager[]{new NoCheckTrustManager()}, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
@@ -172,11 +172,8 @@ public class Launcher {
         });
     }
 
-    @Option(name="-noReconnectJnlp",usage="Doesn't try to reconnect when fetch JNLP")
-    public boolean noReconnectJnlp = false;
-
-    @Option(name="-noReconnectAgent",usage="Doesn't try to reconnect by JNLP slave agent")
-    public boolean noReconnectAgent = false;
+    @Option(name="-noReconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
+    public boolean noReconnect = false;
 
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
@@ -211,8 +208,7 @@ public class Launcher {
         } else
         if(slaveJnlpURL!=null) {
             List<String> jnlpArgs = parseJnlpArguments();
-            if ( this.noReconnectAgent )
-            {
+            if (this.noReconnect) {
                 jnlpArgs.add("-noreconnect");
             }
             try {
@@ -316,12 +312,11 @@ public class Launcher {
                 } else
                     throw e;
             } catch (IOException e) {
+                if (this.noReconnect)
+                    throw (IOException)new IOException("Failing to obtain "+slaveJnlpURL).initCause(e);
+
                 System.err.println("Failing to obtain "+slaveJnlpURL);
                 e.printStackTrace(System.err);
-                if ( this.noReconnectJnlp )
-                {
-                    throw e;
-                }
                 System.err.println("Waiting 10 seconds before retry");
                 Thread.sleep(10*1000);
                 // retry
