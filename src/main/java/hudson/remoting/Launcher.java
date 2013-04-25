@@ -172,6 +172,12 @@ public class Launcher {
         });
     }
 
+    @Option(name="-noReconnectJnlp",usage="Doesn't try to reconnect when fetch JNLP")
+    public boolean noReconnectJnlp = false;
+
+    @Option(name="-noReconnectAgent",usage="Doesn't try to reconnect by JNLP slave agent")
+    public boolean noReconnectAgent = false;
+
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
@@ -205,6 +211,10 @@ public class Launcher {
         } else
         if(slaveJnlpURL!=null) {
             List<String> jnlpArgs = parseJnlpArguments();
+            if ( this.noReconnectAgent )
+            {
+                jnlpArgs.add("-noreconnect");
+            }
             try {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
             } catch (CmdLineException e) {
@@ -308,6 +318,10 @@ public class Launcher {
             } catch (IOException e) {
                 System.err.println("Failing to obtain "+slaveJnlpURL);
                 e.printStackTrace(System.err);
+                if ( this.noReconnectJnlp )
+                {
+                    throw e;
+                }
                 System.err.println("Waiting 10 seconds before retry");
                 Thread.sleep(10*1000);
                 // retry
