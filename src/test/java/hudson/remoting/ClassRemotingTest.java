@@ -126,5 +126,7 @@ public class ClassRemotingTest extends RmiTestBase {
             assertTrue(o.getClass().getClassLoader() instanceof RemoteClassLoader);
             return null;
         }
+
+        private static final long serialVersionUID = 1L;
     }
 }

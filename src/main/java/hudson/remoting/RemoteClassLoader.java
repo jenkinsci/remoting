@@ -622,15 +622,16 @@ final class RemoteClassLoader extends URLClassLoader {
 
                 try {
                     File jar = Which.jarFile(c);
-                    Checksum sum = channel.jarLoader.calcChecksum(jar);
-                    return new ClassFile2(exportId(ecl,channel),
-                            new ResourceImageInJar(sum,null /* TODO: we need to check if the URL of c points to the expected location of the file */),urlOfClassFile);
+                    if (jar.isFile()) {// for historical reasons the jarFile method can return a directory
+                        Checksum sum = channel.jarLoader.calcChecksum(jar);
+                        return new ClassFile2(exportId(ecl,channel),
+                                new ResourceImageInJar(sum,null /* TODO: we need to check if the URL of c points to the expected location of the file */),urlOfClassFile);
+                    }
                 } catch (IllegalArgumentException e) {
                     // we determined that 'c' isn't in a jar file
                     LOGGER.log(FINE,c+" isn't in a jar file: "+urlOfClassFile,e);
-                    return fetch2(className).upconvert(urlOfClassFile);
                 }
-
+                return fetch2(className).upconvert(urlOfClassFile);
             } catch (IOException e) {
                 throw new ClassNotFoundException();
             }
@@ -690,12 +691,14 @@ final class RemoteClassLoader extends URLClassLoader {
         private ResourceFile makeResource(String name, URL resource) throws IOException {
             try {
                 File jar = Which.jarFile(resource, name);
-                Checksum sum = channel.jarLoader.calcChecksum(jar);
-                return new ResourceFile(new ResourceImageInJar(sum,null),resource);
+                if (jar.isFile()) {// for historical reasons the jarFile method can return a directory
+                    Checksum sum = channel.jarLoader.calcChecksum(jar);
+                    return new ResourceFile(new ResourceImageInJar(sum,null),resource);
+                }
             } catch (IllegalArgumentException e) {
                 LOGGER.log(FINE,name+" isn't in a jar file: "+resource,e);
-                return new ResourceFile(resource);
             }
+            return new ResourceFile(resource);
         }
 
         public byte[] getResource(String name) throws IOException {
