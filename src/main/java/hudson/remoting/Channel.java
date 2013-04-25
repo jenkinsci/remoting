@@ -276,6 +276,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     /*package*/ final ClassLoader baseClassLoader;
 
+    private JarCache jarCache;
+
+    /*package*/ final JarLoaderImpl jarLoader;
+
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
      * 
@@ -426,6 +430,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         this.transport = transport;
 
+        this.jarLoader = new JarLoaderImpl(); // TODO: figure out a mechanism to allow the user to share this across Channels
+
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
                 lastHeard = System.currentTimeMillis();
@@ -503,7 +509,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * {@inheritDoc}
      */
     public <T> T export(Class<T> type, T instance) {
-        return export(type,instance,true);
+        return export(type, instance, true);
     }
 
     /**
@@ -542,7 +548,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /*package*/ int export(Object instance, boolean automaticUnexport) {
-        return exportedObjects.export(instance,automaticUnexport);
+        return exportedObjects.export(instance, automaticUnexport);
     }
 
     /*package*/ Object getExportedObject(int oid) {
@@ -626,18 +632,32 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      if the preloading fails.
      */
     public boolean preloadJar(Callable<?,?> classLoaderRef, Class... classesInJar) throws IOException, InterruptedException {
-        return preloadJar(UserRequest.getClassLoader(classLoaderRef),classesInJar);
+        return preloadJar(UserRequest.getClassLoader(classLoaderRef), classesInJar);
     }
 
     public boolean preloadJar(ClassLoader local, Class... classesInJar) throws IOException, InterruptedException {
         URL[] jars = new URL[classesInJar.length];
         for (int i = 0; i < classesInJar.length; i++)
             jars[i] = Which.jarFile(classesInJar[i]).toURI().toURL();
-        return call(new PreloadJarTask(jars,local));
+        return call(new PreloadJarTask(jars, local));
     }
 
     public boolean preloadJar(ClassLoader local, URL... jars) throws IOException, InterruptedException {
         return call(new PreloadJarTask(jars,local));
+    }
+
+    /**
+     * If this channel is built with jar file caching, return the object that manages this cache.
+     */
+    public JarCache getJarCache() {
+        return jarCache;
+    }
+
+    /**
+     * TODO: move this to constructor once we merge ChannelBuilder
+     */
+    public void setJarCache(JarCache jarCache) {
+        this.jarCache = jarCache;
     }
 
     /*package*/ PipeWindow getPipeWindow(int oid) {
@@ -996,6 +1016,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return remoteChannel.waitForProperty(key);
     }
 
+    /**
+     * @deprecated
+     *      Because {@link ChannelProperty} is identity-equality, this method would never work.
+     *      This is a design error.
+     */
     public <T> T waitForRemoteProperty(ChannelProperty<T> key) throws InterruptedException {
         return key.type.cast(waitForRemoteProperty((Object) key));
     }
