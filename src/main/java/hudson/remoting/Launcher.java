@@ -172,6 +172,9 @@ public class Launcher {
         });
     }
 
+    @Option(name="-noReconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
+    public boolean noReconnect = false;
+
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
@@ -205,6 +208,9 @@ public class Launcher {
         } else
         if(slaveJnlpURL!=null) {
             List<String> jnlpArgs = parseJnlpArguments();
+            if (this.noReconnect) {
+                jnlpArgs.add("-noreconnect");
+            }
             try {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
             } catch (CmdLineException e) {
@@ -306,6 +312,9 @@ public class Launcher {
                 } else
                     throw e;
             } catch (IOException e) {
+                if (this.noReconnect)
+                    throw (IOException)new IOException("Failing to obtain "+slaveJnlpURL).initCause(e);
+
                 System.err.println("Failing to obtain "+slaveJnlpURL);
                 e.printStackTrace(System.err);
                 System.err.println("Waiting 10 seconds before retry");
