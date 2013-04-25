@@ -61,9 +61,18 @@ public final class Capability implements Serializable {
 
     /**
      * Supports chunking to designate a command boundary.
+     *
+     * <p>
+     * In this mode, the wire format of the data changes to:
+     * <ul>
+     * <li>Include the framing (length+payload) so that a command boundary
+     *     can be discovered without understanding the Java serialization wire format.
+     * <li>Each command is serialized by its {@link ObjectOutputStream}
+     * </ul>
+     *
      * This is necessary for the NIO transport to work.
      *
-     * @see ChunkedOutputStream
+     * @see ChunkHeader
      */
     public boolean supportsChunking() {
         return (mask&MASK_CHUNKED_ENCODING)!=0;
