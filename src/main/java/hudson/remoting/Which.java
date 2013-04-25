@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.URLConnection;
@@ -46,12 +45,12 @@ import java.util.logging.Level;
  */
 public class Which {
     /**
-     * Locates the jar file that contains the given class.
+     * Returns the URL of the class file where the given class has been loaded from.
      *
      * @throws IllegalArgumentException
      *      if failed to determine.
      */
-    public static URL jarURL(Class clazz) throws IOException {
+    public static URL classFileUrl(Class clazz) throws IOException {
         ClassLoader cl = clazz.getClassLoader();
         if(cl==null)
             cl = ClassLoader.getSystemClassLoader();
@@ -59,6 +58,15 @@ public class Which {
         if(res==null)
             throw new IllegalArgumentException("Unable to locate class file for "+clazz);
         return res;
+    }
+
+    /**
+     * Use {@link #classFileUrl(Class)}
+     *
+     * @deprecated 2.PREFETCH
+     */
+    public static URL jarURL(Class clazz) throws IOException {
+        return classFileUrl(clazz);
     }
 
     /**
