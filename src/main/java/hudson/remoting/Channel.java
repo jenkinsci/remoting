@@ -397,6 +397,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
+     * @since 2.13
+     */
+    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
+        this(name,exec,transport,restricted,base,null);
+    }
+    /**
      * Creates a new channel.
      *
      * @param name
@@ -409,13 +415,16 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @param restricted
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
-     * @since 2.13
+     * @param jarCache
+     *
+     * @since 2.PREFETCH
      */
-    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
+    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base, JarCache jarCache) throws IOException {
         this.name = name;
         this.executor = new InterceptingExecutorService(exec);
         this.isRestricted = restricted;
         this.underlyingOutput = transport.getUnderlyingStream();
+        this.jarCache = jarCache;
 
         if (base==null)
             base = getClass().getClassLoader();
@@ -655,7 +664,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * TODO: move this to constructor once we merge ChannelBuilder
+     * You can change the {@link JarCache} while the channel is in operation,
+     * but doing so doesn't impact {@link RemoteClassLoader}s that are already created.
+     *
+     * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
+     * unless your call sequence guarantees that you call this method before remote classes are loaded.
      */
     public void setJarCache(JarCache jarCache) {
         this.jarCache = jarCache;
