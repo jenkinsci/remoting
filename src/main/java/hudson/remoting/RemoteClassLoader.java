@@ -104,7 +104,7 @@ final class RemoteClassLoader extends URLClassLoader {
     private RemoteClassLoader(ClassLoader parent, IClassLoader proxy) {
         super(new URL[0],parent);
         this.channel = RemoteInvocationHandler.unwrap(proxy);
-        if (!channel.remoteCapability.supportsPrefetch())
+        if (!channel.remoteCapability.supportsPrefetch() || channel.getJarCache()==null)
             proxy = new DumbClassLoaderBridge(proxy);
         this.proxy = proxy;
     }
