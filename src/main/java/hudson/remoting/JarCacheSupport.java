@@ -7,12 +7,28 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
 /**
+ * Default partial implementation of {@link JarCache}.
+ *
  * @author Kohsuke Kawaguchi
  */
 public abstract class JarCacheSupport extends JarCache {
-
+    /**
+     * Remember in-progress jar file resolution to avoid retrieving the same jar file twice.
+     */
     private final ConcurrentMap<Checksum,Future<URL>> inprogress = new ConcurrentHashMap<Checksum, Future<URL>>();
 
+    /**
+     * Look up the local cache and return URL if found.
+     * Otherwise null (which will trigger a remote retrieval.)
+     */
+    protected abstract URL lookInCache(Channel channel, long sum1, long sum2) throws IOException;
+
+    /**
+     * Retrieve the jar file from the given {@link JarLoader}, store it, then return the URL to that jar.
+     *
+     * @return must not be null
+     */
+    protected abstract URL retrieve(Channel channel, long sum1, long sum2, JarLoader jl) throws IOException, InterruptedException;
 
     @Override
     public URL resolve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
@@ -71,7 +87,4 @@ public abstract class JarCacheSupport extends JarCache {
             }
         }
     }
-
-    protected abstract URL lookInCache(Channel channel, long sum1, long sum2) throws IOException;
-    protected abstract URL retrieve(Channel channel, long sum1, long sum2, JarLoader jl) throws IOException, InterruptedException;
 }

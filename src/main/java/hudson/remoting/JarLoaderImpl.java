@@ -36,8 +36,11 @@ class JarLoaderImpl implements JarLoader {
         return calcChecksum(jar.toURI().toURL());
     }
 
+    /**
+     * Obtains the checksum for the jar at the specified URL.
+     */
     public Checksum calcChecksum(URL jar) throws IOException {
-        Checksum v = checksums.get(jar);
+        Checksum v = checksums.get(jar);    // cache hit
         if (v!=null)    return v;
 
         try {

@@ -6,8 +6,13 @@ import java.io.IOException;
 import java.io.Serializable;
 
 /**
+ * Wire protocol data representation that encapsulates the access to a resource inside a {@link ClassLoader}.
  *
+ * <p>
+ * We support two kinds of references. One {@linkplain ResourceImageInJar points to a resource inside a jar},
+ * and the other {@linkplain ResourceImageDirect directly contains the byte[] image}.
  *
+ * <p>
  * Subtypes need to be available on both sides of the channel, so it's package protected.
  *
  * @author Kohsuke Kawaguchi

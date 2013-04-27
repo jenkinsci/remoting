@@ -5,11 +5,17 @@ import java.net.URL;
 import java.net.URLClassLoader;
 
 /**
+ * {@link ResourceImageRef} that points to a resource inside a jar file.
+ *
+ * <p>
+ * The jar file is identified by its checksum, and the receiver can use {@link JarLoader}
+ * to retrieve the jar file if necessary.
+ *
  * @author Kohsuke Kawaguchi
  */
 class ResourceImageInJar extends ResourceImageRef {
     /**
-     * Check sum of the jar file.
+     * Check sum of the jar file that contains the resource.
      */
     private final long sum1,sum2;
 
