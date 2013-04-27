@@ -1,8 +1,8 @@
 package hudson.remoting;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import org.apache.commons.io.FileUtils;
-import sun.tools.jar.resources.jar;
 
 import java.io.File;
 import java.io.IOException;
@@ -99,5 +99,21 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         assertTrue(lines[1].startsWith("jar:file:"));
         assertTrue(lines[1].contains(dir.getPath()));
         assertTrue(lines[1].endsWith("::hello2"));
+    }
+
+    public void testInnerClass() throws Exception {
+        Echo<Object> e = new Echo<Object>();
+        e.value = cl.loadClass("test.Foo").newInstance();
+        Object r = channel.call(e);
+
+        ((Predicate)r).apply(null); // this verifies that the object is still in a good state
+    }
+
+    private static final class Echo<V> implements Callable<V,IOException>, Serializable {
+        V value;
+
+        public V call() throws IOException {
+            return value;
+        }
     }
 }
