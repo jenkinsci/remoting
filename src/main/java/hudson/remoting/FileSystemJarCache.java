@@ -68,7 +68,7 @@ public class FileSystemJarCache extends JarCacheSupport {
      * Map to the cache jar file name.
      */
     File map(long sum1, long sum2) {
-        return new File(rootDir,String.format("%02X/%014X%016X,jar",
+        return new File(rootDir,String.format("%02X/%014X%016X.jar",
                 (int)(sum1>>>(64-8)),
                 sum1&0x00FFFFFFFFFFFFFFL, sum2));
     }
