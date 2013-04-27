@@ -84,6 +84,12 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>14.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>asm</groupId>
       <artifactId>asm-all</artifactId>
       <version>2.2.3</version>

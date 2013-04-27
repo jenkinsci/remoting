@@ -4,3 +4,4 @@ Prefetch branch TODO before merge
 - verify that it actually does some good (instead of just no harm)
 - come with a test case that actually caches jar files
 - try this with Jenkins to be sure
+- BUG: prefetching sending Callable class image
