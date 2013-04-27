@@ -38,7 +38,9 @@ public class FileSystemJarCache extends JarCacheSupport {
     @Override
     protected URL retrieve(Channel channel, long sum1, long sum2, JarLoader jl) throws IOException, InterruptedException {
         File target = map(sum1, sum2);
-        File tmp = File.createTempFile(target.getName(),"tmp",target.getParentFile());
+        File parent = target.getParentFile();
+        parent.mkdirs();
+        File tmp = File.createTempFile(target.getName(),"tmp", parent);
         try {
             RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
             try {
