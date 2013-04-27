@@ -40,8 +40,6 @@ import java.util.List;
 import java.util.Collections;
 import java.util.logging.Logger;
 
-import org.apache.commons.codec.binary.Base64;
-
 /**
  * Slave agent engine that proactively connects to Hudson master.
  *
@@ -150,7 +148,8 @@ public class Engine extends Thread {
                     // find out the TCP port
                     HttpURLConnection con = (HttpURLConnection)salURL.openConnection();
                     if (con instanceof HttpURLConnection && credentials != null) {
-                        String encoding = new String(new Base64().encodeBase64(credentials.getBytes()));
+                        // XXX /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
+                        String encoding = Base64.encode(credentials.getBytes());
                         con.setRequestProperty("Authorization", "Basic " + encoding);
                     }
                     try {

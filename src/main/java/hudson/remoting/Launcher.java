@@ -31,6 +31,7 @@ import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.CmdLineException;
 
+import javax.crypto.spec.IvParameterSpec;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -48,6 +49,8 @@ import java.io.OutputStream;
 import java.io.File;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileWriter;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -61,6 +64,7 @@ import java.net.InetSocketAddress;
 import java.net.HttpURLConnection;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -72,8 +76,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.KeyManagementException;
 import java.security.SecureRandom;
 import java.util.Properties;
-
-import org.apache.commons.codec.binary.Base64;
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Entry point for running a {@link Channel}. This is the main method of the slave JVM.
@@ -109,6 +113,9 @@ public class Launcher {
     @Option(name="-jnlpCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String slaveJnlpCredentials = null;
 
+    @Option(name="-secret", metaVar="HEX_SECRET", usage="Slave connection secret to use instead of -jnlpCredentials.")
+    public String secret;
+
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader.")
     public void addClasspath(String pathList) throws Exception {
@@ -130,7 +137,7 @@ public class Launcher {
     public File tcpPortFile=null;
 
 
-    @Option(name="-auth",metaVar="user:pass",usage="If your Hudson is security-enabeld, specify a valid user name and password.")
+    @Option(name="-auth",metaVar="user:pass",usage="If your Hudson is security-enabled, specify a valid user name and password.")
     public String auth = null;
 
     public InetSocketAddress connectionTarget = null;
@@ -153,7 +160,7 @@ public class Launcher {
      */
     @Option(name="-noCertificateCheck")
     public void setNoCertificateCheck(boolean _) throws NoSuchAlgorithmException, KeyManagementException {
-        System.out.println("Skipping HTTPS certificate checks altoghether. Note that this is not secure at all.");
+        System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, new TrustManager[]{new NoCheckTrustManager()}, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
@@ -164,6 +171,9 @@ public class Launcher {
             }
         });
     }
+
+    @Option(name="-noReconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
+    public boolean noReconnect = false;
 
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
@@ -198,6 +208,9 @@ public class Launcher {
         } else
         if(slaveJnlpURL!=null) {
             List<String> jnlpArgs = parseJnlpArguments();
+            if (this.noReconnect) {
+                jnlpArgs.add("-noreconnect");
+            }
             try {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
             } catch (CmdLineException e) {
@@ -220,13 +233,19 @@ public class Launcher {
      * Parses the connection arguments from JNLP file given in the URL.
      */
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
+        if (secret != null) {
+            slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
+            if (slaveJnlpCredentials != null) {
+                throw new IOException("-jnlpCredentials and -secret are mutually exclusive");
+            }
+        }
         while (true) {
             try {
                 URLConnection con = slaveJnlpURL.openConnection();
                 if (con instanceof HttpURLConnection && slaveJnlpCredentials != null) {
                     HttpURLConnection http = (HttpURLConnection) con;
                     String userPassword = slaveJnlpCredentials;
-                    String encoding = new String(new Base64().encodeBase64(userPassword.getBytes()));
+                    String encoding = Base64.encode(userPassword.getBytes());
                     http.setRequestProperty("Authorization", "Basic " + encoding);
                 }
                 con.connect();
@@ -242,17 +261,34 @@ public class Launcher {
 
                 // check if this URL points to a .jnlp file
                 String contentType = con.getHeaderField("Content-Type");
-                if(contentType==null || !contentType.startsWith("application/x-java-jnlp-file")) {
+                String expectedContentType = secret == null ? "application/x-java-jnlp-file" : "application/octet-stream";
+                InputStream input = con.getInputStream();
+                if (secret != null) {
+                    byte[] payload = toByteArray(input);
+                    // the first 16 bytes (128bit) are initialization vector
+
+                    try {
+                        Cipher cipher = Cipher.getInstance("AES/CFB8/NoPadding");
+                        cipher.init(Cipher.DECRYPT_MODE,
+                                new SecretKeySpec(fromHexString(secret.substring(0, Math.min(secret.length(), 32))), "AES"),
+                                new IvParameterSpec(payload,0,16));
+                        byte[] decrypted = cipher.doFinal(payload,16,payload.length-16);
+                        input = new ByteArrayInputStream(decrypted);
+                    } catch (GeneralSecurityException x) {
+                        throw (IOException)new IOException("Failed to decrypt the JNLP file. Invalid secret key?").initCause(x);
+                    }
+                }
+                if(contentType==null || !contentType.startsWith(expectedContentType)) {
                     // load DOM anyway, but if it fails to parse, that's probably because this is not an XML file to begin with.
                     try {
-                        dom = loadDom(slaveJnlpURL, con);
+                        dom = loadDom(slaveJnlpURL, input);
                     } catch (SAXException e) {
                         throw new IOException(slaveJnlpURL+" doesn't look like a JNLP file; content type was "+contentType);
                     } catch (IOException e) {
                         throw new IOException(slaveJnlpURL+" doesn't look like a JNLP file; content type was "+contentType);
                     }
                 } else {
-                    dom = loadDom(slaveJnlpURL, con);
+                    dom = loadDom(slaveJnlpURL, input);
                 }
 
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
@@ -276,6 +312,9 @@ public class Launcher {
                 } else
                     throw e;
             } catch (IOException e) {
+                if (this.noReconnect)
+                    throw (IOException)new IOException("Failing to obtain "+slaveJnlpURL).initCause(e);
+
                 System.err.println("Failing to obtain "+slaveJnlpURL);
                 e.printStackTrace(System.err);
                 System.err.println("Waiting 10 seconds before retry");
@@ -285,9 +324,26 @@ public class Launcher {
         }
     }
 
-    private static Document loadDom(URL slaveJnlpURL, URLConnection con) throws ParserConfigurationException, SAXException, IOException {
+    private byte[] toByteArray(InputStream input) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        int c;
+        while ((c = input.read()) != -1) {
+            baos.write(c);
+        }
+        return baos.toByteArray();
+    }
+
+    // from hudson.Util
+    private static byte[] fromHexString(String data) {
+        byte[] r = new byte[data.length() / 2];
+        for (int i = 0; i < data.length(); i += 2)
+            r[i / 2] = (byte) Integer.parseInt(data.substring(i, i + 2), 16);
+        return r;
+    }
+
+    private static Document loadDom(URL slaveJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-        return db.parse(con.getInputStream(),slaveJnlpURL.toExternalForm());
+        return db.parse(is, slaveJnlpURL.toExternalForm());
     }
 
     /**
@@ -296,7 +352,7 @@ public class Launcher {
      */
     private void runAsTcpServer() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
-        // and avoid hanging foreever
+        // and avoid hanging forever
         ServerSocket ss = new ServerSocket(0,1);
         ss.setSoTimeout(30*1000);
 
@@ -334,7 +390,7 @@ public class Launcher {
      */
     private void runAsTcpClient() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
-        // and avoid hanging foreever
+        // and avoid hanging forever
         Socket s = new Socket(connectionTarget.getAddress(),connectionTarget.getPort());
 
         runOnSocket(s);
@@ -377,6 +433,9 @@ public class Launcher {
         // and messing up the stream.
         OutputStream os = new StandardOutputStream();
         System.setOut(System.err);
+
+        // System.in/out appear to be already buffered (at least that was the case in Linux and Windows as of Java6)
+        // so we are not going to double-buffer these.
         main(System.in, os, mode, ping);
     }
 

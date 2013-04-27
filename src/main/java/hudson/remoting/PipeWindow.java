@@ -50,20 +50,45 @@ import static java.util.logging.Level.*;
 abstract class PipeWindow {
     protected volatile Throwable dead;
 
+    /**
+     * Returns the current maximum window size.
+     *
+     * <p>
+     * This is the size of the available window size if all the currrently in-flight bytes get acked.
+     */
+    abstract int max();
+
+    /**
+     * When we receive Ack from the receiver, we increase the window size by calling this method.
+     */
     abstract void increase(int delta);
 
+    /**
+     * Returns the current available window size.
+     *
+     * Unlike {@link #get(int)}, this method will never wait for the space to become available.
+     */
     abstract int peek();
 
     /**
-     * Blocks until some space becomes available.
+     * Returns the current available window size.
+     *
+     * If the available window size is smaller than the specified minimum size,
+     * this method blocks until some space becomes available.
      *
      * @throws IOException
      *      If we learned that there is an irrecoverable problem on the remote side that prevents us from writing.
      * @throws InterruptedException
      *      If a thread was interrupted while blocking.
+     * @return
+     *      The available window size >= min.
+     * @param min
      */
-    abstract int get() throws InterruptedException, IOException;
+    abstract int get(int min) throws InterruptedException, IOException;
 
+    /**
+     * When we send out some bytes to the network, we decrease the window size by calling this method.
+     */
     abstract void decrease(int delta);
 
     /**
@@ -88,6 +113,11 @@ abstract class PipeWindow {
      * Fake implementation used when the receiver side doesn't support throttling.
      */
     static class Fake extends PipeWindow {
+        @Override
+        int max() {
+            return Integer.MAX_VALUE;
+        }
+
         void increase(int delta) {
         }
 
@@ -95,7 +125,7 @@ abstract class PipeWindow {
             return Integer.MAX_VALUE;
         }
 
-        int get() throws InterruptedException, IOException {
+        int get(int min) throws InterruptedException, IOException {
             checkDeath();
             return Integer.MAX_VALUE;
         }
@@ -125,6 +155,7 @@ abstract class PipeWindow {
     }
 
     static class Real extends PipeWindow {
+        private final int initial;
         private int available;
         /**
          * Total bytes that left our side of the channel.
@@ -145,6 +176,12 @@ abstract class PipeWindow {
             this.key = key;
             this.oid = key.oid;
             this.available = initialSize;
+            this.initial = initialSize;
+        }
+
+        @Override
+        int max() {
+            return initial;
         }
 
         public synchronized void increase(int delta) {
@@ -161,27 +198,18 @@ abstract class PipeWindow {
 
         /**
          * Blocks until some space becomes available.
-         *
-         * <p>
-         * If the window size is empty, induce some delay outside the synchronized block,
-         * to avoid fragmenting the window size. That is, if a bunch of small ACKs come in a sequence,
-         * bundle them up into a bigger size before making a call.
          */
-        public int get() throws InterruptedException, IOException {
+        public int get(int min) throws InterruptedException, IOException {
             checkDeath();
             synchronized (this) {
-                if (available>0)
+                if (available>=min)
                     return available;
 
-                while (available<=0) {
+                while (available<min) {
                     wait();
                     checkDeath();
                 }
-            }
 
-            Thread.sleep(10);
-
-            synchronized (this) {
                 return available;
             }
         }
