@@ -431,6 +431,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.transport = transport;
 
         this.jarLoader = new JarLoaderImpl(); // TODO: figure out a mechanism to allow the user to share this across Channels
+        setProperty(JarLoader.OURS,export(JarLoader.class,jarLoader,false));
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
