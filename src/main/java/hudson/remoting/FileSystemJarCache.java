@@ -23,6 +23,8 @@ public class FileSystemJarCache extends JarCacheSupport {
     public FileSystemJarCache(File rootDir, boolean touch) {
         this.rootDir = rootDir;
         this.touch = touch;
+        if (rootDir==null)
+            throw new IllegalArgumentException();
     }
 
     @Override
