@@ -70,6 +70,14 @@ final class RemoteClassLoader extends URLClassLoader {
      * added post prefetch can be used on this object.
      */
     private final IClassLoader proxy;
+
+    /**
+     * HACK: if the {@link #proxy} object is a remoted object from the other side,
+     * remember its proxy object so that we can map it back when this object is
+     * exported to the other side.
+     */
+    private final Object underlyingProxy;
+
     /**
      * Remote peer that the {@link #proxy} is connected to.
      */
@@ -104,6 +112,7 @@ final class RemoteClassLoader extends URLClassLoader {
     private RemoteClassLoader(ClassLoader parent, IClassLoader proxy) {
         super(new URL[0],parent);
         this.channel = RemoteInvocationHandler.unwrap(proxy);
+        this.underlyingProxy = proxy;
         if (!channel.remoteCapability.supportsPrefetch() || channel.getJarCache()==null)
             proxy = new DumbClassLoaderBridge(proxy);
         this.proxy = proxy;
@@ -114,7 +123,7 @@ final class RemoteClassLoader extends URLClassLoader {
      * return its exported OID. Otherwise return -1.
      */
     /*package*/ int getOid(Channel channel) {
-        return RemoteInvocationHandler.unwrap(proxy,channel);
+        return RemoteInvocationHandler.unwrap(underlyingProxy,channel);
     }
 
     protected Class<?> findClass(String name) throws ClassNotFoundException {
@@ -524,7 +533,7 @@ final class RemoteClassLoader extends URLClassLoader {
         if (cl instanceof RemoteClassLoader) {
             // check if this is a remote classloader from the channel
             final RemoteClassLoader rcl = (RemoteClassLoader) cl;
-            int oid = RemoteInvocationHandler.unwrap(rcl.proxy, local);
+            int oid = RemoteInvocationHandler.unwrap(rcl.underlyingProxy, local);
             if(oid!=-1) {
                 return new RemoteIClassLoader(oid,rcl.proxy);
             }
