@@ -17,11 +17,19 @@ final class Checksum {
         this.sum2 = sum2;
     }
 
-    Checksum(byte[] arrayOf16bytes) {
+    Checksum(byte[] arrayOf16bytes, int numOfLong) {
         try {
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(arrayOf16bytes));
-            this.sum1 = in.readLong();
-            this.sum2 = in.readLong();
+            long l1=0,l2=0;
+            for (int i=0; i<numOfLong; i++) {
+                long l = in.readLong();
+                if (i%2==0)
+                    l1 ^= l;
+                else
+                    l2 ^= in.readLong();
+            }
+            sum1 = l1;
+            sum2 = l2;
         } catch (IOException e) {
             throw new AssertionError(e);
         }
