@@ -25,6 +25,7 @@ public class FileSystemJarCache extends JarCacheSupport {
         this.touch = touch;
         if (rootDir==null)
             throw new IllegalArgumentException();
+        rootDir.mkdirs();
     }
 
     @Override

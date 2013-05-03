@@ -23,9 +23,12 @@
  */
 package hudson.remoting;
 
+import hudson.remoting.Channel.Mode;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
@@ -41,7 +44,7 @@ import java.util.Collections;
 import java.util.logging.Logger;
 
 /**
- * Slave agent engine that proactively connects to Hudson master.
+ * Slave agent engine that proactively connects to Jenkins master.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -72,7 +75,7 @@ public class Engine extends Thread {
     private List<URL> candidateUrls;
 
     /**
-     * URL that points to Hudson's tcp slage agent listener, like <tt>http://myhost/hudson/</tt>
+     * URL that points to Jenkins's tcp slave agent listener, like <tt>http://myhost/hudson/</tt>
      *
      * <p>
      * This value is determined from {@link #candidateUrls} after a successful connection.
@@ -98,6 +101,8 @@ public class Engine extends Thread {
      */
     private String cookie;
 
+    private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
+
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
         this.listener = listener;
         this.candidateUrls = hudsonUrls;
@@ -105,6 +110,10 @@ public class Engine extends Thread {
         this.slaveName = slaveName;
         if(candidateUrls.isEmpty())
             throw new IllegalArgumentException("No URLs given");
+    }
+
+    public void setJarCache(JarCache jarCache) {
+        this.jarCache = jarCache;
     }
 
     public URL getHudsonUrl() {
@@ -235,8 +244,8 @@ public class Engine extends Thread {
                 }
 
                 final Channel channel = new Channel("channel", executor,
-                        in,
-                        new BufferedOutputStream(s.getOutputStream()));
+                        ClassicCommandTransport.create(Mode.BINARY, in,new BufferedOutputStream(s.getOutputStream()),null,null,new Capability()),
+                        false, null, jarCache);
                 
                 listener.status("Connected");
                 channel.join();

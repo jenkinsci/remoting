@@ -137,8 +137,11 @@ public class Launcher {
     public File tcpPortFile=null;
 
 
-    @Option(name="-auth",metaVar="user:pass",usage="If your Hudson is security-enabled, specify a valid user name and password.")
+    @Option(name="-auth",metaVar="user:pass",usage="If your Jenkins is security-enabled, specify a valid user name and password.")
     public String auth = null;
+
+    @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
+    public File jarCache = null;
 
     public InetSocketAddress connectionTarget = null;
 
@@ -382,7 +385,8 @@ public class Launcher {
         // we take care of buffering on our own
         s.setTcpNoDelay(true);
         main(new BufferedInputStream(new SocketInputStream(s)),
-             new BufferedOutputStream(new SocketOutputStream(s)), mode,ping);
+             new BufferedOutputStream(new SocketOutputStream(s)), mode,ping,
+             new FileSystemJarCache(jarCache,true));
     }
 
     /**
@@ -436,7 +440,7 @@ public class Launcher {
 
         // System.in/out appear to be already buffered (at least that was the case in Linux and Windows as of Java6)
         // so we are not going to double-buffer these.
-        main(System.in, os, mode, ping);
+        main(System.in, os, mode, ping, new FileSystemJarCache(jarCache,true));
     }
 
     private static void ttyCheck() {
@@ -473,9 +477,18 @@ public class Launcher {
         main(is,os,mode,false);
     }
 
+    /**
+     * @deprecated
+     *      Use {@link #main(InputStream, OutputStream, Mode, boolean, JarCache)}
+     */
     public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing) throws IOException, InterruptedException {
+        main(is, os, mode, performPing,
+                new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true));
+    }
+    public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing, JarCache cache) throws IOException, InterruptedException {
         ExecutorService executor = Executors.newCachedThreadPool();
-        Channel channel = new Channel("channel", executor, mode, is, os);
+        Channel channel = new Channel("channel", executor,
+                ClassicCommandTransport.create(mode,is,os,null,null,new Capability()), false, null, cache);
         System.err.println("channel started");
         long timeout = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),
