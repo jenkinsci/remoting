@@ -141,7 +141,7 @@ public class Launcher {
     public String auth = null;
 
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
-    public File jarCache = null;
+    public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
 
     public InetSocketAddress connectionTarget = null;
 

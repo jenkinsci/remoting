@@ -26,7 +26,7 @@ final class Checksum {
                 if (i%2==0)
                     l1 ^= l;
                 else
-                    l2 ^= in.readLong();
+                    l2 ^= l;
             }
             sum1 = l1;
             sum2 = l2;
