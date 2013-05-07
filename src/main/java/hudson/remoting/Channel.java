@@ -276,6 +276,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     /*package*/ final ClassLoader baseClassLoader;
 
+    private JarCache jarCache;
+
+    /*package*/ final JarLoaderImpl jarLoader;
+
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
      * 
@@ -393,6 +397,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
+     * @since 2.13
+     */
+    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
+        this(name,exec,transport,restricted,base,null);
+    }
+    /**
      * Creates a new channel.
      *
      * @param name
@@ -405,13 +415,16 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @param restricted
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
-     * @since 2.13
+     * @param jarCache
+     *
+     * @since 2.PREFETCH
      */
-    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
+    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base, JarCache jarCache) throws IOException {
         this.name = name;
         this.executor = new InterceptingExecutorService(exec);
         this.isRestricted = restricted;
         this.underlyingOutput = transport.getUnderlyingStream();
+        this.jarCache = jarCache;
 
         if (base==null)
             base = getClass().getClassLoader();
@@ -425,6 +438,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.pipeWriter = new PipeWriter(createPipeWriterExecutor());
 
         this.transport = transport;
+
+        this.jarLoader = new JarLoaderImpl(); // TODO: figure out a mechanism to allow the user to share this across Channels
+        setProperty(JarLoader.OURS,export(JarLoader.class,jarLoader,false));
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
@@ -503,7 +519,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * {@inheritDoc}
      */
     public <T> T export(Class<T> type, T instance) {
-        return export(type,instance,true);
+        return export(type, instance, true);
     }
 
     /**
@@ -542,7 +558,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /*package*/ int export(Object instance, boolean automaticUnexport) {
-        return exportedObjects.export(instance,automaticUnexport);
+        return exportedObjects.export(instance, automaticUnexport);
     }
 
     /*package*/ Object getExportedObject(int oid) {
@@ -626,18 +642,36 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      if the preloading fails.
      */
     public boolean preloadJar(Callable<?,?> classLoaderRef, Class... classesInJar) throws IOException, InterruptedException {
-        return preloadJar(UserRequest.getClassLoader(classLoaderRef),classesInJar);
+        return preloadJar(UserRequest.getClassLoader(classLoaderRef), classesInJar);
     }
 
     public boolean preloadJar(ClassLoader local, Class... classesInJar) throws IOException, InterruptedException {
         URL[] jars = new URL[classesInJar.length];
         for (int i = 0; i < classesInJar.length; i++)
             jars[i] = Which.jarFile(classesInJar[i]).toURI().toURL();
-        return call(new PreloadJarTask(jars,local));
+        return call(new PreloadJarTask(jars, local));
     }
 
     public boolean preloadJar(ClassLoader local, URL... jars) throws IOException, InterruptedException {
         return call(new PreloadJarTask(jars,local));
+    }
+
+    /**
+     * If this channel is built with jar file caching, return the object that manages this cache.
+     */
+    public JarCache getJarCache() {
+        return jarCache;
+    }
+
+    /**
+     * You can change the {@link JarCache} while the channel is in operation,
+     * but doing so doesn't impact {@link RemoteClassLoader}s that are already created.
+     *
+     * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
+     * unless your call sequence guarantees that you call this method before remote classes are loaded.
+     */
+    public void setJarCache(JarCache jarCache) {
+        this.jarCache = jarCache;
     }
 
     /*package*/ PipeWindow getPipeWindow(int oid) {
@@ -996,6 +1030,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return remoteChannel.waitForProperty(key);
     }
 
+    /**
+     * @deprecated
+     *      Because {@link ChannelProperty} is identity-equality, this method would never work.
+     *      This is a design error.
+     */
     public <T> T waitForRemoteProperty(ChannelProperty<T> key) throws InterruptedException {
         return key.type.cast(waitForRemoteProperty((Object) key));
     }
@@ -1182,7 +1221,22 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     private static final Logger logger = Logger.getLogger(Channel.class.getName());
 
-    public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",128*1024);
+    /**
+     * Default pipe window size.
+     *
+     * <p>
+     * This controls the amount of bytes that can be in flight. Value too small would fail to efficiently utilize
+     * a high-latency/large-bandwidth network, but a value too large would cause the risk of a large memory consumption
+     * when a pipe clogs (that is, the receiver isn't consuming bytes we are sending fast enough.)
+     *
+     * <p>
+     * If we have a gigabit ethernet (with effective transfer rate of 100M bps) and 20ms latency, the pipe will hold
+     * (100M bits/sec * 0.02sec / 8 bits/byte = 0.25MB. So 1MB or so is big enough for most network, and hopefully
+     * this is an acceptable enough memory consumption in case of clogging.
+     *
+     * @see PipeWindow
+     */
+    public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",1024*1024);
 
 //    static {
 //        ConsoleHandler h = new ConsoleHandler();

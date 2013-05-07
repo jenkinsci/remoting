@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.URLConnection;
@@ -46,12 +45,12 @@ import java.util.logging.Level;
  */
 public class Which {
     /**
-     * Locates the jar file that contains the given class.
+     * Returns the URL of the class file where the given class has been loaded from.
      *
      * @throws IllegalArgumentException
      *      if failed to determine.
      */
-    public static URL jarURL(Class clazz) throws IOException {
+    public static URL classFileUrl(Class clazz) throws IOException {
         ClassLoader cl = clazz.getClassLoader();
         if(cl==null)
             cl = ClassLoader.getSystemClassLoader();
@@ -59,6 +58,15 @@ public class Which {
         if(res==null)
             throw new IllegalArgumentException("Unable to locate class file for "+clazz);
         return res;
+    }
+
+    /**
+     * Use {@link #classFileUrl(Class)}
+     *
+     * @deprecated 2.PREFETCH
+     */
+    public static URL jarURL(Class clazz) throws IOException {
+        return classFileUrl(clazz);
     }
 
     /**
@@ -72,7 +80,25 @@ public class Which {
      *      if failed to determine.
      */
     public static File jarFile(Class clazz) throws IOException {
-        URL res = jarURL(clazz);
+        return jarFile(classFileUrl(clazz),clazz.getName().replace('.','/')+".class");
+    }
+
+    /**
+     * Locates the jar file that contains the given resource
+     *
+     * @param res
+     *      The URL that points to the location of the resource.
+     * @param qualifiedName
+     *      Fully qualified resource name of the resource being looked up,
+     *      such as "pkg/Outer$Inner.class" or "abc/def/msg.properties".
+     *      This is normally a part of the {@code res} parameter, but some
+     *      VFS makes it necessary to get this information from outside to figure out what the jar file is.
+     * @throws IllegalArgumentException
+     *      If the URL is not in a jar file.
+     * @return
+     *      never null
+     */
+    /*package*/ static File jarFile(URL res, String qualifiedName) throws IOException {
         String resURL = res.toExternalForm();
         String originalURL = resURL;
         if(resURL.startsWith("jar:file:") || resURL.startsWith("wsjar:file:"))
@@ -93,7 +119,7 @@ public class Which {
 
         if(resURL.startsWith("file:")) {
             // unpackaged classes
-            int n = clazz.getName().split("\\.").length; // how many slashes do wo need to cut?
+            int n = qualifiedName.split("/").length; // how many slashes do wo need to cut?
             for( ; n>0; n-- ) {
                 int idx = Math.max(resURL.lastIndexOf('/'), resURL.lastIndexOf('\\'));
                 if(idx<0)   throw new IllegalArgumentException(originalURL + " - " + resURL);
@@ -142,7 +168,7 @@ public class Which {
         if(resURL.startsWith("vfs:")) {
             // JBoss6
             String dotdot="";
-            for (int i=clazz.getName().split("\\.").length; i>1; i--)
+            for (int i=qualifiedName.split("/").length; i>1; i--)
                 dotdot+="../";
 
             try {
@@ -178,9 +204,9 @@ public class Which {
                         f.setAccessible(true);
                         return new File((String) f.get(jarFile));
                     } catch (NoSuchFieldException e) {
-                        LOGGER.log(Level.INFO, "Failed to obtain the local cache file name of "+clazz, e);
+                        LOGGER.log(Level.INFO, "Failed to obtain the local cache file name of "+resURL, e);
                     } catch (IllegalAccessException e) {
-                        LOGGER.log(Level.INFO, "Failed to obtain the local cache file name of "+clazz, e);
+                        LOGGER.log(Level.INFO, "Failed to obtain the local cache file name of "+resURL, e);
                     }
                 }
             }

@@ -25,13 +25,13 @@ package hudson.remoting;
 
 import hudson.remoting.ChannelRunner.InProcessCompatibilityMode;
 import junit.framework.Test;
+import org.jvnet.hudson.test.Bug;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.EmptyVisitor;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.jvnet.hudson.test.Bug;
 
 /**
  * Test class image forwarding.
@@ -126,5 +126,7 @@ public class ClassRemotingTest extends RmiTestBase {
             assertTrue(o.getClass().getClassLoader() instanceof RemoteClassLoader);
             return null;
         }
+
+        private static final long serialVersionUID = 1L;
     }
 }

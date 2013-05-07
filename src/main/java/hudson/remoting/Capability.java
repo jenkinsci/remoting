@@ -59,7 +59,7 @@ public final class Capability implements Serializable {
         return (mask&MASK_MIMIC_EXCEPTION)!=0;
     }
 
-    /** @since 2.21 */
+    /** @since 2.PREFETCH */
     public boolean supportsPrefetch() {
         return (mask & MASK_PREFETCH) != 0;
     }
@@ -119,8 +119,20 @@ public final class Capability implements Serializable {
      */
     private static final long MASK_MIMIC_EXCEPTION = 1L << 3;
 
-    /** 
-     * Supports sending along related class files optimistically so as to avoid round-trips.
+    /**
+     * This flag indicates the support for advanced classloading features.
+     *
+     * <p>
+     * This mainly involves two things:
+     *
+     * <ul>
+     * <li>Prefetching, where a request to retrieve a class also reports where
+     *     related classes can be found and loaded, which saves roundtrips.
+     * <li>Caching, where we separate "which classloader should load a class" from
+     *     "which jar file should load a class", enabling caching at the jar files level.
+     * </ul>
+     *
+     * @see ResourceImageRef
      */
     private static final long MASK_PREFETCH = 1L << 4;
 

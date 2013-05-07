@@ -1,0 +1,7 @@
+Prefetch branch TODO before merge
+=================================
+
+- verify that it actually does some good (instead of just no harm)
+- try this with Jenkins to be sure
+- BUG: prefetching sending Callable class image
+- constant pool analyzer must be shaded & rebundled
