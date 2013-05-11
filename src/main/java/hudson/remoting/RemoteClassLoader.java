@@ -172,6 +172,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         assert cf != null;
                     } else {
                         LOGGER.log(Level.FINER, "had already fetched {0}", name);
+                        channel.classLoadingCount.incrementAndGet();
                     }
                 } else {
                     LOGGER.log(Level.FINER, "fetch2 on {0}", name);
