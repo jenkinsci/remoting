@@ -459,7 +459,8 @@ final class RemoteClassLoader extends URLClassLoader {
     }
 
     /**
-     * A class file is a kind of a {@link ResourceFile}
+     * A class file as a subtype of {@link ResourceFile}.
+     * This supersedes {@link ClassFile}.
      */
     public static class ClassFile2 extends ResourceFile {
         /**
