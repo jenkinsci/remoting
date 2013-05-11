@@ -147,41 +147,68 @@ final class RemoteClassLoader extends URLClassLoader {
                     then the class file image is wasted.)
                  */
                 long startTime = System.nanoTime();
-                ClassReference cf;
+                ClassReference cr;
                 if (channel.remoteCapability.supportsPrefetch()) {
-                    cf = prefetchedClasses.remove(name);
-                    if (cf == null) {
+                    cr = prefetchedClasses.remove(name);
+                    if (cr == null) {
                         Map<String,ClassFile2> all = proxy.fetch3(name);
                         synchronized (prefetchedClasses) {
+                            /**
+                             * Converts {@link ClassFile2} to {@link ClassReference} with minimal
+                             * proxy creation. This creates a reference to {@link ClassLoader}, so
+                             * it shoudn't be kept beyond the scope of single {@link #findClass(String)}  calll.
+                             */
+                            class ClassReferenceBuilder {
+                                private final Map<Integer,ClassLoader> classLoaders = new HashMap<Integer, ClassLoader>();
+
+                                ClassReference toRef(ClassFile2 cf) {
+                                    int n = cf.classLoader;
+
+                                    ClassLoader cl = classLoaders.get(n);
+                                    if (cl==null)
+                                         classLoaders.put(n,cl = channel.importedClassLoaders.get(n));
+
+                                    return new ClassReference(cl,cf.image);
+                                }
+                            }
+                            ClassReferenceBuilder crf = new ClassReferenceBuilder();
+
                             for (Map.Entry<String,ClassFile2> entry : all.entrySet()) {
-                                ClassReference ref = new ClassReference(channel,entry.getValue());
-                                if (entry.getKey().equals(name)) {
-                                    cf = ref;
+                                String cn = entry.getKey();
+                                ClassFile2 cf = entry.getValue();
+                                ClassReference ref = crf.toRef(cf);
+
+                                if (cn.equals(name)) {
+                                    cr = ref;
                                     LOGGER.log(Level.FINER, "fetch3 on {0}", name);
                                 } else {
-                                    prefetchedClasses.put(entry.getKey(), ref);
-                                    LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[] {name, entry.getKey()});
+                                    // where we remember the prefetch is sensitive to who references it,
+                                    // because classes need not be transitively visible in Java
+                                    if (cf.referer!=null)
+                                        ref.rememberIn(cn, crf.toRef(cf.referer).classLoader);
+                                    else
+                                        ref.rememberIn(cn, this);
+
+                                    LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[]{name, cn});
                                 }
-                                if (ref.classLoader instanceof RemoteClassLoader) {
-                                    RemoteClassLoader rcl = (RemoteClassLoader) ref.classLoader;
-                                    rcl.prefetchedClasses.put(entry.getKey(), ref);
-                                }
+
+                                ref.rememberIn(cn, ref.classLoader);
                             }
                         }
 
-                        assert cf != null;
+                        assert cr != null;
                     } else {
                         LOGGER.log(Level.FINER, "had already fetched {0}", name);
                         channel.classLoadingCount.incrementAndGet();
                     }
                 } else {
                     LOGGER.log(Level.FINER, "fetch2 on {0}", name);
-                    cf = new ClassReference(channel,proxy.fetch2(name));
+                    cr = new ClassReference(channel,proxy.fetch2(name));
                 }
                 channel.classLoadingTime.addAndGet(System.nanoTime()-startTime);
                 channel.classLoadingCount.incrementAndGet();
 
-                ClassLoader cl = cf.classLoader;
+                ClassLoader cl = cr.classLoader;
                 if (cl instanceof RemoteClassLoader) {
                     RemoteClassLoader rcl = (RemoteClassLoader) cl;
                     synchronized (_getClassLoadingLock(rcl, name)) {
@@ -196,7 +223,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         if (c==null) {
                             // TODO: check inner class handling
                             try {
-                                c = rcl.loadClassFile(name,cf.classImage.resolve(channel,name.replace('.','/')+".class"));
+                                c = rcl.loadClassFile(name, cr.classImage.resolve(channel, name.replace('.', '/') + ".class"));
                             } catch (IOException x) {
                                 throw new ClassNotFoundException(name,x);
                             } catch (InterruptedException x) {
@@ -385,21 +412,33 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
-    // for local ref
-    public static class ClassReference {
+    /**
+     * Receiver-side of {@link ClassFile2} uses this to remember the prefetch information.
+     */
+    static class ClassReference {
         final ClassLoader classLoader;
         final ResourceImageRef classImage;
 
-        public ClassReference(Channel channel, ClassFile wireFormat) {
+        ClassReference(Channel channel, ClassFile wireFormat) {
             this.classLoader = channel.importedClassLoaders.get(wireFormat.classLoader);
             this.classImage = new ResourceImageDirect(wireFormat.classImage);
         }
 
-        public ClassReference(Channel channel, ClassFile2 wireFormat) {
-            // TODO: importedClassLoaders.get looks awfully inefficient
-            this.classLoader = channel.importedClassLoaders.get(wireFormat.classLoader);
-            this.classImage = wireFormat.image;
+        ClassReference(ClassLoader classLoader, ResourceImageRef classImage) {
+            this.classLoader = classLoader;
+            this.classImage = classImage;
         }
+
+        /**
+         * Make the specified classloader remember this prefetch information.
+         */
+        void rememberIn(String className, ClassLoader cl) {
+            if (cl instanceof RemoteClassLoader) {
+                RemoteClassLoader rcl = (RemoteClassLoader) cl;
+                rcl.prefetchedClasses.put(className, this);
+            }
+        }
+
     }
 
     /**
@@ -421,8 +460,8 @@ final class RemoteClassLoader extends URLClassLoader {
 
         private static final long serialVersionUID = 1L;
 
-        public ClassFile2 upconvert(URL local) {
-            return new ClassFile2(classLoader,new ResourceImageDirect(classImage),local);
+        public ClassFile2 upconvert(ClassFile2 referer, Class clazz, URL local) {
+            return new ClassFile2(classLoader,new ResourceImageDirect(classImage),referer,clazz,local);
         }
     }
 
@@ -438,8 +477,9 @@ final class RemoteClassLoader extends URLClassLoader {
         final ResourceImageRef image;
 
         /**
-         * While this object is still on the sender side, an object that allows
-         * this side to read its content.
+         * While this object is still on the sender side,
+         * this points to the location of the resource. Used by
+         * the sender side to retrieve the resource when necessary.
          */
         transient final URL local;
 
@@ -468,13 +508,37 @@ final class RemoteClassLoader extends URLClassLoader {
          */
         final int classLoader;
 
-        ClassFile2(int classLoader, URL local) throws IOException {
-            this(classLoader,new ResourceImageDirect(local), local);
-        }
+        /**
+         * When used with {@link IClassLoader#fetch3(String)},
+         * this points to the class that was referencing this class.
+         *
+         * This information is crucial in determining which classloaders are to cache
+         * the prefetch information. Imagine classloader X requests fetch3("Foo"),
+         * which returns 2 <tt>ClassFile2<tt> instances:
+         *
+         * <ol>
+         *     <li>ClassFile2 #1: image of "Foo" is here and load this from classloader Y
+         *     <li>ClassFile2 #2: image of "Bar" is here, referenced by "Foo", and load this from classloader Z
+         * </ol>
+         *
+         * <p>
+         * In this situation, we want to let classloader Y know that Bar is to be loaded from Z,
+         * since that is the most likely classloader that will try to resolve Bar. In contrast,
+         * remembering that in classloader X is only marginally useful.
+         */
+        final ClassFile2 referer;
 
-        ClassFile2(int classLoader, ResourceImageRef image, URL local) {
+        /**
+         * While this object is still on the sender side, used to remember the actual
+         * class that this {@link ClassFile2} represents.
+         */
+        transient final Class clazz;
+
+        ClassFile2(int classLoader, ResourceImageRef image, ClassFile2 referer, Class clazz, URL local) {
             super(image,local);
             this.classLoader = classLoader;
+            this.clazz = clazz;
+            this.referer = referer;
         }
 
         private static final long serialVersionUID = 1L;
@@ -617,8 +681,11 @@ final class RemoteClassLoader extends URLClassLoader {
             }
         }
 
-        public ClassFile2 fetch4(String className) throws ClassNotFoundException {
-            Class<?> c = cl.loadClass(className);
+        /**
+         * Fetch a single class and creates a {@link ClassFile2} for it.
+         */
+        public ClassFile2 fetch4(String className, ClassFile2 referer) throws ClassNotFoundException {
+            Class<?> c = (referer==null?this.cl:referer.clazz.getClassLoader()).loadClass(className);
             ClassLoader ecl = c.getClassLoader();
             if (ecl == null) {
             	if (USE_BOOTSTRAP_CLASSLOADER) {
@@ -636,20 +703,21 @@ final class RemoteClassLoader extends URLClassLoader {
                     if (jar.isFile()) {// for historical reasons the jarFile method can return a directory
                         Checksum sum = channel.jarLoader.calcChecksum(jar);
                         return new ClassFile2(exportId(ecl,channel),
-                                new ResourceImageInJar(sum,null /* TODO: we need to check if the URL of c points to the expected location of the file */),urlOfClassFile);
+                                new ResourceImageInJar(sum,null /* TODO: we need to check if the URL of c points to the expected location of the file */),
+                                referer, c, urlOfClassFile);
                     }
                 } catch (IllegalArgumentException e) {
                     // we determined that 'c' isn't in a jar file
                     LOGGER.log(FINE,c+" isn't in a jar file: "+urlOfClassFile,e);
                 }
-                return fetch2(className).upconvert(urlOfClassFile);
+                return fetch2(className).upconvert(referer,c,urlOfClassFile);
             } catch (IOException e) {
                 throw new ClassNotFoundException();
             }
         }
 
         public Map<String,ClassFile2> fetch3(String className) throws ClassNotFoundException {
-            ClassFile2 cf = fetch4(className);
+            ClassFile2 cf = fetch4(className,null);
             Map<String,ClassFile2> all = new HashMap<String,ClassFile2>();
             all.put(className, cf);
             synchronized (prefetched) {
@@ -664,7 +732,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     }
                     try {
                         // XXX could even traverse second-level dependencies, etc.
-                        all.put(other, fetch4(other));
+                        all.put(other, fetch4(other,cf));
                     } catch (ClassNotFoundException x) {
                         // ignore: might not be real class name, etc.
                     }

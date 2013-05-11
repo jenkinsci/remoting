@@ -51,7 +51,7 @@ class DumbClassLoaderBridge implements IClassLoader {
     public Map<String,ClassFile2> fetch3(String className) throws ClassNotFoundException {
         ClassFile cf = fetch2(className);
         return Collections.singletonMap(className,
-                new ClassFile2(cf.classLoader,new ResourceImageDirect(cf.classImage),null));
+                new ClassFile2(cf.classLoader,new ResourceImageDirect(cf.classImage),null,null,null));
     }
 
     public ResourceFile getResource2(String name) throws IOException {
