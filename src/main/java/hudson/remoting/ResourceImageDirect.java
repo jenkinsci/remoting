@@ -2,6 +2,8 @@ package hudson.remoting;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static hudson.remoting.Util.*;
 
@@ -29,6 +31,7 @@ class ResourceImageDirect extends ResourceImageRef {
 
     @Override
     byte[] resolve(Channel channel, String resourcePath) throws IOException {
+        LOGGER.log(Level.FINE, resourcePath+" image is direct");
         return payload;
     }
 
@@ -36,4 +39,8 @@ class ResourceImageDirect extends ResourceImageRef {
     URLish resolveURL(Channel channel, String resourcePath) throws IOException {
         return URLish.from(makeResource(getBaseName(resourcePath), payload));
     }
+
+    private static final Logger LOGGER = Logger.getLogger(ResourceImageDirect.class.getName());
+
+    private static final long serialVersionUID = 1L;
 }

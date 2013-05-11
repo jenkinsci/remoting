@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link JarCache} that stores files in a single directory.
@@ -32,6 +34,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     protected URL lookInCache(Channel channel, long sum1, long sum2) throws IOException {
         File jar = map(sum1, sum2);
         if (jar.exists()) {
+            LOGGER.log(Level.FINER, String.format("Jar file cache hit %16X%16X",sum1,sum2));
             if (touch)  jar.setLastModified(System.currentTimeMillis());
             return jar.toURI().toURL();
         }
@@ -47,7 +50,8 @@ public class FileSystemJarCache extends JarCacheSupport {
         try {
             RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
             try {
-                jl.writeJarTo(sum1,sum2, o);
+                LOGGER.log(Level.FINE, String.format("Retrieving jar file %16X%16X",sum1,sum2));
+                jl.writeJarTo(sum1, sum2, o);
             } finally {
                 o.close();
             }
@@ -75,4 +79,6 @@ public class FileSystemJarCache extends JarCacheSupport {
                 (int)(sum1>>>(64-8)),
                 sum1&0x00FFFFFFFFFFFFFFL, sum2));
     }
+
+    private static final Logger LOGGER = Logger.getLogger(FileSystemJarCache.class.getName());
 }

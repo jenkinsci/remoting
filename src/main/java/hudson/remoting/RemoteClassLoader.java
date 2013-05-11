@@ -151,6 +151,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 if (channel.remoteCapability.supportsPrefetch()) {
                     cr = prefetchedClasses.remove(name);
                     if (cr == null) {
+                        LOGGER.log(Level.FINER, "fetch3({0})", name);
                         Map<String,ClassFile2> all = proxy.fetch3(name);
                         synchronized (prefetchedClasses) {
                             /**
@@ -180,7 +181,6 @@ final class RemoteClassLoader extends URLClassLoader {
 
                                 if (cn.equals(name)) {
                                     cr = ref;
-                                    LOGGER.log(Level.FINER, "fetch3 on {0}", name);
                                 } else {
                                     // where we remember the prefetch is sensitive to who references it,
                                     // because classes need not be transitively visible in Java
@@ -198,8 +198,8 @@ final class RemoteClassLoader extends URLClassLoader {
 
                         assert cr != null;
                     } else {
-                        LOGGER.log(Level.FINER, "had already fetched {0}", name);
-                        channel.classLoadingCount.incrementAndGet();
+                        LOGGER.log(Level.FINER, "findClass({0}) -> prefetch hit", name);
+                        channel.classLoadingPrefetchCacheCount.incrementAndGet();
                     }
                 } else {
                     LOGGER.log(Level.FINER, "fetch2 on {0}", name);

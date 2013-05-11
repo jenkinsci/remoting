@@ -38,6 +38,7 @@ import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -49,7 +50,10 @@ import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Formatter;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.net.URL;
 import java.util.concurrent.ExecutionException;
@@ -1263,43 +1267,55 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",1024*1024);
 
-//    static {
-//        ConsoleHandler h = new ConsoleHandler();
-//        h.setFormatter(new Formatter(){
-//            public synchronized String format(LogRecord record) {
-//                StringBuilder sb = new StringBuilder();
-//                sb.append((record.getMillis()%100000)+100000);
-//                sb.append(" ");
-//                if (record.getSourceClassName() != null) {
-//                    sb.append(record.getSourceClassName());
-//                } else {
-//                    sb.append(record.getLoggerName());
-//                }
-//                if (record.getSourceMethodName() != null) {
-//                    sb.append(" ");
-//                    sb.append(record.getSourceMethodName());
-//                }
-//                sb.append('\n');
-//                String message = formatMessage(record);
-//                sb.append(record.getLevel().getLocalizedName());
-//                sb.append(": ");
-//                sb.append(message);
-//                sb.append('\n');
-//                if (record.getThrown() != null) {
-//                    try {
-//                        StringWriter sw = new StringWriter();
-//                        PrintWriter pw = new PrintWriter(sw);
-//                        record.getThrown().printStackTrace(pw);
-//                        pw.close();
-//                        sb.append(sw.toString());
-//                    } catch (Exception ex) {
-//                    }
-//                }
-//                return sb.toString();
-//            }
-//        });
-//        h.setLevel(Level.FINE);
-//        logger.addHandler(h);
-//        logger.setLevel(Level.FINE);
-//    }
+    static {
+        ConsoleHandler h = new ConsoleHandler();
+        h.setFormatter(new Formatter(){
+            public synchronized String format(LogRecord record) {
+                StringBuilder sb = new StringBuilder();
+                if (false) {
+                    sb.append((record.getMillis()%100000)+100000);
+                    sb.append(" ");
+                    if (record.getSourceClassName() != null) {
+                        sb.append(record.getSourceClassName());
+                    } else {
+                        sb.append(record.getLoggerName());
+                    }
+                    if (record.getSourceMethodName() != null) {
+                        sb.append(" ");
+                        sb.append(record.getSourceMethodName());
+                    }
+                    sb.append('\n');
+                }
+                String message = formatMessage(record);
+                sb.append(record.getLevel().getLocalizedName());
+                sb.append(": ");
+                sb.append(message);
+                sb.append('\n');
+                if (record.getThrown() != null) {
+                    try {
+                        StringWriter sw = new StringWriter();
+                        PrintWriter pw = new PrintWriter(sw);
+                        record.getThrown().printStackTrace(pw);
+                        pw.close();
+                        sb.append(sw.toString());
+                    } catch (Exception ex) {
+                    }
+                }
+                return sb.toString();
+            }
+        });
+        h.setLevel(Level.FINER);
+
+        Logger l = Logger.getLogger(RemoteClassLoader.class.getName());
+        l.addHandler(h);
+        l.setLevel(Level.FINER);
+
+        l = Logger.getLogger(FileSystemJarCache.class.getName());
+        l.addHandler(h);
+        l.setLevel(Level.FINER);
+
+        l = Logger.getLogger(ResourceImageDirect.class.getName());
+        l.addHandler(h);
+        l.setLevel(Level.FINER);
+    }
 }
