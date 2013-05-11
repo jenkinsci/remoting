@@ -42,9 +42,11 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
@@ -917,6 +919,16 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         classLoadingTime.set(0);
         resourceLoadingCount.set(0);
         resourceLoadingTime.set(0);
+    }
+
+    /**
+     * Print the performance counters.
+     */
+    public void dumpPerformanceCounters(PrintWriter w) throws IOException {
+        w.println("Class loading count="+classLoadingCount);
+        w.printf(Locale.ENGLISH, "Class loading time=%,dms",classLoadingTime.get()/(1000*1000));
+        w.println("Resource loading count="+resourceLoadingCount);
+         w.printf(Locale.ENGLISH, "Resource loading time=%,dms",resourceLoadingTime.get()/(1000*1000));
     }
 
     /**
