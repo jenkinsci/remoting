@@ -152,12 +152,19 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 throw e.getTargetException();
             }
         }
-        
+
         // delegate the rest of the methods to the remote object
-        if(userProxy)
-            return channel.call(new RPCRequest(oid,method,args,dc.getClassLoader()));
-        else
-            return new RPCRequest(oid,method,args).call(channel);
+
+        boolean async = method.isAnnotationPresent(Asynchronous.class);
+        RPCRequest req = new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null);
+        if(userProxy) {
+            if (async)  channel.callAsync(req);
+            else        return channel.call(req);
+        } else {
+            if (async)  req.callAsync(channel);
+            else        return req.call(channel);
+        }
+        return null;
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {

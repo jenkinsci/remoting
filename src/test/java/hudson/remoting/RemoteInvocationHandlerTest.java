@@ -38,4 +38,44 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         }
     }
 
+
+    public void testAsyncCall() throws Exception {
+        final AsyncImpl i = new AsyncImpl();
+        AsyncContract c = channel.export(AsyncContract.class, i);
+
+        synchronized (i) {
+            channel.call(new AsyncTask(c));
+            assertEquals(null, i.arg);  // async call should be blocking
+
+            while (i.arg==null)
+                i.wait();
+            assertEquals("value", i.arg);  // once we let the call complete, we should see 'value'
+        }
+    }
+
+    public interface AsyncContract {
+        @Asynchronous
+        void meth(String arg1);
+    }
+
+    private static class AsyncImpl implements AsyncContract, Serializable {
+        String arg;
+        public void meth(String arg1) {
+            synchronized (this) {
+                this.arg = arg1;
+                notifyAll();
+            }
+        }
+    }
+
+    private static class AsyncTask implements Callable<Void,Error> {
+        private final AsyncContract c;
+        AsyncTask(AsyncContract c) {
+            this.c = c;
+        }
+        public Void call() throws Error {
+            c.meth("value");
+            return null;
+        }
+    }
 }
