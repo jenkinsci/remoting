@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -223,10 +224,16 @@ final class RemoteClassLoader extends URLClassLoader {
                         if (c==null) {
                             // TODO: check inner class handling
                             try {
-                                c = rcl.loadClassFile(name, cr.classImage.resolve(channel, name.replace('.', '/') + ".class"));
+                                Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
+                                if (img.isDone())
+                                    c = rcl.loadClassFile(name, img.get());
+                                else    // if the load activitiy is still pending, fetch just this class file
+                                    c = rcl.loadClassFile(name, proxy.fetch(name));
                             } catch (IOException x) {
                                 throw new ClassNotFoundException(name,x);
                             } catch (InterruptedException x) {
+                                throw new ClassNotFoundException(name,x);
+                            } catch (ExecutionException x) {
                                 throw new ClassNotFoundException(name,x);
                             }
                         }
@@ -276,7 +283,6 @@ final class RemoteClassLoader extends URLClassLoader {
         // discard our prefetched version since we'll never use them.
         prefetchedClasses.remove(name);
 
-        // define package
         definePackage(name);
 
         try {
@@ -328,12 +334,14 @@ final class RemoteClassLoader extends URLClassLoader {
                 return null;
             }
 
-            URLish res = image.resolveURL(channel, name);
+            URLish res = image.resolveURL(channel, name).get();
             resourceMap.put(name,res);
             return res.toURL();
         } catch (IOException e) {
             throw new Error("Unable to load resource "+name,e);
         } catch (InterruptedException e) {
+            throw new Error("Unable to load resource "+name,e);
+        } catch (ExecutionException e) {
             throw new Error("Unable to load resource "+name,e);
         }
     }
@@ -371,8 +379,12 @@ final class RemoteClassLoader extends URLClassLoader {
         v = new Vector<URLish>();
         for( ResourceFile image: images )
             try {
-                v.add(image.image.resolveURL(channel,name));
+                // getResources2 always give us ResourceImageBoth so
+                // .get() shouldn't block
+                v.add(image.image.resolveURL(channel,name).get());
             } catch (InterruptedException e) {
+                throw (Error)new Error("Failed to load resources "+name).initCause(e);
+            } catch (ExecutionException e) {
                 throw (Error)new Error("Failed to load resources "+name).initCause(e);
             }
         resourcesMap.put(name,v);
@@ -702,9 +714,16 @@ final class RemoteClassLoader extends URLClassLoader {
                     File jar = Which.jarFile(c);
                     if (jar.isFile()) {// for historical reasons the jarFile method can return a directory
                         Checksum sum = channel.jarLoader.calcChecksum(jar);
-                        return new ClassFile2(exportId(ecl,channel),
-                                new ResourceImageInJar(sum,null /* TODO: we need to check if the URL of c points to the expected location of the file */),
-                                referer, c, urlOfClassFile);
+
+                        ResourceImageRef imageRef;
+                        if (referer==null && !channel.jarLoader.isPresentOnRemote(sum))
+                            // for the class being requested, if the remote doesn't have the jar yet
+                            // send the image as well, so as not to require another call to get this class loaded
+                            imageRef = new ResourceImageBoth(urlOfClassFile,sum);
+                        else // otherwise just send the checksum and save space
+                            imageRef = new ResourceImageInJar(sum,null /* TODO: we need to check if the URL of c points to the expected location of the file */);
+
+                        return new ClassFile2(exportId(ecl,channel), imageRef, referer, c, urlOfClassFile);
                     }
                 } catch (IllegalArgumentException e) {
                     // we determined that 'c' isn't in a jar file
@@ -772,7 +791,12 @@ final class RemoteClassLoader extends URLClassLoader {
                 File jar = Which.jarFile(resource, name);
                 if (jar.isFile()) {// for historical reasons the jarFile method can return a directory
                     Checksum sum = channel.jarLoader.calcChecksum(jar);
-                    return new ResourceFile(new ResourceImageInJar(sum,null),resource);
+                    ResourceImageRef ir;
+                    if (!channel.jarLoader.isPresentOnRemote(sum))
+                        ir = new ResourceImageBoth(resource,sum);   // remote probably doesn't have
+                    else
+                        ir = new ResourceImageInJar(sum,null);
+                    return new ResourceFile(ir,resource);
                 }
             } catch (IllegalArgumentException e) {
                 LOGGER.log(FINE,name+" isn't in a jar file: "+resource,e);

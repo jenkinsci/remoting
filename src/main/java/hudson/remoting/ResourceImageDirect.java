@@ -30,14 +30,14 @@ class ResourceImageDirect extends ResourceImageRef {
     }
 
     @Override
-    byte[] resolve(Channel channel, String resourcePath) throws IOException {
+    Future<byte[]> resolve(Channel channel, String resourcePath) throws IOException {
         LOGGER.log(Level.FINE, resourcePath+" image is direct");
-        return payload;
+        return new AsyncFutureImpl<byte[]>(payload);
     }
 
     @Override
-    URLish resolveURL(Channel channel, String resourcePath) throws IOException {
-        return URLish.from(makeResource(getBaseName(resourcePath), payload));
+    Future<URLish> resolveURL(Channel channel, String resourcePath) throws IOException {
+        return new AsyncFutureImpl<URLish>(URLish.from(makeResource(getBaseName(resourcePath), payload)));
     }
 
     private static final Logger LOGGER = Logger.getLogger(ResourceImageDirect.class.getName());

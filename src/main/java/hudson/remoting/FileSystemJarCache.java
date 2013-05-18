@@ -4,6 +4,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,6 +19,11 @@ public class FileSystemJarCache extends JarCacheSupport {
     public final File rootDir;
 
     private final boolean touch;
+
+    /**
+     * We've reported these checksums as present on this side.
+     */
+    private final Set<Checksum> notified = Collections.synchronizedSet(new HashSet<Checksum>());
 
     /**
      * @param touch
@@ -31,18 +39,20 @@ public class FileSystemJarCache extends JarCacheSupport {
     }
 
     @Override
-    protected URL lookInCache(Channel channel, long sum1, long sum2) throws IOException {
+    protected URL lookInCache(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         File jar = map(sum1, sum2);
         if (jar.exists()) {
             LOGGER.log(Level.FINER, String.format("Jar file cache hit %16X%16X",sum1,sum2));
             if (touch)  jar.setLastModified(System.currentTimeMillis());
+            if (notified.add(new Checksum(sum1,sum2)))
+                getJarLoader(channel).notifyJarPresence(sum1,sum2);
             return jar.toURI().toURL();
         }
         return null;
     }
 
     @Override
-    protected URL retrieve(Channel channel, long sum1, long sum2, JarLoader jl) throws IOException, InterruptedException {
+    protected URL retrieve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         File target = map(sum1, sum2);
         File parent = target.getParentFile();
         parent.mkdirs();
@@ -51,7 +61,7 @@ public class FileSystemJarCache extends JarCacheSupport {
             RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
             try {
                 LOGGER.log(Level.FINE, String.format("Retrieving jar file %16X%16X",sum1,sum2));
-                jl.writeJarTo(sum1, sum2, o);
+                getJarLoader(channel).writeJarTo(sum1, sum2, o);
             } finally {
                 o.close();
             }

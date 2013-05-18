@@ -7,21 +7,26 @@ import java.net.URL;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * Implements {@link JarLoader} to be called from the other side.
  *
- * <p>
- * This implementation can be safely shared across multiple {@link Channel}s
- * to improve the performance.
+ * TODO: move {@link #knownJars} and {@link #checksums} to another class to share it across
+ * {@link JarLoaderImpl}s.
  *
  * @author Kohsuke Kawaguchi
  */
 class JarLoaderImpl implements JarLoader {
     private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<Checksum,URL>();
     private final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<URL,Checksum>();
+
+    private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<Checksum>());
 
     public void writeJarTo(long sum1, long sum2, OutputStream sink) throws IOException, InterruptedException {
         Checksum k = new Checksum(sum1, sum2);
@@ -30,10 +35,26 @@ class JarLoaderImpl implements JarLoader {
             throw new IOException("Unadvertised jar file "+k);
 
         Util.copy(url.openStream(), sink);
+        presentOnRemote.add(k);
     }
 
     public Checksum calcChecksum(File jar) throws IOException {
         return calcChecksum(jar.toURI().toURL());
+    }
+
+    public boolean isPresentOnRemote(Checksum sum) {
+        return presentOnRemote.contains(sum);
+    }
+
+    public void notifyJarPresence(long sum1, long sum2) {
+        presentOnRemote.add(new Checksum(sum1,sum2));
+    }
+
+    public void notifyJarPresence(long[] sums) {
+        synchronized (presentOnRemote) {
+            for (int i=0; i<sums.length; i+=2)
+                presentOnRemote.add(new Checksum(sums[i*2],sums[i*2+1]));
+        }
     }
 
     /**

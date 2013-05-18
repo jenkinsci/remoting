@@ -17,6 +17,9 @@ public interface JarLoader {
     /**
      * Retrieve the jar file image.
      *
+     * This method is called by the other side to receive the jar file. This call implicitly
+     * has the effect of {@link #notifyJarPresence(long, long)}
+     *
      * @param sink
      *      This stream receives the jar file.
      *
@@ -25,6 +28,28 @@ public interface JarLoader {
      *      of the call, this exception will be thrown.
      */
     void writeJarTo(long sum1, long sum2, OutputStream sink) throws IOException, InterruptedException;
+
+    /**
+     * Called by the other side to notify that they already own the jar file of the given checksum.
+     *
+     * This allows this side to send {@link ResourceImageRef} smartly by avoiding unnecessary
+     * image transport.
+     */
+    @Asynchronous
+    void notifyJarPresence(long sum1, long sum2);
+
+    /**
+     * @param sums
+     *      Array of even length. sums[2i] and sumes[2i+1] are paired up and interpreted as one checksum.
+     */
+    @Asynchronous
+    void notifyJarPresence(long[] sums);
+
+    /**
+     * Used by the local side to see if the jar file of the given checksum is already present
+     * on the other side. Used to decide if the class file image gets sent to the remote or not.
+     */
+    boolean isPresentOnRemote(Checksum sum);
 
     final String OURS = JarLoader.class.getName()+".ours";
     final ChannelProperty<JarLoader> THEIRS = new ChannelProperty<JarLoader>(JarLoader.class,"their JarLoader");

@@ -29,7 +29,5 @@ public abstract class JarCache {
      * @return
      *      URL of the jar file. Must not be null.
      */
-    public abstract URL resolve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException;
-
-
+    public abstract Future<URL> resolve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException;
 }
