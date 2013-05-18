@@ -59,12 +59,17 @@ public abstract class JarCacheSupport extends JarCache {
                     public void run() {
                         try {
                             URL url = retrieve(channel,sum1,sum2);
-                            inprogress.put(key,null);
+                            inprogress.remove(key);
                             promise.set(url);
+                        } catch (ChannelClosedException e) {
+                            // the connection was killed while we were still resolving the file
+                            bailout(e);
+                        } catch (RequestAbortedException e) {
+                            // the connection was killed while we were still resolving the file
+                            bailout(e);
                         } catch (InterruptedException e) {
                             // we are bailing out, but we need to allow another thread to retry later.
-                            inprogress.put(key,null);   // this lets another thread to retry later
-                            promise.set(e);             // then tell those who are waiting that we aborted
+                            bailout(e);
 
                             LOGGER.log(Level.WARNING, String.format("Interrupted while resolving a jar %016x%016x",sum1,sum2), e);
                         } catch (Throwable e) {
@@ -74,6 +79,14 @@ public abstract class JarCacheSupport extends JarCache {
 
                             LOGGER.log(Level.WARNING, String.format("Failed to resolve a jar %016x%016x",sum1,sum2), e);
                         }
+                    }
+
+                    /**
+                     * Report a failure of the retrieval and allows another thread to retry.
+                     */
+                    private void bailout(Exception e) {
+                        inprogress.remove(key);     // this lets another thread to retry later
+                        promise.set(e);             // then tell those who are waiting that we aborted
                     }
                 });
             }
