@@ -84,6 +84,11 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.ant</groupId>
+      <artifactId>ant</artifactId>
+      <version>1.8.3</version>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <version>14.0</version>
@@ -151,6 +156,37 @@ THE SOFTWARE.
         <configuration>
           <threshold>High</threshold>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>resgen</id>
+            <phase>process-test-classes</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.jenkins-ci</groupId>
+                  <artifactId>remoting-test-client</artifactId>
+                  <version>1.0</version>
+                  <outputDirectory>target/test-classes</outputDirectory>
+                  <destFileName>remoting-test-client.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.jenkins-ci</groupId>
+                  <artifactId>remoting-test-client</artifactId>
+                  <version>1.0</version>
+                  <classifier>tests</classifier>
+                  <outputDirectory>target/test-classes</outputDirectory>
+                  <destFileName>remoting-test-client-tests.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

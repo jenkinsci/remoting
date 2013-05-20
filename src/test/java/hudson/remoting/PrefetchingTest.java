@@ -1,13 +1,15 @@
-package hudson.remoting;
+    package hudson.remoting;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import junit.framework.AssertionFailedError;
 import org.apache.commons.io.FileUtils;
+import org.apache.tools.ant.AntClassLoader;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.concurrent.ExecutionException;
@@ -16,7 +18,7 @@ import java.util.concurrent.ExecutionException;
  * @author Kohsuke Kawaguchi
  */
 public class PrefetchingTest extends RmiTestBase implements Serializable {
-    private transient URLClassLoader cl;
+    private transient AntClassLoader cl;
     private File dir;
 
     // checksum of the jar files to force loading
@@ -25,10 +27,13 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        // TODO: update POM to copy this jar into the test-classes before we run a test
+
         URL jar1 = getClass().getClassLoader().getResource("remoting-test-client.jar");
         URL jar2 = getClass().getClassLoader().getResource("remoting-test-client-tests.jar");
-        cl = new URLClassLoader(new URL[]{jar1,jar2}, this.getClass().getClassLoader());
+
+        cl = new AntClassLoader(this.getClass().getClassLoader(),true);
+        cl.addPathComponent(toFile(jar1));
+        cl.addPathComponent(toFile(jar2));
 
         dir = File.createTempFile("remoting", "cache");
         dir.delete();
@@ -45,8 +50,17 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         sum2 = channel.jarLoader.calcChecksum(jar2);
     }
 
+    private File toFile(URL url) {
+        try {
+            return new File(url.toURI());
+        } catch (URISyntaxException e) {
+            return new File(url.getPath());
+        }
+    }
+
     @Override
     protected void tearDown() throws Exception {
+        cl.cleanup();
         super.tearDown();
         FileUtils.deleteDirectory(dir);
     }
