@@ -49,9 +49,9 @@ THE SOFTWARE.
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/remoting-test-client.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting-test-client.git</developerConnection>
-    <url>https://github.com/jenkinsci/remoting-test-client</url>
+    <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
+    <url>https://github.com/jenkinsci/remoting</url>
     <tag>HEAD</tag>
   </scm>
 
