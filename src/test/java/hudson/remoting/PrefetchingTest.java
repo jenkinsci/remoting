@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import junit.framework.AssertionFailedError;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -16,6 +18,9 @@ import java.net.URLClassLoader;
 public class PrefetchingTest extends RmiTestBase implements Serializable {
     private transient URLClassLoader cl;
     private File dir;
+
+    // checksum of the jar files to force loading
+    private Checksum sum1,sum2;
 
     @Override
     protected void setUp() throws Exception {
@@ -36,6 +41,8 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 return null;
             }
         });
+        sum1 = channel.jarLoader.calcChecksum(jar1);
+        sum2 = channel.jarLoader.calcChecksum(jar2);
     }
 
     @Override
@@ -46,8 +53,11 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
     /**
      * This should cause the jar file to be sent to the other side
-1     */
+     */
     public void testJarLoadingTest() throws Exception {
+        channel.call(new ForceJarLoad(sum1));
+        channel.call(new ForceJarLoad(sum2));
+
         Callable<Void,IOException> sc = (Callable)cl.loadClass("test.ClassLoadingFromJarTester").newInstance();
         ((Function)sc).apply(new Verifier());
         assertNull(channel.call(sc));
@@ -68,11 +78,22 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     }
 
     public void testGetResource() throws Exception {
+        channel.call(new ForceJarLoad(sum1));
+        channel.call(new ForceJarLoad(sum2));
+
         Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResource").newInstance();
         String v = channel.call(c);
         System.out.println(v);
 
         verifyResource(v);
+    }
+
+    public void testGetResource_precache() throws Exception {
+        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResource").newInstance();
+        String v = channel.call(c);
+        System.out.println(v);
+
+        verifyResourcePrecache(v);
     }
 
     public void testGetResourceAsStream() throws Exception {
@@ -81,13 +102,30 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         assertEquals("hello",v);
     }
 
+    /**
+     * Validates that the resource is coming from a jar.
+     */
     private void verifyResource(String v) throws IOException, InterruptedException {
-        assertTrue(v.startsWith("jar:file:"));
-        assertTrue(v.contains(dir.getPath()));
-        assertTrue(v.endsWith("::hello"));
+        assertTrue(v, v.startsWith("jar:file:"));
+        assertTrue(v, v.contains(dir.getPath()));
+        assertTrue(v, v.endsWith("::hello"));
     }
 
+    /**
+     * Validates that the resource is coming from a file path.
+     */
+    private void verifyResourcePrecache(String v) throws IOException, InterruptedException {
+        assertTrue(v, v.startsWith("file:"));
+        assertTrue(v, v.endsWith("::hello"));
+    }
+
+    /**
+     * Once the jar files are cached, ClassLoader.getResources() should return jar URLs.
+     */
     public void testGetResources() throws Exception {
+        channel.call(new ForceJarLoad(sum1));
+        channel.call(new ForceJarLoad(sum2));
+
         Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResources").newInstance();
         String v = channel.call(c);
         System.out.println(v);  // should find two resources
@@ -98,6 +136,22 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
         assertTrue(lines[1].startsWith("jar:file:"));
         assertTrue(lines[1].contains(dir.getPath()));
+        assertTrue(lines[1].endsWith("::hello2"));
+    }
+
+    /**
+     * Unlike {@link #testGetResources()}, the URL should begin with file:... before the jar file gets cached
+     */
+    public void testGetResources_precache() throws Exception {
+        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResources").newInstance();
+        String v = channel.call(c);
+        System.out.println(v);  // should find two resources
+
+        String[] lines = v.split("\n");
+
+        assertTrue(lines[0].startsWith("file:"));
+        assertTrue(lines[1].startsWith("file:"));
+        assertTrue(lines[0].endsWith("::hello"));
         assertTrue(lines[1].endsWith("::hello2"));
     }
 
@@ -114,6 +168,30 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
         public V call() throws IOException {
             return value;
+        }
+    }
+
+    /**
+     * Force the remote side to fetch the retrieval of the specific jar file.
+     */
+    private static final class ForceJarLoad implements Callable<Void,IOException>, Serializable{
+        private final long sum1,sum2;
+
+        private ForceJarLoad(Checksum sum) {
+            this.sum1 = sum.sum1;
+            this.sum2 = sum.sum2;
+        }
+
+        public Void call() throws IOException {
+            try {
+                Channel ch = Channel.current();
+                ch.getJarCache().resolve(ch,sum1,sum2).get();
+                return null;
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            } catch (ExecutionException e) {
+                throw new IOException(e);
+            }
         }
     }
 }
