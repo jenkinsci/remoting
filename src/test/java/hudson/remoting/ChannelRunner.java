@@ -89,6 +89,7 @@ interface ChannelRunner {
 
         public void stop(Channel channel) throws Exception {
             channel.close();
+            channel.join();
 
             System.out.println("north completed");
 

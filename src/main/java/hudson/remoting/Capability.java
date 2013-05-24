@@ -33,7 +33,7 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION);
+        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_PREFETCH);
     }
 
     /**
@@ -57,6 +57,14 @@ public final class Capability implements Serializable {
 
     public boolean hasMimicException() {
         return (mask&MASK_MIMIC_EXCEPTION)!=0;
+    }
+
+    /**
+     * Does the implementation allow classes to be prefetched and JARs to be cached?
+     * @since XXX prefetch-JENKINS-15120
+     */
+    public boolean supportsPrefetch() {
+        return (mask & MASK_PREFETCH) != 0;
     }
 
     /**
@@ -96,21 +104,40 @@ public final class Capability implements Serializable {
      * If we ever use up all 64bits of long, we can probably come back and reuse this bit, as by then
      * hopefully any such remoting.jar deployment is long gone. 
      */
-    private static final long MASK_UNUSED1 = 1L;
+    @SuppressWarnings("PointlessBitwiseExpression")
+    private static final long MASK_UNUSED1 = 1L << 0;
+    
     /**
      * Bit that indicates the use of {@link MultiClassLoaderSerializer}.
      */
-    private static final long MASK_MULTI_CLASSLOADER = 2L;
+    private static final long MASK_MULTI_CLASSLOADER = 1L << 1;
 
     /**
      * Bit that indicates the use of TCP-like window control for {@link ProxyOutputStream}.
      */
-    private static final long MASK_PIPE_THROTTLING = 4L;
+    private static final long MASK_PIPE_THROTTLING = 1L << 2;
 
     /**
      * Supports {@link MimicException}.
      */
-    private static final long MASK_MIMIC_EXCEPTION = 8L;
+    private static final long MASK_MIMIC_EXCEPTION = 1L << 3;
+
+    /**
+     * This flag indicates the support for advanced classloading features.
+     *
+     * <p>
+     * This mainly involves two things:
+     *
+     * <ul>
+     * <li>Prefetching, where a request to retrieve a class also reports where
+     *     related classes can be found and loaded, which saves roundtrips.
+     * <li>Caching, where we separate "which classloader should load a class" from
+     *     "which jar file should load a class", enabling caching at the jar files level.
+     * </ul>
+     *
+     * @see ResourceImageRef
+     */
+    private static final long MASK_PREFETCH = 1L << 4;
 
     static final byte[] PREAMBLE;
 

@@ -88,6 +88,17 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.ant</groupId>
+      <artifactId>ant</artifactId>
+      <version>1.8.3</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>14.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>asm</groupId>
       <artifactId>asm-all</artifactId>
       <version>2.2.3</version>
@@ -102,7 +113,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>1.4</version>
+      <version>2.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -124,6 +135,11 @@ THE SOFTWARE.
       <version>1.3.9-1</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci</groupId>
+      <artifactId>constant-pool-scanner</artifactId>
+      <version>1.1</version>
+    </dependency>
   </dependencies>
 
   <build>
@@ -144,6 +160,37 @@ THE SOFTWARE.
         <configuration>
           <threshold>High</threshold>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>resgen</id>
+            <phase>process-test-classes</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.jenkins-ci</groupId>
+                  <artifactId>remoting-test-client</artifactId>
+                  <version>1.0</version>
+                  <outputDirectory>target/test-classes</outputDirectory>
+                  <destFileName>remoting-test-client.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.jenkins-ci</groupId>
+                  <artifactId>remoting-test-client</artifactId>
+                  <version>1.0</version>
+                  <classifier>tests</classifier>
+                  <outputDirectory>target/test-classes</outputDirectory>
+                  <destFileName>remoting-test-client-tests.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -206,6 +253,18 @@ THE SOFTWARE.
               <includeScope>provided</includeScope>
               <includeArtifactIds>args4j</includeArtifactIds>
               <includeGroupIds>args4j</includeGroupIds>
+            </configuration>
+          </execution>
+          <execution>
+            <id>bundle-cps</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+              <includeArtifactIds>constant-pool-scanner</includeArtifactIds>
+              <includeGroupIds>org.jenkins-ci</includeGroupIds>
             </configuration>
           </execution>
         </executions>

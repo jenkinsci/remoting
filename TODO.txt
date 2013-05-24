@@ -1,0 +1,14 @@
+Prefetch branch TODO before merge
+=================================
+
+- constant pool analyzer must be shaded & rebundled
+- some classes should be traversed more deeply
+  - base class and interfaces (this might be easy enough)
+  - types used in static fields
+
+- ClassLoader oracles
+  - for creating a smarter remote classloader clone
+    built on top of ClassLoader -> IClassLoader translation service
+    & jar transfer service
+
+- if jar is still loading, fall back to fetch2
