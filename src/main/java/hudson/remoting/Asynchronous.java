@@ -35,6 +35,7 @@ import static java.lang.annotation.RetentionPolicy.*;
  *
  * @see Channel#callAsync(Callable)
  * @author Kohsuke Kawaguchi
+ * @since XXX prefetch-JENKINS-15120
  */
 @Documented
 @Target(METHOD)

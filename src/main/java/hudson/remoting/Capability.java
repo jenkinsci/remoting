@@ -59,7 +59,10 @@ public final class Capability implements Serializable {
         return (mask&MASK_MIMIC_EXCEPTION)!=0;
     }
 
-    /** @since 2.PREFETCH */
+    /**
+     * Does the implementation allow classes to be prefetched and JARs to be cached?
+     * @since XXX prefetch-JENKINS-15120
+     */
     public boolean supportsPrefetch() {
         return (mask & MASK_PREFETCH) != 0;
     }

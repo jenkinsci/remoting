@@ -49,6 +49,7 @@ public class Which {
      *
      * @throws IllegalArgumentException
      *      if failed to determine.
+     * @since XXX prefetch-JENKINS-15120
      */
     public static URL classFileUrl(Class clazz) throws IOException {
         ClassLoader cl = clazz.getClassLoader();
@@ -61,9 +62,7 @@ public class Which {
     }
 
     /**
-     * Use {@link #classFileUrl(Class)}
-     *
-     * @deprecated 2.PREFETCH
+     * @deprecated Use {@link #classFileUrl(Class)}
      */
     public static URL jarURL(Class clazz) throws IOException {
         return classFileUrl(clazz);

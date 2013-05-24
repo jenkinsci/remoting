@@ -112,6 +112,10 @@ public class Engine extends Thread {
             throw new IllegalArgumentException("No URLs given");
     }
 
+    /**
+     * Configures JAR caching for better performance.
+     * @since XXX prefetch-JENKINS-15120
+     */
     public void setJarCache(JarCache jarCache) {
         this.jarCache = jarCache;
     }

@@ -8,7 +8,7 @@ import java.util.logging.Logger;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ResourceImageBoth extends ResourceImageDirect {
+class ResourceImageBoth extends ResourceImageDirect {
     final long sum1,sum2;
 
     public ResourceImageBoth(URL resource, Checksum sum) throws IOException {

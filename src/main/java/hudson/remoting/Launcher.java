@@ -140,6 +140,9 @@ public class Launcher {
     @Option(name="-auth",metaVar="user:pass",usage="If your Jenkins is security-enabled, specify a valid user name and password.")
     public String auth = null;
 
+    /**
+     * @since XXX prefetch-JENKINS-15120
+     */
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
 
@@ -485,6 +488,9 @@ public class Launcher {
         main(is, os, mode, performPing,
                 new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true));
     }
+    /**
+     * @since XXX prefetch-JENKINS-15120
+     */
     public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing, JarCache cache) throws IOException, InterruptedException {
         ExecutorService executor = Executors.newCachedThreadPool();
         Channel channel = new Channel("channel", executor,

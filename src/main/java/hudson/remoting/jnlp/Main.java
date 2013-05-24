@@ -74,6 +74,9 @@ public class Main {
             usage="If the connection ends, don't retry and just exit.")
     public boolean noReconnect = false;
 
+    /**
+     * @since XXX prefetch-JENKINS-15120
+     */
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = null;
 

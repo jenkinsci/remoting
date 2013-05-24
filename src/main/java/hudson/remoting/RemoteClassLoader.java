@@ -481,6 +481,7 @@ final class RemoteClassLoader extends URLClassLoader {
      * Wire format that we use to transfer a resource file.
      *
      * {@link Capability#supportsPrefetch()} enables this feature
+     * @since XXX prefetch-JENKINS-15120
      */
     public static class ResourceFile implements Serializable {
         /**
@@ -513,6 +514,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * A class file as a subtype of {@link ResourceFile}.
      * This supersedes {@link ClassFile}.
+     * @since XXX prefetch-JENKINS-15120
      */
     public static class ClassFile2 extends ResourceFile {
         /**
@@ -587,6 +589,7 @@ final class RemoteClassLoader extends URLClassLoader {
          *
          * @since 2.PREFETCH
          * @see Capability#supportsPrefetch()
+         * @since XXX prefetch-JENKINS-15120
          */
         Map<String,ClassFile2> fetch3(String className) throws ClassNotFoundException;
 
@@ -595,6 +598,7 @@ final class RemoteClassLoader extends URLClassLoader {
          *
          * @return
          *      null if the resource is not found.
+         * @since XXX prefetch-JENKINS-15120
          */
         ResourceFile getResource2(String name) throws IOException;
 
@@ -603,6 +607,7 @@ final class RemoteClassLoader extends URLClassLoader {
          *
          * @return
          *      never null
+         * @since XXX prefetch-JENKINS-15120
          */
         ResourceFile[] getResources2(String name) throws IOException;
     }

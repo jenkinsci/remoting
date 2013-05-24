@@ -12,6 +12,7 @@ import java.io.OutputStream;
  * under the key {@link #OURS}, then once retrieved we store it in a local property under {@link #THEIRS}.
  *
  * @author Kohsuke Kawaguchi
+ * @since XXX prefetch-JENKINS-15120
  */
 public interface JarLoader {
     /**
