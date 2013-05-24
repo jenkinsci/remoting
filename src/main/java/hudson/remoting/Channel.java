@@ -1270,8 +1270,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",1024*1024);
 
-    // XXX needs to be commented out before merge, or made conditional on some runtime property
     static {
+        if (Boolean.getBoolean("hudson.remoting.debug")) {
         ConsoleHandler h = new ConsoleHandler();
         h.setFormatter(new Formatter(){
             public synchronized String format(LogRecord record) {
@@ -1321,5 +1321,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         l = Logger.getLogger(ResourceImageDirect.class.getName());
         l.addHandler(h);
         l.setLevel(Level.FINER);
+    }
     }
 }
