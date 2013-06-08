@@ -141,7 +141,7 @@ public class Launcher {
     public String auth = null;
 
     /**
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
@@ -489,7 +489,7 @@ public class Launcher {
                 new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true));
     }
     /**
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing, JarCache cache) throws IOException, InterruptedException {
         ExecutorService executor = Executors.newCachedThreadPool();

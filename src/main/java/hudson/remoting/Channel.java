@@ -230,7 +230,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * Out of all the counts in {@link #classLoadingCount}, how many times
      * were we able to resolve them by ourselves, saving a remote roundtrip call?
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     public final AtomicInteger classLoadingPrefetchCacheCount = new AtomicInteger();
 
@@ -431,7 +431,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @param jarCache
      *
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base, JarCache jarCache) throws IOException {
         this.name = name;
@@ -672,7 +672,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * If this channel is built with jar file caching, return the object that manages this cache.
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     public JarCache getJarCache() {
         return jarCache;
@@ -684,7 +684,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
      * unless your call sequence guarantees that you call this method before remote classes are loaded.
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     public void setJarCache(JarCache jarCache) {
         this.jarCache = jarCache;
@@ -938,7 +938,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Print the performance counters.
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     public void dumpPerformanceCounters(PrintWriter w) throws IOException {
         // locale fixed to English to get ',' for every 3 digits

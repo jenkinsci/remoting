@@ -15,7 +15,7 @@ import java.net.URL;
  * This allows the cache to be reused by future channel sessions or other concurrent channel sessions.
  *
  * @author Kohsuke Kawaguchi
- * @since XXX prefetch-JENKINS-15120
+ * @since 2.24
  */
 public abstract class JarCache {
     /**

@@ -12,7 +12,7 @@ import java.util.logging.Logger;
  * Default partial implementation of {@link JarCache}.
  *
  * @author Kohsuke Kawaguchi
- * @since XXX prefetch-JENKINS-15120
+ * @since 2.24
  */
 public abstract class JarCacheSupport extends JarCache {
     /**

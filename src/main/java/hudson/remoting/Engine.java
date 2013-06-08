@@ -114,7 +114,7 @@ public class Engine extends Thread {
 
     /**
      * Configures JAR caching for better performance.
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     public void setJarCache(JarCache jarCache) {
         this.jarCache = jarCache;

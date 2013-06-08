@@ -14,7 +14,7 @@ import java.util.logging.Logger;
  * {@link JarCache} that stores files in a single directory.
  *
  * @author Kohsuke Kawaguchi
- * @since XXX prefetch-JENKINS-15120
+ * @since 2.24
  */
 public class FileSystemJarCache extends JarCacheSupport {
     public final File rootDir;

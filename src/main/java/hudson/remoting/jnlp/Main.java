@@ -75,7 +75,7 @@ public class Main {
     public boolean noReconnect = false;
 
     /**
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = null;

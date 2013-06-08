@@ -49,7 +49,7 @@ public class Which {
      *
      * @throws IllegalArgumentException
      *      if failed to determine.
-     * @since XXX prefetch-JENKINS-15120
+     * @since 2.24
      */
     public static URL classFileUrl(Class clazz) throws IOException {
         ClassLoader cl = clazz.getClassLoader();

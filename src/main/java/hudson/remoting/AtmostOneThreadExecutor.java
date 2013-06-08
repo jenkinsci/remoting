@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
  * {@link ExecutorService} that uses at most one executor.
  *
  * @author Kohsuke Kawaguchi
- * @since XXX prefetch-JENKINS-15120
+ * @since 2.24
  */
 public class AtmostOneThreadExecutor extends AbstractExecutorService {
     private Thread worker;
