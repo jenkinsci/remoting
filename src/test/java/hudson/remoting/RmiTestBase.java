@@ -63,7 +63,10 @@ public abstract class RmiTestBase extends TestCase {
     }
 
     public String getName() {
-        return super.getName()+"-"+channelRunner.getName();
+        if (channelRunner instanceof InProcess)
+            return super.getName();
+        else
+            return super.getName()+"-"+channelRunner.getName();
     }
 
     /**

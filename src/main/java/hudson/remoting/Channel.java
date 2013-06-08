@@ -38,16 +38,21 @@ import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Formatter;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.net.URL;
 import java.util.concurrent.ExecutionException;
@@ -221,6 +226,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public final AtomicInteger classLoadingCount = new AtomicInteger();
 
     /**
+     * Prefetch cache hits.
+     *
+     * Out of all the counts in {@link #classLoadingCount}, how many times
+     * were we able to resolve them by ourselves, saving a remote roundtrip call?
+     * @since XXX prefetch-JENKINS-15120
+     */
+    public final AtomicInteger classLoadingPrefetchCacheCount = new AtomicInteger();
+
+    /**
      * Total number of nanoseconds spent for remote resource loading.
      * @see #classLoadingTime
      */
@@ -275,6 +289,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * ClassLaoder that remote classloaders should use as the basis.
      */
     /*package*/ final ClassLoader baseClassLoader;
+
+    private JarCache jarCache;
+
+    /*package*/ final JarLoaderImpl jarLoader;
 
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
@@ -393,6 +411,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
+     * @since 2.13
+     */
+    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
+        this(name,exec,transport,restricted,base,null);
+    }
+    /**
      * Creates a new channel.
      *
      * @param name
@@ -405,13 +429,16 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @param restricted
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
-     * @since 2.13
+     * @param jarCache
+     *
+     * @since XXX prefetch-JENKINS-15120
      */
-    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
+    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base, JarCache jarCache) throws IOException {
         this.name = name;
         this.executor = new InterceptingExecutorService(exec);
         this.isRestricted = restricted;
         this.underlyingOutput = transport.getUnderlyingStream();
+        this.jarCache = jarCache;
 
         if (base==null)
             base = getClass().getClassLoader();
@@ -425,6 +452,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.pipeWriter = new PipeWriter(createPipeWriterExecutor());
 
         this.transport = transport;
+
+        this.jarLoader = new JarLoaderImpl(); // TODO: figure out a mechanism to allow the user to share this across Channels
+        setProperty(JarLoader.OURS,export(JarLoader.class,jarLoader,false));
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
@@ -503,7 +533,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * {@inheritDoc}
      */
     public <T> T export(Class<T> type, T instance) {
-        return export(type,instance,true);
+        return export(type, instance, true);
     }
 
     /**
@@ -542,7 +572,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /*package*/ int export(Object instance, boolean automaticUnexport) {
-        return exportedObjects.export(instance,automaticUnexport);
+        return exportedObjects.export(instance, automaticUnexport);
     }
 
     /*package*/ Object getExportedObject(int oid) {
@@ -626,18 +656,38 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      if the preloading fails.
      */
     public boolean preloadJar(Callable<?,?> classLoaderRef, Class... classesInJar) throws IOException, InterruptedException {
-        return preloadJar(UserRequest.getClassLoader(classLoaderRef),classesInJar);
+        return preloadJar(UserRequest.getClassLoader(classLoaderRef), classesInJar);
     }
 
     public boolean preloadJar(ClassLoader local, Class... classesInJar) throws IOException, InterruptedException {
         URL[] jars = new URL[classesInJar.length];
         for (int i = 0; i < classesInJar.length; i++)
             jars[i] = Which.jarFile(classesInJar[i]).toURI().toURL();
-        return call(new PreloadJarTask(jars,local));
+        return call(new PreloadJarTask(jars, local));
     }
 
     public boolean preloadJar(ClassLoader local, URL... jars) throws IOException, InterruptedException {
         return call(new PreloadJarTask(jars,local));
+    }
+
+    /**
+     * If this channel is built with jar file caching, return the object that manages this cache.
+     * @since XXX prefetch-JENKINS-15120
+     */
+    public JarCache getJarCache() {
+        return jarCache;
+    }
+
+    /**
+     * You can change the {@link JarCache} while the channel is in operation,
+     * but doing so doesn't impact {@link RemoteClassLoader}s that are already created.
+     *
+     * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
+     * unless your call sequence guarantees that you call this method before remote classes are loaded.
+     * @since XXX prefetch-JENKINS-15120
+     */
+    public void setJarCache(JarCache jarCache) {
+        this.jarCache = jarCache;
     }
 
     /*package*/ PipeWindow getPipeWindow(int oid) {
@@ -881,8 +931,24 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public void resetPerformanceCounters() {
         classLoadingCount.set(0);
         classLoadingTime.set(0);
+        classLoadingPrefetchCacheCount.set(0);
         resourceLoadingCount.set(0);
         resourceLoadingTime.set(0);
+    }
+
+    /**
+     * Print the performance counters.
+     * @since XXX prefetch-JENKINS-15120
+     */
+    public void dumpPerformanceCounters(PrintWriter w) throws IOException {
+        // locale fixed to English to get ',' for every 3 digits
+        int l = classLoadingCount.get();
+        int p = classLoadingPrefetchCacheCount.get();
+        w.printf(Locale.ENGLISH, "Class loading count=%d\n", l);
+        w.printf(Locale.ENGLISH, "Class loading prefetch hit=%s (%d%%)\n", p, p*100/l);
+        w.printf(Locale.ENGLISH, "Class loading time=%,dms\n", classLoadingTime.get() / (1000 * 1000));
+        w.printf(Locale.ENGLISH, "Resource loading count=%d\n", resourceLoadingCount.get());
+        w.printf(Locale.ENGLISH, "Resource loading time=%,dms\n",resourceLoadingTime.get()/(1000*1000));
     }
 
     /**
@@ -996,6 +1062,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return remoteChannel.waitForProperty(key);
     }
 
+    /**
+     * @deprecated
+     *      Because {@link ChannelProperty} is identity-equality, this method would never work.
+     *      This is a design error.
+     */
     public <T> T waitForRemoteProperty(ChannelProperty<T> key) throws InterruptedException {
         return key.type.cast(waitForRemoteProperty((Object) key));
     }
@@ -1199,43 +1270,57 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",1024*1024);
 
-//    static {
-//        ConsoleHandler h = new ConsoleHandler();
-//        h.setFormatter(new Formatter(){
-//            public synchronized String format(LogRecord record) {
-//                StringBuilder sb = new StringBuilder();
-//                sb.append((record.getMillis()%100000)+100000);
-//                sb.append(" ");
-//                if (record.getSourceClassName() != null) {
-//                    sb.append(record.getSourceClassName());
-//                } else {
-//                    sb.append(record.getLoggerName());
-//                }
-//                if (record.getSourceMethodName() != null) {
-//                    sb.append(" ");
-//                    sb.append(record.getSourceMethodName());
-//                }
-//                sb.append('\n');
-//                String message = formatMessage(record);
-//                sb.append(record.getLevel().getLocalizedName());
-//                sb.append(": ");
-//                sb.append(message);
-//                sb.append('\n');
-//                if (record.getThrown() != null) {
-//                    try {
-//                        StringWriter sw = new StringWriter();
-//                        PrintWriter pw = new PrintWriter(sw);
-//                        record.getThrown().printStackTrace(pw);
-//                        pw.close();
-//                        sb.append(sw.toString());
-//                    } catch (Exception ex) {
-//                    }
-//                }
-//                return sb.toString();
-//            }
-//        });
-//        h.setLevel(Level.FINE);
-//        logger.addHandler(h);
-//        logger.setLevel(Level.FINE);
-//    }
+    static {
+        if (Boolean.getBoolean("hudson.remoting.debug")) {
+        ConsoleHandler h = new ConsoleHandler();
+        h.setFormatter(new Formatter(){
+            public synchronized String format(LogRecord record) {
+                StringBuilder sb = new StringBuilder();
+                if (false) {
+                    sb.append((record.getMillis()%100000)+100000);
+                    sb.append(" ");
+                    if (record.getSourceClassName() != null) {
+                        sb.append(record.getSourceClassName());
+                    } else {
+                        sb.append(record.getLoggerName());
+                    }
+                    if (record.getSourceMethodName() != null) {
+                        sb.append(" ");
+                        sb.append(record.getSourceMethodName());
+                    }
+                    sb.append('\n');
+                }
+                String message = formatMessage(record);
+                sb.append(record.getLevel().getLocalizedName());
+                sb.append(": ");
+                sb.append(message);
+                sb.append('\n');
+                if (record.getThrown() != null) {
+                    try {
+                        StringWriter sw = new StringWriter();
+                        PrintWriter pw = new PrintWriter(sw);
+                        record.getThrown().printStackTrace(pw);
+                        pw.close();
+                        sb.append(sw.toString());
+                    } catch (Exception ex) {
+                    }
+                }
+                return sb.toString();
+            }
+        });
+        h.setLevel(Level.FINER);
+
+        Logger l = Logger.getLogger(RemoteClassLoader.class.getName());
+        l.addHandler(h);
+        l.setLevel(Level.FINER);
+
+        l = Logger.getLogger(FileSystemJarCache.class.getName());
+        l.addHandler(h);
+        l.setLevel(Level.FINER);
+
+        l = Logger.getLogger(ResourceImageDirect.class.getName());
+        l.addHandler(h);
+        l.setLevel(Level.FINER);
+    }
+    }
 }
