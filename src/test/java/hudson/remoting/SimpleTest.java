@@ -122,7 +122,7 @@ public class SimpleTest extends RmiTestBase {
         }
         assertTrue(r.isCancelled());
         assertFalse(task.ran);
-        // XXX ought to also test various other aspects: cancelling before start, etc.
+        // TODO ought to also test various other aspects: cancelling before start, etc.
     }
     private static class Cancellable implements Callable<Integer, InterruptedException> {
         boolean ran;

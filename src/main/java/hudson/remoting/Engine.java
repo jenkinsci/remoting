@@ -161,7 +161,7 @@ public class Engine extends Thread {
                     // find out the TCP port
                     HttpURLConnection con = (HttpURLConnection)salURL.openConnection();
                     if (con instanceof HttpURLConnection && credentials != null) {
-                        // XXX /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
+                        // TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
                         String encoding = Base64.encode(credentials.getBytes());
                         con.setRequestProperty("Authorization", "Basic " + encoding);
                     }

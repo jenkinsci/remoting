@@ -755,7 +755,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         }
                     }
                     try {
-                        // XXX could even traverse second-level dependencies, etc.
+                        // TODO could even traverse second-level dependencies, etc.
                         all.put(other, fetch4(other,cf));
                     } catch (ClassNotFoundException x) {
                         // ignore: might not be real class name, etc.
