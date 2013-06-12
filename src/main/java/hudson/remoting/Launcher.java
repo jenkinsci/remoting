@@ -251,7 +251,7 @@ public class Launcher {
                 if (con instanceof HttpURLConnection && slaveJnlpCredentials != null) {
                     HttpURLConnection http = (HttpURLConnection) con;
                     String userPassword = slaveJnlpCredentials;
-                    String encoding = Base64.encode(userPassword.getBytes());
+                    String encoding = Base64.encode(userPassword.getBytes("UTF-8"));
                     http.setRequestProperty("Authorization", "Basic " + encoding);
                 }
                 con.connect();
