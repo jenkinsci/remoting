@@ -36,7 +36,8 @@ import junit.framework.TestSuite;
 @WithRunner({
     ChannelRunner.InProcess.class,
     ChannelRunner.InProcessCompatibilityMode.class,
-    ChannelRunner.Fork.class
+    ChannelRunner.Fork.class,
+    ChannelRunner.ForkEBCDIC.class
 })
 public abstract class RmiTestBase extends TestCase {
 
