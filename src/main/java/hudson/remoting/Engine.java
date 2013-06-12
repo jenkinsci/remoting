@@ -290,7 +290,7 @@ public class Engine extends Thread {
         while (true) {
             int ch = in.read();
             if (ch<0 || ch=='\n')
-                return baos.toString().trim(); // trim off possible '\r'
+                return baos.toString("UTF-8").trim(); // trim off possible '\r'
             baos.write(ch);
         }
     }
