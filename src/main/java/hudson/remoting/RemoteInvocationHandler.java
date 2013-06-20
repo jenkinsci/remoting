@@ -279,7 +279,11 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 if(m==null)
                     throw new IllegalStateException("Unable to call "+methodName+". No matching method found on "+o.getClass());
                 m.setAccessible(true);  // in case the class is not public
-                return (Serializable) m.invoke(o,arguments);
+                Object r = m.invoke(o, arguments);
+                if (r==null || r instanceof Serializable)
+                    return (Serializable) r;
+                else
+                    throw new RemotingSystemException(new ClassCastException(r.getClass()+" is returned from "+m+" on "+o.getClass()+" but it's not serializable"));
             } catch (InvocationTargetException e) {
                 throw e.getTargetException();
             }
