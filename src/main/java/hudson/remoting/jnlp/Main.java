@@ -70,6 +70,9 @@ public class Main {
             usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String credentials;
 
+    @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
+    public String proxyCredentials = null;
+
     @Option(name="-noreconnect",
             usage="If the connection ends, don't retry and just exit.")
     public boolean noReconnect = false;
@@ -148,6 +151,7 @@ public class Main {
             engine.setTunnel(tunnel);
         if(credentials!=null)
             engine.setCredentials(credentials);
+        	engine.setProxyCredentials(proxyCredentials);
         if(jarCache!=null)
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
