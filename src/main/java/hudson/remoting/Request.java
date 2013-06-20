@@ -168,10 +168,10 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                 Object exc = response.exception;
 
                 if (exc!=null) {
-                    if(exc instanceof RequestAbortedException) {
+                    if (exc instanceof RemotingSystemException) {
                         // add one more exception, so that stack trace shows both who's waiting for the completion
                         // and where the connection outage was detected.
-                        exc = new RequestAbortedException((RequestAbortedException)exc);
+                        throw ((RemotingSystemException) exc).wrapForRethrow();
                     }
                     throw (EXC)exc; // some versions of JDK fails to compile this line. If so, upgrade your JDK.
                 }

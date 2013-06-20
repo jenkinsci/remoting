@@ -29,8 +29,15 @@ package hudson.remoting;
  *
  * @author Kohsuke Kawaguchi
  */
-public class RequestAbortedException extends RuntimeException {
+// this was added before RemotingSystemException. Going forward, it's probably
+// unnecessary to define specific subtypes of RemotingSystemException
+public class RequestAbortedException extends RemotingSystemException {
     public RequestAbortedException(Throwable cause) {
         super(cause);
+    }
+
+    @Override
+    protected RequestAbortedException wrapForRethrow() {
+        return new RequestAbortedException(this); // maintain the type for backward compatibility
     }
 }
