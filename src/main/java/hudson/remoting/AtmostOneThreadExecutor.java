@@ -10,10 +10,17 @@ import java.util.concurrent.TimeUnit;
 /**
  * {@link ExecutorService} that uses at most one executor.
  *
+ * <p>
+ * Compared to {@code Executors.newFixedThreadPool(1)}, this code will not keep
+ * the thread around if it's not doing anything, freeing up resources.
+ *
  * @author Kohsuke Kawaguchi
  * @since 2.24
  */
 public class AtmostOneThreadExecutor extends AbstractExecutorService {
+    /**
+     * The thread that actually runs the work.
+     */
     private Thread worker;
 
     private final LinkedList<Runnable> q = new LinkedList<Runnable>();
@@ -28,6 +35,9 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
         }
     }
 
+    /**
+     * Do we have a worker thread and is it running?
+     */
     private boolean isAlive() {
         return worker!=null && worker.isAlive();
     }
