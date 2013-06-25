@@ -289,6 +289,8 @@ final class RemoteClassLoader extends URLClassLoader {
             return defineClass(name, bytes, 0, bytes.length);
         } catch (ClassFormatError e) {
             throw (ClassFormatError)new ClassFormatError("Failed to load "+name).initCause(e);
+        } catch (LinkageError e) {
+            throw (LinkageError)new LinkageError("Failed to load "+name).initCause(e);
         }
     }
 
