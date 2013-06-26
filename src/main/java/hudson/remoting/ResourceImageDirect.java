@@ -37,7 +37,7 @@ class ResourceImageDirect extends ResourceImageRef {
 
     @Override
     Future<URLish> resolveURL(Channel channel, String resourcePath) throws IOException, InterruptedException {
-        return new AsyncFutureImpl<URLish>(URLish.from(makeResource(getBaseName(resourcePath), payload)));
+        return new AsyncFutureImpl<URLish>(URLish.from(makeResource(resourcePath, payload)));
     }
 
     private static final Logger LOGGER = Logger.getLogger(ResourceImageDirect.class.getName());
