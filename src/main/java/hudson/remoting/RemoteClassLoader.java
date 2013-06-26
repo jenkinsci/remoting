@@ -704,7 +704,12 @@ final class RemoteClassLoader extends URLClassLoader {
          * Fetch a single class and creates a {@link ClassFile2} for it.
          */
         public ClassFile2 fetch4(String className, ClassFile2 referer) throws ClassNotFoundException {
-            Class<?> c = (referer==null?this.cl:referer.clazz.getClassLoader()).loadClass(className);
+            Class<?> c;
+            try {
+                c = (referer==null?this.cl:referer.clazz.getClassLoader()).loadClass(className);
+            } catch (LinkageError e) {
+                throw (LinkageError)new LinkageError("Failed to load "+className).initCause(e);
+            }
             ClassLoader ecl = c.getClassLoader();
             if (ecl == null) {
             	if (USE_BOOTSTRAP_CLASSLOADER) {
