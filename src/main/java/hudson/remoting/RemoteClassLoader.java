@@ -766,6 +766,9 @@ final class RemoteClassLoader extends URLClassLoader {
                         all.put(other, fetch4(other,cf));
                     } catch (ClassNotFoundException x) {
                         // ignore: might not be real class name, etc.
+                    } catch (LinkageError x) {
+                        // maybe this class won't be actually used.
+                        // in any case, this shouldn't cause the loading of the current class to fail
                     }
                 }
             } catch (IOException e) {
