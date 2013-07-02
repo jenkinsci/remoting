@@ -210,7 +210,6 @@ public class Launcher {
         }
         if(connectionTarget!=null) {
             runAsTcpClient();
-            System.exit(0);
         } else
         if(slaveJnlpURL!=null) {
             List<String> jnlpArgs = parseJnlpArguments();
@@ -228,11 +227,10 @@ public class Launcher {
         } else
         if(tcpPortFile!=null) {
             runAsTcpServer();
-            System.exit(0);
         } else {
             runWithStdinStdout();
-            System.exit(0);
         }
+        System.exit(0);
     }
 
     /**
