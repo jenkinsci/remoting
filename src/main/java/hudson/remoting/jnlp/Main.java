@@ -132,6 +132,7 @@ public class Main {
         engine.start();
         try {
             engine.join();
+            LOGGER.fine("Engine has died");
         } finally {
             // if we are programmatically driven by other code,
             // allow them to interrupt our blocking main thread
