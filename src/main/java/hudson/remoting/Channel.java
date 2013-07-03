@@ -54,8 +54,6 @@ import java.net.URL;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -500,11 +498,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     private ExecutorService createPipeWriterExecutor() {
         if (remoteCapability.supportsPipeThrottling())
-            return Executors.newSingleThreadExecutor(new ThreadFactory() {
-                public Thread newThread(Runnable r) {
-                    return new Thread(r,"Pipe writer thread: "+name);
-                }
-            });
+            return new SingleLaneExecutorService(executor);
         return new SynchronousExecutorService();
     }
 
