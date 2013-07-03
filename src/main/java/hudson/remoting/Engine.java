@@ -343,6 +343,7 @@ public class Engine extends Thread {
             try {
                 // Hudson top page might be read-protected. see http://www.nabble.com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
                 HttpURLConnection con = (HttpURLConnection)new URL(hudsonUrl,"tcpSlaveAgentListener/").openConnection();
+                con.setConnectTimeout(5000);
                 con.connect();
                 if(con.getResponseCode()==200)
                     return;
