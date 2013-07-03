@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Collections;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.INFO;
+
 /**
  * Slave agent engine that proactively connects to Jenkins master.
  *
@@ -341,14 +343,16 @@ public class Engine extends Thread {
         while(true) {
             Thread.sleep(1000*10);
             try {
-                // Hudson top page might be read-protected. see http://www.nabble.com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
+                // Jenkins top page might be read-protected. see http://www.nabble.com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
                 HttpURLConnection con = (HttpURLConnection)new URL(hudsonUrl,"tcpSlaveAgentListener/").openConnection();
                 con.setConnectTimeout(5000);
                 con.connect();
                 if(con.getResponseCode()==200)
                     return;
+                LOGGER.info("Master isn't ready to talk to us. Will retry again: response code="+con.getResponseCode());
             } catch (IOException e) {
-                // retry
+                // report the failure
+                LOGGER.log(INFO, "Failed to connect to the master. Will retry again",e);
             }
         }
     }
