@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -26,6 +27,16 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
     private final LinkedList<Runnable> q = new LinkedList<Runnable>();
 
     private boolean shutdown;
+
+    private final ThreadFactory factory;
+
+    public AtmostOneThreadExecutor(ThreadFactory factory) {
+        this.factory = factory;
+    }
+
+    public AtmostOneThreadExecutor() {
+        this(new DaemonThreadFactory());
+    }
 
     public void shutdown() {
         shutdown = true;
@@ -73,19 +84,13 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
         synchronized (q) {
             q.add(command);
             if (!isAlive()) {
-                worker = new Worker();
+                worker = factory.newThread(new Worker());
                 worker.start();
             }
         }
     }
 
-    private class Worker extends Thread {
-        public Worker() {
-            super();
-            setDaemon(true);
-        }
-
-        @Override
+    private class Worker implements Runnable {
         public void run() {
             while (true) {
                 Runnable task;
