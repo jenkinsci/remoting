@@ -340,20 +340,32 @@ public class Engine extends Thread {
      * Waits for the server to come back.
      */
     private void waitForServerToBack() throws InterruptedException {
-        while(true) {
-            Thread.sleep(1000*10);
-            try {
-                // Jenkins top page might be read-protected. see http://www.nabble.com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
-                HttpURLConnection con = (HttpURLConnection)new URL(hudsonUrl,"tcpSlaveAgentListener/").openConnection();
-                con.setConnectTimeout(5000);
-                con.connect();
-                if(con.getResponseCode()==200)
-                    return;
-                LOGGER.info("Master isn't ready to talk to us. Will retry again: response code="+con.getResponseCode());
-            } catch (IOException e) {
-                // report the failure
-                LOGGER.log(INFO, "Failed to connect to the master. Will retry again",e);
+        Thread t = Thread.currentThread();
+        String oldName = t.getName();
+        try {
+            int retries=0;
+            while(true) {
+                Thread.sleep(1000*10);
+                try {
+                    // Jenkins top page might be read-protected. see http://www.nabble.com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
+                    URL url = new URL(hudsonUrl, "tcpSlaveAgentListener/");
+
+                    retries++;
+                    t.setName(oldName+": trying "+url+" for "+retries+" times");
+
+                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                    con.setConnectTimeout(5000);
+                    con.connect();
+                    if(con.getResponseCode()==200)
+                        return;
+                    LOGGER.info("Master isn't ready to talk to us. Will retry again: response code=" + con.getResponseCode());
+                } catch (IOException e) {
+                    // report the failure
+                    LOGGER.log(INFO, "Failed to connect to the master. Will retry again",e);
+                }
             }
+        } finally {
+            t.setName(oldName);
         }
     }
 
