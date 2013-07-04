@@ -100,6 +100,10 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             new RemoteInvocationHandler(channel,id,userProxy,autoUnexportByCaller)));
     }
 
+    /*package*/ static Class getProxyClass(Class type) {
+        return Proxy.getProxyClass(type.getClassLoader(), new Class[]{type,IReadResolve.class});
+    }
+
     /**
      * If the given object is a proxy to a remote object in the specified channel,
      * return its object ID. Otherwise return -1.

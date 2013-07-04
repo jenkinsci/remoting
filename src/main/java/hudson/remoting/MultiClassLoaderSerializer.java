@@ -124,6 +124,28 @@ class MultiClassLoaderSerializer {
             Class[] classes = new Class[interfaces.length];
             for (int i = 0; i < interfaces.length; i++)
                 classes[i] = Class.forName(interfaces[i], false, cl);
+
+            /*
+                 dead lock prevention.
+
+                 Access to JarLoader happens from inside classloading, and the act of
+                 retrieving its proxy causes additional classloading. As a result, this
+                 can sometimes cause a deadlock.
+
+                 The classloader passed to
+                 MultiClassLoaderSerializer$Input.resolveProxyClass (and hence to
+                 Proxy.getProxyClass) is of RemoteClassLoader.
+
+                 I first tried to force the eager proxy class creation, but this by
+                 itself didn't work because the cache that Proxy maintains internally is
+                 by ClassLoader.
+
+                 So this is somewhat hack-ish, but in this change we look for a specific
+                 proxy type that we use and resolve them outside Proxy.getProxyClass.
+             */
+            if (classes.length==2 && classes[0]==JarLoader.class && classes[1]==IReadResolve.class)
+                return Channel.jarLoaderProxy;
+
             return Proxy.getProxyClass(cl, classes);
         }
     }

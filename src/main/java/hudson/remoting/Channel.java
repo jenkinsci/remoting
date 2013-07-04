@@ -28,6 +28,7 @@ import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.PipeWindow.Key;
 import hudson.remoting.PipeWindow.Real;
+import hudson.remoting.RemoteClassLoader.IClassLoader;
 import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.PortForwarder;
@@ -1260,4 +1261,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",1024*1024);
 
+    static final Class jarLoaderProxy;
+
+    static {
+        // dead-lock prevention.
+        //
+        // creating a new proxy class is a classloading activity, so it can create a dead-lock situation
+        // if thread A starts classloading via RemoteClassLoader.ladClass(),
+        // then thread B use JarCacheSupport.prefetch and tries to create a proxy for JarLoader
+        //    (which blocks as Proxy.getProxyClass waits for RemoteClassLoader.defineClass lock by thread A)
+        // then thread A tries to touch JarLoader proxy (which blocks on thread B)
+        //
+        // to avoid situations like this, create proxy classes that we need during the classloading
+        jarLoaderProxy=RemoteInvocationHandler.getProxyClass(JarLoader.class);
+    }
 }

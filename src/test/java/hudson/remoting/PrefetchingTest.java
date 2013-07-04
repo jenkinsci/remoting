@@ -62,7 +62,18 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     protected void tearDown() throws Exception {
         cl.cleanup();
         super.tearDown();
-        FileUtils.deleteDirectory(dir);
+
+        // because the dir is used by FIleSystemJarCache to asynchronously load stuff
+        // we might fail to shut it down right away
+        for (int i=0; ; i++) {
+            try {
+                FileUtils.deleteDirectory(dir);
+                return;
+            } catch (IOException e) {
+                if (i==3)   throw e;
+                Thread.sleep(1000);
+            }
+        }
     }
 
     /**
