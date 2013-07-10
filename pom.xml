@@ -168,37 +168,6 @@ THE SOFTWARE.
         </configuration>
       </plugin>
       <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>resgen</id>
-            <phase>process-test-classes</phase>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.jenkins-ci</groupId>
-                  <artifactId>remoting-test-client</artifactId>
-                  <version>1.0</version>
-                  <outputDirectory>target/test-classes</outputDirectory>
-                  <destFileName>remoting-test-client.jar</destFileName>
-                </artifactItem>
-                <artifactItem>
-                  <groupId>org.jenkins-ci</groupId>
-                  <artifactId>remoting-test-client</artifactId>
-                  <version>1.0</version>
-                  <classifier>tests</classifier>
-                  <outputDirectory>target/test-classes</outputDirectory>
-                  <destFileName>remoting-test-client-tests.jar</destFileName>
-                </artifactItem>
-              </artifactItems>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
         <!-- version specified in grandparent pom -->
@@ -248,6 +217,32 @@ THE SOFTWARE.
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
+          <execution>
+            <id>resgen</id>
+            <phase>process-test-classes</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.jenkins-ci</groupId>
+                  <artifactId>remoting-test-client</artifactId>
+                  <version>1.0</version>
+                  <outputDirectory>target/test-classes</outputDirectory>
+                  <destFileName>remoting-test-client.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.jenkins-ci</groupId>
+                  <artifactId>remoting-test-client</artifactId>
+                  <version>1.0</version>
+                  <classifier>tests</classifier>
+                  <outputDirectory>target/test-classes</outputDirectory>
+                  <destFileName>remoting-test-client-tests.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
           <execution>
             <id>bundle-arg4j</id>
             <phase>process-classes</phase>
