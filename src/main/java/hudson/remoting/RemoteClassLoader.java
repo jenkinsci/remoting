@@ -279,6 +279,14 @@ final class RemoteClassLoader extends URLClassLoader {
     static boolean TESTING;
 
     private Class<?> loadClassFile(String name, byte[] bytes) {
+        if (bytes.length < 8) {
+            throw new ClassFormatError(name + " is <8 bytes long");
+        }
+        short bytecodeLevel = (short) ((bytes[6] << 8) + (bytes[7] & 0xFF) - 44);
+        if (bytecodeLevel > channel.maximumBytecodeLevel) {
+            throw new ClassFormatError("this channel is restricted to JDK 1." + channel.maximumBytecodeLevel + " compatibility but " + name + " was compiled for 1." + bytecodeLevel);
+        }
+
         // if someone else is forcing us to load a class by giving as bytecode,
         // discard our prefetched version since we'll never use them.
         prefetchedClasses.remove(name);

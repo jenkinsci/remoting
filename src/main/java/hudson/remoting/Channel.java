@@ -28,7 +28,6 @@ import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.PipeWindow.Key;
 import hudson.remoting.PipeWindow.Real;
-import hudson.remoting.RemoteClassLoader.IClassLoader;
 import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.PortForwarder;
@@ -288,6 +287,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     private JarCache jarCache;
 
     /*package*/ final JarLoaderImpl jarLoader;
+
+    short maximumBytecodeLevel = Short.MAX_VALUE;
 
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
@@ -858,6 +859,33 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     public void setRestricted(boolean b) {
         isRestricted = b;
+    }
+
+    /**
+     * Sets the maximum bytecode version (~ JDK) that we expect this channel to be able to load.
+     * If attempts are made to load remote classes using newer bytecode, they are immediately rejected,
+     * even if the remote JVM is actually new enough to load it.
+     * This helps maintain compatibility by making tests fail immediately without the need for an old JDK installation.
+     * By default, the remote class loader will try to load any bytecode version.
+     * @param level e.g. 5 for JDK 5 (the minimum sensible value)
+     * @since 2.29
+     */
+    public void setMaximumBytecodeLevel(short level) throws IOException, InterruptedException {
+        if (level < 5) {
+            throw new IllegalArgumentException("Does not make sense to specify JDK 1.4 or below since remoting itself requires JDK 5+");
+        }
+        call(new SetMaximumBytecodeLevel(level));
+    }
+    private static final class SetMaximumBytecodeLevel implements Callable<Void,RuntimeException> {
+        private static final long serialVersionUID = 1;
+        private final short level;
+        SetMaximumBytecodeLevel(short level) {
+            this.level = level;
+        }
+        public Void call() throws RuntimeException {
+            Channel.current().maximumBytecodeLevel = level;
+            return null;
+        }
     }
 
     /**
