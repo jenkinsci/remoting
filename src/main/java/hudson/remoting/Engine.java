@@ -90,6 +90,7 @@ public class Engine extends Thread {
     private final String secretKey;
     public final String slaveName;
     private String credentials;
+	private String proxyCredentials;
 
     /**
      * See Main#tunnel in the jnlp-agent module for the details.
@@ -136,6 +137,10 @@ public class Engine extends Thread {
         this.credentials = creds;
     }
 
+	public void setProxyCredentials(String proxyCredentials) {
+		this.proxyCredentials = proxyCredentials;
+	}
+
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;
     }
@@ -164,10 +169,17 @@ public class Engine extends Thread {
 
                     // find out the TCP port
                     HttpURLConnection con = (HttpURLConnection)salURL.openConnection();
-                    if (con instanceof HttpURLConnection && credentials != null) {
-                        // TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
-                        String encoding = Base64.encode(credentials.getBytes("UTF-8"));
-                        con.setRequestProperty("Authorization", "Basic " + encoding);
+                    if (con instanceof HttpURLConnection) {
+                    	if (credentials != null) {
+                    		// TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
+                    		String encoding = Base64.encode(credentials.getBytes("UTF-8"));
+                    		con.setRequestProperty("Authorization", "Basic " + encoding);
+                    	}
+                    	
+                    	if (System.getProperty("proxyCredentials", proxyCredentials) != null) {
+    	                    String encoding = Base64.encode(System.getProperty("proxyCredentials", proxyCredentials).getBytes("UTF-8"));
+    	                    con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+                    	}
                     }
                     try {
                         try {
