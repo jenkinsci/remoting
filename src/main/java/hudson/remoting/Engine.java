@@ -86,7 +86,7 @@ public class Engine extends Thread {
     private final String secretKey;
     public final String slaveName;
     private String credentials;
-	private String proxyCredentials;
+	private String proxyCredentials = System.getProperty("proxyCredentials");
 
     /**
      * See Main#tunnel in the jnlp-agent module for the details.
@@ -172,8 +172,8 @@ public class Engine extends Thread {
                     		con.setRequestProperty("Authorization", "Basic " + encoding);
                     	}
                     	
-                    	if (System.getProperty("proxyCredentials", proxyCredentials) != null) {
-    	                    String encoding = Base64.encode(System.getProperty("proxyCredentials", proxyCredentials).getBytes("UTF-8"));
+                    	if (proxyCredentials != null) {
+    	                    String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
     	                    con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
                     	}
                     }
