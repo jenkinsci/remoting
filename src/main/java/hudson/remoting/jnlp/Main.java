@@ -151,6 +151,7 @@ public class Main {
             engine.setTunnel(tunnel);
         if(credentials!=null)
             engine.setCredentials(credentials);
+        if(proxyCredentials!=null)
         	engine.setProxyCredentials(proxyCredentials);
         if(jarCache!=null)
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
