@@ -355,6 +355,7 @@ public class Engine extends Thread {
 
                     HttpURLConnection con = (HttpURLConnection) url.openConnection();
                     con.setConnectTimeout(5000);
+                    con.setReadTimeout(5000);
                     con.connect();
                     if(con.getResponseCode()==200)
                         return;
