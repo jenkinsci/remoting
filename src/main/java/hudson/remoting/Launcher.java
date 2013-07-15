@@ -116,6 +116,9 @@ public class Launcher {
     @Option(name="-secret", metaVar="HEX_SECRET", usage="Slave connection secret to use instead of -jnlpCredentials.")
     public String secret;
 
+    @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
+    public String proxyCredentials = null;
+
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader.")
     public void addClasspath(String pathList) throws Exception {
@@ -246,11 +249,17 @@ public class Launcher {
         while (true) {
             try {
                 URLConnection con = slaveJnlpURL.openConnection();
-                if (con instanceof HttpURLConnection && slaveJnlpCredentials != null) {
+                if (con instanceof HttpURLConnection) {
                     HttpURLConnection http = (HttpURLConnection) con;
-                    String userPassword = slaveJnlpCredentials;
-                    String encoding = Base64.encode(userPassword.getBytes("UTF-8"));
-                    http.setRequestProperty("Authorization", "Basic " + encoding);
+                    if  (slaveJnlpCredentials != null) {
+	                    String userPassword = slaveJnlpCredentials;
+	                    String encoding = Base64.encode(userPassword.getBytes("UTF-8"));
+	                    http.setRequestProperty("Authorization", "Basic " + encoding);
+                    }
+                    if (System.getProperty("proxyCredentials", proxyCredentials) != null) {
+	                    String encoding = Base64.encode(System.getProperty("proxyCredentials", proxyCredentials).getBytes("UTF-8"));
+	                    http.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+                    }
                 }
                 con.connect();
 
