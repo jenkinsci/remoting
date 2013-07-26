@@ -159,7 +159,7 @@ public class FastPipedOutputStream extends OutputStream {
 
                     Thread t = Thread.currentThread();
                     String oldName = t.getName();
-                    t.setName("Blocking to write '"+HexDump.toHex(b,off,Math.min(len,256))+"' : "+oldName);
+                    t.setName("Blocking to write "+HexDump.toHex(b,off,Math.min(len,256))+": "+oldName);
                     try {
                         buf.wait(TIMEOUT);
                     } catch (InterruptedException e) {
