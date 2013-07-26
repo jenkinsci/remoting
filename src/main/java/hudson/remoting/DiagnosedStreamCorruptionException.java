@@ -30,7 +30,7 @@ public class DiagnosedStreamCorruptionException extends StreamCorruptedException
             diagnoseFailure.printStackTrace(p);
             p.flush();
 
-            buf.append("Diagnosis problem:\n    ");
+            buf.append("\nDiagnosis problem:\n    ");
             buf.append(w.toString().trim().replace("\n","\n    "));
         }
         return buf.toString();
