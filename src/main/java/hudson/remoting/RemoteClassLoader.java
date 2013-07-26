@@ -221,23 +221,27 @@ final class RemoteClassLoader extends URLClassLoader {
                                 assert false : x;
                             }
                         }
-                        if (c==null) {
+                        if (c!=null)    return c;
+
+                        try {
                             // TODO: check inner class handling
-                            try {
-                                Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
-                                if (img.isDone())
-                                    c = rcl.loadClassFile(name, img.get());
-                                else    // if the load activitiy is still pending, fetch just this class file
-                                    c = rcl.loadClassFile(name, proxy.fetch(name));
-                            } catch (IOException x) {
-                                throw new ClassNotFoundException(name,x);
-                            } catch (InterruptedException x) {
-                                throw new ClassNotFoundException(name,x);
-                            } catch (ExecutionException x) {
-                                throw new ClassNotFoundException(name,x);
+                            Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
+                            if (img.isDone()) {
+                                try {
+                                    return rcl.loadClassFile(name, img.get());
+                                } catch (ExecutionException x) {
+                                    // failure to retrieve a jar shouldn't fail the classloading
+                                }
                             }
+
+                            // if the load activitiy is still pending, or if the load had failed,
+                            // fetch just this class file
+                            return rcl.loadClassFile(name, proxy.fetch(name));
+                        } catch (IOException x) {
+                            throw new ClassNotFoundException(name,x);
+                        } catch (InterruptedException x) {
+                            throw new ClassNotFoundException(name,x);
                         }
-                        return c;
                     }
                 } else {
                     return cl.loadClass(name);
