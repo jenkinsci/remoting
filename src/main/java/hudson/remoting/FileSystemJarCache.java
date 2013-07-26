@@ -57,28 +57,32 @@ public class FileSystemJarCache extends JarCacheSupport {
         File target = map(sum1, sum2);
         File parent = target.getParentFile();
         parent.mkdirs();
-        File tmp = File.createTempFile(target.getName(),"tmp", parent);
         try {
-            RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
+            File tmp = File.createTempFile(target.getName(),"tmp", parent);
             try {
-                LOGGER.log(Level.FINE, String.format("Retrieving jar file %16X%16X",sum1,sum2));
-                getJarLoader(channel).writeJarTo(sum1, sum2, o);
+                RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
+                try {
+                    LOGGER.log(Level.FINE, String.format("Retrieving jar file %16X%16X",sum1,sum2));
+                    getJarLoader(channel).writeJarTo(sum1, sum2, o);
+                } finally {
+                    o.close();
+                }
+
+                tmp.renameTo(target);
+
+                if (target.exists()) {
+                    // even if we fail to rename, we are OK as long as the target actually exists at this point
+                    // this can happen if two FileSystejarCache instances share the same cache dir
+                    return target.toURI().toURL();
+                }
+
+                // for example if the file system went read only in the mean time
+                throw new IOException("Unable to create "+target+" from "+tmp);
             } finally {
-                o.close();
+                tmp.delete();
             }
-
-            tmp.renameTo(target);
-
-            if (target.exists()) {
-                // even if we fail to rename, we are OK as long as the target actually exists at this point
-                // this can happen if two FileSystejarCache instances share the same cache dir
-                return target.toURI().toURL();
-            }
-
-            // for example if the file system went read only in the mean time
-            throw new IOException("Unable to create "+target+" from "+tmp);
-        } finally {
-            tmp.delete();
+        } catch (IOException e) {
+            throw (IOException)new IOException("Failed to write to "+target).initCause(e);
         }
     }
 
