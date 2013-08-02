@@ -40,8 +40,8 @@ public class DiagnosedStreamCorruptionExceptionTest {
             w.close();
 
             String msg = s.toString();
-            assertTrue(msg.contains("Read ahead: 02030405"));
-            assertTrue(msg.contains("invalid type code: 01"));
+            assertTrue(msg,msg.contains("Read ahead: 0x02 0x03 0x04 0x05"));
+            assertTrue(msg,msg.contains("invalid type code: 01"));
             assertSame(StreamCorruptedException.class, e.getCause().getClass());
         }
     }

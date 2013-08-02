@@ -91,7 +91,7 @@ import java.io.StreamCorruptedException;
                 return (StreamCorruptedException)new StreamCorruptedException().initCause(e);
         }
 
-        return rawIn.analyzeCrash(e,channel.toString());
+        return rawIn.analyzeCrash(e,(channel!=null ? channel : this).toString());
     }
 
     public void closeRead() throws IOException {
