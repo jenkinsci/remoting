@@ -3,7 +3,6 @@ package hudson.remoting;
 import hudson.remoting.Channel.Mode;
 
 import javax.annotation.Nullable;
-import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,13 +29,13 @@ import java.io.StreamCorruptedException;
      * Transport level {@link InputStream} that we use only for diagnostics in case we detect stream
      * corruption. Can be null.
      */
-    private final @Nullable InputStream rawIn;
+    private final @Nullable FlightRecorderInputStream rawIn;
     /**
      * See {@link CommandTransport#getUnderlyingStream()}
      */
     private final OutputStream rawOut;
 
-    private ClassicCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, InputStream rawIn, OutputStream rawOut, Capability remoteCapability) {
+    private ClassicCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, FlightRecorderInputStream rawIn, OutputStream rawOut, Capability remoteCapability) {
         this.ois = ois;
         this.oos = oos;
         this.rawIn= rawIn;
@@ -69,7 +68,10 @@ import java.io.StreamCorruptedException;
 
     public final Command read() throws IOException, ClassNotFoundException {
         try {
-            return Command.readFrom(channel,ois);
+            Command cmd = Command.readFrom(channel, ois);
+            if (rawIn!=null)
+                rawIn.clear();
+            return cmd;
         } catch (StreamCorruptedException e) {
             throw diagnoseStreamCorruption(e);
         }
@@ -83,39 +85,7 @@ import java.io.StreamCorruptedException;
         if (rawIn==null)
             return e;    // no source of diagnostics information. can't diagnose.
 
-
-        final ByteArrayOutputStream readAhead = new ByteArrayOutputStream();
-        final IOException[] error = new IOException[1];
-
-        Thread diagnosisThread = new Thread(channel+" stream corruption diagnosis thread") {
-            public void run() {
-                int b;
-                try {
-                    // not all InputStream will look for the thread interrupt flag, so check that explicitly to be defensive
-                    while (!Thread.interrupted() && (b=rawIn.read())!=-1) {
-                        readAhead.write(b);
-                    }
-                } catch (IOException e) {
-                    error[0] = e;
-                }
-            }
-        };
-
-        // wait up to 1 sec to grab as much data as possible
-        diagnosisThread.start();
-        try {
-            diagnosisThread.join(1000);
-        } catch (InterruptedException _) {
-            // we are only waiting for a fixed amount of time, so we'll pretend like we were in a busy loop
-            Thread.currentThread().interrupt();
-            // fall through
-        }
-
-        IOException diagnosisProblem = error[0]; // capture the error, if any, before we kill the thread
-        if (diagnosisThread.isAlive())
-            diagnosisThread.interrupt();    // if it's not dead, kill
-
-        return new DiagnosedStreamCorruptionException(e,diagnosisProblem,readAhead.toByteArray());
+        return rawIn.analyzeCrash(e,channel.toString());
     }
 
     public void closeRead() throws IOException {
@@ -177,9 +147,10 @@ import java.io.StreamCorruptedException;
                                         throw new IOException("Protocol negotiation failure");
                                 }
 
+                                FlightRecorderInputStream fis = new FlightRecorderInputStream(is);
                                 return new ClassicCommandTransport(
-                                        new ObjectInputStreamEx(mode.wrap(is),base),
-                                        oos, is, os, cap);
+                                        new ObjectInputStreamEx(mode.wrap(fis),base),
+                                        oos, fis, os, cap);
                             case 2:
                                 cap = Capability.read(is);
                                 break;

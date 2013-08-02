@@ -11,19 +11,34 @@ import java.io.StringWriter;
  */
 public class DiagnosedStreamCorruptionException extends StreamCorruptedException {
     private final Exception diagnoseFailure;
+    private final byte[] readBack;
     private final byte[] readAhead;
 
-    public DiagnosedStreamCorruptionException(StreamCorruptedException cause, Exception diagnoseFailure, byte[] readAhead) {
+    DiagnosedStreamCorruptionException(Exception cause, Exception diagnoseFailure, byte[] readBack, byte[] readAhead) {
         initCause(cause);
         this.diagnoseFailure = diagnoseFailure;
+        this.readBack = readBack;
         this.readAhead = readAhead;
+    }
+
+    public Exception getDiagnoseFailure() {
+        return diagnoseFailure;
+    }
+
+    public byte[] getReadBack() {
+        return readBack;
+    }
+
+    public byte[] getReadAhead() {
+        return readAhead;
     }
 
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder();
         buf.append(super.toString()).append("\n");
-        buf.append("Read ahead: "+HexDump.toHex(readAhead));
+        buf.append("Read back: ").append(HexDump.toHex(readBack)).append('\n');
+        buf.append("Read ahead: ").append(HexDump.toHex(readAhead));
         if (diagnoseFailure!=null) {
             StringWriter w = new StringWriter();
             PrintWriter p = new PrintWriter(w);
