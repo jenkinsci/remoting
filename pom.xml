@@ -91,6 +91,7 @@ THE SOFTWARE.
       <groupId>org.apache.ant</groupId>
       <artifactId>ant</artifactId>
       <version>1.8.3</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
