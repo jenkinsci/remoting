@@ -315,6 +315,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
             }
 
             public void run() {
+                String oldThreadName = Thread.currentThread().getName();
+                Thread.currentThread().setName(oldThreadName+" for "+channel.getName());
                 try {
                     Command rsp;
                     CURRENT.set(Request.this);
@@ -345,6 +347,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                     logger.log(Level.SEVERE, "Failed to send back a reply",e);
                 } finally {
                     channel.executingCalls.remove(id);
+                    Thread.currentThread().setName(oldThreadName);
                 }
             }
         });
