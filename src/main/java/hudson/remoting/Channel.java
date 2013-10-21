@@ -489,6 +489,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /*package*/ boolean isOutClosed() {
         return outClosed!=null;
     }
+    
+    /**
+     * Returns {@code true} if the channel is either in the process of closing down or has closed down.
+     * @since 2.33
+     */
+    public boolean isClosingOrClosed() {
+        return inClosed != null || outClosed != null;
+    }
 
     /**
      * Creates the {@link ExecutorService} for writing to pipes.
