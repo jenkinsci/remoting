@@ -40,4 +40,6 @@ public class RequestAbortedException extends RemotingSystemException {
     protected RequestAbortedException wrapForRethrow() {
         return new RequestAbortedException(this); // maintain the type for backward compatibility
     }
+
+    private static final long serialVersionUID = 238929914783987425L;
 }
