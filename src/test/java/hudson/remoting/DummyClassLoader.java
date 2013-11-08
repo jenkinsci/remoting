@@ -41,6 +41,7 @@ import org.apache.commons.io.IOUtils;
  */
 class DummyClassLoader extends ClassLoader {
 
+    private final String physicalName;
     private final String logicalName;
     private final String physicalPath;
     private final String logicalPath;
@@ -52,7 +53,7 @@ class DummyClassLoader extends ClassLoader {
 
     public DummyClassLoader(ClassLoader parent, Class<?> c) {
         super(parent);
-        String physicalName = c.getName();
+        physicalName = c.getName();
         assert physicalName.contains("remoting.Test");
         logicalName = physicalName.replace("remoting", "rem0ting");
         physicalPath = physicalName.replace('.', '/') + ".class";
@@ -114,4 +115,9 @@ class DummyClassLoader extends ClassLoader {
         }
         return super.findResource(name);
     }
+
+    @Override public String toString() {
+        return super.toString() + "[" + physicalName + "]";
+    }
+
 }
