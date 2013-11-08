@@ -3,7 +3,6 @@ package hudson.remoting;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import sun.swing.BakedArrayList;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
