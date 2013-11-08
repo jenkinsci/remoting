@@ -214,16 +214,12 @@ final class RemoteClassLoader extends URLClassLoader {
                     RemoteClassLoader rcl = (RemoteClassLoader) cl;
                     synchronized (_getClassLoadingLock(rcl, name)) {
                         Class<?> c = rcl.findLoadedClass(name);
-                        if (TESTING) {
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException x) {
-                                assert false : x;
-                            }
-                        }
-                        if (c!=null)    return c;
-
                         try {
+                            if (TESTING) {
+                                Thread.sleep(1000);
+                            }
+                            if (c!=null)    return c;
+
                             // TODO: check inner class handling
                             Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
                             if (img.isDone()) {
