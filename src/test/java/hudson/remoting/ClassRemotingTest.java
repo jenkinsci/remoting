@@ -46,7 +46,7 @@ public class ClassRemotingTest extends RmiTestBase {
         // call a class that's only available on DummyClassLoader, so that on the remote channel
         // it will be fetched from this class loader and not from the system classloader.
         DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
-        Callable c = (Callable) cl.newTestCallable();
+        Callable c = (Callable) cl.load();
 
         Object[] r = (Object[]) channel.call(c);
 
@@ -75,7 +75,7 @@ public class ClassRemotingTest extends RmiTestBase {
             return;
 
         DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
-        Callable c = (Callable) cl.newTestCallable();
+        Callable c = (Callable) cl.load();
         assertSame(c.getClass().getClassLoader(), cl);
 
         channel.setProperty("test",c);
@@ -86,12 +86,12 @@ public class ClassRemotingTest extends RmiTestBase {
     @Bug(6604)
     public void testRaceCondition() throws Throwable {
         DummyClassLoader parent = new DummyClassLoader(ClassRemotingTest.class.getClassLoader());
-        DummyClassLoader child1 = new DummyClassLoader(parent, true);
-        final Callable<Object,Exception> c1 = (Callable) child1.loadClass(CLASSNAME + "$Sub").newInstance();
+        DummyClassLoader child1 = new DummyClassLoader(parent, TestCallable.Sub.class);
+        final Callable<Object,Exception> c1 = (Callable) child1.load();
         assertEquals(child1, c1.getClass().getClassLoader());
         assertEquals(parent, c1.getClass().getSuperclass().getClassLoader());
-        DummyClassLoader child2 = new DummyClassLoader(parent, true);
-        final Callable<Object,Exception> c2 = (Callable) child2.loadClass(CLASSNAME + "$Sub").newInstance();
+        DummyClassLoader child2 = new DummyClassLoader(parent, TestCallable.Sub.class);
+        final Callable<Object,Exception> c2 = (Callable) child2.load();
         assertEquals(child2, c2.getClass().getClassLoader());
         assertEquals(parent, c2.getClass().getSuperclass().getClassLoader());
         ExecutorService svc = Executors.newFixedThreadPool(2);
