@@ -134,7 +134,11 @@ public class ClassRemotingTest extends RmiTestBase {
                     }
                 }
             });
+
+            // This is so that the first two class loads succeed but the third fails.
+            // A better test would use semaphores rather than timing (cf. the test before this one).
             Thread.sleep(2500);
+
             f1.cancel(true);
             try {
                 Object o = f1.get();
@@ -145,6 +149,8 @@ public class ClassRemotingTest extends RmiTestBase {
             } catch (CancellationException x) {
                 // good
             }
+
+            // verify that classes that we tried to load aren't irrevocably damaged and it's still available
             assertNotNull(channel.call(c));
         } finally {
             RemoteClassLoader.TESTING = false;
