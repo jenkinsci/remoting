@@ -30,6 +30,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.EmptyVisitor;
 
 import java.io.IOException;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -109,6 +110,48 @@ public class ClassRemotingTest extends RmiTestBase {
             });
             f1.get();
             f2.get();
+        } finally {
+            RemoteClassLoader.TESTING = false;
+        }
+    }
+
+    @Bug(19453)
+    public void testInterruption() throws Exception {
+        DummyClassLoader parent = new DummyClassLoader(ClassRemotingTest.class.getClassLoader(), TestLinkage.B.class);
+        final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
+        final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
+        final Callable<Object, Exception> c = (Callable) child2.load();
+        assertEquals(child2, c.getClass().getClassLoader());
+        RemoteClassLoader.TESTING = true;
+        try {
+            ExecutorService svc = Executors.newSingleThreadExecutor();
+            java.util.concurrent.Future<Object> f1 = svc.submit(new java.util.concurrent.Callable<Object>() {
+                @Override public Object call() throws Exception {
+                    try {
+                        return channel.call(c);
+                    } catch (Throwable t) {
+                        throw new Exception(t);
+                    }
+                }
+            });
+
+            // This is so that the first two class loads succeed but the third fails.
+            // A better test would use semaphores rather than timing (cf. the test before this one).
+            Thread.sleep(2500);
+
+            f1.cancel(true);
+            try {
+                Object o = f1.get();
+                assertEquals(String.class, o.getClass());
+                /* TODO we really want to fail here, but this method gets run 4×, and the last 3× it gets to this point:
+                fail(o.toString());
+                */
+            } catch (CancellationException x) {
+                // good
+            }
+
+            // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+            assertNotNull(channel.call(c));
         } finally {
             RemoteClassLoader.TESTING = false;
         }

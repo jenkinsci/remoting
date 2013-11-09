@@ -37,6 +37,10 @@ import org.apache.commons.io.IOUtils;
  * out of nowhere, to test {@link RemoteClassLoader} by creating a class
  * that only exists on one side of the channel but not the other.
  *
+ * <p>
+ * Given a class in a "remoting" package, this classloader is capable of loading the same version of the class
+ * in the "rem0ting" package.
+ *
  * @author Kohsuke Kawaguchi
  */
 class DummyClassLoader extends ClassLoader {

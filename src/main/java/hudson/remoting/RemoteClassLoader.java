@@ -214,33 +214,45 @@ final class RemoteClassLoader extends URLClassLoader {
                     RemoteClassLoader rcl = (RemoteClassLoader) cl;
                     synchronized (_getClassLoadingLock(rcl, name)) {
                         Class<?> c = rcl.findLoadedClass(name);
-                        if (TESTING) {
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException x) {
-                                assert false : x;
-                            }
-                        }
-                        if (c!=null)    return c;
 
-                        try {
-                            // TODO: check inner class handling
-                            Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
-                            if (img.isDone()) {
+                        boolean interrupted = false;
+                        try {//
+                            while (true) {
                                 try {
-                                    return rcl.loadClassFile(name, img.get());
-                                } catch (ExecutionException x) {
-                                    // failure to retrieve a jar shouldn't fail the classloading
-                                }
-                            }
+                                    if (TESTING) {
+                                        Thread.sleep(1000);
+                                    }
+                                    if (c!=null)    return c;
 
-                            // if the load activitiy is still pending, or if the load had failed,
-                            // fetch just this class file
-                            return rcl.loadClassFile(name, proxy.fetch(name));
-                        } catch (IOException x) {
-                            throw new ClassNotFoundException(name,x);
-                        } catch (InterruptedException x) {
-                            throw new ClassNotFoundException(name,x);
+                                    // TODO: check inner class handling
+                                    Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
+                                    if (img.isDone()) {
+                                        try {
+                                            return rcl.loadClassFile(name, img.get());
+                                        } catch (ExecutionException x) {
+                                            // failure to retrieve a jar shouldn't fail the classloading
+                                        }
+                                    }
+
+                                    // if the load activity is still pending, or if the load had failed,
+                                    // fetch just this class file
+                                    return rcl.loadClassFile(name, proxy.fetch(name));
+                                } catch (IOException x) {
+                                    throw new ClassNotFoundException(name,x);
+                                } catch (InterruptedException x) {
+                                    // pretend as if this operation is not interruptible.
+                                    // but we need to remember to set the interrupt flag back on
+                                    // before we leave this call.
+                                    interrupted = true;
+                                    continue;   // JENKINS-19453: retry
+                                }
+
+                                // no code is allowed to reach here
+                            }
+                        } finally {
+                            // process the interrupt later.
+                            if (interrupted)
+                                Thread.currentThread().interrupt();
                         }
                     }
                 } else {
@@ -279,7 +291,11 @@ final class RemoteClassLoader extends URLClassLoader {
         }
         return rcl;
     }
-    /** JENKINS-6604 */
+    /**
+     * Induce a large delay in {@link RemoteClassLoader#findClass(String)} to allow
+     *
+     * See JENKINS-6604
+     */
     static boolean TESTING;
 
     private Class<?> loadClassFile(String name, byte[] bytes) {
