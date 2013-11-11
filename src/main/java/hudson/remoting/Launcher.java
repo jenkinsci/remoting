@@ -216,6 +216,10 @@ public class Launcher {
         } else
         if(slaveJnlpURL!=null) {
             List<String> jnlpArgs = parseJnlpArguments();
+            if (jarCache != null) {
+              jnlpArgs.add("-jar-cache");
+              jnlpArgs.add(jarCache.getPath());
+            }
             if (this.noReconnect) {
                 jnlpArgs.add("-noreconnect");
             }
