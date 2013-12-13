@@ -173,6 +173,9 @@ final class ProxyWriter extends Writer {
         protected void execute(Channel channel) {
             OutputStream os = (OutputStream) channel.getExportedObject(oid);
             channel.unexport(oid);
+            if (os == null) {
+                return;
+            }
             try {
                 os.close();
             } catch (IOException e) {
