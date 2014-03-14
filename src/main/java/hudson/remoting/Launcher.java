@@ -148,7 +148,13 @@ public class Launcher {
      */
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
-
+    
+    /**
+     * @since TODO: define a version
+     */
+    @Option(name="-jar-cache-disabled",usage="Disables the jar caching")
+    public boolean jarCacheDisabled = false;
+    
     public InetSocketAddress connectionTarget = null;
 
     @Option(name="-connectTo",usage="make a TCP connection to the given host and port, then start communication.",metaVar="HOST:PORT")
@@ -216,9 +222,11 @@ public class Launcher {
         } else
         if(slaveJnlpURL!=null) {
             List<String> jnlpArgs = parseJnlpArguments();
-            if (jarCache != null) {
+            if (jarCache != null && !jarCacheDisabled) {
               jnlpArgs.add("-jar-cache");
               jnlpArgs.add(jarCache.getPath());
+            } else {
+              jnlpArgs.add("-jar-cache-disabled");
             }
             if (this.noReconnect) {
                 jnlpArgs.add("-noreconnect");
@@ -400,7 +408,7 @@ public class Launcher {
         s.setTcpNoDelay(true);
         main(new BufferedInputStream(new SocketInputStream(s)),
              new BufferedOutputStream(new SocketOutputStream(s)), mode,ping,
-             new FileSystemJarCache(jarCache,true));
+             jarCacheDisabled ? null : new FileSystemJarCache(jarCache,true));
     }
 
     /**

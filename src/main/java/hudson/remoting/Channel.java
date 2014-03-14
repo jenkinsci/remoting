@@ -54,6 +54,7 @@ import java.net.URL;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import javax.annotation.CheckForNull;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -672,8 +673,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * If this channel is built with jar file caching, return the object that manages this cache.
+     * @return JarCache or null if it is disabled
      * @since 2.24
      */
+    @CheckForNull
     public JarCache getJarCache() {
         return jarCache;
     }
@@ -684,6 +687,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
      * unless your call sequence guarantees that you call this method before remote classes are loaded.
+     * @param jarCache The Jar cache to be set. The null value disables the caching
      * @since 2.24
      */
     public void setJarCache(JarCache jarCache) {
