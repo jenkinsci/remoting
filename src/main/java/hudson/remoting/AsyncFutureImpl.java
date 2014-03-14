@@ -60,7 +60,7 @@ public class AsyncFutureImpl<V> implements Future<V> {
         return false;
     }
 
-    public boolean isCancelled() {
+    public synchronized boolean isCancelled() {
         return cancelled;
     }
 
