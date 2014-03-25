@@ -847,7 +847,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public synchronized void join() throws InterruptedException {
         while(inClosed==null || outClosed==null)
-            wait();
+            // not that I really encountered any situation where this happens, but
+            // given tickets like JENKINS-20709 that talks about hangs, it seems
+            // like a good defensive measure to periodically wake up to make sure
+            // that the wait condition is still not met in case we don't call notifyAll correctly
+            wait(30*1000);
     }
 
     /**
@@ -1001,6 +1005,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         send(new CloseCommand(this,diagnosis));
         outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
+        notifyAll();
         try {
             transport.closeWrite();
         } catch (IOException e) {
