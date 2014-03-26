@@ -40,6 +40,7 @@ import java.io.IOException;
 
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
+import hudson.remoting.StubJarCache;
 
 /**
  * Entry point to JNLP slave agent.
@@ -162,7 +163,7 @@ public class Main {
         if(jarCache!=null && !jarCacheDisabled) {
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         } else {
-            engine.setJarCache(null);
+            engine.setJarCache(new StubJarCache());
         }
         engine.setNoReconnect(noReconnect);
         return engine;
