@@ -680,6 +680,17 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public JarCache getJarCache() {
         return jarCache;
     }
+    
+    /**
+     * Checks that Jar cache is available.
+     * The remoting library should work well even with disabled caches.
+     * @return True if the cache is available
+     * @since TODO
+     */
+    @CheckForNull
+    public  boolean hasJarCache() {
+        return jarCache != null;
+    }
 
     /**
      * You can change the {@link JarCache} while the channel is in operation,
