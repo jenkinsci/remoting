@@ -1,12 +1,12 @@
 package hudson.remoting;
 
-import hudson.remoting.RemoteInputStream.Flag;
-
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+
+import static hudson.remoting.RemoteInputStream.Flag.*;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -17,7 +17,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
      */
     public void testNonGreedy() throws Exception {
         ByteArrayInputStream in = new ByteArrayInputStream("12345678".getBytes());
-        channel.call(new Read(RemoteInputStream.of(in, Flag.NOT_GREEDY),"1234".getBytes()));
+        channel.call(new Read(new RemoteInputStream(in, NOT_GREEDY),"1234".getBytes()));
         assertTrue(Arrays.equals(readFully(in, 4), "5678".getBytes()));
     }
 
@@ -26,7 +26,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
      */
     public void testGreedy() throws Exception {
         ByteArrayInputStream in = new ByteArrayInputStream("12345678".getBytes());
-        channel.call(new Read(RemoteInputStream.of(in, Flag.GREEDY),"1234".getBytes()));
+        channel.call(new Read(new RemoteInputStream(in, GREEDY),"1234".getBytes()));
         // not very reliable but the intention is to have it greedily read
         Thread.sleep(100);
 
@@ -57,7 +57,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
      */
     public void testGreedy2() throws Exception {
         ByteArrayInputStream in = new ByteArrayInputStream("12345678".getBytes());
-        final RemoteInputStream i = RemoteInputStream.of(in, Flag.GREEDY);
+        final RemoteInputStream i = new RemoteInputStream(in, GREEDY);
 
         channel.call(new TestGreedy2(i));
         assertEquals(in.read(),-1);

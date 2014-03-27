@@ -35,6 +35,8 @@ import java.io.StringWriter;
 import java.util.EnumSet;
 import java.util.Set;
 
+import static hudson.remoting.RemoteInputStream.Flag.*;
+
 /**
  * Wraps {@link InputStream} so that it can be sent over the remoting channel.
  *
@@ -53,11 +55,11 @@ public class RemoteInputStream extends InputStream implements Serializable {
      * Short for {@code RemoteInputStream(core,true)}.
      *
      * @deprecated as of 2.35
-     *      Use {@link #of(InputStream,Flag)} and consider using {@link Flag#GREEDY}
-     *      to improve the performance.
+     *      Use {@link #RemoteInputStream(InputStream, Flag)} and specify either {@link Flag#GREEDY}
+     *      or {@link Flag#NOT_GREEDY}.
      */
     public RemoteInputStream(InputStream core) {
-        this(core,true);
+        this(core, NOT_GREEDY);
     }
 
     /**
@@ -67,12 +69,36 @@ public class RemoteInputStream extends InputStream implements Serializable {
      *      until the close method is called.
      *
      * @deprecated as of 2.35
-     *      Use {@link #of(InputStream,Flag, Flag)} with {@link Flag#MANUAL_UNEXPORT}.
-     *      Also consider using {@link Flag#GREEDY} to improve the performance.
+     *      Use {@link #RemoteInputStream(InputStream, Flag, Flag )} with {@link Flag#MANUAL_UNEXPORT}.
+     *      Also specify either {@link Flag#GREEDY} or {@link Flag#NOT_GREEDY}.
      */
     public RemoteInputStream(InputStream core, boolean autoUnexport) {
+        this(core, NOT_GREEDY, autoUnexport?NOT_GREEDY:MANUAL_UNEXPORT);
+    }
+
+    /**
+     * @since 2.35
+     */
+    public RemoteInputStream(InputStream core, Flag f) {
+        this(core,EnumSet.of(f));
+    }
+
+    /**
+     * @since 2.35
+     */
+    public RemoteInputStream(InputStream core, Flag f1, Flag f2) {
+        this(core,EnumSet.of(f1,f2));
+    }
+
+    /**
+     * @since 2.35
+     */
+    public RemoteInputStream(InputStream core, Set<Flag> flags) {
         this.core = core;
-        this.autoUnexport = autoUnexport;
+        greedy = flags.contains(GREEDY);
+        if (greedy)
+            greedyAt = new Greedy();
+        autoUnexport = !flags.contains(MANUAL_UNEXPORT);
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
@@ -186,29 +212,6 @@ public class RemoteInputStream extends InputStream implements Serializable {
          * to get unexported.
          */
         MANUAL_UNEXPORT
-    }
-
-    /**
-     * Creates a {@link RemoteInputStream}.
-     *
-     * @param f
-     *      At least you should specify {@link Flag#GREEDY} or {@link Flag#NOT_GREEDY}.
-     */
-    public static RemoteInputStream of(InputStream base, Flag f) {
-        return of(base, EnumSet.of(f));
-    }
-
-    public static RemoteInputStream of(InputStream base, Flag f1, Flag f2) {
-        return of(base, EnumSet.of(f1,f2));
-    }
-
-    public static RemoteInputStream of(InputStream base, Set<Flag> flags) {
-        RemoteInputStream r = new RemoteInputStream(base);
-        r.greedy = flags.contains(Flag.GREEDY);
-        if (r.greedy)
-            r.greedyAt = new Greedy();
-        r.autoUnexport = !flags.contains(Flag.MANUAL_UNEXPORT);
-        return r;
     }
 
     /**
