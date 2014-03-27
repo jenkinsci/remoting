@@ -189,6 +189,12 @@ THE SOFTWARE.
             </manifest>
             <manifestEntries>
               <Version>${project.version}</Version>
+              <!-- attributes related to Java Web Start -->
+              <!-- see http://docs.oracle.com/javase/8/docs/technotes/guides/jweb/security/manifest.html -->
+              <Permissions>all-permissions</Permissions>
+              <Codebase>*</Codebase>
+              <Application-Name>Jenkins Remoting Agent</Application-Name>
+              <Trusted-Library>true</Trusted-Library>
             </manifestEntries>
           </archive>
         </configuration>
