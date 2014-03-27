@@ -129,7 +129,13 @@ final class ProxyWriter extends Writer {
 
     protected void finalize() throws Throwable {
         super.finalize();
-        close();
+        // if we haven't done so, release the exported object on the remote side.
+        // if the object is auto-unexported, the export entry could have already been removed.
+        if(channel!=null) {
+            channel.send(new Unexport(channel.newIoId(),oid));
+            channel = null;
+            oid = -1;
+        }
     }
 
     /**
@@ -182,6 +188,36 @@ final class ProxyWriter extends Writer {
 
         public String toString() {
             return "Pipe.EOF("+oid+")";
+        }
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    /**
+     * {@link Command} for releasing an export table.
+     *
+     * <p>
+     * Unlike {@link EOF}, this just unexports but not closes the stream.
+     */
+    private static class Unexport extends Command {
+        private final int oid;
+        private final int ioId;
+
+        public Unexport(int ioId, int oid) {
+            this.ioId = ioId;
+            this.oid = oid;
+        }
+
+        protected void execute(final Channel channel) {
+            channel.pipeWriter.submit(ioId,new Runnable() {
+                public void run() {
+                    channel.unexport(oid);
+                }
+            });
+        }
+
+        public String toString() {
+            return "Pipe.Unexport("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
