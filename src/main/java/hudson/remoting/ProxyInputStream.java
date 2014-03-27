@@ -149,9 +149,6 @@ final class ProxyInputStream extends InputStream {
 
         protected void execute(Channel channel) {
             InputStream in = (InputStream) channel.getExportedObject(oid);
-            if (in == null) {
-                return;
-            }
             channel.unexport(oid);
             try {
                 in.close();
