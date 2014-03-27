@@ -126,9 +126,9 @@ public class RemoteInputStream extends InputStream implements Serializable {
                                     if (len < 0) break;
                                 } catch (IOException e) {
                                     // if we can propagate the error, do so. In any case, give up
-                                    if (e instanceof ErrorPropagatingOutputStream) {
+                                    if (o instanceof ErrorPropagatingOutputStream) {
                                         try {
-                                            ((ErrorPropagatingOutputStream) e).error(e);
+                                            ((ErrorPropagatingOutputStream) o).error(e);
                                         } catch (IOException _) {
                                             // can't do anything. just give up
                                         }

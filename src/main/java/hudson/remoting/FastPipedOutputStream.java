@@ -95,8 +95,10 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         }
         FastPipedInputStream s = sink();
         synchronized(s.buffer) {
-            s.closed = new FastPipedInputStream.ClosedBy(e);
-            flush();
+            if (s.closed==null) {
+                s.closed = new FastPipedInputStream.ClosedBy(e);
+                flush();
+            }
         }
     }
 

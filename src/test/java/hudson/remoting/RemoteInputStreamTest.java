@@ -1,9 +1,12 @@
 package hudson.remoting;
 
+import org.apache.commons.io.input.BrokenInputStream;
+
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.util.Arrays;
 
 import static hudson.remoting.RemoteInputStream.Flag.*;
@@ -78,6 +81,47 @@ public class RemoteInputStreamTest extends RmiTestBase {
         }
     }
 
+
+    /**
+     * Greedy {@link RemoteInputStream} should propagate error.
+     */
+    public void testErrorPropagation() throws Exception {
+        for (RemoteInputStream.Flag f : Arrays.asList(GREEDY,NOT_GREEDY)) {
+            InputStream in = new SequenceInputStream(
+                    new ByteArrayInputStream("1234".getBytes()),
+                    new BrokenInputStream(new SkyIsFalling())
+            );
+            final RemoteInputStream i = new RemoteInputStream(in, f);
+
+            channel.call(new TestErrorPropagation(i));
+        }
+    }
+
+    private static class SkyIsFalling extends IOException {}
+
+    private static class TestErrorPropagation implements Callable<Void, IOException> {
+        private final RemoteInputStream i;
+
+        public TestErrorPropagation(RemoteInputStream i) {
+            this.i = i;
+        }
+
+        public Void call() throws IOException {
+            assertTrue(Arrays.equals(readFully(i, 4), "1234".getBytes()));
+            try {
+                i.read();
+                throw new AssertionError();
+            } catch (SkyIsFalling e) {
+                // non-greedy implementation rethrows the same exception, which produces confusing stack trace,
+                // but in case someone is using it as a signal I'm not changing that behaviour.
+                return null;
+            } catch (IOException e) {
+                if (e.getCause() instanceof SkyIsFalling)
+                    return null;
+                throw e;
+            }
+        }
+    }
 
 
     private static byte[] readFully(InputStream in, int n) throws IOException {
