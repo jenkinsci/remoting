@@ -33,7 +33,7 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_PREFETCH|GREEDY_REMOTE_INPUTSTREAM);
+        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_PREFETCH|GREEDY_REMOTE_INPUTSTREAM| MASK_PROXY_WRITER_2_35);
     }
 
     /**
@@ -74,6 +74,17 @@ public final class Capability implements Serializable {
      */
     public boolean supportsGreedyRemoteInputStream() {
         return (mask & GREEDY_REMOTE_INPUTSTREAM) != 0;
+    }
+
+    /**
+     * Does {@link ProxyWriter} supports proper throttling?
+     *
+     * This flag is also used to check other improvements made in ProxyWriter at the same time.
+     *
+     * @since 2.35
+     */
+    public boolean supportsProxyWriter2_35() {
+        return (mask & MASK_PROXY_WRITER_2_35) != 0;
     }
 
     /**
@@ -152,6 +163,12 @@ public final class Capability implements Serializable {
      * Support for {@link RemoteInputStream#greedy}.
      */
     private static final long GREEDY_REMOTE_INPUTSTREAM = 1L << 5;
+
+    /**
+     * Support for pipe window and other modern stuff in {@link ProxyWriter}.
+     * @since 2.35
+     */
+    private static final long MASK_PROXY_WRITER_2_35 = 1L << 6;
 
     static final byte[] PREAMBLE;
 

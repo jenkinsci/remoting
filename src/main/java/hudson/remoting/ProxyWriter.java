@@ -25,8 +25,11 @@ package hudson.remoting;
 
 import java.io.CharArrayWriter;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.Writer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link Writer} that sends bits to an exported
@@ -35,6 +38,8 @@ import java.io.Writer;
 final class ProxyWriter extends Writer {
     private Channel channel;
     private int oid;
+
+    private PipeWindow window;
 
     /**
      * If bytes are written to this stream before it's connected
@@ -72,13 +77,18 @@ final class ProxyWriter extends Writer {
     synchronized void connect(Channel channel, int oid) throws IOException {
         if(this.channel!=null)
             throw new IllegalStateException("Cannot connect twice");
+        if(oid==0)
+            throw new IllegalArgumentException("oid=0");
         this.channel = channel;
         this.oid = oid;
 
+        window =  channel.getPipeWindow(oid);
+
         // if we already have bytes to write, do so now.
         if(tmp!=null) {
-            write(tmp.toCharArray());
+            char[] b = tmp.toCharArray();
             tmp = null;
+            _write(b, 0, b.length);
         }
         if(closed)  // already marked closed?
             close();
@@ -89,43 +99,94 @@ final class ProxyWriter extends Writer {
     }
 
     public void write(char[] cbuf, int off, int len) throws IOException {
-        if(closed)
+        if (closed)
             throw new IOException("stream is already closed");
-        if(off==0 && len==cbuf.length)
-            write(cbuf);
-        else {
-            char[] buf = new char[len];
-            System.arraycopy(cbuf,off,buf,0,len);
-            write(buf);
-        }
+        _write(cbuf, off, len);
     }
 
-
-
-    public synchronized void write(char[] cbuf) throws IOException {
-        if(closed)
-            throw new IOException("stream is already closed");
+    /**
+     * {@link #write(char[])} without the close check.
+     */
+    private synchronized void _write(char[] cbuf, int off, int len) throws IOException {
         if(channel==null) {
             if(tmp==null)
                 tmp = new CharArrayWriter();
             tmp.write(cbuf);
         } else {
-            channel.send(new Chunk(oid,cbuf));
+            final int max = window.max();
+
+            while (len>0) {
+                int sendable;
+                try {
+                    /*
+                        To avoid fragmentation of the pipe window, at least demand that 10% of the pipe window
+                        be reclaimed.
+
+                        Imagine a large latency network where we are always low on the window size,
+                        and we are continuously sending data of irregular size. In such a circumstance,
+                        a fragmentation will happen. We start sending out a small Chunk at a time (say 4 bytes),
+                        and when its Ack comes back, it gets immediately consumed by another out-bound Chunk of 4 bytes.
+
+                        Clearly, it's better to wait a bit until we have a sizable pipe window, then send out
+                        a bigger Chunk, since Chunks have static overheads. This code does just that.
+
+                        (Except when what we are trying to send as a whole is smaller than the current available
+                        window size, in which case there's no point in waiting.)
+                     */
+                    sendable = Math.min(window.get(Math.min(max/10,len)),len);
+                    /*
+                        Imagine if we have a lot of data to send and the pipe window is fully available.
+                        If we create one Chunk that fully uses the window size, we need to wait for the
+                        whole Chunk to get to the other side, then the Ack to come back to this side,
+                        before we can send a next Chunk. While the Ack is traveling back to us, we have
+                        to sit idle. This fails to utilize available bandwidth.
+
+                        A better strategy is to create a smaller Chunk, say half the window size.
+                        This allows the other side to send back the ack while we are sending the second
+                        Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
+                        to overlap, and that improves the utilization.
+
+                        It's not clear what the best size of the chunk to send (there's a certain
+                        overhead in our Command structure, around 100-200 bytes), so I'm just starting
+                        with 2. Further analysis would be needed to determine the best value.
+                     */
+                    sendable = Math.min(sendable, max /2);
+                } catch (InterruptedException e) {
+                    throw (IOException)new InterruptedIOException().initCause(e);
+                }
+
+                channel.send(new Chunk(channel.newIoId(),oid,cbuf,off,sendable));
+                window.decrease(sendable);
+                off+=sendable;
+                len-=sendable;
+            }
         }
     }
 
     public void flush() throws IOException {
-        // noop
+        if(channel!=null && channel.remoteCapability.supportsProxyWriter2_35())
+            channel.send(new Flush(channel.newIoId(),oid));
     }
 
     public synchronized void close() throws IOException {
-        closed = true;
-        if(channel!=null) {
-            channel.send(new EOF(oid));
-            channel = null;
-            oid = -1;
-        }
+        error(null);
     }
+
+    public synchronized void error(Throwable e) throws IOException {
+        if (!closed) {
+            closed = true;
+//            error = e;
+        }
+        if(channel!=null)
+            doClose(e);
+    }
+
+    private void doClose(Throwable error) throws IOException {
+        channel.send(new EOF(channel.newIoId(),oid/*,error*/));
+        channel = null;
+        oid = -1;
+    }
+
 
     protected void finalize() throws Throwable {
         super.finalize();
@@ -142,21 +203,58 @@ final class ProxyWriter extends Writer {
      * {@link Command} for sending bytes.
      */
     private static final class Chunk extends Command {
+        private final int ioId;
         private final int oid;
         private final char[] buf;
 
-        public Chunk(int oid, char[] buf) {
+        public Chunk(int ioId, int oid, char[] buf, int start, int len) {
+            // to improve the performance when a channel is used purely as a pipe,
+            // don't record the stack trace. On FilePath.writeToTar case, the stack trace and the OOS header
+            // takes up about 1.5K.
+            super(false);
+            this.ioId = ioId;
             this.oid = oid;
-            this.buf = buf;
+            if (start==0 && len==buf.length)
+                this.buf = buf;
+            else {
+                this.buf = new char[len];
+                System.arraycopy(buf,start,this.buf,0,len);
+            }
         }
 
-        protected void execute(Channel channel) {
-            Writer os = (Writer) channel.getExportedObject(oid);
-            try {
-                os.write(buf);
-            } catch (IOException e) {
-                // ignore errors
-            }
+        protected void execute(final Channel channel) {
+            final Writer os = (Writer) channel.getExportedObject(oid);
+            channel.pipeWriter.submit(ioId, new Runnable() {
+                public void run() {
+                    try {
+                        os.write(buf);
+                    } catch (IOException e) {
+                        try {
+                            if (channel.remoteCapability.supportsProxyWriter2_35())
+                                channel.send(new NotifyDeadWriter(channel, e, oid));
+                        } catch (ChannelClosedException x) {
+                            // the other direction can be already closed if the connection
+                            // shut down is initiated from this side. In that case, remain silent.
+                        } catch (IOException x) {
+                            // ignore errors
+                            LOGGER.log(Level.WARNING, "Failed to notify the sender that the write end is dead", x);
+                            LOGGER.log(Level.WARNING, "... the failed write was:", e);
+                        }
+                    } finally {
+                        if (channel.remoteCapability.supportsProxyWriter2_35()) {
+                            try {
+                                channel.send(new Ack(oid, buf.length));
+                            } catch (ChannelClosedException x) {
+                                // the other direction can be already closed if the connection
+                                // shut down is initiated from this side. In that case, remain silent.
+                            } catch (IOException e) {
+                                // ignore errors
+                                LOGGER.log(Level.WARNING, "Failed to ack the stream", e);
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         public String toString() {
@@ -167,27 +265,34 @@ final class ProxyWriter extends Writer {
     }
 
     /**
-     * {@link Command} for sending EOF.
+     * {@link Command} for flushing.
+     * @since 2.35
      */
-    private static final class EOF extends Command {
+    private static final class Flush extends Command {
         private final int oid;
+        private final int ioId;
 
-        public EOF(int oid) {
+        public Flush(int ioId, int oid) {
+            super(false);
+            this.ioId = ioId;
             this.oid = oid;
         }
 
         protected void execute(Channel channel) {
-            OutputStream os = (OutputStream) channel.getExportedObject(oid);
-            channel.unexport(oid);
-            try {
-                os.close();
-            } catch (IOException e) {
-                // ignore errors
-            }
+            final OutputStream os = (OutputStream) channel.getExportedObject(oid);
+            channel.pipeWriter.submit(ioId, new Runnable() {
+                public void run() {
+                    try {
+                        os.flush();
+                    } catch (IOException e) {
+                        // ignore errors
+                    }
+                }
+            });
         }
 
         public String toString() {
-            return "Pipe.EOF("+oid+")";
+            return "Pipe.Flush("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -198,6 +303,7 @@ final class ProxyWriter extends Writer {
      *
      * <p>
      * Unlike {@link EOF}, this just unexports but not closes the stream.
+     * @since 2.35
      */
     private static class Unexport extends Command {
         private final int oid;
@@ -222,4 +328,96 @@ final class ProxyWriter extends Writer {
 
         private static final long serialVersionUID = 1L;
     }
+
+    /**
+     * {@link Command} for sending EOF.
+     */
+    private static final class EOF extends Command {
+        private final int oid;
+        private final int ioId;
+
+        public EOF(int ioId,int oid) {
+            this.ioId = ioId;
+            this.oid = oid;
+        }
+
+        protected void execute(final Channel channel) {
+            final Writer os = (Writer) channel.getExportedObject(oid);
+            channel.pipeWriter.submit(ioId, new Runnable() {
+                public void run() {
+                    channel.unexport(oid);
+                    try {
+                        os.close();
+                    } catch (IOException e) {
+                        // ignore errors
+                    }
+                }
+            });
+        }
+
+        public String toString() {
+            return "Pipe.EOF("+oid+")";
+        }
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    /**
+     * {@link Command} to notify the sender that it can send some more data.
+     * @since 2.35
+     */
+    private static class Ack extends Command {
+        /**
+         * The oid of the {@link OutputStream} on the receiver side of the data.
+         */
+        private final int oid;
+        /**
+         * The number of bytes that were freed up.
+         */
+        private final int size;
+
+        private Ack(int oid, int size) {
+            super(false); // performance optimization
+            this.oid = oid;
+            this.size = size;
+        }
+
+        protected void execute(Channel channel) {
+            PipeWindow w = channel.getPipeWindow(oid);
+            w.increase(size);
+        }
+
+        public String toString() {
+            return "Pipe.Ack("+oid+','+size+")";
+        }
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    /**
+     * {@link Command} to notify the sender that the receiver is dead.
+     * @since 2.35
+     */
+    private static final class NotifyDeadWriter extends Command {
+        private final int oid;
+
+        private NotifyDeadWriter(Channel channel,Throwable cause, int oid) {
+            super(channel,cause);
+            this.oid = oid;
+        }
+
+        @Override
+        protected void execute(Channel channel) {
+            PipeWindow w = channel.getPipeWindow(oid);
+            w.dead(createdAt.getCause());
+        }
+
+        public String toString() {
+            return "Pipe.Dead("+oid+")";
+        }
+
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final Logger LOGGER = Logger.getLogger(ProxyWriter.class.getName());
 }
