@@ -20,8 +20,8 @@
  */
 package hudson.remoting;
 
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 
 /**
@@ -109,7 +109,7 @@ public class FastPipedInputStream extends InputStream {
             throw new IOException("Unconnected pipe");
         }
         synchronized(buffer) {
-            closed = new ClosedBy();
+            closed = new ClosedBy(null);
             // Release any pending writers.
             buffer.notifyAll();
         }
@@ -164,7 +164,9 @@ public class FastPipedInputStream extends InputStream {
             synchronized(buffer) {
                 if(writePosition == readPosition && writeLaps == readLaps) {
                     if(closed!=null) {
-                        return -1;
+                        Throwable c = closed.getCause();
+                        if (c==null)        return -1;  // EOF
+                        throw (IOException)new IOException().initCause(c);
                     }
                     source(); // make sure the sink is still trying to read, or else fail the write.
 
@@ -198,8 +200,16 @@ public class FastPipedInputStream extends InputStream {
     }
 
     static final class ClosedBy extends Throwable {
-        ClosedBy() {
-            super("The pipe was closed at...");
+        ClosedBy(Throwable error) {
+            super("The pipe was closed at...", error);
+        }
+
+        /**
+         * If the pipe was closed by inducing an error, return that error object.
+         */
+        @Override
+        public Throwable getCause() {
+            return super.getCause();
         }
     }
 }

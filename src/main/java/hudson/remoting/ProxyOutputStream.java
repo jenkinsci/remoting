@@ -34,7 +34,7 @@ import java.util.logging.Logger;
  * {@link OutputStream} that sends bits to an exported
  * {@link OutputStream} on a remote machine.
  */
-final class ProxyOutputStream extends OutputStream {
+final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOutputStream {
     private Channel channel;
     private int oid;
 
@@ -50,6 +50,12 @@ final class ProxyOutputStream extends OutputStream {
      * Set to true if the stream is closed.
      */
     private boolean closed;
+
+    /**
+     * Set to the error object if the error is induced.
+     * @see #error(Throwable)
+     */
+    private Throwable error;
 
     /**
      * Creates unconnected {@link ProxyOutputStream}.
@@ -90,7 +96,7 @@ final class ProxyOutputStream extends OutputStream {
             _write(b,0,b.length);
         }
         if(closed)  // already marked closed?
-            doClose();
+            doClose(error);
     }
 
     public void write(int b) throws IOException {
@@ -168,13 +174,20 @@ final class ProxyOutputStream extends OutputStream {
     }
 
     public synchronized void close() throws IOException {
-        closed = true;
-        if(channel!=null)
-            doClose();
+        error(null);
     }
 
-    private void doClose() throws IOException {
-        channel.send(new EOF(channel.newIoId(),oid));
+    public synchronized void error(Throwable e) throws IOException {
+        if (!closed) {
+            closed = true;
+            error = e;
+        }
+        if(channel!=null)
+            doClose(e);
+    }
+
+    private void doClose(Throwable error) throws IOException {
+        channel.send(new EOF(channel.newIoId(),oid,error));
         channel = null;
         oid = -1;
     }
@@ -357,10 +370,12 @@ final class ProxyOutputStream extends OutputStream {
         private final int oid;
         private final int requestId = Request.getCurrentRequestId();
         private final int ioId;
+        private final Throwable error;
 
-        public EOF(int ioId, int oid) {
+        public EOF(int ioId, int oid, Throwable error) {
             this.ioId = ioId;
             this.oid = oid;
+            this.error = error;
         }
 
 
@@ -373,6 +388,8 @@ final class ProxyOutputStream extends OutputStream {
                 public void run() {
                     channel.unexport(oid);
                     try {
+                        if (error!=null && os instanceof ErrorPropagatingOutputStream)
+                            ((ErrorPropagatingOutputStream) os).error(error);
                         os.close();
                     } catch (IOException e) {
                         // ignore errors

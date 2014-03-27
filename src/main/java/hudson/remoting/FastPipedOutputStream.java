@@ -36,7 +36,7 @@ import java.lang.ref.WeakReference;
  * @link http://developer.java.sun.com/developer/bugParade/bugs/4404700.html
  * @see FastPipedOutputStream
  */
-public class FastPipedOutputStream extends OutputStream {
+public class FastPipedOutputStream extends OutputStream implements ErrorPropagatingOutputStream {
 
     WeakReference<FastPipedInputStream> sink;
 
@@ -86,12 +86,16 @@ public class FastPipedOutputStream extends OutputStream {
      */
     @Override
     public void close() throws IOException {
+        error(null);
+    }
+
+    public void error(Throwable e) throws IOException {
         if(sink == null) {
             throw new IOException("Unconnected pipe");
         }
         FastPipedInputStream s = sink();
         synchronized(s.buffer) {
-            s.closed = new FastPipedInputStream.ClosedBy();
+            s.closed = new FastPipedInputStream.ClosedBy(e);
             flush();
         }
     }

@@ -95,7 +95,7 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
-public final class Pipe implements Serializable {
+public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
     private InputStream in;
     private OutputStream out;
 
@@ -116,6 +116,20 @@ public final class Pipe implements Serializable {
      */
     public OutputStream getOut() {
         return out;
+    }
+
+    /**
+     * Writes an error to {@link #getOut()}, which results in {@link IOException} from the reading end.
+     *
+     * @see ErrorPropagatingOutputStream#error(Throwable)
+     */
+    public void error(Throwable t) throws IOException {
+        if (out instanceof ErrorPropagatingOutputStream) {
+            ErrorPropagatingOutputStream eo = (ErrorPropagatingOutputStream) out;
+            eo.error(t);
+        } else {
+            out.close();
+        }
     }
 
     /**

@@ -118,19 +118,43 @@ public class RemoteInputStream extends InputStream implements Serializable {
 
                     public void run() {
                         try {
-                            try {
-                                byte[] buf = new byte[8192];
-                                int len;
-                                while ((len = i.read(buf)) >= 0)
+                            byte[] buf = new byte[8192];
+                            int len;
+                            while (true) {
+                                try {
+                                    len = i.read(buf);
+                                    if (len < 0) break;
+                                } catch (IOException e) {
+                                    // if we can propagate the error, do so. In any case, give up
+                                    if (e instanceof ErrorPropagatingOutputStream) {
+                                        try {
+                                            ((ErrorPropagatingOutputStream) e).error(e);
+                                        } catch (IOException _) {
+                                            // can't do anything. just give up
+                                        }
+                                    }
+                                    return;
+                                }
+
+                                try {
                                     o.write(buf, 0, len);
-                            } finally {
-                                // it doesn't make sense not to close InputStream that's already EOF-ed,
-                                // so there's no 'closeIn' flag.
-                                i.close();
-                                o.close();
+                                } catch (IOException _) {
+                                    // can't do anything. just give up
+                                }
                             }
-                        } catch (IOException e) {
-                            // TODO: we want to pass this exception to the reading end of the pipe
+                        } finally {
+                            // it doesn't make sense not to close InputStream that's already EOF-ed,
+                            // so there's no 'closeIn' flag.
+                            try {
+                                i.close();
+                            } catch (IOException _) {
+                                // swallow and ignore
+                            }
+                            try {
+                                o.close();
+                            } catch (IOException _) {
+                                // swallow and ignore
+                            }
                         }
                     }
                 }.start();
