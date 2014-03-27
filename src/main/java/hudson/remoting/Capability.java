@@ -33,7 +33,7 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_PREFETCH);
+        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_PREFETCH|GREEDY_REMOTE_INPUTSTREAM);
     }
 
     /**
@@ -65,6 +65,15 @@ public final class Capability implements Serializable {
      */
     public boolean supportsPrefetch() {
         return (mask & MASK_PREFETCH) != 0;
+    }
+
+    /**
+     * Does {@link RemoteInputStream} supports greedy flag.
+     *
+     * @since 2.35
+     */
+    public boolean supportsGreedyRemoteInputStream() {
+        return (mask & GREEDY_REMOTE_INPUTSTREAM) != 0;
     }
 
     /**
@@ -138,6 +147,11 @@ public final class Capability implements Serializable {
      * @see ResourceImageRef
      */
     private static final long MASK_PREFETCH = 1L << 4;
+
+    /**
+     * Support for {@link RemoteInputStream#greedy}.
+     */
+    private static final long GREEDY_REMOTE_INPUTSTREAM = 1L << 5;
 
     static final byte[] PREAMBLE;
 
