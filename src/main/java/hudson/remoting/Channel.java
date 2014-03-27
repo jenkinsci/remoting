@@ -1162,7 +1162,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * Dispenses the unique I/O ID.
+     * Dispenses an unique I/O ID.
      *
      * When a {@link Channel} requests an activity that happens in {@link #pipeWriter},
      * the sender assigns unique I/O ID to this request, which enables later
