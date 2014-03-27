@@ -193,7 +193,10 @@ final class ProxyWriter extends Writer {
         // if we haven't done so, release the exported object on the remote side.
         // if the object is auto-unexported, the export entry could have already been removed.
         if(channel!=null) {
-            channel.send(new Unexport(channel.newIoId(),oid));
+            if (channel.remoteCapability.supportsProxyWriter2_35())
+                channel.send(new Unexport(channel.newIoId(),oid));
+            else
+                channel.send(new EOF(channel.newIoId(),oid));
             channel = null;
             oid = -1;
         }
