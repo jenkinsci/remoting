@@ -31,9 +31,20 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
     }
 
 
+    boolean streamClosed;
+
+    /**
+     * If {@link ProxyWriter} gets garbage collected, it should unexport the entry but shouldn't try to close the stream.
+     */
     @Bug(20769)
     public void testRemoteGC() throws InterruptedException, IOException {
-        StringWriter sw = new StringWriter();
+
+        StringWriter sw = new StringWriter() {
+            @Override
+            public void close() throws IOException {
+                streamClosed = true;
+            }
+        };
         final RemoteWriter w = new RemoteWriter(sw);
 
         channel.call(new Callable<Void, IOException>() {
@@ -58,6 +69,8 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
                 }
             });
         }
+
+        assertFalse(streamClosed);
     }
 
     private Object writeReplace() {
