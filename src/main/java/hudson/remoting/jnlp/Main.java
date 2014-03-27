@@ -145,9 +145,11 @@ public class Main {
     }
 
     public Engine createEngine() {
+        String slaveName = args.get(1);
+        LOGGER.log(INFO, "Setting up slave: {0}", slaveName);
         Engine engine = new Engine(
                 headlessMode ? new CuiListener() : new GuiListener(),
-                urls, args.get(0), args.get(1));
+                urls, args.get(0), slaveName);
         if(tunnel!=null)
             engine.setTunnel(tunnel);
         if(credentials!=null)
