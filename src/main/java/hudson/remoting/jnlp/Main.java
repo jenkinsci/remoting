@@ -40,6 +40,7 @@ import java.io.IOException;
 
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
+import hudson.remoting.StubJarCache;
 
 /**
  * Entry point to JNLP slave agent.
@@ -83,7 +84,12 @@ public class Main {
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = null;
 
-
+    /**
+     * @since TODO: define a version
+     */
+    @Option(name="-jar-cache-disabled",usage="Disables the jar caching")
+    public boolean jarCacheDisabled = false;
+    
     /**
      * 4 mandatory parameters.
      * Host name (deprecated), Jenkins URL, secret key, and slave name.
@@ -156,8 +162,11 @@ public class Main {
             engine.setCredentials(credentials);
         if(proxyCredentials!=null)
         	engine.setProxyCredentials(proxyCredentials);
-        if(jarCache!=null)
+        if(jarCache!=null && !jarCacheDisabled) {
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
+        } else {
+            engine.setJarCache(new StubJarCache());
+        }
         engine.setNoReconnect(noReconnect);
         return engine;
     }

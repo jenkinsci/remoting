@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -19,30 +20,38 @@ class ResourceImageBoth extends ResourceImageDirect {
 
     @Override
     Future<byte[]> resolve(Channel channel, String resourcePath) throws IOException, InterruptedException {
-        initiateJarRetrieval(channel);
+        if (channel.hasJarCache()) {
+            initiateJarRetrieval(channel);
+        }
         return super.resolve(channel, resourcePath);
     }
 
     @Override
     Future<URLish> resolveURL(Channel channel, String resourcePath) throws IOException, InterruptedException {
-        Future<URL> f = initiateJarRetrieval(channel);
-        if (f.isDone()) // prefer using the jar URL if the stuff is already available
-            return new ResourceImageInJar(sum1,sum2,null).resolveURL(channel,resourcePath);
-        else
-            return super.resolveURL(channel, resourcePath);
+        if (channel.hasJarCache()) {
+            Future<URL> f = initiateJarRetrieval(channel);
+            if (f != null && f.isDone()) // prefer using the jar URL if the stuff is already available
+                return new ResourceImageInJar(sum1,sum2,null).resolveURL(channel,resourcePath);
+        }
+        
+        // Fallback to the default resolver
+        return super.resolveURL(channel, resourcePath);
     }
 
+    @CheckForNull
     private Future<URL> initiateJarRetrieval(Channel channel) {
         JarCache c = channel.getJarCache();
-        assert c !=null : "we don't advertise jar caching to the other side unless we have a cache with us";
-
-        try {
-            return c.resolve(channel, sum1, sum2);
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Failed to initiate retrieval", e);
-        } catch (InterruptedException e) {
-            LOGGER.log(Level.WARNING, "Failed to initiate retrieval", e);
-            Thread.currentThread().interrupt(); // process the interrupt later
+        //assert c !=null : "we don't advertise jar caching to the other side unless we have a cache with us";
+        
+        if (c != null) {
+            try {
+                return c.resolve(channel, sum1, sum2);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "Failed to initiate retrieval", e);
+            } catch (InterruptedException e) {
+                LOGGER.log(Level.WARNING, "Failed to initiate retrieval", e);
+                Thread.currentThread().interrupt(); // process the interrupt later
+            }
         }
         return null;
     }

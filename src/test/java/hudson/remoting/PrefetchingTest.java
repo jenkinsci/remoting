@@ -210,7 +210,11 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         public Void call() throws IOException {
             try {
                 Channel ch = Channel.current();
-                ch.getJarCache().resolve(ch,sum1,sum2).get();
+                
+                //TODO: Add support of caches for unit tests
+                JarCache jarCache =  ch.getJarCache();
+                assert jarCache !=null : "we don't advertise jar caching to the other side unless we have a cache with us";              
+                jarCache.resolve(ch,sum1,sum2).get();            
                 return null;
             } catch (InterruptedException e) {
                 throw new IOException(e);

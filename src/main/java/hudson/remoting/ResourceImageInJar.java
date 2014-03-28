@@ -11,7 +11,8 @@ import java.util.concurrent.ExecutionException;
  * <p>
  * The jar file is identified by its checksum, and the receiver can use {@link JarLoader}
  * to retrieve the jar file if necessary.
- *
+ * </p>
+ * This method requires {@link JarCache} to be present.
  * @author Kohsuke Kawaguchi
  */
 class ResourceImageInJar extends ResourceImageRef {
@@ -73,8 +74,11 @@ class ResourceImageInJar extends ResourceImageRef {
 
     Future<URL> _resolveJarURL(Channel channel) throws IOException, InterruptedException {
         JarCache c = channel.getJarCache();
-        assert c !=null : "we don't advertise jar caching to the other side unless we have a cache with us";
-
+        //assert c !=null : "we don't advertise jar caching to the other side unless we have a cache with us";
+        if (c == null) {
+            throw (IOException)new IOException(String.format("Failed to resolve a jar %016x%016x. JAR caching is disabled",sum1,sum2));
+        }
+        
         return c.resolve(channel, sum1, sum2);
 //            throw (IOException)new IOException(String.format("Failed to resolve a jar %016x%016x",sum1,sum2)).initCause(e);
     }
