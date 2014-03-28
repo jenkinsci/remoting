@@ -289,7 +289,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      */
     /*package*/ synchronized void onCompleted(Response<RSP,EXC> response) {
         this.response = response;
-        notify();
+        notifyAll();
     }
 
     /**
