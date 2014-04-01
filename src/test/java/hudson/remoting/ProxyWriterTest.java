@@ -7,6 +7,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.io.Writer;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
@@ -16,7 +18,13 @@ import java.util.logging.StreamHandler;
  */
 public class ProxyWriterTest extends RmiTestBase implements Serializable {
     ByteArrayOutputStream log = new ByteArrayOutputStream();
-    StreamHandler logRecorder = new StreamHandler(log,new SimpleFormatter());
+    StreamHandler logRecorder = new StreamHandler(log,new SimpleFormatter()) {
+        @Override
+        public synchronized void publish(LogRecord record) {
+            super.publish(record);
+            flush();
+        }
+    };
     Logger logger = Logger.getLogger(Channel.class.getName());
 
     @Override
@@ -33,6 +41,41 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
 
 
     boolean streamClosed;
+
+    /**
+     * Exercise all the calls.
+     */
+    public void testAllCalls() throws Exception {
+        StringWriter sw = new StringWriter();
+        final RemoteWriter w = new RemoteWriter(sw);
+
+        channel.call(new Callable<Void, IOException>() {
+            public Void call() throws IOException {
+                writeBunchOfData(w);
+                return null;
+            }
+        });
+
+        StringWriter correct = new StringWriter();
+        writeBunchOfData(correct);
+
+        assertEquals(sw.toString(), correct.toString());
+        assertEquals(0, log.size());    // no warning should be reported
+    }
+
+    private static void writeBunchOfData(Writer w) throws IOException {
+        for (int i=0; i<1000; i++) {
+            w.write('1');
+            w.write("hello".toCharArray());
+            w.write("abcdef".toCharArray(), 0, 3);
+        }
+        w.flush();
+        for (int i=0; i<1000; i++) {
+            w.write("hello");
+            w.write("abcdef",0,3);
+        }
+        w.close();
+    }
 
     /**
      * If {@link ProxyWriter} gets garbage collected, it should unexport the entry but shouldn't try to close the stream.
@@ -59,7 +102,6 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
         // and if GC doesn't happen within this loop, the test can pass
         // even when the underlying problem exists.
         for (int i=0; i<30; i++) {
-            logRecorder.flush();
             assertTrue("There shouldn't be any errors: " + log.toString(), log.size() == 0);
 
             Thread.sleep(100);
