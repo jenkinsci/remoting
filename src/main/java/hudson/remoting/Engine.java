@@ -68,7 +68,13 @@ public class Engine extends Thread {
         }
     });
 
+    /**
+     * @deprecated
+     *      Use {@link #events}.
+     */
     public final EngineListener listener;
+
+    private final EngineListenerSplitter events = new EngineListenerSplitter();
 
     /**
      * To make Hudson more graceful against user error,
@@ -110,6 +116,7 @@ public class Engine extends Thread {
 
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
         this.listener = listener;
+        this.events.add(listener);
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
         this.slaveName = slaveName;
@@ -145,6 +152,14 @@ public class Engine extends Thread {
         this.noReconnect = noReconnect;
     }
 
+    public void addListener(EngineListener el) {
+        events.add(el);
+    }
+
+    public void removeListener(EngineListener el) {
+        events.remove(el);
+    }
+
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     @Override
     public void run() {
@@ -158,7 +173,7 @@ public class Engine extends Thread {
                         return; // exit
                 }
 
-                listener.status("Locating server among " + candidateUrls);
+                events.status("Locating server among " + candidateUrls);
                 Throwable firstError=null;
                 String port=null;
 
@@ -215,13 +230,13 @@ public class Engine extends Thread {
                 }
 
                 if(firstError!=null) {
-                    listener.error(firstError);
+                    events.error(firstError);
                     return;
                 }
 
                 Socket s = connect(port);
 
-                listener.status("Handshaking");
+                events.status("Handshaking");
 
                 DataOutputStream dos = new DataOutputStream(s.getOutputStream());
                 BufferedInputStream in = new BufferedInputStream(s.getInputStream());
@@ -267,10 +282,10 @@ public class Engine extends Thread {
                         ClassicCommandTransport.create(Mode.BINARY, in,new BufferedOutputStream(s.getOutputStream()),null,null,new Capability()),
                         false, null, jarCache);
                 
-                listener.status("Connected");
+                events.status("Connected");
                 channel.join();
-                listener.status("Terminated");
-                listener.onDisconnect();
+                events.status("Terminated");
+                events.onDisconnect();
 
                 if(noReconnect)
                     return; // exit
@@ -278,12 +293,12 @@ public class Engine extends Thread {
                 waitForServerToBack();
             }
         } catch (Throwable e) {
-            listener.error(e);
+            events.error(e);
         }
     }
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
-        listener.error(new Exception("The server rejected the connection: "+greeting));
+        events.error(new Exception("The server rejected the connection: "+greeting));
         Thread.sleep(10*1000);
     }
 
@@ -326,7 +341,7 @@ public class Engine extends Thread {
         }
 
         String msg = "Connecting to " + host + ':' + port;
-        listener.status(msg);
+        events.status(msg);
         int retry = 1;
         while(true) {
             try {
@@ -343,7 +358,7 @@ public class Engine extends Thread {
                 if(retry++>10)
                     throw (IOException)new IOException("Failed to connect to "+host+':'+port).initCause(e);
                 Thread.sleep(1000*10);
-                listener.status(msg+" (retrying:"+retry+")",e);
+                events.status(msg+" (retrying:"+retry+")",e);
             }
         }
     }
