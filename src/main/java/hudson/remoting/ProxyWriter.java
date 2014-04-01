@@ -26,7 +26,6 @@ package hudson.remoting;
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.io.OutputStream;
 import java.io.Writer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -65,7 +64,7 @@ final class ProxyWriter extends Writer {
      * Creates an already connected {@link ProxyWriter}.
      *
      * @param oid
-     *      The object id of the exported {@link OutputStream}.
+     *      The object id of the exported {@link Writer}.
      */
     public ProxyWriter(Channel channel, int oid) throws IOException {
         connect(channel,oid);
@@ -282,7 +281,7 @@ final class ProxyWriter extends Writer {
         }
 
         protected void execute(Channel channel) {
-            final OutputStream os = (OutputStream) channel.getExportedObject(oid);
+            final Writer os = (Writer) channel.getExportedObject(oid);
             channel.pipeWriter.submit(ioId, new Runnable() {
                 public void run() {
                     try {
@@ -371,7 +370,7 @@ final class ProxyWriter extends Writer {
      */
     private static class Ack extends Command {
         /**
-         * The oid of the {@link OutputStream} on the receiver side of the data.
+         * The oid of the {@link Writer} on the receiver side of the data.
          */
         private final int oid;
         /**
