@@ -285,10 +285,12 @@ public class Engine extends Thread {
                 events.status("Connected");
                 channel.join();
                 events.status("Terminated");
-                events.onDisconnect();
 
                 if(noReconnect)
                     return; // exit
+
+                events.onDisconnect();
+
                 // try to connect back to the server every 10 secs.
                 waitForServerToBack();
             }
