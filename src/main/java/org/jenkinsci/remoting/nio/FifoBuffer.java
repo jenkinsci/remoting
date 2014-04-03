@@ -54,7 +54,7 @@ public class FifoBuffer implements Closeable {
 
         void forward(int offset) {
             while (offset>0) {
-                int ch = chunk();
+                int ch = Math.min(offset,chunk());
                 assert 0<ch && ch<=offset;
                 offset -= ch;
                 off += ch;
@@ -82,7 +82,6 @@ public class FifoBuffer implements Closeable {
             while (len>0) {
                 int chunk = Math.min(len,chunk());
                 buf.get(p.buf, off, chunk);
-                buf.position(buf.position()+chunk);
 
                 off+=chunk;
                 len-=chunk;
