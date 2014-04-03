@@ -184,7 +184,7 @@ public class FifoBuffer implements Closeable {
     }
 
     /**
-     * Number of bytes availble in this buffer that are readable.
+     * Number of bytes available in this buffer that are readable.
      */
     int readable() {
         synchronized (lock) {
