@@ -168,12 +168,6 @@ public class FifoBuffer implements Closeable {
         w = new Pointer(p,0);
     }
 
-    public boolean isClosed() {
-        synchronized (lock) {
-            return closed;
-        }
-    }
-
     /**
      * Set limit to the number of maximum bytes this buffer can hold.
      *

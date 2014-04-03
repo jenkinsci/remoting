@@ -100,7 +100,7 @@ public class NioChannelHub implements Runnable {
         }
 
         public void reregister() throws IOException {
-            int writeFlag = wb.readable()>0 || wb.isClosed() ? OP_WRITE : 0; // do we want to write?
+            int writeFlag = wb.readable()!=0 ? OP_WRITE : 0; // do we want to write? if -1, we want to trigger closeW(), so we return OP_WRITE
             int readFlag = receiver!=null ? OP_READ : 0; // once we have the setup method called, we are ready
             boolean registered = false;
 
