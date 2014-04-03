@@ -161,7 +161,7 @@ public class ChannelBuilder {
      * This is an implementation detail of ChannelBuilder and it's protected
      * just so that
      */
-    protected CommandTransport negotiate(InputStream is, OutputStream os) throws IOException {
+    protected CommandTransport negotiate(final InputStream is, final OutputStream os) throws IOException {
         // write the magic preamble.
         // certain communication channel, such as forking JVM via ssh,
         // may produce some garbage at the beginning (for example a remote machine

@@ -5,6 +5,7 @@ import hudson.remoting.Callable;
 import hudson.remoting.Capability;
 import hudson.remoting.Channel;
 import hudson.remoting.Channel.Mode;
+import hudson.remoting.ChannelBuilder;
 import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 
@@ -30,7 +31,9 @@ import java.util.logging.Logger;
 import static java.nio.channels.SelectionKey.*;
 
 /**
+ * Switch board of multiple {@link Channel}s through NIO select.
  *
+ * Through this hub, N threads can attend to M channels.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -48,6 +51,9 @@ public class NioChannelHub implements Runnable {
     private final Queue<Callable<Void,IOException>> selectorTasks
             = new ConcurrentLinkedQueue<Callable<Void, IOException>>();
 
+    /**
+     * A pair of NIO channels used as the transport of a {@link Channel}.
+     */
     class ChannelPair extends AbstractByteArrayCommandTransport {
         final SelectableChannel r,w;
         final ReadableByteChannel rr;
@@ -55,7 +61,7 @@ public class NioChannelHub implements Runnable {
         private final Capability remoteCapability;
 
         /**
-         * Where we pools bytes read from {@link #r} but not yet processed.
+         * Where we pools bytes read from {@link #r} but not yet passed to {@link ByteArrayReceiver}.
          */
         final FifoBuffer rb = new FifoBuffer(16*1024,256*1024);
         /**
@@ -110,7 +116,7 @@ public class NioChannelHub implements Runnable {
                     pos+=frame;
                 } while(hasMore);
             } catch (InterruptedException e) {
-                throw new InterruptedIOException();
+                throw (InterruptedIOException)new InterruptedIOException().initCause(e);
             }
         }
 
@@ -154,6 +160,13 @@ public class NioChannelHub implements Runnable {
         this.transportFrameSize = transportFrameSize;
     }
 
+    /**
+     * Returns a {@link ChannelBuilder} that will add a channel to this hub.
+     *
+     * <p>
+     * If the way the channel is built doesn't support NIO, the resulting {@link Channel} will
+     * use a separate thread to service its I/O.
+     */
     public NioChannelBuilder newChannelBuilder(String name, ExecutorService es) {
         return new NioChannelBuilder(name,es) {
             // TODO: handle text mode
@@ -162,7 +175,7 @@ public class NioChannelHub implements Runnable {
             protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
-                if (r!=null && r!=null && mode==Mode.BINARY && true/*TODO: check if framing is suported*/) {
+                if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking()) {
                     final ChannelPair cp = new ChannelPair(r, w, cap);
                     cp.scheduleReregister();
                     return cp;
@@ -178,6 +191,11 @@ public class NioChannelHub implements Runnable {
         selector.wakeup();
     }
 
+    /**
+     * Attend to channels in the hub.
+     *
+     * TODO: how does this method return?
+     */
     public void run() {
         while (true) {
             try {
@@ -218,7 +236,7 @@ public class NioChannelHub implements Runnable {
                             int packetSize=0;
                             while (true) {
                                 if (cp.rb.peek(pos,buf)<buf.length)
-                                    break;  // we don't have enough
+                                    break;  // we don't have enough to parse header
                                 int header = ChunkHeader.parse(buf);
                                 int chunk = ChunkHeader.length(header);
                                 pos+=buf.length+chunk;

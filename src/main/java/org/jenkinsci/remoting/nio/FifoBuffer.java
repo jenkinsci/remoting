@@ -154,11 +154,11 @@ public class FifoBuffer implements Closeable {
      */
     private boolean closed;
 
-    FifoBuffer(int pageSize, int limit) {
+    public FifoBuffer(int pageSize, int limit) {
         this(null,pageSize,limit);
     }
 
-    FifoBuffer(Object lock, int pageSize, int limit) {
+    public FifoBuffer(Object lock, int pageSize, int limit) {
         this.lock = lock==null ? this : lock;
         this.limit = limit;
         this.pageSize = pageSize;
@@ -258,6 +258,9 @@ public class FifoBuffer implements Closeable {
 
     /**
      * Read bytes from a channel and stores it into this buffer.
+     *
+     * @return
+     *      number of bytes read, or -1 if the given channel has reached EOF and no further read is possible.
      */
     public int receive(ReadableByteChannel ch) throws IOException {
         int written = 0;

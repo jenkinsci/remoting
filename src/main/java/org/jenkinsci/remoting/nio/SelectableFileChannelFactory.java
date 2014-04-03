@@ -24,7 +24,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Hack that works around the fact that {@link FileChannel} is not a {@link SelectableChannel}.
+ * Extracts out {@link SelectableChannel} from {@link InputStream} or {@link OutputStream}.
+ *
+ * This hides the hack that works around the fact that {@link FileChannel} is not a {@link SelectableChannel}.
  *
  * <p>
  * JDK didn't make {@link FileChannel} selectable because it's not selectable on Windows.
