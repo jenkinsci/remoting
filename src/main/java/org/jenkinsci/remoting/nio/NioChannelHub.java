@@ -7,7 +7,6 @@ import hudson.remoting.Channel;
 import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
-import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -284,7 +283,11 @@ public class NioChannelHub implements Runnable {
     private void cancelKey(SelectionKey key) {
         if (key!=null) {
             key.cancel();
-            IOUtils.closeQuietly(key.channel());
+            try {
+                key.channel().close();
+            } catch (IOException _) {
+                // ignore
+            }
         }
     }
 

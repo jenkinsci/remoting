@@ -278,10 +278,11 @@ public class Engine extends Thread {
                     }
                 }
 
-                final Channel channel = new Channel("channel", executor,
-                        ClassicCommandTransport.create(Mode.BINARY, in,new BufferedOutputStream(s.getOutputStream()),null,null,new Capability()),
-                        false, null, jarCache);
-                
+                final Channel channel = new ChannelBuilder("channel", executor)
+                        .withJarCache(jarCache)
+                        .withMode(Mode.BINARY)
+                        .build(in, new BufferedOutputStream(s.getOutputStream()));
+
                 events.status("Connected");
                 channel.join();
                 events.status("Terminated");

@@ -504,8 +504,10 @@ public class Launcher {
      */
     public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing, JarCache cache) throws IOException, InterruptedException {
         ExecutorService executor = Executors.newCachedThreadPool();
-        Channel channel = new Channel("channel", executor,
-                ClassicCommandTransport.create(mode,is,os,null,null,new Capability()), false, null, cache);
+        Channel channel = new ChannelBuilder("channel", executor)
+                    .withMode(mode)
+                    .withJarCache(cache)
+                    .build(is,os);
         System.err.println("channel started");
         long timeout = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),

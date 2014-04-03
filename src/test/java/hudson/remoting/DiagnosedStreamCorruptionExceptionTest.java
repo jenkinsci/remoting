@@ -24,7 +24,11 @@ public class DiagnosedStreamCorruptionExceptionTest {
 
     @Test
     public void exercise() throws Exception {
-        ClassicCommandTransport ct = (ClassicCommandTransport) ClassicCommandTransport.create(Mode.BINARY, new ByteArrayInputStream(payload), new NullOutputStream(), new NullOutputStream(), getClass().getClassLoader(), new Capability());
+        ClassicCommandTransport ct = (ClassicCommandTransport)
+                new ChannelBuilder("dummy",null)
+                    .withMode(Mode.BINARY)
+                    .withBaseLoader(getClass().getClassLoader())
+                    .negotiate(new ByteArrayInputStream(payload), new NullOutputStream());
 
         verify(ct);
     }
@@ -55,7 +59,11 @@ public class DiagnosedStreamCorruptionExceptionTest {
         FastPipedOutputStream out = new FastPipedOutputStream(in);
         out.write(payload);
 
-        ClassicCommandTransport ct = (ClassicCommandTransport) ClassicCommandTransport.create(Mode.BINARY, in, new NullOutputStream(), new NullOutputStream(), getClass().getClassLoader(), new Capability());
+        ClassicCommandTransport ct = (ClassicCommandTransport)
+                new ChannelBuilder("dummy",null)
+                    .withMode(Mode.BINARY)
+                    .withBaseLoader(getClass().getClassLoader())
+                    .negotiate(in, new NullOutputStream());
 
         verify(ct);
     }
