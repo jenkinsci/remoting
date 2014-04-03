@@ -9,6 +9,7 @@ import hudson.remoting.ChannelBuilder;
 import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -53,11 +54,25 @@ public class NioChannelHub implements Runnable {
 
     /**
      * A pair of NIO channels used as the transport of a {@link Channel}.
+     *
+     * <p>
+     * The read end of it has to be a {@link Channel} that is both selectable and readable.
+     * There's no single type that captures this, so we use two fields {@link #r} and {@link #rr}
+     * that both point to the same object but as different types.
+     * The writer end of it has to be a {@link Channel} is similar.
+     *
+     * <p>
+     * Sometimes the read end and the write end are the same object, as in the case of socket,
+     * yet in remoting we have to be able to close read and write ends separately. So we take
+     * separate {@link Closeable} objects that abstracts away how we hide each end, which are
+     * {@link #rc} and {@link #wc}. When it is closed, the field is set to null to indicate
+     *  the channel is closed.
      */
     class ChannelPair extends AbstractByteArrayCommandTransport {
         final SelectableChannel r,w;
         final ReadableByteChannel rr;
         final WritableByteChannel ww;
+        Closeable rc,wc;
         private final Capability remoteCapability;
 
         /**
@@ -72,10 +87,13 @@ public class NioChannelHub implements Runnable {
         private ByteArrayReceiver receiver;
 
         ChannelPair(SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
+            assert r!=null && w!=null && rc!=null && wc!=null;
             this.r = r;
             this.w = w;
             this.rr = (ReadableByteChannel) r;
             this.ww = (WritableByteChannel) w;
+            this.rc = Closeables.input(r);
+            this.wc = Closeables.input(w);
             this.remoteCapability = remoteCapability;
         }
 
@@ -83,22 +101,54 @@ public class NioChannelHub implements Runnable {
             int writeFlag = wb.readable()>0 ? OP_WRITE : 0; // do we want to write?
             int readFlag = receiver!=null ? OP_READ : 0; // once we have the setup method called, we are ready
 
-            if (r.isOpen()) {
+            if (isRopen()) {
                 int rflag = (r==w) ? readFlag|writeFlag : readFlag;
                 r.configureBlocking(false);
                 r.register(selector, rflag).attach(this);
             }
 
-            if (r!=w && w.isOpen()) {
+            if (r!=w && isWopen()) {
                 w.configureBlocking(false);
                 w.register(selector, writeFlag).attach(this);
+            }
+        }
+
+        private boolean isWopen() {
+            return wc!=null;
+        }
+
+        private boolean isRopen() {
+            return rc!=null;
+        }
+
+        void closeR() throws IOException {
+            if (rc!=null) {
+                rc.close();
+                rc = null;
+                rb.close(); // no more data will enter rb, so signal EOF
+            }
+        }
+
+        void closeW() throws IOException {
+            if (wc!=null) {
+                wc.close();
+                wc = null;
             }
         }
 
         public void abort(Exception e) {
             cancelKey(r);
             cancelKey(w);
-            rb.close();
+            try {
+                closeR();
+            } catch (IOException _) {
+                // ignore
+            }
+            try {
+                closeW();
+            } catch (IOException _) {
+                // ignore
+            }
             receiver.terminate((IOException)new IOException("Failed to abort").initCause(e));
         }
 
@@ -134,11 +184,12 @@ public class NioChannelHub implements Runnable {
         @Override
         public void closeWrite() throws IOException {
             wb.close();
+            // when wb is fully drained and written, we'll call closeW()
         }
 
         @Override
         public void closeRead() throws IOException {
-            cancelKey(r);
+            closeR();
         }
 
         /**
@@ -227,8 +278,8 @@ public class NioChannelHub implements Runnable {
                     try {
                         if (key.isReadable()) {
                             if (cp.rb.receive(cp.rr) == -1) {
-                                cancelKey(key);
-                                cp.rb.close();
+                                key.cancel();
+                                cp.closeR();
                             }
 
                             final byte[] buf = new byte[2]; // space for reading the chunk header
@@ -263,7 +314,7 @@ public class NioChannelHub implements Runnable {
                         if (key.isWritable()) {
                             if (cp.wb.send(cp.ww) == -1) {
                                 // done with sending all the data
-                                cancelKey(key);
+                                cp.closeW();
                             } else {
                                 cp.reregister();
                             }
@@ -299,14 +350,8 @@ public class NioChannelHub implements Runnable {
     }
 
     private void cancelKey(SelectionKey key) {
-        if (key!=null) {
+        if (key!=null)
             key.cancel();
-            try {
-                key.channel().close();
-            } catch (IOException _) {
-                // ignore
-            }
-        }
     }
 
     public Selector getSelector() {

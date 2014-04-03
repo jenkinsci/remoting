@@ -202,6 +202,10 @@ public class FifoBuffer implements Closeable {
     /**
      * Read from this buffer write as much as possible to the channel until
      * the channel gets filled up.
+     *
+     * @return
+     *      number of bytes that were written. -1 if this buffer is EOF-ed and there will never be
+     *      any more data to write.
      */
     public int send(WritableByteChannel ch) throws IOException {
         int read = 0;   // total # of bytes read
