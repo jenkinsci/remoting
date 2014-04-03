@@ -7,6 +7,8 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 
 /**
+ * Creates {@link Closeable} that does socket half-close.
+ *
  * @author Kohsuke Kawaguchi
  */
 class Closeables {
