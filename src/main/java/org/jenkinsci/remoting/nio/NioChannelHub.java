@@ -57,7 +57,7 @@ public class NioChannelHub implements Runnable {
      *
      * <p>
      * The read end of it has to be a {@link Channel} that is both selectable and readable.
-     * There's no single type that captures this, so we rely on {@link #r()} and {@link #w()} to convey this idea.
+     * There's no single type that captures this, so we rely on {@link #rr()} and {@link #ww()} to convey this idea.
      *
      * <p>
      * Sometimes the read end and the write end are the same object, as in the case of socket,
@@ -91,12 +91,12 @@ public class NioChannelHub implements Runnable {
             this.remoteCapability = remoteCapability;
         }
 
-        <T extends SelectableChannel&ReadableByteChannel> T r() {
-            return (T) r;
+        ReadableByteChannel rr() {
+            return (ReadableByteChannel) r;
         }
 
-        <T extends SelectableChannel&WritableByteChannel> T w() {
-            return (T) w;
+        WritableByteChannel ww() {
+            return (WritableByteChannel) w;
         }
 
         public void reregister() throws IOException {
@@ -299,7 +299,7 @@ public class NioChannelHub implements Runnable {
 
                     try {
                         if (key.isReadable()) {
-                            if (cp.rb.receive(cp.r()) == -1) {
+                            if (cp.rb.receive(cp.rr()) == -1) {
                                 cp.closeR();
                             }
 
@@ -333,7 +333,7 @@ public class NioChannelHub implements Runnable {
                             }
                         }
                         if (key.isWritable()) {
-                            cp.wb.send(cp.w());
+                            cp.wb.send(cp.ww());
                             if (cp.wb.readable()<0) {
                                 // done with sending all the data
                                 cp.closeW();
