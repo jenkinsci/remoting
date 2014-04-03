@@ -57,9 +57,7 @@ public class NioChannelHub implements Runnable {
      *
      * <p>
      * The read end of it has to be a {@link Channel} that is both selectable and readable.
-     * There's no single type that captures this, so we use two fields {@link #r} and {@link #rr}
-     * that both point to the same object but as different types.
-     * The writer end of it has to be a {@link Channel} is similar.
+     * There's no single type that captures this, so we rely on {@link #r()} and {@link #w()} to convey this idea.
      *
      * <p>
      * Sometimes the read end and the write end are the same object, as in the case of socket,
@@ -69,9 +67,7 @@ public class NioChannelHub implements Runnable {
      *  the channel is closed.
      */
     class ChannelPair extends AbstractByteArrayCommandTransport {
-        final SelectableChannel r,w;
-        final ReadableByteChannel rr;
-        final WritableByteChannel ww;
+        private final SelectableChannel r,w;
         Closeable rc,wc;
         private final Capability remoteCapability;
 
@@ -87,29 +83,38 @@ public class NioChannelHub implements Runnable {
         private ByteArrayReceiver receiver;
 
         ChannelPair(SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
-            assert r!=null && w!=null && rc!=null && wc!=null;
+            assert r instanceof ReadableByteChannel && w instanceof WritableByteChannel && rc!=null && wc!=null;
             this.r = r;
             this.w = w;
-            this.rr = (ReadableByteChannel) r;
-            this.ww = (WritableByteChannel) w;
             this.rc = Closeables.input(r);
             this.wc = Closeables.input(w);
             this.remoteCapability = remoteCapability;
         }
 
+        <T extends SelectableChannel&ReadableByteChannel> T r() {
+            return (T) r;
+        }
+
+        <T extends SelectableChannel&WritableByteChannel> T w() {
+            return (T) w;
+        }
+
         public void reregister() throws IOException {
-            int writeFlag = wb.readable()>0 ? OP_WRITE : 0; // do we want to write?
+            int writeFlag = wb.readable()>0 || wb.isClosed() ? OP_WRITE : 0; // do we want to write?
             int readFlag = receiver!=null ? OP_READ : 0; // once we have the setup method called, we are ready
+            boolean registered = false;
 
             if (isRopen()) {
                 int rflag = (r==w) ? readFlag|writeFlag : readFlag;
                 r.configureBlocking(false);
                 r.register(selector, rflag).attach(this);
+                registered = true;
             }
 
-            if (r!=w && isWopen()) {
+            if (isWopen() && !registered) {
                 w.configureBlocking(false);
                 w.register(selector, writeFlag).attach(this);
+                registered = true;
             }
         }
 
@@ -277,7 +282,7 @@ public class NioChannelHub implements Runnable {
 
                     try {
                         if (key.isReadable()) {
-                            if (cp.rb.receive(cp.rr) == -1) {
+                            if (cp.rb.receive(cp.r()) == -1) {
                                 key.cancel();
                                 cp.closeR();
                             }
@@ -312,7 +317,7 @@ public class NioChannelHub implements Runnable {
                             }
                         } else
                         if (key.isWritable()) {
-                            if (cp.wb.send(cp.ww) == -1) {
+                            if (cp.wb.send(cp.w()) == -1) {
                                 // done with sending all the data
                                 cp.closeW();
                             } else {
