@@ -37,7 +37,7 @@ final class BufferPage {
     /**
      * Page size.
      */
-    private int size() {
+    int size() {
         return buf.length;
     }
 }

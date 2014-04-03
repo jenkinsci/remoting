@@ -13,15 +13,15 @@ public class BufferWriter extends BufferCursor {
         return this;
     }
 
-//    public void write(byte[] buf, int start, int len) {
-//        while (len>0) {
-//            int chunk = Math.min(len,chunk());
-//            System.arraycopy(buf,start,p.buf,off,chunk);
-//
-//            off+=chunk;
-//            len-=chunk;
-//            start+=chunk;
-//        }
-//    }
+    public void write(byte[] buf, int start, int len) {
+        while (len>0) {
+            int chunk = Math.min(len, remaining());
+            System.arraycopy(buf,start,p.buf,off,chunk);
 
+            forward(chunk);
+
+            len-=chunk;
+            start+=chunk;
+        }
+    }
 }

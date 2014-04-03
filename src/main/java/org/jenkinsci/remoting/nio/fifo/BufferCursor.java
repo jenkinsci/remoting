@@ -6,11 +6,11 @@ package org.jenkinsci.remoting.nio.fifo;
  * @author Kohsuke Kawaguchi
  */
 public abstract class BufferCursor implements Comparable<BufferCursor> {
-    private BufferPage p;
+    /*package*/ BufferPage p;
     /**
      * [0,p.buf.size)
      */
-    private int off;
+    /*package*/ int off;
 
     /*package*/ BufferCursor(BufferPage p, int off) {
         this.p = p;
@@ -25,6 +25,24 @@ public abstract class BufferCursor implements Comparable<BufferCursor> {
 
     public BufferReader newReader() {
         return new BufferReader(this);
+    }
+
+    /**
+     * Allocate the next page and move the cursor if we are at the end of the current page.
+     */
+    void forward(int delta) {
+        off += delta;
+        while (p.size()>=off) {
+            off -= p.size();
+            p = p.next(true);
+        }
+    }
+
+    /**
+     * How many bytes remain within the current page?
+     */
+    int remaining() {
+        return p.size()-off;
     }
 
     public int compareTo(BufferCursor that) {
