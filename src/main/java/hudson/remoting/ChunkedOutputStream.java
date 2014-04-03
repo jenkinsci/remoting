@@ -4,7 +4,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Sends a series of byte[] in such a way that the NIO receiver can easily discover boundaries.
+ * Sends a series of byte[] in such a way that each byte array is framed and boundaries are easily distinguishable.
+ * Think of this as a stream with a boundary marker in between.
+ *
+ * <p>
+ * This framing is used to allow NIO to buffer a whole {@link Command} until it completes.
  *
  * <p>
  * This class implements that semantics by allowing the caller to make {@link #sendBreak()} to
