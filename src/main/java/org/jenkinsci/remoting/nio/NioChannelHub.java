@@ -114,7 +114,6 @@ public class NioChannelHub implements Runnable {
             if (isWopen() && !registered) {
                 w.configureBlocking(false);
                 w.register(selector, writeFlag).attach(this);
-                registered = true;
             }
         }
 
@@ -131,6 +130,7 @@ public class NioChannelHub implements Runnable {
                 rc.close();
                 rc = null;
                 rb.close(); // no more data will enter rb, so signal EOF
+                cancelKey(r);
             }
         }
 
@@ -138,7 +138,24 @@ public class NioChannelHub implements Runnable {
             if (wc!=null) {
                 wc.close();
                 wc = null;
+                cancelKey(w);
             }
+        }
+
+        private void cancelKey(SelectableChannel c) {
+            assert c==r || c==w;
+            if (r!=w) {
+                cancelKey(c.keyFor(selector));
+            } else {
+                // if r==w we have to wait for both sides to close before we cancel key
+                if (rc==null && wc==null)
+                    cancelKey(c.keyFor(selector));
+            }
+        }
+
+        private void cancelKey(SelectionKey key) {
+            if (key!=null)
+                key.cancel();
         }
 
         public void abort(Exception e) {
@@ -283,7 +300,6 @@ public class NioChannelHub implements Runnable {
                     try {
                         if (key.isReadable()) {
                             if (cp.rb.receive(cp.r()) == -1) {
-                                key.cancel();
                                 cp.closeR();
                             }
 
@@ -317,13 +333,13 @@ public class NioChannelHub implements Runnable {
                             }
                         }
                         if (key.isWritable()) {
-                            if (cp.wb.send(cp.w()) == -1) {
+                            cp.wb.send(cp.w());
+                            if (cp.wb.readable()<0) {
                                 // done with sending all the data
                                 cp.closeW();
-                            } else {
-                                cp.reregister();
                             }
                         }
+                        cp.reregister();
                     } catch (IOException e) {
                         LOGGER.log(Level.WARNING, "Communication problem", e);
                         cp.abort(e);
@@ -348,15 +364,6 @@ public class NioChannelHub implements Runnable {
             pairs.add((ChannelPair)k.attachment());
         for (ChannelPair p : pairs)
             p.abort(e);
-    }
-
-    private void cancelKey(SelectableChannel ch) {
-        cancelKey(ch.keyFor(selector));
-    }
-
-    private void cancelKey(SelectionKey key) {
-        if (key!=null)
-            key.cancel();
     }
 
     public Selector getSelector() {
