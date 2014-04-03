@@ -24,21 +24,30 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
-import junit.framework.Assert;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.output.TeeOutputStream;
+import org.jenkinsci.remoting.nio.NioChannelHub;
 
-import java.io.IOException;
 import java.io.File;
-import java.io.OutputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.net.URLClassLoader;
-import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-import org.apache.commons.io.output.TeeOutputStream;
-import org.apache.commons.io.FileUtils;
+import static java.nio.channels.SelectionKey.*;
+import static org.junit.Assert.*;
 
 /**
  * Hides the logic of starting/stopping a channel for test.
@@ -122,6 +131,84 @@ interface ChannelRunner {
     }
 
     /**
+     * Runs a channel over NIO+socket.
+     */
+    static class NioSocket implements ChannelRunner {
+        private ExecutorService executor = Executors.newCachedThreadPool();
+        private NioChannelHub nio;
+        /**
+         * failure occurred in the other {@link Channel}.
+         */
+        private Exception failure;
+
+        private Channel south;
+
+        public Channel start() throws Exception {
+            ServerSocketChannel ss = ServerSocketChannel.open();
+            ss.configureBlocking(false);
+            ss.socket().bind(null);
+
+            nio = new NioChannelHub(115) {
+                @Override
+                protected void onSelected(SelectionKey key) {
+                    try {
+                        ServerSocketChannel ss = (ServerSocketChannel) key.channel();
+                        LOGGER.info("Acccepted");
+                        final SocketChannel con = ss.accept();
+                        executor.submit(new Runnable() {
+                            public void run() {
+                                try {
+                                    Socket socket = con.socket();
+                                    assertNull(south);
+                                    south = newChannelBuilder("south", executor)
+                                            .withHeaderStream(System.out)
+                                            .build(socket);
+                                    LOGGER.info("Connected to " + south);
+                                } catch (IOException e) {
+                                    LOGGER.log(Level.WARNING, "Handshake failed", e);
+                                    failure = e;
+                                }
+                            }
+                        });
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, "Failed to accept a socket",e);
+                        failure = e;
+                    }
+                }
+            };
+            ss.register(nio.getSelector(), OP_ACCEPT);
+            LOGGER.info("Waiting for connection");
+            executor.submit(nio);
+
+            // create a client channel that connects to the same hub
+            SocketChannel client = SocketChannel.open(new InetSocketAddress("localhost", ss.socket().getLocalPort()));
+            return nio.newChannelBuilder("north",executor).withMode(Mode.BINARY).build(client);
+        }
+
+        public void stop(Channel channel) throws Exception {
+            channel.close();
+            channel.join();
+
+            System.out.println("north completed");
+
+            // we initiate the shutdown from north, so by the time it closes south should be all closed, too
+            assertTrue(south.isInClosed());
+            assertTrue(south.isOutClosed());
+
+            executor.shutdown();
+
+            if(failure!=null)
+                throw failure;  // report a failure in the south side
+        }
+
+        public String getName() {
+            return "NIO+socket";
+        }
+
+        private static final Logger LOGGER = Logger.getLogger(NioSocket.class.getName());
+    }
+
+    /**
      * Runs a channel in a separate JVM by launching a new JVM.
      */
     static class Fork implements ChannelRunner {
@@ -173,7 +260,7 @@ interface ChannelRunner {
             int r = proc.waitFor();
 //            System.out.println("south completed");
 
-            Assert.assertEquals("exit code should have been 0",0,r);
+            assertEquals("exit code should have been 0", 0, r);
         }
 
         public String getName() {
