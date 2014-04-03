@@ -168,6 +168,12 @@ public class FifoBuffer implements Closeable {
         w = new Pointer(p,0);
     }
 
+    public boolean isClosed() {
+        synchronized (lock) {
+            return closed;
+        }
+    }
+
     /**
      * Set limit to the number of maximum bytes this buffer can hold.
      *
@@ -185,10 +191,15 @@ public class FifoBuffer implements Closeable {
 
     /**
      * Number of bytes available in this buffer that are readable.
+     *
+     * @return
+     *      -1 if the buffer is closed and there's no more data to read.
      */
     int readable() {
         synchronized (lock) {
-            return sz;
+            if (sz>0)   return sz;
+            if (closed) return -1;
+            return 0;
         }
     }
 
@@ -213,7 +224,7 @@ public class FifoBuffer implements Closeable {
         while (true) {
             synchronized (lock) {
                 int chunk = readable();
-                if (chunk==0) {
+                if (chunk<=0) {
                     // there's nothing we can immediately read
 
                     if (read>0)     return read;    // we've already read some
@@ -334,7 +345,7 @@ public class FifoBuffer implements Closeable {
      * If the ring is no longer needed, release the buffer.
      */
     private void releaseRing() {
-        if (closed &&  readable()==0)
+        if (readable()<0)
             r = w = null;
     }
 
