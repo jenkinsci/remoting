@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * I/O task scheduler.
@@ -117,6 +118,8 @@ class PipeWriter {
      */
     private final ExecutorService base;
 
+    private final AtomicInteger iota = new AtomicInteger();
+
     public PipeWriter(ExecutorService base) {
         this.base = base;
     }
@@ -148,11 +151,15 @@ class PipeWriter {
 
         return fh.set(base.submit(new Runnable() {
             public void run() {
+                final Thread t = Thread.currentThread();
+                final String oldName = t.getName();
                 try {
+                    t.setName(oldName+" : IO ID="+id+" : seq#="+iota.getAndIncrement());
                     command.run();
                 } finally {
                     FutureHolder old = pendingIO.remove(id);
                     assert old!=null;
+                    t.setName(oldName);
                 }
             }
         }));

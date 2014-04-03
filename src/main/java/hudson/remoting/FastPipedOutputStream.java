@@ -36,7 +36,7 @@ import java.lang.ref.WeakReference;
  * @link http://developer.java.sun.com/developer/bugParade/bugs/4404700.html
  * @see FastPipedOutputStream
  */
-public class FastPipedOutputStream extends OutputStream {
+public class FastPipedOutputStream extends OutputStream implements ErrorPropagatingOutputStream {
 
     WeakReference<FastPipedInputStream> sink;
 
@@ -86,13 +86,19 @@ public class FastPipedOutputStream extends OutputStream {
      */
     @Override
     public void close() throws IOException {
+        error(null);
+    }
+
+    public void error(Throwable e) throws IOException {
         if(sink == null) {
             throw new IOException("Unconnected pipe");
         }
         FastPipedInputStream s = sink();
         synchronized(s.buffer) {
-            s.closed = new FastPipedInputStream.ClosedBy();
-            flush();
+            if (s.closed==null) {
+                s.closed = new FastPipedInputStream.ClosedBy(e);
+                flush();
+            }
         }
     }
 
@@ -159,7 +165,7 @@ public class FastPipedOutputStream extends OutputStream {
 
                     Thread t = Thread.currentThread();
                     String oldName = t.getName();
-                    t.setName("Blocking to write '"+HexDump.toHex(b,off,Math.min(len,256))+"' : "+oldName);
+                    t.setName("Blocking to write "+HexDump.toHex(b,off,Math.min(len,256))+": "+oldName);
                     try {
                         buf.wait(TIMEOUT);
                     } catch (InterruptedException e) {

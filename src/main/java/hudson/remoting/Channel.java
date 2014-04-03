@@ -42,6 +42,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Hashtable;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
@@ -52,8 +53,6 @@ import java.util.logging.Logger;
 import java.net.URL;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -220,6 +219,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public final AtomicInteger classLoadingCount = new AtomicInteger();
 
     /**
+     * Prefetch cache hits.
+     *
+     * Out of all the counts in {@link #classLoadingCount}, how many times
+     * were we able to resolve them by ourselves, saving a remote roundtrip call?
+     * @since 2.24
+     */
+    public final AtomicInteger classLoadingPrefetchCacheCount = new AtomicInteger();
+
+    /**
      * Total number of nanoseconds spent for remote resource loading.
      * @see #classLoadingTime
      */
@@ -274,6 +282,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * ClassLaoder that remote classloaders should use as the basis.
      */
     /*package*/ final ClassLoader baseClassLoader;
+
+    private JarCache jarCache;
+
+    /*package*/ final JarLoaderImpl jarLoader;
+
+    short maximumBytecodeLevel = Short.MAX_VALUE;
 
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
@@ -404,11 +418,38 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this(settings, settings.negotiate(is,os));
     }
 
+    /**
+     * Creates a new channel.
+     *
+     * @param name
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
+     * @param exec
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
+     * @param transport
+     *      The transport that we run {@link Channel} on top of.
+     * @param base
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
+     * @param restricted
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
+     * @param jarCache
+     *
+     * @since 2.24
+     * @deprecated as of 2.NIO
+     */
+    public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base, JarCache jarCache) throws IOException {
+        this(new ChannelBuilder(name,exec)
+            .withBaseLoader(base)
+            .withRestricted(restricted)
+            .withJarCache(jarCache), transport);
+    }
+
+
     /*package*/ Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
         this.name = settings.getName();
         this.executor = new InterceptingExecutorService(settings.getExecutors());
         this.isRestricted = settings.isRestricted();
         this.underlyingOutput = transport.getUnderlyingStream();
+        this.jarCache = settings.getJarCache();
 
         this.baseClassLoader = settings.getBaseLoader();
 
@@ -420,6 +461,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.pipeWriter = new PipeWriter(createPipeWriterExecutor());
 
         this.transport = transport;
+
+        this.jarLoader = new JarLoaderImpl(); // TODO: figure out a mechanism to allow the user to share this across Channels
+        setProperty(JarLoader.OURS,export(JarLoader.class,jarLoader,false));
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
@@ -458,6 +502,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /*package*/ boolean isOutClosed() {
         return outClosed!=null;
     }
+    
+    /**
+     * Returns {@code true} if the channel is either in the process of closing down or has closed down.
+     * @since 2.33
+     */
+    public boolean isClosingOrClosed() {
+        return inClosed != null || outClosed != null;
+    }
 
     /**
      * Creates the {@link ExecutorService} for writing to pipes.
@@ -469,11 +521,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     private ExecutorService createPipeWriterExecutor() {
         if (remoteCapability.supportsPipeThrottling())
-            return Executors.newSingleThreadExecutor(new ThreadFactory() {
-                public Thread newThread(Runnable r) {
-                    return new Thread(r,"Pipe writer thread: "+name);
-                }
-            });
+            return new SingleLaneExecutorService(executor);
         return new SynchronousExecutorService();
     }
 
@@ -498,7 +546,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * {@inheritDoc}
      */
     public <T> T export(Class<T> type, T instance) {
-        return export(type,instance,true);
+        return export(type, instance, true);
     }
 
     /**
@@ -537,7 +585,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /*package*/ int export(Object instance, boolean automaticUnexport) {
-        return exportedObjects.export(instance,automaticUnexport);
+        return exportedObjects.export(instance, automaticUnexport);
     }
 
     /*package*/ Object getExportedObject(int oid) {
@@ -621,18 +669,38 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      if the preloading fails.
      */
     public boolean preloadJar(Callable<?,?> classLoaderRef, Class... classesInJar) throws IOException, InterruptedException {
-        return preloadJar(UserRequest.getClassLoader(classLoaderRef),classesInJar);
+        return preloadJar(UserRequest.getClassLoader(classLoaderRef), classesInJar);
     }
 
     public boolean preloadJar(ClassLoader local, Class... classesInJar) throws IOException, InterruptedException {
         URL[] jars = new URL[classesInJar.length];
         for (int i = 0; i < classesInJar.length; i++)
             jars[i] = Which.jarFile(classesInJar[i]).toURI().toURL();
-        return call(new PreloadJarTask(jars,local));
+        return call(new PreloadJarTask(jars, local));
     }
 
     public boolean preloadJar(ClassLoader local, URL... jars) throws IOException, InterruptedException {
         return call(new PreloadJarTask(jars,local));
+    }
+
+    /**
+     * If this channel is built with jar file caching, return the object that manages this cache.
+     * @since 2.24
+     */
+    public JarCache getJarCache() {
+        return jarCache;
+    }
+
+    /**
+     * You can change the {@link JarCache} while the channel is in operation,
+     * but doing so doesn't impact {@link RemoteClassLoader}s that are already created.
+     *
+     * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
+     * unless your call sequence guarantees that you call this method before remote classes are loaded.
+     * @since 2.24
+     */
+    public void setJarCache(JarCache jarCache) {
+        this.jarCache = jarCache;
     }
 
     /*package*/ PipeWindow getPipeWindow(int oid) {
@@ -792,7 +860,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public synchronized void join() throws InterruptedException {
         while(inClosed==null || outClosed==null)
-            wait();
+            // not that I really encountered any situation where this happens, but
+            // given tickets like JENKINS-20709 that talks about hangs, it seems
+            // like a good defensive measure to periodically wake up to make sure
+            // that the wait condition is still not met in case we don't call notifyAll correctly
+            wait(30*1000);
     }
 
     /**
@@ -812,6 +884,33 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     public void setRestricted(boolean b) {
         isRestricted = b;
+    }
+
+    /**
+     * Sets the maximum bytecode version (~ JDK) that we expect this channel to be able to load.
+     * If attempts are made to load remote classes using newer bytecode, they are immediately rejected,
+     * even if the remote JVM is actually new enough to load it.
+     * This helps maintain compatibility by making tests fail immediately without the need for an old JDK installation.
+     * By default, the remote class loader will try to load any bytecode version.
+     * @param level e.g. 5 for JDK 5 (the minimum sensible value)
+     * @since 2.29
+     */
+    public void setMaximumBytecodeLevel(short level) throws IOException, InterruptedException {
+        if (level < 5) {
+            throw new IllegalArgumentException("Does not make sense to specify JDK 1.4 or below since remoting itself requires JDK 5+");
+        }
+        call(new SetMaximumBytecodeLevel(level));
+    }
+    private static final class SetMaximumBytecodeLevel implements Callable<Void,RuntimeException> {
+        private static final long serialVersionUID = 1;
+        private final short level;
+        SetMaximumBytecodeLevel(short level) {
+            this.level = level;
+        }
+        public Void call() throws RuntimeException {
+            Channel.current().maximumBytecodeLevel = level;
+            return null;
+        }
     }
 
     /**
@@ -876,8 +975,24 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public void resetPerformanceCounters() {
         classLoadingCount.set(0);
         classLoadingTime.set(0);
+        classLoadingPrefetchCacheCount.set(0);
         resourceLoadingCount.set(0);
         resourceLoadingTime.set(0);
+    }
+
+    /**
+     * Print the performance counters.
+     * @since 2.24
+     */
+    public void dumpPerformanceCounters(PrintWriter w) throws IOException {
+        // locale fixed to English to get ',' for every 3 digits
+        int l = classLoadingCount.get();
+        int p = classLoadingPrefetchCacheCount.get();
+        w.printf(Locale.ENGLISH, "Class loading count=%d\n", l);
+        w.printf(Locale.ENGLISH, "Class loading prefetch hit=%s (%d%%)\n", p, p*100/l);
+        w.printf(Locale.ENGLISH, "Class loading time=%,dms\n", classLoadingTime.get() / (1000 * 1000));
+        w.printf(Locale.ENGLISH, "Resource loading count=%d\n", resourceLoadingCount.get());
+        w.printf(Locale.ENGLISH, "Resource loading time=%,dms\n",resourceLoadingTime.get()/(1000*1000));
     }
 
     /**
@@ -903,6 +1018,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         send(new CloseCommand(this,diagnosis));
         outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
+        notifyAll();
         try {
             transport.closeWrite();
         } catch (IOException e) {
@@ -991,6 +1107,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return remoteChannel.waitForProperty(key);
     }
 
+    /**
+     * @deprecated
+     *      Because {@link ChannelProperty} is identity-equality, this method would never work.
+     *      This is a design error.
+     */
     public <T> T waitForRemoteProperty(ChannelProperty<T> key) throws InterruptedException {
         return key.type.cast(waitForRemoteProperty((Object) key));
     }
@@ -1054,7 +1175,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * Dispenses the unique I/O ID.
+     * Dispenses an unique I/O ID.
      *
      * When a {@link Channel} requests an activity that happens in {@link #pipeWriter},
      * the sender assigns unique I/O ID to this request, which enables later
@@ -1194,43 +1315,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",1024*1024);
 
-//    static {
-//        ConsoleHandler h = new ConsoleHandler();
-//        h.setFormatter(new Formatter(){
-//            public synchronized String format(LogRecord record) {
-//                StringBuilder sb = new StringBuilder();
-//                sb.append((record.getMillis()%100000)+100000);
-//                sb.append(" ");
-//                if (record.getSourceClassName() != null) {
-//                    sb.append(record.getSourceClassName());
-//                } else {
-//                    sb.append(record.getLoggerName());
-//                }
-//                if (record.getSourceMethodName() != null) {
-//                    sb.append(" ");
-//                    sb.append(record.getSourceMethodName());
-//                }
-//                sb.append('\n');
-//                String message = formatMessage(record);
-//                sb.append(record.getLevel().getLocalizedName());
-//                sb.append(": ");
-//                sb.append(message);
-//                sb.append('\n');
-//                if (record.getThrown() != null) {
-//                    try {
-//                        StringWriter sw = new StringWriter();
-//                        PrintWriter pw = new PrintWriter(sw);
-//                        record.getThrown().printStackTrace(pw);
-//                        pw.close();
-//                        sb.append(sw.toString());
-//                    } catch (Exception ex) {
-//                    }
-//                }
-//                return sb.toString();
-//            }
-//        });
-//        h.setLevel(Level.FINE);
-//        logger.addHandler(h);
-//        logger.setLevel(Level.FINE);
-//    }
+    static final Class jarLoaderProxy;
+
+    static {
+        // dead-lock prevention.
+        //
+        // creating a new proxy class is a classloading activity, so it can create a dead-lock situation
+        // if thread A starts classloading via RemoteClassLoader.ladClass(),
+        // then thread B use JarCacheSupport.prefetch and tries to create a proxy for JarLoader
+        //    (which blocks as Proxy.getProxyClass waits for RemoteClassLoader.defineClass lock by thread A)
+        // then thread A tries to touch JarLoader proxy (which blocks on thread B)
+        //
+        // to avoid situations like this, create proxy classes that we need during the classloading
+        jarLoaderProxy=RemoteInvocationHandler.getProxyClass(JarLoader.class);
+    }
 }

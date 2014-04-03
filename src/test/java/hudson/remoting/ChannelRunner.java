@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.io.File;
 import java.io.OutputStream;
 import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.net.URLClassLoader;
@@ -89,6 +91,7 @@ interface ChannelRunner {
 
         public void stop(Channel channel) throws Exception {
             channel.close();
+            channel.join();
 
             System.out.println("north completed");
 
@@ -126,12 +129,24 @@ interface ChannelRunner {
         private ExecutorService executor;
         private Copier copier;
 
+        protected List<String> buildCommandLine() {
+            String cp = getClasspath();
+
+            System.out.println(cp);
+            List<String> r = new ArrayList<String>();
+            r.add("-cp");
+            r.add(cp);
+            r.add(Launcher.class.getName());
+            return r;
+        }
+
         public Channel start() throws Exception {
             System.out.println("forking a new process");
             // proc = Runtime.getRuntime().exec("java -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000 hudson.remoting.Launcher");
 
-            System.out.println(getClasspath());
-            proc = Runtime.getRuntime().exec(new String[]{"java","-cp",getClasspath(),"hudson.remoting.Launcher"});
+            List<String> cmds = buildCommandLine();
+            cmds.add(0,"java");
+            proc = Runtime.getRuntime().exec(cmds.toArray(new String[0]));
 
             copier = new Copier("copier",proc.getErrorStream(),System.out);
             copier.start();
@@ -180,5 +195,17 @@ interface ChannelRunner {
          * Record the communication to the remote node. Used during debugging.
          */
         private static boolean RECORD_OUTPUT = false;
+    }
+
+    /**
+     * This will test an ASCII incompatible encoding
+     */
+    public static class ForkEBCDIC extends Fork {
+        @Override
+        protected List<String> buildCommandLine() {
+            List<String> r = super.buildCommandLine();
+            r.add(0,"-Dfile.encoding=CP037");
+            return r;
+        }
     }
 }

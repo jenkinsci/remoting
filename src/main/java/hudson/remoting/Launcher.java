@@ -116,6 +116,9 @@ public class Launcher {
     @Option(name="-secret", metaVar="HEX_SECRET", usage="Slave connection secret to use instead of -jnlpCredentials.")
     public String secret;
 
+    @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
+    public String proxyCredentials = null;
+
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader.")
     public void addClasspath(String pathList) throws Exception {
@@ -137,8 +140,14 @@ public class Launcher {
     public File tcpPortFile=null;
 
 
-    @Option(name="-auth",metaVar="user:pass",usage="If your Hudson is security-enabled, specify a valid user name and password.")
+    @Option(name="-auth",metaVar="user:pass",usage="If your Jenkins is security-enabled, specify a valid user name and password.")
     public String auth = null;
+
+    /**
+     * @since 2.24
+     */
+    @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
+    public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
 
     public InetSocketAddress connectionTarget = null;
 
@@ -172,6 +181,9 @@ public class Launcher {
         });
     }
 
+    @Option(name="-noReconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
+    public boolean noReconnect = false;
+
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
@@ -201,10 +213,16 @@ public class Launcher {
         }
         if(connectionTarget!=null) {
             runAsTcpClient();
-            System.exit(0);
         } else
         if(slaveJnlpURL!=null) {
             List<String> jnlpArgs = parseJnlpArguments();
+            if (jarCache != null) {
+              jnlpArgs.add("-jar-cache");
+              jnlpArgs.add(jarCache.getPath());
+            }
+            if (this.noReconnect) {
+                jnlpArgs.add("-noreconnect");
+            }
             try {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
             } catch (CmdLineException e) {
@@ -216,11 +234,10 @@ public class Launcher {
         } else
         if(tcpPortFile!=null) {
             runAsTcpServer();
-            System.exit(0);
         } else {
             runWithStdinStdout();
-            System.exit(0);
         }
+        System.exit(0);
     }
 
     /**
@@ -236,11 +253,17 @@ public class Launcher {
         while (true) {
             try {
                 URLConnection con = slaveJnlpURL.openConnection();
-                if (con instanceof HttpURLConnection && slaveJnlpCredentials != null) {
+                if (con instanceof HttpURLConnection) {
                     HttpURLConnection http = (HttpURLConnection) con;
-                    String userPassword = slaveJnlpCredentials;
-                    String encoding = Base64.encode(userPassword.getBytes());
-                    http.setRequestProperty("Authorization", "Basic " + encoding);
+                    if  (slaveJnlpCredentials != null) {
+	                    String userPassword = slaveJnlpCredentials;
+	                    String encoding = Base64.encode(userPassword.getBytes("UTF-8"));
+	                    http.setRequestProperty("Authorization", "Basic " + encoding);
+                    }
+                    if (System.getProperty("proxyCredentials", proxyCredentials) != null) {
+	                    String encoding = Base64.encode(System.getProperty("proxyCredentials", proxyCredentials).getBytes("UTF-8"));
+	                    http.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+                    }
                 }
                 con.connect();
 
@@ -306,6 +329,9 @@ public class Launcher {
                 } else
                     throw e;
             } catch (IOException e) {
+                if (this.noReconnect)
+                    throw (IOException)new IOException("Failing to obtain "+slaveJnlpURL).initCause(e);
+
                 System.err.println("Failing to obtain "+slaveJnlpURL);
                 e.printStackTrace(System.err);
                 System.err.println("Waiting 10 seconds before retry");
@@ -373,7 +399,8 @@ public class Launcher {
         // we take care of buffering on our own
         s.setTcpNoDelay(true);
         main(new BufferedInputStream(new SocketInputStream(s)),
-             new BufferedOutputStream(new SocketOutputStream(s)), mode,ping);
+             new BufferedOutputStream(new SocketOutputStream(s)), mode,ping,
+             new FileSystemJarCache(jarCache,true));
     }
 
     /**
@@ -427,7 +454,7 @@ public class Launcher {
 
         // System.in/out appear to be already buffered (at least that was the case in Linux and Windows as of Java6)
         // so we are not going to double-buffer these.
-        main(System.in, os, mode, ping);
+        main(System.in, os, mode, ping, new FileSystemJarCache(jarCache,true));
     }
 
     private static void ttyCheck() {
@@ -464,9 +491,21 @@ public class Launcher {
         main(is,os,mode,false);
     }
 
+    /**
+     * @deprecated
+     *      Use {@link #main(InputStream, OutputStream, Mode, boolean, JarCache)}
+     */
     public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing) throws IOException, InterruptedException {
+        main(is, os, mode, performPing,
+                new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true));
+    }
+    /**
+     * @since 2.24
+     */
+    public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing, JarCache cache) throws IOException, InterruptedException {
         ExecutorService executor = Executors.newCachedThreadPool();
-        Channel channel = new Channel("channel", executor, mode, is, os);
+        Channel channel = new Channel("channel", executor,
+                ClassicCommandTransport.create(mode,is,os,null,null,new Capability()), false, null, cache);
         System.err.println("channel started");
         long timeout = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),

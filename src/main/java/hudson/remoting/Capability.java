@@ -33,7 +33,7 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_CHUNKED_ENCODING);
+        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_PREFETCH|GREEDY_REMOTE_INPUTSTREAM| MASK_PROXY_WRITER_2_35|MASK_CHUNKED_ENCODING);
     }
 
     /**
@@ -75,7 +75,35 @@ public final class Capability implements Serializable {
      * @see ChunkHeader
      */
     public boolean supportsChunking() {
-        return (mask&MASK_CHUNKED_ENCODING)!=0;
+        return (mask & MASK_CHUNKED_ENCODING) != 0;
+    }
+
+    /**
+     * Does the implementation allow classes to be prefetched and JARs to be cached?
+     * @since 2.24
+     */
+    public boolean supportsPrefetch() {
+        return (mask & MASK_PREFETCH) != 0;
+    }
+
+    /**
+     * Does {@link RemoteInputStream} supports greedy flag.
+     *
+     * @since 2.35
+     */
+    public boolean supportsGreedyRemoteInputStream() {
+        return (mask & GREEDY_REMOTE_INPUTSTREAM) != 0;
+    }
+
+    /**
+     * Does {@link ProxyWriter} supports proper throttling?
+     *
+     * This flag is also used to check other improvements made in ProxyWriter at the same time.
+     *
+     * @since 2.35
+     */
+    public boolean supportsProxyWriter2_35() {
+        return (mask & MASK_PROXY_WRITER_2_35) != 0;
     }
 
     /**
@@ -115,26 +143,59 @@ public final class Capability implements Serializable {
      * If we ever use up all 64bits of long, we can probably come back and reuse this bit, as by then
      * hopefully any such remoting.jar deployment is long gone. 
      */
-    private static final long MASK_UNUSED1 = 1L;
+    @SuppressWarnings("PointlessBitwiseExpression")
+    private static final long MASK_UNUSED1 = 1L << 0;
+    
     /**
      * Bit that indicates the use of {@link MultiClassLoaderSerializer}.
      */
-    private static final long MASK_MULTI_CLASSLOADER = 2L;
+    private static final long MASK_MULTI_CLASSLOADER = 1L << 1;
 
     /**
      * Bit that indicates the use of TCP-like window control for {@link ProxyOutputStream}.
      */
-    private static final long MASK_PIPE_THROTTLING = 4L;
+    private static final long MASK_PIPE_THROTTLING = 1L << 2;
 
     /**
      * Supports {@link MimicException}.
      */
-    private static final long MASK_MIMIC_EXCEPTION = 8L;
+    private static final long MASK_MIMIC_EXCEPTION = 1L << 3;
+
+    /**
+     * This flag indicates the support for advanced classloading features.
+     *
+     * <p>
+     * This mainly involves two things:
+     *
+     * <ul>
+     * <li>Prefetching, where a request to retrieve a class also reports where
+     *     related classes can be found and loaded, which saves roundtrips.
+     * <li>Caching, where we separate "which classloader should load a class" from
+     *     "which jar file should load a class", enabling caching at the jar files level.
+     * </ul>
+     *
+     * @see ResourceImageRef
+     */
+    private static final long MASK_PREFETCH = 1L << 4;
+
+    /**
+     * Support for {@link RemoteInputStream#greedy}.
+     */
+    private static final long GREEDY_REMOTE_INPUTSTREAM = 1L << 5;
+
+    /**
+     * Support for pipe window and other modern stuff in {@link ProxyWriter}.
+     * @since 2.35
+     */
+    private static final long MASK_PROXY_WRITER_2_35 = 1L << 6;
 
     /**
      * Supports chunked encoding.
+     *
+     * TODO: reassign before release
+     * @sine 2.NIO
      */
-    private static final long MASK_CHUNKED_ENCODING = 16L;
+    private static final long MASK_CHUNKED_ENCODING = 1L << 7;
 
     static final byte[] PREAMBLE;
 

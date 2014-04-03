@@ -2,10 +2,13 @@ package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.io.StreamCorruptedException;
 
 /**
  * The default {@link CommandTransport} that has been used historically.
@@ -21,12 +24,21 @@ import java.io.OutputStream;
     private final ObjectInputStream ois;
     private final ObjectOutputStream oos;
     private final Capability remoteCapability;
-    private final OutputStream underlyingStream;
+    /**
+     * Transport level {@link InputStream} that we use only for diagnostics in case we detect stream
+     * corruption. Can be null.
+     */
+    private final @Nullable FlightRecorderInputStream rawIn;
+    /**
+     * See {@link CommandTransport#getUnderlyingStream()}
+     */
+    private final OutputStream rawOut;
 
-    /*package*/ ClassicCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, OutputStream underlyingStream, Capability remoteCapability) {
+    /*package*/ ClassicCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, FlightRecorderInputStream rawIn, OutputStream rawOut, Capability remoteCapability) {
         this.ois = ois;
         this.oos = oos;
-        this.underlyingStream = underlyingStream;
+        this.rawIn= rawIn;
+        this.rawOut = rawOut;
         this.remoteCapability = remoteCapability;
     }
 
@@ -54,7 +66,31 @@ import java.io.OutputStream;
     }
 
     public final Command read() throws IOException, ClassNotFoundException {
-        return Command.readFrom(channel,ois);
+        try {
+            Command cmd = Command.readFrom(channel, ois);
+            if (rawIn!=null)
+                rawIn.clear();
+            return cmd;
+        } catch (RuntimeException e) {// see JENKINS-19046
+            throw diagnoseStreamCorruption(e);
+        } catch (StreamCorruptedException e) {
+            throw diagnoseStreamCorruption(e);
+        }
+    }
+
+    /**
+     * To diagnose stream corruption, we'll try to read ahead the data.
+     * This operation can block, so we'll use another thread to do this.
+     */
+    private StreamCorruptedException diagnoseStreamCorruption(Exception e) throws StreamCorruptedException {
+        if (rawIn==null) {// no source of diagnostics information. can't diagnose.
+            if (e instanceof StreamCorruptedException)
+                return (StreamCorruptedException)e;
+            else
+                return (StreamCorruptedException)new StreamCorruptedException().initCause(e);
+        }
+
+        return rawIn.analyzeCrash(e,(channel!=null ? channel : this).toString());
     }
 
     public void closeRead() throws IOException {
@@ -63,6 +99,6 @@ import java.io.OutputStream;
 
     @Override
     OutputStream getUnderlyingStream() {
-        return underlyingStream;
+        return rawOut;
     }
 }

@@ -168,10 +168,10 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                 Object exc = response.exception;
 
                 if (exc!=null) {
-                    if(exc instanceof RequestAbortedException) {
+                    if (exc instanceof RemotingSystemException) {
                         // add one more exception, so that stack trace shows both who's waiting for the completion
                         // and where the connection outage was detected.
-                        exc = new RequestAbortedException((RequestAbortedException)exc);
+                        throw ((RemotingSystemException) exc).wrapForRethrow();
                     }
                     throw (EXC)exc; // some versions of JDK fails to compile this line. If so, upgrade your JDK.
                 }
@@ -289,7 +289,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      */
     /*package*/ synchronized void onCompleted(Response<RSP,EXC> response) {
         this.response = response;
-        notify();
+        notifyAll();
     }
 
     /**
@@ -315,6 +315,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
             }
 
             public void run() {
+                String oldThreadName = Thread.currentThread().getName();
+                Thread.currentThread().setName(oldThreadName+" for "+channel.getName());
                 try {
                     Command rsp;
                     CURRENT.set(Request.this);
@@ -345,6 +347,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                     logger.log(Level.SEVERE, "Failed to send back a reply",e);
                 } finally {
                     channel.executingCalls.remove(id);
+                    Thread.currentThread().setName(oldThreadName);
                 }
             }
         });

@@ -33,42 +33,44 @@ import java.net.URL;
 import org.apache.commons.io.IOUtils;
 
 /**
- * Used to load a dummy class <tt>hudson.remoting.test.TestCallable</tt>
+ * Used to load a dummy class
  * out of nowhere, to test {@link RemoteClassLoader} by creating a class
  * that only exists on one side of the channel but not the other.
+ *
+ * <p>
+ * Given a class in a "remoting" package, this classloader is capable of loading the same version of the class
+ * in the "rem0ting" package.
  *
  * @author Kohsuke Kawaguchi
  */
 class DummyClassLoader extends ClassLoader {
 
+    private final String physicalName;
     private final String logicalName;
     private final String physicalPath;
     private final String logicalPath;
 
+    /** Uses {@link TestCallable}. */
     public DummyClassLoader(ClassLoader parent) {
-        this(parent, false);
+        this(parent, TestCallable.class);
     }
 
-    public DummyClassLoader(ClassLoader parent, boolean child) {
+    public DummyClassLoader(ClassLoader parent, Class<?> c) {
         super(parent);
-        if (child) {
-            logicalName = "hudson.rem0ting.TestCallable$Sub";
-            physicalPath = "hudson/remoting/TestCallable$Sub.class";
-            logicalPath = "hudson/rem0ting/TestCallable$Sub.class";
-        } else {
-            logicalName = "hudson.rem0ting.TestCallable";
-            physicalPath = "hudson/remoting/TestCallable.class";
-            logicalPath = "hudson/rem0ting/TestCallable.class";
-        }
+        physicalName = c.getName();
+        assert physicalName.contains("remoting.Test");
+        logicalName = physicalName.replace("remoting", "rem0ting");
+        physicalPath = physicalName.replace('.', '/') + ".class";
+        logicalPath = logicalName.replace('.', '/') + ".class";
     }
 
     /**
-     * Loads a class that looks like an exact clone of {@link TestCallable} under
+     * Loads a class that looks like an exact clone of the named class under
      * a different class name.
      */
-    public Object newTestCallable() {
+    public Object load() {
         try {
-            return loadClass("hudson.rem0ting.TestCallable").newInstance();
+            return loadClass(logicalName).newInstance();
         } catch (InstantiationException e) {
             throw new Error(e);
         } catch (IllegalAccessException e) {
@@ -117,4 +119,9 @@ class DummyClassLoader extends ClassLoader {
         }
         return super.findResource(name);
     }
+
+    @Override public String toString() {
+        return super.toString() + "[" + physicalName + "]";
+    }
+
 }

@@ -95,7 +95,7 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
-public final class Pipe implements Serializable {
+public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
     private InputStream in;
     private OutputStream out;
 
@@ -119,6 +119,20 @@ public final class Pipe implements Serializable {
     }
 
     /**
+     * Writes an error to {@link #getOut()}, which results in {@link IOException} from the reading end.
+     *
+     * @see ErrorPropagatingOutputStream#error(Throwable)
+     */
+    public void error(Throwable t) throws IOException {
+        if (out instanceof ErrorPropagatingOutputStream) {
+            ErrorPropagatingOutputStream eo = (ErrorPropagatingOutputStream) out;
+            eo.error(t);
+        } else {
+            out.close();
+        }
+    }
+
+    /**
      * Creates a {@link Pipe} that allows remote system to write and local system to read.
      */
     public static Pipe createRemoteToLocal() {
@@ -134,6 +148,10 @@ public final class Pipe implements Serializable {
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
+        // TODO: there's a discrepancy in the pipe window size and FastPipedInputStream buffer size.
+        // The former uses 1M, while the latter uses 64K, so if the sender is too fast, it'll cause
+        // the pipe IO thread to block other IO activities. Fix this by first using adaptive growing buffer
+        // in FastPipedInputStream, then make sure the maximum size is biger than the pipe window size.
         if(in!=null && out==null) {
             // remote will write to local
             FastPipedOutputStream pos = new FastPipedOutputStream((FastPipedInputStream)in);

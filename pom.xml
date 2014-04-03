@@ -33,7 +33,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>2.24-SNAPSHOT</version>
+  <version>2.38-SNAPSHOT</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -45,6 +45,10 @@ THE SOFTWARE.
       <name>The MIT license</name>
       <url>http://www.opensource.org/licenses/mit-license.php</url>
       <distribution>repo</distribution>
+    </license>
+    <license>
+      <name>Apache License 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
 
@@ -84,6 +88,18 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.ant</groupId>
+      <artifactId>ant</artifactId>
+      <version>1.8.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>14.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>asm</groupId>
       <artifactId>asm-all</artifactId>
       <version>2.2.3</version>
@@ -98,7 +114,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>1.4</version>
+      <version>2.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -118,6 +134,17 @@ THE SOFTWARE.
       <groupId>com.github.stephenc.findbugs</groupId>
       <artifactId>findbugs-annotations</artifactId>
       <version>1.3.9-1</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci</groupId>
+      <artifactId>constant-pool-scanner</artifactId>
+      <version>1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <version>2.0.1</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>
@@ -162,6 +189,12 @@ THE SOFTWARE.
             </manifest>
             <manifestEntries>
               <Version>${project.version}</Version>
+              <!-- attributes related to Java Web Start -->
+              <!-- see http://docs.oracle.com/javase/8/docs/technotes/guides/jweb/security/manifest.html -->
+              <Permissions>all-permissions</Permissions>
+              <Codebase>*</Codebase>
+              <Application-Name>Jenkins Remoting Agent</Application-Name>
+              <Trusted-Library>true</Trusted-Library>
             </manifestEntries>
           </archive>
         </configuration>
@@ -192,6 +225,32 @@ THE SOFTWARE.
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
+            <id>resgen</id>
+            <phase>process-test-classes</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.jenkins-ci</groupId>
+                  <artifactId>remoting-test-client</artifactId>
+                  <version>1.0</version>
+                  <outputDirectory>target/test-classes</outputDirectory>
+                  <destFileName>remoting-test-client.jar</destFileName>
+                </artifactItem>
+                <artifactItem>
+                  <groupId>org.jenkins-ci</groupId>
+                  <artifactId>remoting-test-client</artifactId>
+                  <version>1.0</version>
+                  <classifier>tests</classifier>
+                  <outputDirectory>target/test-classes</outputDirectory>
+                  <destFileName>remoting-test-client-tests.jar</destFileName>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+          <execution>
             <id>bundle-arg4j</id>
             <phase>process-classes</phase>
             <goals>
@@ -202,6 +261,18 @@ THE SOFTWARE.
               <includeScope>provided</includeScope>
               <includeArtifactIds>args4j</includeArtifactIds>
               <includeGroupIds>args4j</includeGroupIds>
+            </configuration>
+          </execution>
+          <execution>
+            <id>bundle-cps</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+              <includeArtifactIds>constant-pool-scanner</includeArtifactIds>
+              <includeGroupIds>org.jenkins-ci</includeGroupIds>
             </configuration>
           </execution>
         </executions>
@@ -310,6 +381,15 @@ THE SOFTWARE.
                 </goals>
               </execution>
             </executions>
+          </plugin>
+          <plugin>
+            <artifactId>maven-jarsigner-plugin</artifactId>
+            <configuration>
+              <arguments>
+                <argument>-tsa</argument>
+                <argument>http://timestamp.comodoca.com/rfc3161</argument>
+              </arguments>
+            </configuration>
           </plugin>
         </plugins>
       </build>

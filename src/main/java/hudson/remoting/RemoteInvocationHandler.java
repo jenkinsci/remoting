@@ -100,6 +100,10 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             new RemoteInvocationHandler(channel,id,userProxy,autoUnexportByCaller)));
     }
 
+    /*package*/ static Class getProxyClass(Class type) {
+        return Proxy.getProxyClass(type.getClassLoader(), new Class[]{type,IReadResolve.class});
+    }
+
     /**
      * If the given object is a proxy to a remote object in the specified channel,
      * return its object ID. Otherwise return -1.
@@ -152,12 +156,32 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 throw e.getTargetException();
             }
         }
-        
+
         // delegate the rest of the methods to the remote object
-        if(userProxy)
-            return channel.call(new RPCRequest(oid,method,args,dc.getClassLoader()));
-        else
-            return new RPCRequest(oid,method,args).call(channel);
+
+        boolean async = method.isAnnotationPresent(Asynchronous.class);
+        RPCRequest req = new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null);
+        try {
+            if(userProxy) {
+                if (async)  channel.callAsync(req);
+                else        return channel.call(req);
+            } else {
+                if (async)  req.callAsync(channel);
+                else        return req.call(channel);
+            }
+            return null;
+        } catch (Throwable e) {
+            for (Class exc : method.getExceptionTypes()) {
+                if (exc.isInstance(e))
+                    throw e;    // signature explicitly lists this exception
+            }
+            if (e instanceof RuntimeException || e instanceof Error)
+                throw e;    // these can be thrown from any methods
+
+            // if the thrown exception type isn't compatible with the method signature
+            // wrap it to RuntimeException to avoid UndeclaredThrowableException
+            throw new RemotingSystemException(e);
+        }
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
@@ -272,7 +296,11 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 if(m==null)
                     throw new IllegalStateException("Unable to call "+methodName+". No matching method found on "+o.getClass());
                 m.setAccessible(true);  // in case the class is not public
-                return (Serializable) m.invoke(o,arguments);
+                Object r = m.invoke(o, arguments);
+                if (r==null || r instanceof Serializable)
+                    return (Serializable) r;
+                else
+                    throw new RemotingSystemException(new ClassCastException(r.getClass()+" is returned from "+m+" on "+o.getClass()+" but it's not serializable"));
             } catch (InvocationTargetException e) {
                 throw e.getTargetException();
             }

@@ -23,10 +23,18 @@
  */
 package hudson.remoting;
 
+import javax.swing.*;
+
 /**
  * Receives status notification from {@link Engine}.
  *
- * The callback will be invoked on a non-GUI thread.
+ * <p>
+ * The callback will be invoked on a non-GUI thread, so if the implementation
+ * wants to touch Swing, {@link SwingUtilities#invokeLater(Runnable)} would be needed.
+ *
+ * <p>
+ * To implement this interface outside this module, extend from {@link EngineListenerAdapter}
+ * instead to protect against method additions in the future.
  *
  * @author Kohsuke Kawaguchi
  */

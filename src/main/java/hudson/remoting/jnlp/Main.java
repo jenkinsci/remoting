@@ -23,11 +23,13 @@
  */
 package hudson.remoting.jnlp;
 
+import hudson.remoting.FileSystemJarCache;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 
+import java.io.File;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import static java.util.logging.Level.INFO;
@@ -50,7 +52,7 @@ import hudson.remoting.EngineListener;
 public class Main {
 
     @Option(name="-tunnel",metaVar="HOST:PORT",
-            usage="Connect to the specified host and port, instead of connecting directly to Hudson. " +
+            usage="Connect to the specified host and port, instead of connecting directly to Jenkins. " +
                   "Useful when connection to Hudson needs to be tunneled. Can be also HOST: or :PORT, " +
                   "in which case the missing portion will be auto-configured like the default behavior")
     public String tunnel;
@@ -61,20 +63,30 @@ public class Main {
                     || Boolean.getBoolean("hudson.webstart.headless");
 
     @Option(name="-url",
-            usage="Specify the Hudson root URLs to connect to.")
+            usage="Specify the Jenkins root URLs to connect to.")
     public final List<URL> urls = new ArrayList<URL>();
 
     @Option(name="-credentials",metaVar="USER:PASSWORD",
             usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String credentials;
 
+    @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
+    public String proxyCredentials = null;
+
     @Option(name="-noreconnect",
             usage="If the connection ends, don't retry and just exit.")
     public boolean noReconnect = false;
 
     /**
+     * @since 2.24
+     */
+    @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
+    public File jarCache = null;
+
+
+    /**
      * 4 mandatory parameters.
-     * Host name (deprecated), Hudson URL, secret key, and slave name.
+     * Host name (deprecated), Jenkins URL, secret key, and slave name.
      */
     @Argument
     public final List<String> args = new ArrayList<String>();
@@ -123,6 +135,7 @@ public class Main {
         engine.start();
         try {
             engine.join();
+            LOGGER.fine("Engine has died");
         } finally {
             // if we are programmatically driven by other code,
             // allow them to interrupt our blocking main thread
@@ -132,13 +145,19 @@ public class Main {
     }
 
     public Engine createEngine() {
+        String slaveName = args.get(1);
+        LOGGER.log(INFO, "Setting up slave: {0}", slaveName);
         Engine engine = new Engine(
                 headlessMode ? new CuiListener() : new GuiListener(),
-                urls, args.get(0), args.get(1));
+                urls, args.get(0), slaveName);
         if(tunnel!=null)
             engine.setTunnel(tunnel);
         if(credentials!=null)
             engine.setCredentials(credentials);
+        if(proxyCredentials!=null)
+        	engine.setProxyCredentials(proxyCredentials);
+        if(jarCache!=null)
+            engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
         return engine;
     }

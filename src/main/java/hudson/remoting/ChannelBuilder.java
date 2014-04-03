@@ -25,6 +25,7 @@ public class ChannelBuilder {
     private Capability capability = new Capability();
     private OutputStream header;
     private boolean restricted;
+    private JarCache jarCache;
 
     /**
      * Specify the minimum mandatory parameters.
@@ -119,6 +120,16 @@ public class ChannelBuilder {
 
     public boolean isRestricted() {
         return restricted;
+    }
+
+
+    public ChannelBuilder withJarCache(JarCache jarCache) {
+        this.jarCache = jarCache;
+        return this;
+    }
+
+    public JarCache getJarCache() {
+        return jarCache;
     }
 
     /**
@@ -227,15 +238,17 @@ public class ChannelBuilder {
      *      Capabilities of the other side, as determined during the handshaking.
      */
     protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
+        FlightRecorderInputStream fis = new FlightRecorderInputStream(is);
+
         if (cap.supportsChunking())
-            return new ChunkedCommandTransport(cap, mode.wrap(is), mode.wrap(os));
+            return new ChunkedCommandTransport(cap, mode.wrap(fis), mode.wrap(os));
         else {
             ObjectOutputStream oos = new ObjectOutputStream(mode.wrap(os));
             oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
 
             return new ClassicCommandTransport(
-                    new ObjectInputStreamEx(mode.wrap(is),getBaseLoader()),
-                    oos,os,cap);
+                    new ObjectInputStreamEx(mode.wrap(fis),getBaseLoader()),
+                    oos,fis,os,cap);
         }
     }
 }

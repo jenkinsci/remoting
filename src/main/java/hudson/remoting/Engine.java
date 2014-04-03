@@ -23,9 +23,12 @@
  */
 package hudson.remoting;
 
+import hudson.remoting.Channel.Mode;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
@@ -40,8 +43,10 @@ import java.util.List;
 import java.util.Collections;
 import java.util.logging.Logger;
 
+import static java.util.logging.Level.INFO;
+
 /**
- * Slave agent engine that proactively connects to Hudson master.
+ * Slave agent engine that proactively connects to Jenkins master.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -52,16 +57,24 @@ public class Engine extends Thread {
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
         public Thread newThread(final Runnable r) {
-            return defaultFactory.newThread(new Runnable() {
+            Thread t = defaultFactory.newThread(new Runnable() {
                 public void run() {
                     CURRENT.set(Engine.this);
                     r.run();
                 }
             });
+            t.setDaemon(true);
+            return t;
         }
     });
 
+    /**
+     * @deprecated
+     *      Use {@link #events}.
+     */
     public final EngineListener listener;
+
+    private final EngineListenerSplitter events = new EngineListenerSplitter();
 
     /**
      * To make Hudson more graceful against user error,
@@ -72,7 +85,7 @@ public class Engine extends Thread {
     private List<URL> candidateUrls;
 
     /**
-     * URL that points to Hudson's tcp slage agent listener, like <tt>http://myhost/hudson/</tt>
+     * URL that points to Jenkins's tcp slave agent listener, like <tt>http://myhost/hudson/</tt>
      *
      * <p>
      * This value is determined from {@link #candidateUrls} after a successful connection.
@@ -83,6 +96,7 @@ public class Engine extends Thread {
     private final String secretKey;
     public final String slaveName;
     private String credentials;
+	private String proxyCredentials = System.getProperty("proxyCredentials");
 
     /**
      * See Main#tunnel in the jnlp-agent module for the details.
@@ -98,13 +112,24 @@ public class Engine extends Thread {
      */
     private String cookie;
 
+    private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
+
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
         this.listener = listener;
+        this.events.add(listener);
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
         this.slaveName = slaveName;
         if(candidateUrls.isEmpty())
             throw new IllegalArgumentException("No URLs given");
+    }
+
+    /**
+     * Configures JAR caching for better performance.
+     * @since 2.24
+     */
+    public void setJarCache(JarCache jarCache) {
+        this.jarCache = jarCache;
     }
 
     public URL getHudsonUrl() {
@@ -119,8 +144,20 @@ public class Engine extends Thread {
         this.credentials = creds;
     }
 
+	public void setProxyCredentials(String proxyCredentials) {
+		this.proxyCredentials = proxyCredentials;
+	}
+
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;
+    }
+
+    public void addListener(EngineListener el) {
+        events.add(el);
+    }
+
+    public void removeListener(EngineListener el) {
+        events.remove(el);
     }
 
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
@@ -136,7 +173,7 @@ public class Engine extends Thread {
                         return; // exit
                 }
 
-                listener.status("Locating server among " + candidateUrls);
+                events.status("Locating server among " + candidateUrls);
                 Throwable firstError=null;
                 String port=null;
 
@@ -147,10 +184,17 @@ public class Engine extends Thread {
 
                     // find out the TCP port
                     HttpURLConnection con = (HttpURLConnection)salURL.openConnection();
-                    if (con instanceof HttpURLConnection && credentials != null) {
-                        // XXX /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
-                        String encoding = Base64.encode(credentials.getBytes());
-                        con.setRequestProperty("Authorization", "Basic " + encoding);
+                    if (con instanceof HttpURLConnection) {
+                    	if (credentials != null) {
+                    		// TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
+                    		String encoding = Base64.encode(credentials.getBytes("UTF-8"));
+                    		con.setRequestProperty("Authorization", "Basic " + encoding);
+                    	}
+                    	
+                    	if (proxyCredentials != null) {
+    	                    String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
+    	                    con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+                    	}
                     }
                     try {
                         try {
@@ -186,13 +230,13 @@ public class Engine extends Thread {
                 }
 
                 if(firstError!=null) {
-                    listener.error(firstError);
+                    events.error(firstError);
                     return;
                 }
 
                 Socket s = connect(port);
 
-                listener.status("Handshaking");
+                events.status("Handshaking");
 
                 DataOutputStream dos = new DataOutputStream(s.getOutputStream());
                 BufferedInputStream in = new BufferedInputStream(s.getInputStream());
@@ -235,26 +279,28 @@ public class Engine extends Thread {
                 }
 
                 final Channel channel = new Channel("channel", executor,
-                        in,
-                        new BufferedOutputStream(s.getOutputStream()));
+                        ClassicCommandTransport.create(Mode.BINARY, in,new BufferedOutputStream(s.getOutputStream()),null,null,new Capability()),
+                        false, null, jarCache);
                 
-                listener.status("Connected");
+                events.status("Connected");
                 channel.join();
-                listener.status("Terminated");
-                listener.onDisconnect();
+                events.status("Terminated");
 
                 if(noReconnect)
                     return; // exit
+
+                events.onDisconnect();
+
                 // try to connect back to the server every 10 secs.
                 waitForServerToBack();
             }
         } catch (Throwable e) {
-            listener.error(e);
+            events.error(e);
         }
     }
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
-        listener.error(new Exception("The server rejected the connection: "+greeting));
+        events.error(new Exception("The server rejected the connection: "+greeting));
         Thread.sleep(10*1000);
     }
 
@@ -277,7 +323,7 @@ public class Engine extends Thread {
         while (true) {
             int ch = in.read();
             if (ch<0 || ch=='\n')
-                return baos.toString().trim(); // trim off possible '\r'
+                return baos.toString("UTF-8").trim(); // trim off possible '\r'
             baos.write(ch);
         }
     }
@@ -297,7 +343,7 @@ public class Engine extends Thread {
         }
 
         String msg = "Connecting to " + host + ':' + port;
-        listener.status(msg);
+        events.status(msg);
         int retry = 1;
         while(true) {
             try {
@@ -314,7 +360,7 @@ public class Engine extends Thread {
                 if(retry++>10)
                     throw (IOException)new IOException("Failed to connect to "+host+':'+port).initCause(e);
                 Thread.sleep(1000*10);
-                listener.status(msg+" (retrying:"+retry+")",e);
+                events.status(msg+" (retrying:"+retry+")",e);
             }
         }
     }
@@ -323,17 +369,33 @@ public class Engine extends Thread {
      * Waits for the server to come back.
      */
     private void waitForServerToBack() throws InterruptedException {
-        while(true) {
-            Thread.sleep(1000*10);
-            try {
-                // Hudson top page might be read-protected. see http://www.nabble.com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
-                HttpURLConnection con = (HttpURLConnection)new URL(hudsonUrl,"tcpSlaveAgentListener/").openConnection();
-                con.connect();
-                if(con.getResponseCode()==200)
-                    return;
-            } catch (IOException e) {
-                // retry
+        Thread t = Thread.currentThread();
+        String oldName = t.getName();
+        try {
+            int retries=0;
+            while(true) {
+                Thread.sleep(1000*10);
+                try {
+                    // Jenkins top page might be read-protected. see http://www.nabble.com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
+                    URL url = new URL(hudsonUrl, "tcpSlaveAgentListener/");
+
+                    retries++;
+                    t.setName(oldName+": trying "+url+" for "+retries+" times");
+
+                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                    con.setConnectTimeout(5000);
+                    con.setReadTimeout(5000);
+                    con.connect();
+                    if(con.getResponseCode()==200)
+                        return;
+                    LOGGER.info("Master isn't ready to talk to us. Will retry again: response code=" + con.getResponseCode());
+                } catch (IOException e) {
+                    // report the failure
+                    LOGGER.log(INFO, "Failed to connect to the master. Will retry again",e);
+                }
             }
+        } finally {
+            t.setName(oldName);
         }
     }
 
