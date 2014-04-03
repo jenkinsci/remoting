@@ -1,7 +1,9 @@
 package org.jenkinsci.remoting.nio;
 
+import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 
+import java.io.IOException;
 import java.net.Socket;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
@@ -17,13 +19,14 @@ public class NioChannelBuilder extends ChannelBuilder {
         super(name, executors);
     }
 
-    public NioChannelBuilder withSocket(SocketChannel socket) {
+    public Channel build(SocketChannel socket) throws IOException {
         this.r = socket;
         this.w = socket;
-        return this;
+        return super.build(socket.socket());
     }
 
-    public NioChannelBuilder withSocket(Socket socket) {
-        return withSocket(socket.getChannel());
+    @Override
+    public Channel build(Socket s) throws IOException {
+        return build(s.getChannel());
     }
 }
