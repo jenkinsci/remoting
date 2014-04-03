@@ -315,7 +315,7 @@ public class NioChannelHub implements Runnable {
                                     cp.receiver.handle(packet);
                                 }
                             }
-                        } else
+                        }
                         if (key.isWritable()) {
                             if (cp.wb.send(cp.w()) == -1) {
                                 // done with sending all the data
