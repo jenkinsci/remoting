@@ -250,7 +250,7 @@ public class FifoBuffer implements Closeable {
      * @return
      *      Number of writes written, possibly 0.
      */
-    public int writeNonBlock(ByteBuffer buf) throws InterruptedException {
+    public int writeNonBlock(ByteBuffer buf) {
         synchronized (lock) {
             int chunk = Math.min(buf.remaining(),writable());
             if (chunk==0)   return 0;
