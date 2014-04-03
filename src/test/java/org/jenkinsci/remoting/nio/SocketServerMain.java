@@ -40,9 +40,8 @@ public class SocketServerMain {
                                 Socket socket = con.socket();
                                 // TODO: does this actually produce async channel?
                                 Channel ch = newChannelBuilder(con.toString(), es)
-                                        .withSocket(con)
                                         .withHeaderStream(new FlushEveryByteStream(System.out))
-                                        .build(socket.getInputStream(), socket.getOutputStream());
+                                        .build(socket);
                                 LOGGER.info("Connected to " + ch);
                             } catch (IOException e) {
                                 LOGGER.log(Level.WARNING, "Handshake failed", e);
