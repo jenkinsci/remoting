@@ -87,7 +87,7 @@ public class NioChannelHub implements Runnable {
             this.r = r;
             this.w = w;
             this.rc = Closeables.input(r);
-            this.wc = Closeables.input(w);
+            this.wc = Closeables.output(w);
             this.remoteCapability = remoteCapability;
         }
 
