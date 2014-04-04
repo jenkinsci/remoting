@@ -139,7 +139,7 @@ interface ChannelRunner {
         /**
          * failure occurred in the other {@link Channel}.
          */
-        private Exception failure;
+        private Throwable failure;
 
         private Channel south;
 
@@ -178,7 +178,16 @@ interface ChannelRunner {
             };
             ss.register(nio.getSelector(), OP_ACCEPT);
             LOGGER.info("Waiting for connection");
-            executor.submit(nio);
+            executor.submit(new Runnable() {
+                public void run() {
+                    try {
+                        nio.run();
+                    } catch (Throwable e) {
+                        LOGGER.log(Level.WARNING, "Faield to keep the NIO selector thread going",e);
+                        failure = e;
+                    }
+                }
+            });
 
             // create a client channel that connects to the same hub
             SocketChannel client = SocketChannel.open(new InetSocketAddress("localhost", ss.socket().getLocalPort()));
@@ -198,7 +207,7 @@ interface ChannelRunner {
             executor.shutdown();
 
             if(failure!=null)
-                throw failure;  // report a failure in the south side
+                throw new AssertionError(failure);  // report a failure in the south side
         }
 
         public String getName() {
