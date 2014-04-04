@@ -131,34 +131,33 @@ public class NioChannelHub implements Runnable, Closeable {
          * Client isn't allowed to call {@link java.nio.channels.Channel#close()} on {@link #rr()}.
          * Call this method instead.
          */
+        @SelectorThreadOnly
         abstract void closeR() throws IOException;
 
         /**
          * The Write end version of {@link #closeR()}.
          */
+        @SelectorThreadOnly
         abstract void closeW() throws IOException;
 
+        @SelectorThreadOnly
         protected final void cancelKey(SelectionKey key) {
             if (key!=null)
                 key.cancel();
         }
 
+        @SelectorThreadOnly
         public void abort(Throwable e) {
-            scheduleSelectorTask(new Callable<Void, IOException>() {
-                public Void call() throws IOException {
-                    try {
-                        closeR();
-                    } catch (IOException _) {
-                        // ignore
-                    }
-                    try {
-                        closeW();
-                    } catch (IOException _) {
-                        // ignore
-                    }
-                    return null;
-                }
-            });
+            try {
+                closeR();
+            } catch (IOException _) {
+                // ignore
+            }
+            try {
+                closeW();
+            } catch (IOException _) {
+                // ignore
+            }
             receiver.terminate((IOException)new IOException("Failed to abort").initCause(e));
         }
 
@@ -261,6 +260,7 @@ public class NioChannelHub implements Runnable, Closeable {
         }
 
         @Override
+        @SelectorThreadOnly
         void closeR() throws IOException {
             if (rc != null) {
                 rc.close();
@@ -271,6 +271,7 @@ public class NioChannelHub implements Runnable, Closeable {
         }
 
         @Override
+        @SelectorThreadOnly
         void closeW() throws IOException {
             if (wc!=null) {
                 wc.close();
@@ -281,6 +282,7 @@ public class NioChannelHub implements Runnable, Closeable {
         }
 
         @Override
+        @SelectorThreadOnly
         public void reregister() throws IOException {
             int flag = (wantsToWrite() && isWopen() ? OP_WRITE : 0) + (wantsToRead() && isRopen() ? OP_READ : 0);
 
@@ -288,6 +290,7 @@ public class NioChannelHub implements Runnable, Closeable {
             ch.register(selector, flag).attach(this);
         }
 
+        @SelectorThreadOnly
         private void maybeCancelKey() throws IOException {
             SelectionKey key = ch.keyFor(selector);
             if (rc==null && wc==null) {
@@ -335,6 +338,7 @@ public class NioChannelHub implements Runnable, Closeable {
         }
 
         @Override
+        @SelectorThreadOnly
         void closeR() throws IOException {
             r.close();
             rb.close(); // no more data will enter rb, so signal EOF
@@ -342,6 +346,7 @@ public class NioChannelHub implements Runnable, Closeable {
         }
 
         @Override
+        @SelectorThreadOnly
         void closeW() throws IOException {
             w.close();
             wb.close(); // wb will not accept incoming data any more
@@ -349,6 +354,7 @@ public class NioChannelHub implements Runnable, Closeable {
         }
 
         @Override
+        @SelectorThreadOnly
         public void reregister() throws IOException {
             if (isRopen()) {
                 r.configureBlocking(false);
@@ -361,6 +367,7 @@ public class NioChannelHub implements Runnable, Closeable {
             }
         }
 
+        @SelectorThreadOnly
         private void cancelKey(SelectableChannel c) {
             assert c==r || c==w;
             cancelKey(c.keyFor(selector));
@@ -526,6 +533,7 @@ public class NioChannelHub implements Runnable, Closeable {
 
     }
 
+    @SelectorThreadOnly
     private void abortAll(Throwable e) {
         Set<ChannelPair> pairs = new HashSet<ChannelPair>();
         for (SelectionKey k : selector.keys())
