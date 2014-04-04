@@ -1,6 +1,7 @@
 package org.jenkinsci.remoting.nio;
 
 import hudson.remoting.AbstractByteArrayCommandTransport;
+import hudson.remoting.AbstractByteArrayCommandTransport.ByteArrayReceiver;
 import hudson.remoting.Callable;
 import hudson.remoting.Capability;
 import hudson.remoting.Channel;
@@ -8,6 +9,7 @@ import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
+import hudson.remoting.SingleLaneExecutorService;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -44,7 +46,7 @@ public class NioChannelHub implements Runnable, Closeable {
     /**
      * Maximum size of the chunk.
      */
-    private final int transportFrameSize;
+    private int transportFrameSize = 8192;
     private final SelectableFileChannelFactory factory = new SelectableFileChannelFactory();
 
     /**
@@ -52,6 +54,12 @@ public class NioChannelHub implements Runnable, Closeable {
      */
     private final Queue<Callable<Void,IOException>> selectorTasks
             = new ConcurrentLinkedQueue<Callable<Void, IOException>>();
+
+    /**
+     * {@link ExecutorService} that processes command parsing and executions.
+     */
+    private ExecutorService commandProcessor;
+
 
     /**
      * Bi-directional NIO channel used as the transport of a {@link Channel}.
@@ -81,6 +89,12 @@ public class NioChannelHub implements Runnable, Closeable {
         final FifoBuffer wb = new FifoBuffer(16*1024,256*1024);
 
         private ByteArrayReceiver receiver;
+
+        /**
+         * To ensure serial execution order within each {@link Channel}, we submit
+         * received packets through a per-{@link NioTransport} swim lane.
+         */
+        private final SingleLaneExecutorService swimLane = new SingleLaneExecutorService(commandProcessor);
 
         NioTransport(Capability remoteCapability) {
             this.remoteCapability = remoteCapability;
@@ -213,6 +227,14 @@ public class NioChannelHub implements Runnable, Closeable {
                 public Void call() throws IOException {
                     reregister();
                     return null;
+                }
+            });
+        }
+
+        void handlePacket(final byte[] packet) {
+            swimLane.submit(new Runnable() {
+                public void run() {
+                    receiver.handle(packet);
                 }
             });
         }
@@ -375,10 +397,20 @@ public class NioChannelHub implements Runnable, Closeable {
     }
 
 
-    public NioChannelHub(int transportFrameSize) throws IOException {
+    /**
+     *
+     * @param commandProcessor
+     *      Executor pool that delivers received command packets to {@link ByteArrayReceiver}.
+     *      This pool will handle the deserialization (which may block due to classloading from the other side).
+     */
+    public NioChannelHub(ExecutorService commandProcessor) throws IOException {
         selector = Selector.open();
-        assert 0<transportFrameSize && transportFrameSize<=Short.MAX_VALUE;
-        this.transportFrameSize = transportFrameSize;
+        this.commandProcessor = commandProcessor;
+    }
+
+    public void setFrameSize(int sz) {
+        assert 0<sz && sz<=Short.MAX_VALUE;
+        this.transportFrameSize = sz;
     }
 
     /**
@@ -483,7 +515,7 @@ public class NioChannelHub implements Runnable, Closeable {
                                         }
                                         assert packetSize==0;
 
-                                        t.receiver.handle(packet);
+                                        t.handlePacket(packet);
                                         pos=0;
                                     }
                                 }

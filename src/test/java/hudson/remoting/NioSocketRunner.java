@@ -26,7 +26,7 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
         ss.configureBlocking(false);
         ss.socket().bind(null);
 
-        nio = new NioChannelHub(115) {
+        nio = new NioChannelHub(executor) {
             @Override
             protected void onSelected(SelectionKey key) {
                 try {
@@ -54,6 +54,8 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
                 }
             }
         };
+        nio.setFrameSize(115);  // force unaligned boundaries to shake things up a bit
+
         ss.register(nio.getSelector(), OP_ACCEPT);
         LOGGER.info("Waiting for connection");
         executor.submit(new Runnable() {

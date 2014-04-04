@@ -22,7 +22,8 @@ public class NioPipeRunner extends AbstractNioChannelRunner {
         final java.nio.channels.Pipe n2s = Pipe.open();
         final java.nio.channels.Pipe s2n = Pipe.open();
 
-        nio = new NioChannelHub(132);
+        nio = new NioChannelHub(executor);
+        nio.setFrameSize(132);  // force unaligned boundaries to shake things up a bit
 
         executor.submit(new Runnable() {
             public void run() {

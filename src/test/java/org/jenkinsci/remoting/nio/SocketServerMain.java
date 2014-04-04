@@ -26,7 +26,7 @@ public class SocketServerMain {
         ss.configureBlocking(false);
         ss.socket().bind(new InetSocketAddress(9953));
 
-        NioChannelHub nio = new NioChannelHub(FRAME_SIZE) {
+        NioChannelHub nio = new NioChannelHub(es) {
             @Override
             protected void onSelected(SelectionKey key) {
                 try {
@@ -58,6 +58,5 @@ public class SocketServerMain {
         nio.run();
     }
 
-    private static final int FRAME_SIZE = 4096;
     private static final Logger LOGGER = Logger.getLogger(SocketServerMain.class.getName());
 }
