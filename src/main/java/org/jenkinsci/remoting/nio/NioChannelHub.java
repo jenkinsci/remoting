@@ -464,6 +464,10 @@ public class NioChannelHub implements Runnable, Closeable {
      * This method returns when {@link #close()} is called and the selector is shut down.
      */
     public void run() {
+        final Thread thread = Thread.currentThread();
+        final String oldName = thread.getName();
+        long gen=0;
+
         try {
             while (true) {
                 try {
@@ -473,6 +477,7 @@ public class NioChannelHub implements Runnable, Closeable {
                         t.call();
                     }
 
+                    thread.setName("NioChannelHub keys="+selector.keys().size()+" gen="+(gen++)+": "+oldName);
                     selector.select();
                 } catch (IOException e) {
                     LOGGER.log(WARNING, "Failed to select", e);
@@ -560,6 +565,8 @@ public class NioChannelHub implements Runnable, Closeable {
             abortAll(e);
             LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
             throw e;
+        } finally {
+            thread.setName(oldName);
         }
     }
 
