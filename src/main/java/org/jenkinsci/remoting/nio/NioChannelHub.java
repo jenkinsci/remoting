@@ -73,8 +73,11 @@ public class NioChannelHub implements Runnable, Closeable {
 
         /**
          * Where we pools bytes read from {@link #r} but not yet passed to {@link ByteArrayReceiver}.
+         *
+         * The receiver buffer has to be big enough to accommodate a single command in its entirety.
+         * There's no size restriction in a command, so we'll just buffer as much as we can.
          */
-        final FifoBuffer rb = new FifoBuffer(16*1024,256*1024);
+        final FifoBuffer rb = new FifoBuffer(16*1024, Integer.MAX_VALUE);
         /**
          * Where we pools bytes to be send to {@link #w} but not yet done.
          */
@@ -352,6 +355,13 @@ public class NioChannelHub implements Runnable, Closeable {
                                         cp.receiver.handle(packet);
                                         pos=0;
                                     }
+                                }
+
+                                if (cp.rb.writable()==0) {
+                                    String msg = "Command buffer overflow. Read " + cp.rb.readable() + " bytes but still too small for a single command";
+                                    LOGGER.log(WARNING, msg);
+                                    // to avoid infinite hang, abort this connection
+                                    cp.abort(new IOException(msg));
                                 }
                             }
                             if (key.isValid() && key.isWritable()) {
