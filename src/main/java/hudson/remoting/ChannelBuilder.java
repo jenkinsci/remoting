@@ -2,6 +2,8 @@ package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -148,7 +150,8 @@ public class ChannelBuilder {
 
     public Channel build(Socket s) throws IOException {
         // support half-close properly
-        return build(new SocketInputStream(s),new SocketOutputStream(s));
+        return build(new BufferedInputStream(new SocketInputStream(s)),
+                    new BufferedOutputStream(new SocketOutputStream(s)));
     }
 
     public Channel build(CommandTransport transport) throws IOException {
