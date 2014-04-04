@@ -9,14 +9,17 @@ import hudson.remoting.JarCache;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.ExecutorService;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class NioChannelBuilder extends ChannelBuilder {
+public abstract class NioChannelBuilder extends ChannelBuilder {
     /*package*/ SelectableChannel/* & ReadableByteChannel&WritableByteChannel */ r,w;
 
     public NioChannelBuilder(String name, ExecutorService executors) {
@@ -27,6 +30,14 @@ public class NioChannelBuilder extends ChannelBuilder {
         this.r = socket;
         this.w = socket;
         return super.build(socket.socket());
+    }
+
+    public Channel build(SelectableChannel r, SelectableChannel w) throws IOException {
+        this.r = r;
+        this.w = w;
+        return super.build(
+                Channels.newInputStream((ReadableByteChannel)r),
+                Channels.newOutputStream((WritableByteChannel)w));
     }
 
     @Override

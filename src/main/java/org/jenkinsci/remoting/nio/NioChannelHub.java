@@ -19,6 +19,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -53,138 +54,111 @@ public class NioChannelHub implements Runnable, Closeable {
             = new ConcurrentLinkedQueue<Callable<Void, IOException>>();
 
     /**
-     * A pair of NIO channels used as the transport of a {@link Channel}.
+     * Bi-directional NIO channel used as the transport of a {@link Channel}.
      *
      * <p>
      * The read end of it has to be a {@link Channel} that is both selectable and readable.
      * There's no single type that captures this, so we rely on {@link #rr()} and {@link #ww()} to convey this idea.
      *
      * <p>
-     * Sometimes the read end and the write end are the same object, as in the case of socket,
-     * yet in remoting we have to be able to close read and write ends separately. So we take
-     * separate {@link Closeable} objects that abstracts away how we hide each end, which are
-     * {@link #rc} and {@link #wc}. When it is closed, the field is set to null to indicate
-     *  the channel is closed.
+     * Sometimes a single NIO channel object does both read and write, like {@link SocketChannel}.
+     * In other times, two channel objects are used to do read and write each.
+     * {@link MonoChannelPair} and {@link DualChannelPair} subtypes handle these differences.
      */
-    class ChannelPair extends AbstractByteArrayCommandTransport {
-        private final SelectableChannel r,w;
-        Closeable rc,wc;
+    abstract class ChannelPair extends AbstractByteArrayCommandTransport {
         private final Capability remoteCapability;
 
         /**
-         * Where we pools bytes read from {@link #r} but not yet passed to {@link ByteArrayReceiver}.
+         * Where we pools bytes read from {@link #rr()} but not yet passed to {@link ByteArrayReceiver}.
          *
          * The receiver buffer has to be big enough to accommodate a single command in its entirety.
          * There's no size restriction in a command, so we'll just buffer as much as we can.
          */
         final FifoBuffer rb = new FifoBuffer(16*1024, Integer.MAX_VALUE);
         /**
-         * Where we pools bytes to be send to {@link #w} but not yet done.
+         * Where we pools bytes to be send to {@link #ww()} but not yet done.
          */
         final FifoBuffer wb = new FifoBuffer(16*1024,256*1024);
 
         private ByteArrayReceiver receiver;
 
-        ChannelPair(SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
-            assert r instanceof ReadableByteChannel && w instanceof WritableByteChannel;
-            this.r = r;
-            this.w = w;
-            this.rc = Closeables.input(r);
-            this.wc = Closeables.output(w);
+        ChannelPair(Capability remoteCapability) {
             this.remoteCapability = remoteCapability;
         }
 
-        ReadableByteChannel rr() {
-            return (ReadableByteChannel) r;
-        }
+        abstract ReadableByteChannel rr();
 
-        WritableByteChannel ww() {
-            return (WritableByteChannel) w;
-        }
+        abstract WritableByteChannel ww();
 
         /**
          * Based on the state of this {@link ChannelPair}, register NIO channels to the selector.
          *
          * This methods must run in the selector thread.
          */
-        public void reregister() throws IOException {
-            int writeFlag = wb.readable()!=0 ? OP_WRITE : 0; // do we want to write? if -1, we want to trigger closeW(), so we return OP_WRITE
-            int readFlag = receiver!=null && rb.writable()!=0 ? OP_READ : 0; // once we have the setup method called, we are ready
-            boolean registered = false;
+        @SelectorThreadOnly
+        public abstract void reregister() throws IOException;
 
-            if (isRopen()) {
-                int rflag = (r==w) ? readFlag|writeFlag : readFlag;
-                r.configureBlocking(false);
-                r.register(selector, rflag).attach(this);
-                registered = true;
-            }
-
-            if (isWopen() && !registered) {
-                w.configureBlocking(false);
-                w.register(selector, writeFlag).attach(this);
-            }
+        /**
+         * Returns true if we want to read from {@link #rr()}, namely
+         * when we have more space in {@link #rb}.
+         */
+        boolean wantsToRead() {
+            // TODO: remove receiver!=null and have the selector thread just keep buffer them
+            return receiver!=null && rb.writable()!=0;
         }
 
-        private boolean isWopen() {
-            return wc!=null;
+        /**
+         * Returns true if we want to write to {@link #ww()}, namely
+         * when we have some data in {@link #wb}.
+         */
+        boolean wantsToWrite() {
+            return wb.readable()!=0;
         }
 
-        private boolean isRopen() {
-            return rc!=null;
-        }
+        /**
+         * Is the write end of the NIO channel still open?
+         */
+        abstract boolean isWopen();
 
-        void closeR() throws IOException {
-            if (rc!=null) {
-                rc.close();
-                rc = null;
-                rb.close(); // no more data will enter rb, so signal EOF
-                cancelKey(r);
-            }
-        }
+        /**
+         * Is the read end of the NIO channel still open?
+         */
+        abstract boolean isRopen();
 
-        void closeW() throws IOException {
-            if (wc!=null) {
-                wc.close();
-                wc = null;
-                cancelKey(w);
-            }
-        }
+        /**
+         * Closes the read end of the NIO channel.
+         *
+         * Client isn't allowed to call {@link java.nio.channels.Channel#close()} on {@link #rr()}.
+         * Call this method instead.
+         */
+        abstract void closeR() throws IOException;
 
-        private void cancelKey(SelectableChannel c) {
-            assert c==r || c==w;
-            SelectionKey key = c.keyFor(selector);
+        /**
+         * The Write end version of {@link #closeR()}.
+         */
+        abstract void closeW() throws IOException;
 
-            if (r!=w) {
-                cancelKey(key);
-            } else {
-                // if r==w we have to wait for both sides to close before we cancel key
-
-                if (rc==null && wc==null) {
-                    cancelKey(key);
-                } else {
-                    key.interestOps((isRopen() ? OP_READ : 0) + (isWopen() ? OP_WRITE : 0));
-                }
-            }
-        }
-
-        private void cancelKey(SelectionKey key) {
+        protected final void cancelKey(SelectionKey key) {
             if (key!=null)
                 key.cancel();
         }
 
         public void abort(Throwable e) {
-            cancelKey(r);
-            cancelKey(w);
-            try {
-                closeR();
-            } catch (IOException _) {
-                // ignore
-            }
-            try {
-                closeW();
-            } catch (IOException _) {
-                // ignore
-            }
+            scheduleSelectorTask(new Callable<Void, IOException>() {
+                public Void call() throws IOException {
+                    try {
+                        closeR();
+                    } catch (IOException _) {
+                        // ignore
+                    }
+                    try {
+                        closeW();
+                    } catch (IOException _) {
+                        // ignore
+                    }
+                    return null;
+                }
+            });
             receiver.terminate((IOException)new IOException("Failed to abort").initCause(e));
         }
 
@@ -246,6 +220,154 @@ public class NioChannelHub implements Runnable, Closeable {
         }
     }
 
+    /**
+     * ChannelPair that uses a single {@link SelectableChannel} to do both read and write.
+     */
+    class MonoChannelPair extends ChannelPair {
+        private final SelectableChannel ch;
+        /**
+         * To close read and write end independently, we need to do half-close, which goes beyond
+         * the contract of {@link SelectableChannel}. These objects represent the strategy to close them,
+         * and when it's closed, set to null.
+         */
+        Closeable rc,wc;
+
+        MonoChannelPair(SelectableChannel ch, Capability remoteCapability) {
+            super(remoteCapability);
+
+            this.ch = ch;
+            this.rc = Closeables.input(ch);
+            this.wc = Closeables.output(ch);
+        }
+
+        @Override
+        ReadableByteChannel rr() {
+            return (ReadableByteChannel)ch;
+        }
+
+        @Override
+        WritableByteChannel ww() {
+            return (WritableByteChannel)ch;
+        }
+
+        @Override
+        boolean isWopen() {
+            return wc!=null;
+        }
+
+        @Override
+        boolean isRopen() {
+            return rc!=null;
+        }
+
+        @Override
+        void closeR() throws IOException {
+            if (rc != null) {
+                rc.close();
+                rc = null;
+                rb.close(); // no more data will enter rb, so signal EOF
+                maybeCancelKey();
+            }
+        }
+
+        @Override
+        void closeW() throws IOException {
+            if (wc!=null) {
+                wc.close();
+                wc = null;
+                wb.close(); // wb will not accept incoming data any more
+                maybeCancelKey();
+            }
+        }
+
+        @Override
+        public void reregister() throws IOException {
+            int flag = (wantsToWrite() && isWopen() ? OP_WRITE : 0) + (wantsToRead() && isRopen() ? OP_READ : 0);
+
+            ch.configureBlocking(false);
+            ch.register(selector, flag).attach(this);
+        }
+
+        private void maybeCancelKey() throws IOException {
+            SelectionKey key = ch.keyFor(selector);
+            if (rc==null && wc==null) {
+                // both ends are closed
+                cancelKey(key);
+            } else {
+               reregister();
+            }
+        }
+
+    }
+
+    /**
+     * ChannelPair that uses two {@link SelectableChannel}s to do read and write each.
+     */
+    class DualChannelPair extends ChannelPair {
+        private final SelectableChannel r,w;
+
+        DualChannelPair(SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
+            super(remoteCapability);
+
+            assert r instanceof ReadableByteChannel && w instanceof WritableByteChannel;
+            this.r = r;
+            this.w = w;
+        }
+
+        @Override
+        ReadableByteChannel rr() {
+            return (ReadableByteChannel) r;
+        }
+
+        @Override
+        WritableByteChannel ww() {
+            return (WritableByteChannel) w;
+        }
+
+        @Override
+        boolean isWopen() {
+            return w.isOpen();
+        }
+
+        @Override
+        boolean isRopen() {
+            return r.isOpen();
+        }
+
+        @Override
+        void closeR() throws IOException {
+            r.close();
+            rb.close(); // no more data will enter rb, so signal EOF
+            cancelKey(r);
+        }
+
+        @Override
+        void closeW() throws IOException {
+            w.close();
+            wb.close(); // wb will not accept incoming data any more
+            cancelKey(w);
+        }
+
+        @Override
+        public void reregister() throws IOException {
+            if (isRopen()) {
+                r.configureBlocking(false);
+                r.register(selector, wantsToRead() ? OP_READ : 0).attach(this);
+            }
+
+            if (isWopen()) {
+                w.configureBlocking(false);
+                w.register(selector, wantsToWrite() ? OP_WRITE : 0).attach(this);
+            }
+        }
+
+        private void cancelKey(SelectableChannel c) {
+            assert c==r || c==w;
+            cancelKey(c.keyFor(selector));
+        }
+    }
+
+
     public NioChannelHub(int transportFrameSize) throws IOException {
         selector = Selector.open();
         assert 0<transportFrameSize && transportFrameSize<=Short.MAX_VALUE;
@@ -268,7 +390,9 @@ public class NioChannelHub implements Runnable, Closeable {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
                 if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking()) {
-                    final ChannelPair cp = new ChannelPair(r, w, cap);
+                    ChannelPair cp;
+                    if (r==w)       cp = new MonoChannelPair(r,cap);
+                    else            cp = new DualChannelPair(r,w,cap);
                     cp.scheduleReregister();
                     return cp;
                 }
