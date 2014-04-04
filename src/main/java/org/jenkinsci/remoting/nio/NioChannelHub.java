@@ -26,10 +26,10 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.nio.channels.SelectionKey.*;
+import static java.util.logging.Level.*;
 
 /**
  * Switch board of multiple {@link Channel}s through NIO select.
@@ -38,7 +38,7 @@ import static java.nio.channels.SelectionKey.*;
  *
  * @author Kohsuke Kawaguchi
  */
-public class NioChannelHub implements Runnable {
+public class NioChannelHub implements Runnable, Closeable {
     private final Selector selector;
     /**
      * Maximum size of the chunk.
@@ -159,7 +159,7 @@ public class NioChannelHub implements Runnable {
                 if (rc==null && wc==null) {
                     cancelKey(key);
                 } else {
-                    key.interestOps((isRopen()?OP_READ:0) + (isWopen()?OP_WRITE:0));
+                    key.interestOps((isRopen() ? OP_READ : 0) + (isWopen() ? OP_WRITE : 0));
                 }
             }
         }
@@ -169,7 +169,7 @@ public class NioChannelHub implements Runnable {
                 key.cancel();
         }
 
-        public void abort(Exception e) {
+        public void abort(Throwable e) {
             cancelKey(r);
             cancelKey(w);
             try {
@@ -281,90 +281,106 @@ public class NioChannelHub implements Runnable {
     }
 
     /**
+     * Shuts down the selector thread and aborts all
+     */
+    public void close() throws IOException {
+        selector.close();
+    }
+
+    /**
      * Attend to channels in the hub.
      *
      * TODO: how does this method return?
      */
     public void run() {
-        while (true) {
-            try {
-                while (true) {
-                    Callable<Void, IOException> t = selectorTasks.poll();
-                    if (t==null)    break;
-                    t.call();
+        try {
+            while (true) {
+                try {
+                    while (true) {
+                        Callable<Void, IOException> t = selectorTasks.poll();
+                        if (t==null)    break;
+                        t.call();
+                    }
+
+                    selector.select();
+                } catch (IOException e) {
+                    LOGGER.log(WARNING, "Failed to select", e);
+                    abortAll(e);
+                    return;
                 }
 
-                selector.select();
-            } catch (ClosedSelectorException e) {
-                abortAll(e);
-                return;
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to select", e);
-                abortAll(e);
-                return;
-            }
+                Iterator<SelectionKey> itr = selector.selectedKeys().iterator();
+                while (itr.hasNext()) {
+                    SelectionKey key = itr.next();
+                    itr.remove();
+                    Object a = key.attachment();
 
-            Iterator<SelectionKey> itr = selector.selectedKeys().iterator();
-            while (itr.hasNext()) {
-                SelectionKey key = itr.next();
-                itr.remove();
-                Object a = key.attachment();
+                    if (a instanceof ChannelPair) {
+                        ChannelPair cp = (ChannelPair) a;
 
-                if (a instanceof ChannelPair) {
-                    ChannelPair cp = (ChannelPair) a;
+                        try {
+                            if (key.isReadable()) {
+                                if (cp.rb.receive(cp.rr()) == -1) {
+                                    cp.closeR();
+                                }
 
-                    try {
-                        if (key.isReadable()) {
-                            if (cp.rb.receive(cp.rr()) == -1) {
-                                cp.closeR();
-                            }
+                                final byte[] buf = new byte[2]; // space for reading the chunk header
+                                int pos=0;
+                                int packetSize=0;
+                                while (true) {
+                                    if (cp.rb.peek(pos,buf)<buf.length)
+                                        break;  // we don't have enough to parse header
+                                    int header = ChunkHeader.parse(buf);
+                                    int chunk = ChunkHeader.length(header);
+                                    pos+=buf.length+chunk;
+                                    packetSize+=chunk;
+                                    boolean last = ChunkHeader.isLast(header);
+                                    if (last && pos<=cp.rb.readable()) {// do we have the whole packet in our buffer?
+                                        // read in the whole packet
+                                        byte[] packet = new byte[packetSize];
+                                        int r_ptr = 0;
+                                        while (packetSize>0) {
+                                            int r = cp.rb.readNonBlocking(buf);
+                                            assert r==buf.length;
+                                            chunk = ChunkHeader.length(ChunkHeader.parse(buf));
+                                            cp.rb.readNonBlocking(packet, r_ptr, chunk);
+                                            packetSize-=chunk;
+                                            r_ptr+=chunk;
+                                        }
+                                        assert packetSize==0;
 
-                            final byte[] buf = new byte[2]; // space for reading the chunk header
-                            int pos=0;
-                            int packetSize=0;
-                            while (true) {
-                                if (cp.rb.peek(pos,buf)<buf.length)
-                                    break;  // we don't have enough to parse header
-                                int header = ChunkHeader.parse(buf);
-                                int chunk = ChunkHeader.length(header);
-                                pos+=buf.length+chunk;
-                                packetSize+=chunk;
-                                boolean last = ChunkHeader.isLast(header);
-                                if (last && pos<=cp.rb.readable()) {// do we have the whole packet in our buffer?
-                                    // read in the whole packet
-                                    byte[] packet = new byte[packetSize];
-                                    int r_ptr = 0;
-                                    while (packetSize>0) {
-                                        int r = cp.rb.readNonBlocking(buf);
-                                        assert r==buf.length;
-                                        chunk = ChunkHeader.length(ChunkHeader.parse(buf));
-                                        cp.rb.readNonBlocking(packet, r_ptr, chunk);
-                                        packetSize-=chunk;
-                                        r_ptr+=chunk;
+                                        cp.receiver.handle(packet);
+                                        pos=0;
                                     }
-                                    assert packetSize==0;
-
-                                    cp.receiver.handle(packet);
-                                    pos=0;
                                 }
                             }
-                        }
-                        if (key.isValid() && key.isWritable()) {
-                            cp.wb.send(cp.ww());
-                            if (cp.wb.readable()<0) {
-                                // done with sending all the data
-                                cp.closeW();
+                            if (key.isValid() && key.isWritable()) {
+                                cp.wb.send(cp.ww());
+                                if (cp.wb.readable()<0) {
+                                    // done with sending all the data
+                                    cp.closeW();
+                                }
                             }
+                            cp.reregister();
+                        } catch (IOException e) {
+                            LOGGER.log(WARNING, "Communication problem", e);
+                            cp.abort(e);
                         }
-                        cp.reregister();
-                    } catch (IOException e) {
-                        LOGGER.log(Level.WARNING, "Communication problem", e);
-                        cp.abort(e);
+                    } else {
+                        onSelected(key);
                     }
-                } else {
-                    onSelected(key);
                 }
             }
+        } catch (ClosedSelectorException e) {
+            abortAll(e);
+        } catch (RuntimeException e) {
+            abortAll(e);
+            LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
+            throw e;
+        } catch (Error e) {
+            abortAll(e);
+            LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
+            throw e;
         }
     }
 
@@ -375,7 +391,7 @@ public class NioChannelHub implements Runnable {
 
     }
 
-    private void abortAll(Exception e) {
+    private void abortAll(Throwable e) {
         Set<ChannelPair> pairs = new HashSet<ChannelPair>();
         for (SelectionKey k : selector.keys())
             pairs.add((ChannelPair)k.attachment());
