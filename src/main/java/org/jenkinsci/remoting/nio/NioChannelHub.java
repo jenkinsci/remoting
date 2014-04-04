@@ -63,9 +63,9 @@ public class NioChannelHub implements Runnable, Closeable {
      * <p>
      * Sometimes a single NIO channel object does both read and write, like {@link SocketChannel}.
      * In other times, two channel objects are used to do read and write each.
-     * {@link MonoChannelPair} and {@link DualChannelPair} subtypes handle these differences.
+     * {@link MonoNioTransport} and {@link DualNioTransport} subtypes handle these differences.
      */
-    abstract class ChannelPair extends AbstractByteArrayCommandTransport {
+    abstract class NioTransport extends AbstractByteArrayCommandTransport {
         private final Capability remoteCapability;
 
         /**
@@ -82,7 +82,7 @@ public class NioChannelHub implements Runnable, Closeable {
 
         private ByteArrayReceiver receiver;
 
-        ChannelPair(Capability remoteCapability) {
+        NioTransport(Capability remoteCapability) {
             this.remoteCapability = remoteCapability;
         }
 
@@ -91,7 +91,7 @@ public class NioChannelHub implements Runnable, Closeable {
         abstract WritableByteChannel ww();
 
         /**
-         * Based on the state of this {@link ChannelPair}, register NIO channels to the selector.
+         * Based on the state of this {@link NioTransport}, register NIO channels to the selector.
          *
          * This methods must run in the selector thread.
          */
@@ -220,9 +220,9 @@ public class NioChannelHub implements Runnable, Closeable {
     }
 
     /**
-     * ChannelPair that uses a single {@link SelectableChannel} to do both read and write.
+     * NioTransport that uses a single {@link SelectableChannel} to do both read and write.
      */
-    class MonoChannelPair extends ChannelPair {
+    class MonoNioTransport extends NioTransport {
         private final SelectableChannel ch;
         /**
          * To close read and write end independently, we need to do half-close, which goes beyond
@@ -231,7 +231,7 @@ public class NioChannelHub implements Runnable, Closeable {
          */
         Closeable rc,wc;
 
-        MonoChannelPair(SelectableChannel ch, Capability remoteCapability) {
+        MonoNioTransport(SelectableChannel ch, Capability remoteCapability) {
             super(remoteCapability);
 
             this.ch = ch;
@@ -304,12 +304,12 @@ public class NioChannelHub implements Runnable, Closeable {
     }
 
     /**
-     * ChannelPair that uses two {@link SelectableChannel}s to do read and write each.
+     * NioTransport that uses two {@link SelectableChannel}s to do read and write each.
      */
-    class DualChannelPair extends ChannelPair {
+    class DualNioTransport extends NioTransport {
         private final SelectableChannel r,w;
 
-        DualChannelPair(SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
+        DualNioTransport(SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
             super(remoteCapability);
 
             assert r instanceof ReadableByteChannel && w instanceof WritableByteChannel;
@@ -397,11 +397,11 @@ public class NioChannelHub implements Runnable, Closeable {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
                 if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking()) {
-                    ChannelPair cp;
-                    if (r==w)       cp = new MonoChannelPair(r,cap);
-                    else            cp = new DualChannelPair(r,w,cap);
-                    cp.scheduleReregister();
-                    return cp;
+                    NioTransport t;
+                    if (r==w)       t = new MonoNioTransport(r,cap);
+                    else            t = new DualNioTransport(r,w,cap);
+                    t.scheduleReregister();
+                    return t;
                 }
                 else
                     return super.makeTransport(is, os, mode, cap);
@@ -449,63 +449,63 @@ public class NioChannelHub implements Runnable, Closeable {
                     itr.remove();
                     Object a = key.attachment();
 
-                    if (a instanceof ChannelPair) {
-                        ChannelPair cp = (ChannelPair) a;
+                    if (a instanceof NioTransport) {
+                        NioTransport t = (NioTransport) a;
 
                         try {
                             if (key.isReadable()) {
-                                if (cp.rb.receive(cp.rr()) == -1) {
-                                    cp.closeR();
+                                if (t.rb.receive(t.rr()) == -1) {
+                                    t.closeR();
                                 }
 
                                 final byte[] buf = new byte[2]; // space for reading the chunk header
                                 int pos=0;
                                 int packetSize=0;
                                 while (true) {
-                                    if (cp.rb.peek(pos,buf)<buf.length)
+                                    if (t.rb.peek(pos,buf)<buf.length)
                                         break;  // we don't have enough to parse header
                                     int header = ChunkHeader.parse(buf);
                                     int chunk = ChunkHeader.length(header);
                                     pos+=buf.length+chunk;
                                     packetSize+=chunk;
                                     boolean last = ChunkHeader.isLast(header);
-                                    if (last && pos<=cp.rb.readable()) {// do we have the whole packet in our buffer?
+                                    if (last && pos<=t.rb.readable()) {// do we have the whole packet in our buffer?
                                         // read in the whole packet
                                         byte[] packet = new byte[packetSize];
                                         int r_ptr = 0;
                                         while (packetSize>0) {
-                                            int r = cp.rb.readNonBlocking(buf);
+                                            int r = t.rb.readNonBlocking(buf);
                                             assert r==buf.length;
                                             chunk = ChunkHeader.length(ChunkHeader.parse(buf));
-                                            cp.rb.readNonBlocking(packet, r_ptr, chunk);
+                                            t.rb.readNonBlocking(packet, r_ptr, chunk);
                                             packetSize-=chunk;
                                             r_ptr+=chunk;
                                         }
                                         assert packetSize==0;
 
-                                        cp.receiver.handle(packet);
+                                        t.receiver.handle(packet);
                                         pos=0;
                                     }
                                 }
 
-                                if (cp.rb.writable()==0) {
-                                    String msg = "Command buffer overflow. Read " + cp.rb.readable() + " bytes but still too small for a single command";
+                                if (t.rb.writable()==0) {
+                                    String msg = "Command buffer overflow. Read " + t.rb.readable() + " bytes but still too small for a single command";
                                     LOGGER.log(WARNING, msg);
                                     // to avoid infinite hang, abort this connection
-                                    cp.abort(new IOException(msg));
+                                    t.abort(new IOException(msg));
                                 }
                             }
                             if (key.isValid() && key.isWritable()) {
-                                cp.wb.send(cp.ww());
-                                if (cp.wb.readable()<0) {
+                                t.wb.send(t.ww());
+                                if (t.wb.readable()<0) {
                                     // done with sending all the data
-                                    cp.closeW();
+                                    t.closeW();
                                 }
                             }
-                            cp.reregister();
+                            t.reregister();
                         } catch (IOException e) {
                             LOGGER.log(WARNING, "Communication problem", e);
-                            cp.abort(e);
+                            t.abort(e);
                         }
                     } else {
                         onSelected(key);
@@ -535,10 +535,10 @@ public class NioChannelHub implements Runnable, Closeable {
 
     @SelectorThreadOnly
     private void abortAll(Throwable e) {
-        Set<ChannelPair> pairs = new HashSet<ChannelPair>();
+        Set<NioTransport> pairs = new HashSet<NioTransport>();
         for (SelectionKey k : selector.keys())
-            pairs.add((ChannelPair)k.attachment());
-        for (ChannelPair p : pairs)
+            pairs.add((NioTransport)k.attachment());
+        for (NioTransport p : pairs)
             p.abort(e);
     }
 
