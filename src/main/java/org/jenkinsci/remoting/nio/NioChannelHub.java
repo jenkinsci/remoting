@@ -149,12 +149,18 @@ public class NioChannelHub implements Runnable {
 
         private void cancelKey(SelectableChannel c) {
             assert c==r || c==w;
+            SelectionKey key = c.keyFor(selector);
+
             if (r!=w) {
-                cancelKey(c.keyFor(selector));
+                cancelKey(key);
             } else {
                 // if r==w we have to wait for both sides to close before we cancel key
-                if (rc==null && wc==null)
-                    cancelKey(c.keyFor(selector));
+
+                if (rc==null && wc==null) {
+                    cancelKey(key);
+                } else {
+                    key.interestOps((isRopen()?OP_READ:0) + (isWopen()?OP_WRITE:0));
+                }
             }
         }
 
