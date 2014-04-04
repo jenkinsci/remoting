@@ -349,7 +349,7 @@ public class NioChannelHub implements Runnable {
                                 }
                             }
                         }
-                        if (key.isWritable()) {
+                        if (key.isValid() && key.isWritable()) {
                             cp.wb.send(cp.ww());
                             if (cp.wb.readable()<0) {
                                 // done with sending all the data
