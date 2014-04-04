@@ -103,7 +103,6 @@ public class NioChannelHub implements Runnable, Closeable {
          * when we have more space in {@link #rb}.
          */
         boolean wantsToRead() {
-            // TODO: remove receiver!=null and have the selector thread just keep buffer them
             return receiver!=null && rb.writable()!=0;
         }
 
