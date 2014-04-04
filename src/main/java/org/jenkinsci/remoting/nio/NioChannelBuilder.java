@@ -46,7 +46,10 @@ public abstract class NioChannelBuilder extends ChannelBuilder {
 
     @Override
     public Channel build(Socket s) throws IOException {
-        return build(s.getChannel());
+        SocketChannel ch = s.getChannel();
+        if (ch==null)
+            throw new IllegalArgumentException(s+" doesn't have a channel");
+        return build(ch);
     }
 
 
