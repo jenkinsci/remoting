@@ -23,7 +23,6 @@
  */
 package hudson.remoting;
 
-import hudson.remoting.ChannelRunner.NioSocket;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -34,16 +33,16 @@ import junit.framework.TestSuite;
  * @author Kohsuke Kawaguchi
  */
 @WithRunner({
-    ChannelRunner.InProcess.class,
-    ChannelRunner.NioSocket.class,
-    ChannelRunner.InProcessCompatibilityMode.class,
-    ChannelRunner.Fork.class,
-    ChannelRunner.ForkEBCDIC.class
+    InProcessRunner.class,
+    NioSocketRunner.class,
+    InProcessCompatibilityRunner.class,
+    ForkRunner.class,
+    ForkEBCDICRunner.class
 })
 public abstract class RmiTestBase extends TestCase {
 
     protected transient Channel channel;
-    protected transient ChannelRunner channelRunner = new NioSocket();
+    protected transient ChannelRunner channelRunner = new NioSocketRunner();
     protected String testSuffix="";
 
     protected void setUp() throws Exception {

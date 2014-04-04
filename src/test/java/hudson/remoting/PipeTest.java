@@ -23,7 +23,6 @@
  */
 package hudson.remoting;
 
-import hudson.remoting.ChannelRunner.InProcessCompatibilityMode;
 import junit.framework.Test;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
@@ -36,7 +35,6 @@ import java.io.OutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
-import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
@@ -149,7 +147,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
     }
 
     public void testSaturation() throws Exception {
-        if (channelRunner instanceof InProcessCompatibilityMode)
+        if (channelRunner instanceof InProcessCompatibilityRunner)
             return; // can't do this test without the throttling support.
 
         final Pipe p = Pipe.createLocalToRemote();

@@ -23,7 +23,6 @@
  */
 package hudson.remoting;
 
-import hudson.remoting.ChannelRunner.InProcessCompatibilityMode;
 import junit.framework.Test;
 import org.jvnet.hudson.test.Bug;
 import org.objectweb.asm.ClassReader;
@@ -72,7 +71,7 @@ public class ClassRemotingTest extends RmiTestBase {
     public void testRemoteProperty() throws Exception {
         // this test cannot run in the compatibility mode without the multi-classloader serialization support,
         // because it uses the class loader specified during proxy construction.
-        if (channelRunner instanceof InProcessCompatibilityMode)
+        if (channelRunner instanceof InProcessCompatibilityRunner)
             return;
 
         DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());

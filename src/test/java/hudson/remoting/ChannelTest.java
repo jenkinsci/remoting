@@ -1,7 +1,5 @@
 package hudson.remoting;
 
-import hudson.remoting.ChannelRunner.Fork;
-import hudson.remoting.ChannelRunner.InProcessCompatibilityMode;
 import org.jvnet.hudson.test.Bug;
 
 import java.io.IOException;
