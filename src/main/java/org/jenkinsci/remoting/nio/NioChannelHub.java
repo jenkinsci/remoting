@@ -285,9 +285,10 @@ public class NioChannelHub implements Runnable, Closeable {
         @SelectorThreadOnly
         public void reregister() throws IOException {
             int flag = (wantsToWrite() && isWopen() ? OP_WRITE : 0) + (wantsToRead() && isRopen() ? OP_READ : 0);
-
-            ch.configureBlocking(false);
-            ch.register(selector, flag).attach(this);
+            if (ch.isOpen()) {
+                ch.configureBlocking(false);
+                ch.register(selector, flag).attach(this);
+            }
         }
 
         @SelectorThreadOnly
