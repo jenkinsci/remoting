@@ -165,6 +165,10 @@ public class FifoBuffer implements Closeable {
         this(null,pageSize,limit);
     }
 
+    public FifoBuffer(int limit) {
+        this(Math.max(limit/256,1024),limit);
+    }
+
     public FifoBuffer(Object lock, int pageSize, int limit) {
         this.lock = lock==null ? this : lock;
         this.limit = limit;
@@ -500,7 +504,7 @@ public class FifoBuffer implements Closeable {
                     int n = FifoBuffer.this.read(b);
                     if (n<0)    return -1;
                     if (n==0)   throw new AssertionError();
-                    return b[0];
+                    return ((int)b[0])&0xFF;
                 } catch (InterruptedException e) {
                     throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                 }
