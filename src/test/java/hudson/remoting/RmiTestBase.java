@@ -35,6 +35,7 @@ import junit.framework.TestSuite;
 @WithRunner({
     InProcessRunner.class,
     NioSocketRunner.class,
+    NioPipeRunner.class,
     InProcessCompatibilityRunner.class,
     ForkRunner.class,
     ForkEBCDICRunner.class
@@ -42,7 +43,7 @@ import junit.framework.TestSuite;
 public abstract class RmiTestBase extends TestCase {
 
     protected transient Channel channel;
-    protected transient ChannelRunner channelRunner = new NioSocketRunner();
+    protected transient ChannelRunner channelRunner = new NioPipeRunner();
     protected String testSuffix="";
 
     protected void setUp() throws Exception {

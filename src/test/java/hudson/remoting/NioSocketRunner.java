@@ -20,16 +20,7 @@ import static org.junit.Assert.*;
 /**
  * Runs a channel over NIO+socket.
  */
-public class NioSocketRunner implements ChannelRunner {
-    private ExecutorService executor = Executors.newCachedThreadPool();
-    private NioChannelHub nio;
-    /**
-     * failure occurred in the other {@link Channel}.
-     */
-    private Throwable failure;
-
-    private Channel south;
-
+public class NioSocketRunner extends AbstractNioChannelRunner {
     public Channel start() throws Exception {
         ServerSocketChannel ss = ServerSocketChannel.open();
         ss.configureBlocking(false);
@@ -79,23 +70,6 @@ public class NioSocketRunner implements ChannelRunner {
         // create a client channel that connects to the same hub
         SocketChannel client = SocketChannel.open(new InetSocketAddress("localhost", ss.socket().getLocalPort()));
         return nio.newChannelBuilder("north",executor).withMode(Mode.BINARY).build(client);
-    }
-
-    public void stop(Channel channel) throws Exception {
-        channel.close();
-        channel.join();
-
-        System.out.println("north completed");
-
-        // we initiate the shutdown from north, so by the time it closes south should be all closed, too
-        assertTrue(south.isInClosed());
-        assertTrue(south.isOutClosed());
-
-        nio.close();
-        executor.shutdown();
-
-        if(failure!=null)
-            throw new AssertionError(failure);  // report a failure in the south side
     }
 
     public String getName() {
