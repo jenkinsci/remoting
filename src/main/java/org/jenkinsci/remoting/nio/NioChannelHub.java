@@ -520,7 +520,7 @@ public class NioChannelHub implements Runnable, Closeable {
                                     }
                                 }
 
-                                if (t.rb.writable()==0) {
+                                if (t.rb.writable()==0 && t.rb.readable()>0) {
                                     String msg = "Command buffer overflow. Read " + t.rb.readable() + " bytes but still too small for a single command";
                                     LOGGER.log(WARNING, msg);
                                     // to avoid infinite hang, abort this connection
