@@ -35,6 +35,7 @@ import junit.framework.TestSuite;
  */
 @WithRunner({
     ChannelRunner.InProcess.class,
+    ChannelRunner.NioSocket.class,
     ChannelRunner.InProcessCompatibilityMode.class,
     ChannelRunner.Fork.class,
     ChannelRunner.ForkEBCDIC.class
