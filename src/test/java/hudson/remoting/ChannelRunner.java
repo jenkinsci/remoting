@@ -204,6 +204,7 @@ interface ChannelRunner {
             assertTrue(south.isInClosed());
             assertTrue(south.isOutClosed());
 
+            nio.close();
             executor.shutdown();
 
             if(failure!=null)
