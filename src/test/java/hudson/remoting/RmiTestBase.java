@@ -23,7 +23,7 @@
  */
 package hudson.remoting;
 
-import hudson.remoting.ChannelRunner.InProcess;
+import hudson.remoting.ChannelRunner.NioSocket;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
@@ -43,7 +43,8 @@ import junit.framework.TestSuite;
 public abstract class RmiTestBase extends TestCase {
 
     protected transient Channel channel;
-    protected transient ChannelRunner channelRunner = new InProcess();
+    protected transient ChannelRunner channelRunner = new NioSocket();
+    protected String testSuffix="";
 
     protected void setUp() throws Exception {
         System.out.println("Starting "+getName());
@@ -57,6 +58,7 @@ public abstract class RmiTestBase extends TestCase {
     /*package*/ void setChannelRunner(Class<? extends ChannelRunner> runner) {
         try {
             this.channelRunner = runner.newInstance();
+            testSuffix = "-"+channelRunner.getName();
         } catch (InstantiationException e) {
             throw new Error(e);
         } catch (IllegalAccessException e) {
@@ -65,10 +67,7 @@ public abstract class RmiTestBase extends TestCase {
     }
 
     public String getName() {
-        if (channelRunner instanceof InProcess)
-            return super.getName();
-        else
-            return super.getName()+"-"+channelRunner.getName();
+        return super.getName()+testSuffix;
     }
 
     /**
