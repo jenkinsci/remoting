@@ -424,7 +424,7 @@ public class NioChannelHub implements Runnable, Closeable {
     /**
      * Attend to channels in the hub.
      *
-     * TODO: how does this method return?
+     * This method returns when {@link #close()} is called and the selector is shut down.
      */
     public void run() {
         try {
