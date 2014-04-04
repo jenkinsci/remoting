@@ -37,9 +37,14 @@ import static java.util.logging.Level.*;
 /**
  * Switch board of multiple {@link Channel}s through NIO select.
  *
- * Through this hub, N threads can attend to M channels.
+ * Through this hub, N threads can attend to M channels with a help of one selector thread.
+ *
+ * <p>
+ * To get the selector thread going, call the {@link #run()} method from a thread after you instantiate this object.
+ * The {@link #run()} method will block until the hub gets closed.
  *
  * @author Kohsuke Kawaguchi
+ * @since 2.38
  */
 public class NioChannelHub implements Runnable, Closeable {
     private final Selector selector;

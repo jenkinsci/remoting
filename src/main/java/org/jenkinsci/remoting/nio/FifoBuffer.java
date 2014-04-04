@@ -19,6 +19,7 @@ import java.nio.channels.WritableByteChannel;
  * saves memory while simultaneously allowing us to advertise a bigger window size for a large latency network.
  *
  * @author Kohsuke Kawaguchi
+ * @since 2.38
  */
 public class FifoBuffer implements Closeable {
     /**

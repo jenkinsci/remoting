@@ -434,7 +434,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param jarCache
      *
      * @since 2.24
-     * @deprecated as of 2.NIO
+     * @deprecated as of 2.38
      */
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base, JarCache jarCache) throws IOException {
         this(new ChannelBuilder(name,exec)

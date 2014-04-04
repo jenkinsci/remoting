@@ -40,6 +40,7 @@ import java.util.logging.Logger;
  * will fail, most notably {@link Object#toString()}
  *
  * @author Kohsuke Kawaguchi
+ * @since 2.38
  */
 public class SelectableFileChannelFactory {
     protected FileInputStream unwrap(InputStream i) {

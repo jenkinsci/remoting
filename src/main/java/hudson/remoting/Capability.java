@@ -192,8 +192,7 @@ public final class Capability implements Serializable {
     /**
      * Supports chunked encoding.
      *
-     * TODO: reassign before release
-     * @sine 2.NIO
+     * @sine 2.38
      */
     private static final long MASK_CHUNKED_ENCODING = 1L << 7;
 

@@ -17,12 +17,16 @@ import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.ExecutorService;
 
 /**
+ * {@link ChannelBuilder} subtype for {@link NioChannelHub}.
+ *
  * @author Kohsuke Kawaguchi
+ * @since 2.38
+ * @see NioChannelHub#newChannelBuilder(String, ExecutorService)
  */
 public abstract class NioChannelBuilder extends ChannelBuilder {
     /*package*/ SelectableChannel/* & ReadableByteChannel&WritableByteChannel */ r,w;
 
-    public NioChannelBuilder(String name, ExecutorService executors) {
+    NioChannelBuilder(String name, ExecutorService executors) {
         super(name, executors);
     }
 
