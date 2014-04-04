@@ -515,14 +515,16 @@ public class NioChannelHub implements Runnable, Closeable {
                                         // read in the whole packet
                                         byte[] packet = new byte[packetSize];
                                         int r_ptr = 0;
-                                        while (packetSize>0) {
+                                        do {
                                             int r = t.rb.readNonBlocking(buf);
                                             assert r==buf.length;
-                                            chunk = ChunkHeader.length(ChunkHeader.parse(buf));
+                                            header = ChunkHeader.parse(buf);
+                                            chunk = ChunkHeader.length(header);
+                                            last = ChunkHeader.isLast(header);
                                             t.rb.readNonBlocking(packet, r_ptr, chunk);
                                             packetSize-=chunk;
                                             r_ptr+=chunk;
-                                        }
+                                        } while (!last);
                                         assert packetSize==0;
 
                                         t.handlePacket(packet);
