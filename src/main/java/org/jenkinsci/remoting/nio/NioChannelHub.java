@@ -83,7 +83,7 @@ public class NioChannelHub implements Runnable {
         private ByteArrayReceiver receiver;
 
         ChannelPair(SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
-            assert r instanceof ReadableByteChannel && w instanceof WritableByteChannel && rc!=null && wc!=null;
+            assert r instanceof ReadableByteChannel && w instanceof WritableByteChannel;
             this.r = r;
             this.w = w;
             this.rc = Closeables.input(r);
@@ -99,6 +99,11 @@ public class NioChannelHub implements Runnable {
             return (WritableByteChannel) w;
         }
 
+        /**
+         * Based on the state of this {@link ChannelPair}, register NIO channels to the selector.
+         *
+         * This methods must run in the selector thread.
+         */
         public void reregister() throws IOException {
             int writeFlag = wb.readable()!=0 ? OP_WRITE : 0; // do we want to write? if -1, we want to trigger closeW(), so we return OP_WRITE
             int readFlag = receiver!=null ? OP_READ : 0; // once we have the setup method called, we are ready
@@ -211,7 +216,12 @@ public class NioChannelHub implements Runnable {
 
         @Override
         public void closeRead() throws IOException {
-            closeR();
+            scheduleSelectorTask(new Callable<Void, IOException>() {
+                public Void call() throws IOException {
+                    closeR();
+                    return null;
+                }
+            });
         }
 
         /**
@@ -329,6 +339,7 @@ public class NioChannelHub implements Runnable {
                                     assert packetSize==0;
 
                                     cp.receiver.handle(packet);
+                                    pos=0;
                                 }
                             }
                         }
