@@ -106,7 +106,7 @@ public class NioChannelHub implements Runnable, Closeable {
          */
         public void reregister() throws IOException {
             int writeFlag = wb.readable()!=0 ? OP_WRITE : 0; // do we want to write? if -1, we want to trigger closeW(), so we return OP_WRITE
-            int readFlag = receiver!=null ? OP_READ : 0; // once we have the setup method called, we are ready
+            int readFlag = receiver!=null && rb.writable()!=0 ? OP_READ : 0; // once we have the setup method called, we are ready
             boolean registered = false;
 
             if (isRopen()) {
