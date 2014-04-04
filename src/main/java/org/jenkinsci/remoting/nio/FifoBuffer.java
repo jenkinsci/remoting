@@ -3,6 +3,8 @@ package org.jenkinsci.remoting.nio;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
@@ -453,5 +455,65 @@ public class FifoBuffer implements Closeable {
                 lock.notifyAll();
             }
         }
+    }
+
+    /**
+     * Wraps writer end of it to {@link OutputStream}.
+     */
+    public OutputStream getOutputStream() {
+        return new OutputStream() {
+            @Override
+            public void write(int b) throws IOException {
+                try {
+                    byte[] buf = new byte[]{(byte)b};
+                    FifoBuffer.this.write(buf);
+                } catch (InterruptedException e) {
+                    throw (InterruptedIOException)new InterruptedIOException().initCause(e);
+                }
+            }
+
+            @Override
+            public void write(byte[] b, int off, int len) throws IOException {
+                try {
+                    FifoBuffer.this.write(b,off,len);
+                } catch (InterruptedException e) {
+                    throw (InterruptedIOException)new InterruptedIOException().initCause(e);
+                }
+            }
+
+            @Override
+            public void close() throws IOException {
+                FifoBuffer.this.close();
+            }
+        };
+    }
+
+    /**
+     * Wraps the reader end of it to {@link InputStream}
+     */
+    public InputStream getInputStream() {
+        return new InputStream() {
+            @Override
+            public int read() throws IOException {
+                try {
+                    byte[] b = new byte[1];
+                    int n = FifoBuffer.this.read(b);
+                    if (n<0)    return -1;
+                    if (n==0)   throw new AssertionError();
+                    return b[0];
+                } catch (InterruptedException e) {
+                    throw (InterruptedIOException)new InterruptedIOException().initCause(e);
+                }
+            }
+
+            @Override
+            public int read(byte[] b, int off, int len) throws IOException {
+                try {
+                    return FifoBuffer.this.read(b, off, len);
+                } catch (InterruptedException e) {
+                    throw (InterruptedIOException)new InterruptedIOException().initCause(e);
+                }
+            }
+        };
     }
 }
