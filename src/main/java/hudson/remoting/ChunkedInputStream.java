@@ -89,11 +89,11 @@ class ChunkedInputStream extends InputStream {
                 if (read==-1)
                     throw new IOException("Unexpected EOF");
                 sink.write(buf,0,read);
-                if (isLast && remaining==0)
-                    return; // we've read the all payload of the last chunk
             } else {
                 readHeader(); // move on to the next chunk
             }
+            if (isLast && remaining==0)
+                return; // we've read the all payload of the last chunk
         }
     }
 }
