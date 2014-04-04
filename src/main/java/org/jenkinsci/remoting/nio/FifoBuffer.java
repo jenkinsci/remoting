@@ -102,6 +102,11 @@ public class FifoBuffer implements Closeable {
         public void read(byte[] buf, int start, int len) {
             while (len>0) {
                 int chunk = Math.min(len,chunk());
+                assert off+chunk <= p.buf.length;
+                assert start+chunk <= buf.length;
+                assert off>=0;
+                assert start>=0;
+                assert chunk>=0;
                 System.arraycopy(p.buf,off,buf,start,chunk);
 
                 off+=chunk;
@@ -271,6 +276,9 @@ public class FifoBuffer implements Closeable {
      *      number of bytes read, or -1 if the given channel has reached EOF and no further read is possible.
      */
     public int receive(ReadableByteChannel ch) throws IOException {
+        if (closed)
+            throw new IOException("already closed");
+
         int written = 0;
         while (true) {
             synchronized (lock) {
@@ -295,11 +303,14 @@ public class FifoBuffer implements Closeable {
         }
     }
 
-    public void write(byte[] buf) throws InterruptedException {
+    public void write(byte[] buf) throws InterruptedException, IOException {
         write(buf,0,buf.length);
     }
 
-    public void write(byte[] buf, int start, int len) throws InterruptedException {
+    public void write(byte[] buf, int start, int len) throws InterruptedException, IOException {
+        if (closed)
+            throw new IOException("already closed");
+
         while (len>0) {
             int chunk;
 
