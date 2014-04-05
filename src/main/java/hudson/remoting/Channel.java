@@ -499,7 +499,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         public void onClosed(Channel channel, IOException cause) {}
     }
 
-    /*package*/ boolean isOutClosed() {
+    /**
+     * Is the sender side of the transport already closed?
+     */
+    public boolean isOutClosed() {
         return outClosed!=null;
     }
     
@@ -774,12 +777,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Aborts the connection in response to an error.
      *
+     * This is an SPI for {@link CommandTransport} implementation to notify
+     * {@link Channel} when the underlying connection is severed.
+     *
      * @param e
      *      The error that caused the connection to be aborted. Never null.
      */
     @java.lang.SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     @SuppressWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
-    protected void terminate(IOException e) {
+    public void terminate(IOException e) {
         try {
             synchronized (this) {
                 if (e == null) throw new IllegalArgumentException();
@@ -871,7 +877,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * If the receiving end of the channel is closed (that is, if we are guaranteed to receive nothing further),
      * this method returns true.
      */
-    /*package*/ boolean isInClosed() {
+    public boolean isInClosed() {
         return inClosed!=null;
     }
 

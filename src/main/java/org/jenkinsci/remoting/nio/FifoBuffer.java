@@ -200,7 +200,7 @@ public class FifoBuffer implements Closeable {
      * @return
      *      -1 if the buffer is closed and there's no more data to read.
      */
-    int readable() {
+    public int readable() {
         synchronized (lock) {
             if (sz>0)   return sz;
             if (closed) return -1;
@@ -211,8 +211,18 @@ public class FifoBuffer implements Closeable {
     /**
      * Number of bytes writable
      */
-    int writable() {
+    public int writable() {
         return Math.max(0,limit-readable());
+    }
+
+    /**
+     * Returns true if the write end of the buffer is already closed, and that
+     * no more new data will arrive.
+     *
+     * Note that there still might be a data left in the buffer to be read.
+     */
+    public boolean isClosed() {
+        return closed;
     }
 
     /**

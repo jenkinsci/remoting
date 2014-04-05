@@ -12,6 +12,7 @@ import hudson.remoting.CommandTransport;
 import hudson.remoting.SingleLaneExecutorService;
 
 import java.io.Closeable;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -162,6 +163,10 @@ public class NioChannelHub implements Runnable, Closeable {
         protected final void cancelKey(SelectionKey key) {
             if (key!=null)
                 key.cancel();
+        }
+
+        protected Channel getChannel() {
+            return channel;
         }
 
         @SelectorThreadOnly
@@ -537,6 +542,11 @@ public class NioChannelHub implements Runnable, Closeable {
                                     LOGGER.log(WARNING, msg);
                                     // to avoid infinite hang, abort this connection
                                     t.abort(new IOException(msg));
+                                }
+                                if (t.rb.isClosed()) {
+                                    // if this EOF is unexpected, report an error.
+                                    if (!t.getChannel().isInClosed())
+                                        t.getChannel().terminate(new EOFException());
                                 }
                             }
                             if (key.isValid() && key.isWritable()) {
