@@ -240,14 +240,6 @@ public class NioChannelHub implements Runnable, Closeable {
                 }
             });
         }
-
-        void handlePacket(final byte[] packet) {
-            swimLane.submit(new Runnable() {
-                public void run() {
-                    receiver.handle(packet);
-                }
-            });
-        }
     }
 
     /**
@@ -497,7 +489,7 @@ public class NioChannelHub implements Runnable, Closeable {
                     Object a = key.attachment();
 
                     if (a instanceof NioTransport) {
-                        NioTransport t = (NioTransport) a;
+                        final NioTransport t = (NioTransport) a;
 
                         try {
                             if (key.isReadable()) {
@@ -518,7 +510,7 @@ public class NioChannelHub implements Runnable, Closeable {
                                     boolean last = ChunkHeader.isLast(header);
                                     if (last && pos<=t.rb.readable()) {// do we have the whole packet in our buffer?
                                         // read in the whole packet
-                                        byte[] packet = new byte[packetSize];
+                                        final byte[] packet = new byte[packetSize];
                                         int r_ptr = 0;
                                         do {
                                             int r = t.rb.readNonBlocking(buf);
@@ -532,7 +524,11 @@ public class NioChannelHub implements Runnable, Closeable {
                                         } while (!last);
                                         assert packetSize==0;
 
-                                        t.handlePacket(packet);
+                                        t.swimLane.submit(new Runnable() {
+                                            public void run() {
+                                                t.receiver.handle(packet);
+                                            }
+                                        });
                                         pos=0;
                                     }
                                 }
@@ -544,9 +540,14 @@ public class NioChannelHub implements Runnable, Closeable {
                                     t.abort(new IOException(msg));
                                 }
                                 if (t.rb.isClosed()) {
-                                    // if this EOF is unexpected, report an error.
-                                    if (!t.getChannel().isInClosed())
-                                        t.getChannel().terminate(new EOFException());
+                                    // EOF. process this synchronously with respect to packets
+                                    t.swimLane.submit(new Runnable() {
+                                        public void run() {
+                                            // if this EOF is unexpected, report an error.
+                                            if (!t.getChannel().isInClosed())
+                                                t.getChannel().terminate(new EOFException());
+                                        }
+                                    });
                                 }
                             }
                             if (key.isValid() && key.isWritable()) {
