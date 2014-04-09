@@ -10,6 +10,7 @@ import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
@@ -152,6 +153,12 @@ public class ChannelBuilder {
         // support half-close properly
         return build(new BufferedInputStream(new SocketInputStream(s)),
                     new BufferedOutputStream(new SocketOutputStream(s)));
+    }
+
+    public Channel build(SocketChannel s) throws IOException {
+        return build(
+                SocketChannelStream.getInputStream(s),
+                SocketChannelStream.getOutputStream(s));
     }
 
     public Channel build(CommandTransport transport) throws IOException {

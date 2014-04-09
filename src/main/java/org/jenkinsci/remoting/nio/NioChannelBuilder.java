@@ -33,7 +33,7 @@ public abstract class NioChannelBuilder extends ChannelBuilder {
     public Channel build(SocketChannel socket) throws IOException {
         this.r = socket;
         this.w = socket;
-        return super.build(socket.socket());
+        return super.build(socket);
     }
 
     public Channel build(SelectableChannel r, SelectableChannel w) throws IOException {
