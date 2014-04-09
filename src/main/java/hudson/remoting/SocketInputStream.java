@@ -41,6 +41,10 @@ import java.net.Socket;
 public class SocketInputStream extends FilterInputStream {
     private final Socket socket;
 
+    /**
+     * @deprecated
+     *      Use {@link SocketChannelStream#in(Socket)}
+     */
     public SocketInputStream(Socket socket) throws IOException {
         super(socket.getInputStream());
         this.socket = socket;

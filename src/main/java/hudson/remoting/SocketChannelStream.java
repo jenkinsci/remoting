@@ -17,8 +17,15 @@ import java.nio.channels.WritableByteChannel;
  * @author Kohsuke Kawaguchi
  * @see <a href="http://stackoverflow.com/questions/174774/">discussion with references to BugParade Bug IDs</a>
  */
-class SocketChannelStream {
-    static InputStream getInputStream(final SocketChannel ch) throws IOException {
+public class SocketChannelStream {
+    public static InputStream in(Socket s) throws IOException {
+        if (s.getChannel()!=null)
+            return in(s.getChannel());
+        else
+            return new SocketInputStream(s);
+    }
+
+    public static InputStream in(final SocketChannel ch) throws IOException {
         final Socket s = ch.socket();
 
         return Channels.newInputStream(new ReadableByteChannel() {
@@ -40,7 +47,14 @@ class SocketChannelStream {
         });
     }
 
-    static OutputStream getOutputStream(final SocketChannel ch) throws IOException {
+    public static OutputStream out(Socket s) throws IOException {
+        if (s.getChannel()!=null)
+            return out(s.getChannel());
+        else
+            return new SocketOutputStream(s);
+    }
+
+    public static OutputStream out(final SocketChannel ch) throws IOException {
         final Socket s = ch.socket();
 
         return Channels.newOutputStream(new WritableByteChannel() {

@@ -398,8 +398,8 @@ public class Launcher {
         s.setKeepAlive(true);
         // we take care of buffering on our own
         s.setTcpNoDelay(true);
-        main(new BufferedInputStream(new SocketInputStream(s)),
-             new BufferedOutputStream(new SocketOutputStream(s)), mode,ping,
+        main(new BufferedInputStream(SocketChannelStream.in(s)),
+             new BufferedOutputStream(SocketChannelStream.out(s)), mode,ping,
              new FileSystemJarCache(jarCache,true));
     }
 

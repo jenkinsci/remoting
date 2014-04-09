@@ -151,14 +151,14 @@ public class ChannelBuilder {
 
     public Channel build(Socket s) throws IOException {
         // support half-close properly
-        return build(new BufferedInputStream(new SocketInputStream(s)),
-                    new BufferedOutputStream(new SocketOutputStream(s)));
+        return build(new BufferedInputStream(SocketChannelStream.in(s)),
+                    new BufferedOutputStream(SocketChannelStream.out(s)));
     }
 
     public Channel build(SocketChannel s) throws IOException {
         return build(
-                SocketChannelStream.getInputStream(s),
-                SocketChannelStream.getOutputStream(s));
+                SocketChannelStream.in(s),
+                SocketChannelStream.out(s));
     }
 
     public Channel build(CommandTransport transport) throws IOException {

@@ -23,12 +23,11 @@
  */
 package hudson.remoting.forward;
 
-import hudson.remoting.VirtualChannel;
 import hudson.remoting.Callable;
-import hudson.remoting.SocketInputStream;
-import hudson.remoting.RemoteOutputStream;
-import hudson.remoting.SocketOutputStream;
 import hudson.remoting.Channel;
+import hudson.remoting.RemoteOutputStream;
+import hudson.remoting.SocketChannelStream;
+import hudson.remoting.VirtualChannel;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -69,8 +68,8 @@ public class ForwarderFactory {
         public OutputStream connect(OutputStream out) throws IOException {
             Socket s = new Socket(remoteHost, remotePort);
             new CopyThread(String.format("Copier to %s:%d", remoteHost, remotePort),
-                new SocketInputStream(s), out).start();
-            return new RemoteOutputStream(new SocketOutputStream(s));
+                SocketChannelStream.in(s), out).start();
+            return new RemoteOutputStream(SocketChannelStream.out(s));
         }
 
         /**

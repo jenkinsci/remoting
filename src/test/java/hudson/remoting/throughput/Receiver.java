@@ -1,8 +1,7 @@
 package hudson.remoting.throughput;
 
 import hudson.remoting.Channel;
-import hudson.remoting.SocketInputStream;
-import hudson.remoting.SocketOutputStream;
+import hudson.remoting.SocketChannelStream;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -24,8 +23,8 @@ public class Receiver {
             s.setTcpNoDelay(true);
             System.out.println("Accepted");
             Channel ch = new Channel("bogus", Executors.newCachedThreadPool(),
-                    new BufferedInputStream(new SocketInputStream(s)),
-                    new BufferedOutputStream(new SocketOutputStream(s)));
+                    new BufferedInputStream(SocketChannelStream.in(s)),
+                    new BufferedOutputStream(SocketChannelStream.out(s)));
             ch.join();
             s.close();
         }

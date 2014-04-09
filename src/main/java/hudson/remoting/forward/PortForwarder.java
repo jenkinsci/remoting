@@ -23,20 +23,20 @@
  */
 package hudson.remoting.forward;
 
-import hudson.remoting.RemoteOutputStream;
-import hudson.remoting.SocketOutputStream;
-import hudson.remoting.SocketInputStream;
-import hudson.remoting.VirtualChannel;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
+import hudson.remoting.RemoteOutputStream;
+import hudson.remoting.SocketChannelStream;
+import hudson.remoting.VirtualChannel;
 
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.Closeable;
-import static java.util.logging.Level.FINE;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.logging.Logger;
+
+import static java.util.logging.Level.*;
 
 /**
  * Port forwarder over a remote channel.
@@ -70,9 +70,9 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
                     new Thread("Port forwarding session from "+s.getRemoteSocketAddress()) {
                         public void run() {
                             try {
-                                final OutputStream out = forwarder.connect(new RemoteOutputStream(new SocketOutputStream(s)));
+                                final OutputStream out = forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)));
                                 new CopyThread("Copier for "+s.getRemoteSocketAddress(),
-                                    new SocketInputStream(s), out).start();
+                                        SocketChannelStream.in(s), out).start();
                             } catch (IOException e) {
                                 // this happens if the socket connection is terminated abruptly.
                                 LOGGER.log(FINE,"Port forwarding session was shut down abnormally",e);

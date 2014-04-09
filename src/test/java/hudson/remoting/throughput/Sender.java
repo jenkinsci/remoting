@@ -4,11 +4,9 @@ import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.Future;
 import hudson.remoting.Pipe;
-import hudson.remoting.SocketInputStream;
-import hudson.remoting.SocketOutputStream;
+import hudson.remoting.SocketChannelStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
-import org.junit.Assert;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -23,7 +21,7 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.*;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -38,8 +36,8 @@ public class Sender {
             Socket s = new Socket("127.0.0.2",Receiver.PORT);
             s.setTcpNoDelay(true);
             Channel ch = new Channel("bogus", Executors.newCachedThreadPool(),
-                    new BufferedInputStream(new SocketInputStream(s)),
-                    new BufferedOutputStream(new SocketOutputStream(s)));
+                    new BufferedInputStream(SocketChannelStream.in(s)),
+                    new BufferedOutputStream(SocketChannelStream.out(s)));
 
             final Pipe p = Pipe.createLocalToRemote();
             Future<byte[]> f = ch.callAsync(new Callable<byte[], Exception>() {
