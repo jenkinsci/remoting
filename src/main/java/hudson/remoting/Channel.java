@@ -1058,14 +1058,24 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Works like {@link #getProperty(Object)} but wait until some value is set by someone.
+     *
+     * @throws IllegalStateException
+     *      if the channel is closed. The idea is that channel properties are expected to be the coordination
+     *      mechanism between two sides of the channel, and this method in particular is a way of one side
+     *      to wait for the set by the other side of the channel (via {@link #waitForRemoteProperty(Object)}.
+     *      If we don't abort after the channel shutdown, this method will block forever.
      */
-    public Object waitForProperty(Object key) throws InterruptedException {
-        synchronized (properties) {
-            while(true) {
-                Object v = properties.get(key);
-                if(v!=null) return v;
-                properties.wait();
-            }
+    public synchronized Object waitForProperty(Object key) throws InterruptedException {
+        while(true) {
+            Object v = properties.get(key);
+            if(v!=null) return v;
+
+            if (isInClosed())
+                throw (IllegalStateException)new IllegalStateException("Channel was already closed").initCause(inClosed);
+            if (isOutClosed())
+                throw (IllegalStateException)new IllegalStateException("Channel was already closed").initCause(outClosed);
+
+            wait();
         }
     }
 
@@ -1078,12 +1088,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * 
      * @see #getProperty(Object)
      */
-    public Object setProperty(Object key, Object value) {
-        synchronized (properties) {
-            Object old = value!=null ? properties.put(key, value) : properties.remove(key);
-            properties.notifyAll();
-            return old;
-        }
+    public synchronized Object setProperty(Object key, Object value) {
+        Object old = value!=null ? properties.put(key, value) : properties.remove(key);
+        notifyAll();
+        return old;
     }
 
     public <T> T setProperty(ChannelProperty<T> key, T value) {
