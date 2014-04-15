@@ -33,6 +33,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.logging.Logger;
+
+import static java.util.logging.Level.SEVERE;
 
 /**
  * Manages unique ID for exported objects, and allows look-up from IDs.
@@ -280,8 +283,10 @@ final class ExportTable<T> {
     public synchronized void unexport(T t) {
         if(t==null)     return;
         Entry e = reverse.get(t);
-        if(e==null)
-            throw new IllegalStateException("Object doesn't appear to be exported: "+t);
+        if(e==null) {
+            LOGGER.log(SEVERE, "Trying to unexport an object that's not exported: "+t);
+            return;
+        }
         e.release();
     }
 
@@ -291,8 +296,10 @@ final class ExportTable<T> {
     public synchronized void unexportByOid(Integer oid) {
         if(oid==null)     return;
         Entry e = table.get(oid);
-        if(e==null)
-            throw diagnoseInvalidId(oid);
+        if(e==null) {
+            LOGGER.log(SEVERE, "Trying to unexport an object that's already unexported", diagnoseInvalidId(oid));
+            return;
+        }
         e.release();
     }
 
@@ -310,4 +317,6 @@ final class ExportTable<T> {
     }
 
     public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName()+".unexportLogSize",1024);
+
+    private static final Logger LOGGER = Logger.getLogger(ExportTable.class.getName());
 }
