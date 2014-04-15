@@ -63,7 +63,7 @@ public final class RemoteWriter extends Writer implements Serializable {
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        int id = Channel.current().export(core);
+        int id = Channel.current().export(core,false);  // this export is unexported in ProxyWriter.finalize()
         oos.writeInt(id);
     }
 
