@@ -84,7 +84,8 @@ final class ExportTable<T> {
          * (and we can still detect the problem by comparing the reference count with the magic value.
          */
         void pin() {
-            referenceCount += Integer.MAX_VALUE/2;
+            if (referenceCount<Integer.MAX_VALUE/2)
+                referenceCount += Integer.MAX_VALUE/2;
         }
 
         void release() {
