@@ -26,7 +26,11 @@ package hudson.remoting;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 
@@ -45,15 +49,27 @@ final class ExportTable<T> {
     private final ThreadLocal<ExportList> lists = new ThreadLocal<ExportList>();
 
     /**
+     * For diagnosing problems like JENKINS-20707 where we seem to be unexporting too eagerly,
+     * record most recent unexported objects up to {@link #UNEXPORT_LOG_SIZE}
+     *
+     * New entries are added to the end, and older ones are removed from the beginning.
+     */
+    private final List<Entry> unexportLog = new LinkedList<Entry>();
+
+    /**
      * Information about one exported object.
      */
     private final class Entry {
         final int id;
-        final @Nonnull T object;
+        private T object;
         /**
          * Where was this object first exported?
          */
-        final Exception allocationTrace;
+        final CreatedAt allocationTrace;
+        /**
+         * Where was this object unexported?
+         */
+        ReleasedAt releaseTrace;
         /**
          * Current reference count.
          * Access to {@link ExportTable} is guarded by synchronized block,
@@ -64,10 +80,7 @@ final class ExportTable<T> {
         Entry(T object) {
             this.id = iota++;
             this.object = object;
-            this.allocationTrace = new Exception();
-            // force the computation of the stack trace in a Java friendly data structure,
-            // so that the call stack can be seen from the heap dump after the fact. 
-            allocationTrace.getStackTrace();
+            this.allocationTrace = new CreatedAt();
 
             table.put(id,this);
             reverse.put(object,this);
@@ -92,7 +105,62 @@ final class ExportTable<T> {
             if(--referenceCount==0) {
                 table.remove(id);
                 reverse.remove(object);
+
+                // hack to store some information about the object that got unexported
+                // don't want to keep the object alive, and toString() seems bit risky
+                object = (T)object.getClass().getName();
+                releaseTrace = new ReleasedAt();
+
+                unexportLog.add(this);
+                while (unexportLog.size()>UNEXPORT_LOG_SIZE)
+                    unexportLog.remove(0);
             }
+        }
+
+        /**
+         * Dumps the contents of the entry.
+         */
+        void dump(PrintWriter w) throws IOException {
+            w.printf("#%d (ref.%d) : %s\n", id, referenceCount, object);
+            allocationTrace.printStackTrace(w);
+            if (releaseTrace!=null) {
+                releaseTrace.printStackTrace(w);
+            }
+        }
+
+        String dump() {
+            try {
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                dump(pw);
+                pw.close();
+                return sw.toString();
+            } catch (IOException e) {
+                throw new Error(e);   // impossible
+            }
+        }
+
+    }
+
+    static class Source extends Exception {
+        protected final long timestamp = System.currentTimeMillis();
+
+        Source() {
+            // force the computation of the stack trace in a Java friendly data structure,
+            // so that the call stack can be seen from the heap dump after the fact.
+            getStackTrace();
+        }
+    }
+
+    static class CreatedAt extends Source {
+        public String toString() {
+            return "  Created at "+new Date(timestamp);
+        }
+    }
+
+    static class ReleasedAt extends Source {
+        public String toString() {
+            return "  Released at "+new Date(timestamp);
         }
     }
 
@@ -187,7 +255,23 @@ final class ExportTable<T> {
         Entry e = table.get(id);
         if(e!=null) return e.object;
 
-        throw new IllegalStateException("Invalid object ID "+id+" iota="+iota);
+        throw diagnoseInvalidId(id);
+    }
+
+    private synchronized IllegalStateException diagnoseInvalidId(int id) {
+        Exception cause=null;
+
+        if (!unexportLog.isEmpty()) {
+            for (Entry e : unexportLog) {
+                if (e.id==id)
+                    cause = new Exception("Object was recently deallocated\n"+e.dump(), e.releaseTrace);
+            }
+            if (cause==null)
+                cause = new Exception("Object appears to be deallocated at lease before "+
+                    new Date(unexportLog.get(0).releaseTrace.timestamp));
+        }
+
+        return new IllegalStateException("Invalid object ID "+id+" iota="+iota, cause);
     }
 
     /**
@@ -196,7 +280,8 @@ final class ExportTable<T> {
     public synchronized void unexport(T t) {
         if(t==null)     return;
         Entry e = reverse.get(t);
-        if(e==null)    return; // presumably already unexported
+        if(e==null)
+            throw new IllegalStateException("Object doesn't appear to be exported: "+t);
         e.release();
     }
 
@@ -206,7 +291,8 @@ final class ExportTable<T> {
     public synchronized void unexportByOid(Integer oid) {
         if(oid==null)     return;
         Entry e = table.get(oid);
-        if(e==null)    return; // presumably already unexported
+        if(e==null)
+            throw diagnoseInvalidId(oid);
         e.release();
     }
 
@@ -215,12 +301,13 @@ final class ExportTable<T> {
      */
     public synchronized void dump(PrintWriter w) throws IOException {
         for (Entry e : table.values()) {
-            w.printf("#%d (ref.%d) : %s\n", e.id, e.referenceCount, e.object);
-            e.allocationTrace.printStackTrace(w);
+            e.dump(w);
         }
     }
 
     /*package*/ synchronized  boolean isExported(T o) {
         return reverse.containsKey(o);
     }
+
+    public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName()+".unexportLogSize",1024);
 }
