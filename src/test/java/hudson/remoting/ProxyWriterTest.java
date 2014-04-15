@@ -84,6 +84,9 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
      */
     @Bug(20769)
     public void testRemoteGC() throws InterruptedException, IOException {
+        // in the legacy mode ProxyWriter will try to close the stream, so can't run this test
+        if (channelRunner.getName().equals("local-compatibility"))
+            return;
 
         StringWriter sw = new StringWriter() {
             @Override
