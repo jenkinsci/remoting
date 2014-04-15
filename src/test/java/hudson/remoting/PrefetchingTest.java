@@ -174,10 +174,10 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
         String[] lines = v.split("\n");
 
-        assertTrue(lines[0].startsWith("file:"));
-        assertTrue(lines[1].startsWith("file:"));
-        assertTrue(lines[0].endsWith("::hello"));
-        assertTrue(lines[1].endsWith("::hello2"));
+        assertTrue(lines[0], lines[0].startsWith("file:"));
+        assertTrue(lines[1], lines[1].startsWith("file:"));
+        assertTrue(lines[0], lines[0].endsWith("::hello"));
+        assertTrue(lines[1], lines[1].endsWith("::hello2"));
     }
 
     public void testInnerClass() throws Exception {
