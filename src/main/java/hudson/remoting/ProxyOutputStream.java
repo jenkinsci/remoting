@@ -355,7 +355,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
 
         public String toString() {
-            return "Pipe.Unexport("+oid+")";
+            return "ProxyOutputStream.Unexport("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -394,7 +394,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
 
         public String toString() {
-            return "Pipe.EOF("+oid+")";
+            return "ProxyOutputStream.EOF("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -425,7 +425,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
 
         public String toString() {
-            return "Pipe.Ack("+oid+','+size+")";
+            return "ProxyOutputStream.Ack("+oid+','+size+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -449,7 +449,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
 
         public String toString() {
-            return "Pipe.Dead("+oid+")";
+            return "ProxyOutputStream.Dead("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
