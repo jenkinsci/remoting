@@ -1,6 +1,7 @@
 package hudson.remoting;
 
 import junit.framework.Test;
+import org.junit.Assume;
 import org.jvnet.hudson.test.Bug;
 
 import java.io.ByteArrayOutputStream;
@@ -8,6 +9,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.lang.ref.WeakReference;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -40,7 +42,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
     }
 
 
-    boolean streamClosed;
+    volatile boolean streamClosed;
 
     /**
      * Exercise all the calls.
@@ -94,6 +96,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
         channel.call(new Callable<Void, IOException>() {
             public Void call() throws IOException {
                 w.write("hello");
+                W = new WeakReference<RemoteWriter>(w);
                 return null;
             }
         });
@@ -105,16 +108,21 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             assertTrue("There shouldn't be any errors: " + log.toString(), log.size() == 0);
 
             Thread.sleep(100);
-            channel.call(new Callable<Void, IOException>() {
-                public Void call() throws IOException {
+            if (channel.call(new Callable<Boolean, IOException>() {
+                public Boolean call() throws IOException {
                     System.gc();
-                    return null;
+                    return W.get()==null;
                 }
-            });
+            }))
+                break;
         }
+
+        channel.syncIO();
 
         assertFalse(streamClosed);
     }
+
+    static WeakReference<RemoteWriter> W;
 
 
     /**
