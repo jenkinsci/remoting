@@ -32,6 +32,7 @@ import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.PortForwarder;
 
+import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -591,7 +592,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return exportedObjects.export(instance, automaticUnexport);
     }
 
-    /*package*/ Object getExportedObject(int oid) {
+    /*package*/ @Nonnull Object getExportedObject(int oid) {
         return exportedObjects.get(oid);
     }
 

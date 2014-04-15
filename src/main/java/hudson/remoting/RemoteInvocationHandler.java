@@ -290,8 +290,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         protected Serializable perform(Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
-            if(o==null)
-                throw new IllegalStateException("Unable to call "+methodName+". Invalid object ID "+oid);
             try {
                 Method m = choose(o);
                 if(m==null)

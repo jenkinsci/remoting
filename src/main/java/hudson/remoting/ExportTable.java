@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashMap;
@@ -44,11 +45,11 @@ final class ExportTable<T> {
     private final ThreadLocal<ExportList> lists = new ThreadLocal<ExportList>();
 
     /**
-     * Information about one exporetd object.
+     * Information about one exported object.
      */
     private final class Entry {
         final int id;
-        final T object;
+        final @Nonnull T object;
         /**
          * Where was this object first exported?
          */
@@ -181,10 +182,11 @@ final class ExportTable<T> {
         e.pin();
     }
 
-    public synchronized T get(int id) {
+    public synchronized @Nonnull T get(int id) {
         Entry e = table.get(id);
         if(e!=null) return e.object;
-        else        return null;
+
+        throw new IllegalStateException("Invalid object ID "+id+" iota="+iota);
     }
 
     /**
