@@ -93,6 +93,13 @@ class DummyClassLoader extends ClassLoader {
     }
 
     /**
+     * Short cut to create an instance of a transformed class.
+     */
+    public static Object apply(Class<?> c) {
+        return new DummyClassLoader(c).load(c);
+    }
+
+    /**
      * Loads a class that looks like an exact clone of the named class under
      * a different class name.
      */
