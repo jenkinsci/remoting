@@ -45,7 +45,7 @@ public class ClassRemotingTest extends RmiTestBase {
     public void test1() throws Throwable {
         // call a class that's only available on DummyClassLoader, so that on the remote channel
         // it will be fetched from this class loader and not from the system classloader.
-        DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader(), TestCallable.class);
+        DummyClassLoader cl = new DummyClassLoader(TestCallable.class);
         Callable c = (Callable) cl.load(TestCallable.class);
 
         Object[] r = (Object[]) channel.call(c);
@@ -74,7 +74,7 @@ public class ClassRemotingTest extends RmiTestBase {
         if (channelRunner instanceof InProcessCompatibilityRunner)
             return;
 
-        DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader(), TestCallable.class);
+        DummyClassLoader cl = new DummyClassLoader(TestCallable.class);
         Callable c = (Callable) cl.load(TestCallable.class);
         assertSame(c.getClass().getClassLoader(), cl);
 
@@ -85,7 +85,7 @@ public class ClassRemotingTest extends RmiTestBase {
 
     @Bug(6604)
     public void testRaceCondition() throws Throwable {
-        DummyClassLoader parent = new DummyClassLoader(ClassRemotingTest.class.getClassLoader(), TestCallable.class);
+        DummyClassLoader parent = new DummyClassLoader(TestCallable.class);
         DummyClassLoader child1 = new DummyClassLoader(parent, TestCallable.Sub.class);
         final Callable<Object,Exception> c1 = (Callable) child1.load(TestCallable.Sub.class);
         assertEquals(child1, c1.getClass().getClassLoader());
@@ -116,7 +116,7 @@ public class ClassRemotingTest extends RmiTestBase {
 
     @Bug(19453)
     public void testInterruption() throws Exception {
-        DummyClassLoader parent = new DummyClassLoader(ClassRemotingTest.class.getClassLoader(), TestLinkage.B.class);
+        DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
         final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> c = (Callable) child2.load(TestLinkage.class);

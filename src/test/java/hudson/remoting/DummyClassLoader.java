@@ -80,6 +80,10 @@ class DummyClassLoader extends ClassLoader {
 
     private final List<Entry> entries = new ArrayList<Entry>();
 
+    public DummyClassLoader(Class<?>... classes) {
+        this(DummyClassLoader.class.getClassLoader(), classes);
+    }
+
     public DummyClassLoader(ClassLoader parent, Class<?>... classes) {
         super(parent);
         assert classes.length!=0;
