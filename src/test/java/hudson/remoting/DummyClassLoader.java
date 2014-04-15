@@ -24,13 +24,16 @@
 package hudson.remoting;
 
 
+import org.apache.commons.io.IOUtils;
+
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.File;
 import java.io.OutputStream;
-import java.io.FileOutputStream;
 import java.net.URL;
-import org.apache.commons.io.IOUtils;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Used to load a dummy class
@@ -45,83 +48,105 @@ import org.apache.commons.io.IOUtils;
  */
 class DummyClassLoader extends ClassLoader {
 
-    private final String physicalName;
-    private final String logicalName;
-    private final String physicalPath;
-    private final String logicalPath;
+    class Entry {
+        final String physicalName;
+        final String logicalName;
+        final String physicalPath;
+        final String logicalPath;
+        final Class c;
 
-    /** Uses {@link TestCallable}. */
-    public DummyClassLoader(ClassLoader parent) {
-        this(parent, TestCallable.class);
+        Entry(Class<?> c) {
+            this.c = c;
+            physicalName = c.getName();
+            assert physicalName.contains("remoting.Test");
+            logicalName = physicalName.replace("remoting", "rem0ting");
+            physicalPath = physicalName.replace('.', '/') + ".class";
+            logicalPath = logicalName.replace('.', '/') + ".class";
+        }
+
+        private byte[] loadTransformedClassImage() throws IOException {
+            InputStream in = getResourceAsStream(physicalPath);
+            String data = IOUtils.toString(in, "ISO-8859-1");
+            // Single-character substitutions will not change length fields in bytecode etc.
+            String data2 = data.replaceAll("remoting(.)Test", "rem0ting$1Test");
+            return data2.getBytes("ISO-8859-1");
+        }
+
+        @Override
+        public String toString() {
+            return physicalName;
+        }
     }
 
-    public DummyClassLoader(ClassLoader parent, Class<?> c) {
+    private final List<Entry> entries = new ArrayList<Entry>();
+
+    public DummyClassLoader(ClassLoader parent, Class<?>... classes) {
         super(parent);
-        physicalName = c.getName();
-        assert physicalName.contains("remoting.Test");
-        logicalName = physicalName.replace("remoting", "rem0ting");
-        physicalPath = physicalName.replace('.', '/') + ".class";
-        logicalPath = logicalName.replace('.', '/') + ".class";
+        assert classes.length!=0;
+        for (Class<?> c : classes) {
+            entries.add(new Entry(c));
+        }
     }
 
     /**
      * Loads a class that looks like an exact clone of the named class under
      * a different class name.
      */
-    public Object load() {
-        try {
-            return loadClass(logicalName).newInstance();
-        } catch (InstantiationException e) {
-            throw new Error(e);
-        } catch (IllegalAccessException e) {
-            throw new Error(e);
-        } catch (ClassNotFoundException e) {
-            throw new Error(e);
+    public Object load(Class c) {
+        for (Entry e : entries) {
+            if (e.c==c) {
+                try {
+                    return loadClass(e.logicalName).newInstance();
+                } catch (InstantiationException x) {
+                    throw new Error(x);
+                } catch (IllegalAccessException x) {
+                    throw new Error(x);
+                } catch (ClassNotFoundException x) {
+                    throw new Error(x);
+                }
+            }
         }
+        throw new IllegalStateException();
     }
 
 
     protected Class<?> findClass(String name) throws ClassNotFoundException {
-        if(name.equals(logicalName)) {
-            // rename a class
-            try {
-                byte[] bytes = loadTransformedClassImage();
-                return defineClass(name,bytes,0,bytes.length);
-            } catch (IOException e) {
-                throw new ClassNotFoundException("Bytecode manipulation failed",e);
+        for (Entry e : entries) {
+            if(name.equals(e.logicalName)) {
+                // rename a class
+                try {
+                    byte[] bytes = e.loadTransformedClassImage();
+                    return defineClass(name,bytes,0,bytes.length);
+                } catch (IOException x) {
+                    throw new ClassNotFoundException("Bytecode manipulation failed",x);
+                }
             }
         }
 
         return super.findClass(name);
     }
 
-    private byte[] loadTransformedClassImage() throws IOException {
-        InputStream in = getResourceAsStream(physicalPath);
-        String data = IOUtils.toString(in, "ISO-8859-1");
-        // Single-character substitutions will not change length fields in bytecode etc.
-        String data2 = data.replaceAll("remoting(.)Test", "rem0ting$1Test");
-        return data2.getBytes("ISO-8859-1");
-    }
-
 
     protected URL findResource(String name) {
-        if (name.equals(logicalPath)) {
-            try {
-                File f = File.createTempFile("rmiTest","class");
-                OutputStream os = new FileOutputStream(f);
-                os.write(loadTransformedClassImage());
-                os.close();
-                f.deleteOnExit();
-                return f.toURI().toURL();
-            } catch (IOException e) {
-                return null;
+        for (Entry e : entries) {
+            if (name.equals(e.logicalPath)) {
+                try {
+                    File f = File.createTempFile("rmiTest", "class");
+                    OutputStream os = new FileOutputStream(f);
+                    os.write(e.loadTransformedClassImage());
+                    os.close();
+                    f.deleteOnExit();
+                    return f.toURI().toURL();
+                } catch (IOException x) {
+                    return null;
+                }
             }
         }
         return super.findResource(name);
     }
 
     @Override public String toString() {
-        return super.toString() + "[" + physicalName + "]";
+        return super.toString() + "[" + entries + "]";
     }
 
 }
