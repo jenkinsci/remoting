@@ -58,7 +58,7 @@ class DummyClassLoader extends ClassLoader {
         Entry(Class<?> c) {
             this.c = c;
             physicalName = c.getName();
-            assert physicalName.contains("remoting.Test");
+            assert physicalName.contains("remoting.Test") : physicalName;
             logicalName = physicalName.replace("remoting", "rem0ting");
             physicalPath = physicalName.replace('.', '/') + ".class";
             logicalPath = logicalName.replace('.', '/') + ".class";
@@ -95,7 +95,7 @@ class DummyClassLoader extends ClassLoader {
     /**
      * Short cut to create an instance of a transformed class.
      */
-    public static Object apply(Class<?> c) {
+    public static <T> T apply(Class<?> c) {
         return new DummyClassLoader(c).load(c);
     }
 
@@ -103,11 +103,11 @@ class DummyClassLoader extends ClassLoader {
      * Loads a class that looks like an exact clone of the named class under
      * a different class name.
      */
-    public Object load(Class c) {
+    public <T> T load(Class c) {
         for (Entry e : entries) {
             if (e.c==c) {
                 try {
-                    return loadClass(e.logicalName).newInstance();
+                    return (T)loadClass(e.logicalName).newInstance();
                 } catch (InstantiationException x) {
                     throw new Error(x);
                 } catch (IllegalAccessException x) {
