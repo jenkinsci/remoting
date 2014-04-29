@@ -3,6 +3,8 @@ package hudson.remoting;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Arrays;
 
 /**
  * Filter input stream that records the content as it's read, so that it can be reported
@@ -11,8 +13,11 @@ import java.io.InputStream;
  * @author Kohsuke Kawaguchi
  */
 class FlightRecorderInputStream extends InputStream {
+
+    static final int BUFFER_SIZE = Integer.getInteger("hudson.remoting.FlightRecorderInputStream.BUFFER_SIZE", 1024 * 1024);
+
     private final InputStream source;
-    private final ByteArrayOutputStream recorder = new ByteArrayOutputStream();
+    private ByteArrayRingBuffer recorder = new ByteArrayRingBuffer(BUFFER_SIZE);
 
     FlightRecorderInputStream(InputStream source) {
         this.source = source;
@@ -22,7 +27,7 @@ class FlightRecorderInputStream extends InputStream {
      * Rewinds the record buffer and forget everything that was recorded.
      */
     public void clear() {
-        recorder.reset();
+        recorder = new ByteArrayRingBuffer(BUFFER_SIZE);
     }
 
     /**
@@ -111,4 +116,39 @@ class FlightRecorderInputStream extends InputStream {
     public boolean markSupported() {
         return false;
     }
+
+    // http://stackoverflow.com/a/3651696/12916
+    private static class ByteArrayRingBuffer extends OutputStream {
+
+        byte[] data;
+
+        int capacity, pos = 0;
+
+        boolean filled = false;
+
+        public ByteArrayRingBuffer(int capacity) {
+            data = new byte[capacity];
+            this.capacity = capacity;
+        }
+
+        @Override
+        public synchronized void write(int b) {
+            if (pos == capacity) {
+                filled = true;
+                pos = 0;
+            }
+            data[pos++] = (byte) b;
+        }
+
+        public byte[] toByteArray() {
+            if (!filled) {
+                return Arrays.copyOf(data, pos);
+            }
+            byte[] ret = new byte[capacity];
+            System.arraycopy(data, pos, ret, 0, capacity - pos);
+            System.arraycopy(data, 0, ret, capacity - pos, pos);
+            return ret;
+        }
+    }
+
 }

@@ -43,5 +43,22 @@ public class FlightRecorderInputStreamTest {
         }
     }
 
+    @Test public void bounding() throws Exception {
+        int sz = (int) (FlightRecorderInputStream.BUFFER_SIZE * /* not a round multiple */ 5.3);
+        byte[] stuff = new byte[sz];
+        for (int i = 0; i < sz; i++) {
+            stuff[i] = (byte) (i % /* arbitrary cycle, not a power of 2 */213);
+        }
+        FlightRecorderInputStream fris = new FlightRecorderInputStream(new ByteArrayInputStream(stuff));
+        byte[] stuff2 = new byte[sz];
+        assertEquals(sz, fris.read(stuff2, 0, sz));
+        assertTrue(Arrays.equals(stuff, stuff2));
+        byte[] rec = fris.getRecord();
+        assertEquals(FlightRecorderInputStream.BUFFER_SIZE, rec.length);
+        byte[] expected = new byte[FlightRecorderInputStream.BUFFER_SIZE];
+        System.arraycopy(stuff, stuff.length - expected.length, expected, 0, expected.length);
+        assertTrue(Arrays.equals(expected, rec));
+    }
+
     private static final byte TC_STRING = 0x74;
 }
