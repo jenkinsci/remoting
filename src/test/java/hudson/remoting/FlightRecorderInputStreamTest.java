@@ -51,7 +51,15 @@ public class FlightRecorderInputStreamTest {
         }
         FlightRecorderInputStream fris = new FlightRecorderInputStream(new ByteArrayInputStream(stuff));
         byte[] stuff2 = new byte[sz];
-        assertEquals(sz, fris.read(stuff2, 0, sz));
+        int pos = 0;
+        int chunk = 117;
+        while (pos < sz) {
+            int toread = Math.min(chunk, sz - pos);
+            assertEquals(toread, fris.read(stuff2, pos, toread));
+            pos += toread;
+            chunk *= 1.9; // just try various chunk sizes
+        }
+        assertEquals(sz, pos);
         assertTrue(Arrays.equals(stuff, stuff2));
         byte[] rec = fris.getRecord();
         assertEquals(FlightRecorderInputStream.BUFFER_SIZE, rec.length);

@@ -149,6 +149,37 @@ class FlightRecorderInputStream extends InputStream {
             System.arraycopy(data, 0, ret, capacity - pos, pos);
             return ret;
         }
+        
+        /** @author @roadrunner2 */
+        @Override public synchronized void write(byte[] buf, int off, int len) {
+            // no point in trying to copy more than capacity; this also simplifies logic below
+            if (len > capacity) {
+                off += (len - capacity);
+                len = capacity;
+            }
+
+            // copy to buffer, but no farther than the end
+            int num = Math.min(len, capacity - pos);
+            if (num > 0) {
+                System.arraycopy(buf, off, data, pos, num);
+                off += num;
+                len -= num;
+                pos += num;
+            }
+
+            // wrap around if necessary
+            if (pos == capacity) {
+                filled = true;
+                pos = 0;
+            }
+
+            // copy anything still left
+            if (len > 0) {
+                System.arraycopy(buf, off, data, pos, len);
+                pos += len;
+            }
+        }
+
     }
 
 }
