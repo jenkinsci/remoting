@@ -923,7 +923,7 @@ final class RemoteClassLoader extends URLClassLoader {
          * any new classpath. In this way, we can effectively use this classloader as a representation
          * of the bootstrap classloader.
          */
-        private static final ClassLoader PSEUDO_BOOTSTRAP = new URLClassLoader(new URL[0],null) {
+        private static final ClassLoader PSEUDO_BOOTSTRAP = new URLClassLoader(new URL[0],(ClassLoader)null) {
             @Override
             public String toString() {
                 return "PSEUDO_BOOTSTRAP";
