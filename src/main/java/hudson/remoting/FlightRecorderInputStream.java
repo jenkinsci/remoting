@@ -140,7 +140,7 @@ class FlightRecorderInputStream extends InputStream {
             data[pos++] = (byte) b;
         }
 
-        public byte[] toByteArray() {
+        public synchronized byte[] toByteArray() {
             if (!filled) {
                 return Arrays.copyOf(data, pos);
             }
