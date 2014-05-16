@@ -299,7 +299,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 try {
                     r = m.invoke(o, arguments);
                 } catch (IllegalArgumentException x) {
-                    throw new IllegalArgumentException("failed to invoke " + m + " on " + o + Arrays.toString(arguments), x);
+                    throw new RemotingSystemException("failed to invoke " + m + " on " + o + Arrays.toString(arguments), x);
                 }
                 if (r==null || r instanceof Serializable)
                     return (Serializable) r;
