@@ -35,7 +35,7 @@ public class UnexportCommand extends Command {
     }
 
     protected void execute(Channel channel) {
-        channel.unexport(oid);
+        channel.unexport(oid,createdAt);
     }
 
     private static final long serialVersionUID = 1L;

@@ -319,7 +319,7 @@ final class ProxyWriter extends Writer {
         protected void execute(final Channel channel) {
             channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid);
+                    channel.unexport(oid,createdAt);
                 }
             });
         }
@@ -347,7 +347,7 @@ final class ProxyWriter extends Writer {
             final Writer os = (Writer) channel.getExportedObject(oid);
             channel.pipeWriter.submit(ioId, new Runnable() {
                 public void run() {
-                    channel.unexport(oid);
+                    channel.unexport(oid,createdAt);
                     try {
                         os.close();
                     } catch (IOException e) {

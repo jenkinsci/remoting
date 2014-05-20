@@ -183,7 +183,11 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
     }
 
     public void releaseExports() {
-        exports.release();
+        releaseExports(null);
+    }
+
+    /*package*/ void releaseExports(Throwable callSite) {
+        exports.release(callSite);
     }
 
     public String toString() {

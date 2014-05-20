@@ -216,7 +216,7 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
                 public void run() {
                     try {
                         final ProxyOutputStream ros = (ProxyOutputStream) channel.getExportedObject(oidRos);
-                        channel.unexport(oidRos);
+                        channel.unexport(oidRos,createdAt);
                         // the above unexport cancels out the export in writeObject above
                         ros.connect(channel, oidPos);
                     } catch (IOException e) {

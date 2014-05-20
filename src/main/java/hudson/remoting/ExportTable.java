@@ -104,7 +104,7 @@ final class ExportTable<T> {
                 referenceCount += Integer.MAX_VALUE/2;
         }
 
-        void release() {
+        void release(Throwable callSite) {
             if(--referenceCount==0) {
                 table.remove(id);
                 reverse.remove(object);
@@ -112,7 +112,7 @@ final class ExportTable<T> {
                 // hack to store some information about the object that got unexported
                 // don't want to keep the object alive, and toString() seems bit risky
                 object = (T)object.getClass().getName();
-                releaseTrace = new ReleasedAt();
+                releaseTrace = new ReleasedAt(callSite);
 
                 unexportLog.add(this);
                 while (unexportLog.size()>UNEXPORT_LOG_SIZE)
@@ -148,7 +148,13 @@ final class ExportTable<T> {
     static class Source extends Exception {
         protected final long timestamp = System.currentTimeMillis();
 
-        Source() {
+        /**
+         * @param callSite
+         *      Optional location that indicates where the actual call site was that triggered the activity,
+         *      in case it was requested from the other side of the channel.
+         */
+        Source(Throwable callSite) {
+            super(callSite);
             // force the computation of the stack trace in a Java friendly data structure,
             // so that the call stack can be seen from the heap dump after the fact.
             getStackTrace();
@@ -156,12 +162,20 @@ final class ExportTable<T> {
     }
 
     static class CreatedAt extends Source {
+        CreatedAt() {
+            super(null);
+        }
+
         public String toString() {
             return "  Created at "+new Date(timestamp);
         }
     }
 
     static class ReleasedAt extends Source {
+        ReleasedAt(Throwable callSite) {
+            super(callSite);
+        }
+
         public String toString() {
             return "  Released at "+new Date(timestamp);
         }
@@ -179,10 +193,10 @@ final class ExportTable<T> {
             old=lists.get();
             lists.set(this);
         }
-        void release() {
+        void release(Throwable callSite) {
             synchronized(ExportTable.this) {
                 for (Entry e : this)
-                    e.release();
+                    e.release(callSite);
             }
         }
         void stopRecording() {
@@ -215,7 +229,7 @@ final class ExportTable<T> {
      * Exports the given object.
      *
      * <p>
-     * Until the object is {@link #unexport(Object) unexported}, it will
+     * Until the object is {@link #unexport(Object,Throwable) unexported}, it will
      * not be subject to GC.
      *
      * @return
@@ -280,27 +294,29 @@ final class ExportTable<T> {
     /**
      * Removes the exported object from the table.
      */
-    public synchronized void unexport(T t) {
+    synchronized void unexport(T t, Throwable callSite) {
         if(t==null)     return;
         Entry e = reverse.get(t);
         if(e==null) {
             LOGGER.log(SEVERE, "Trying to unexport an object that's not exported: "+t);
             return;
         }
-        e.release();
+        e.release(callSite);
     }
 
     /**
      * Removes the exported object for the specified oid from the table.
      */
-    public synchronized void unexportByOid(Integer oid) {
+    public synchronized void unexportByOid(Integer oid, Throwable callSite) {
         if(oid==null)     return;
         Entry e = table.get(oid);
         if(e==null) {
             LOGGER.log(SEVERE, "Trying to unexport an object that's already unexported", diagnoseInvalidId(oid));
+            if (callSite!=null)
+                LOGGER.log(SEVERE, "2nd unexport attempt is here", callSite);
             return;
         }
-        e.release();
+        e.release(callSite);
     }
 
     /**

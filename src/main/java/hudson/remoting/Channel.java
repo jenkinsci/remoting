@@ -596,8 +596,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return exportedObjects.get(oid);
     }
 
-    /*package*/ void unexport(int id) {
-        exportedObjects.unexportByOid(id);
+    /*package*/ void unexport(int id, Throwable cause) {
+        exportedObjects.unexportByOid(id,cause);
     }
 
     /**

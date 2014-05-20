@@ -349,7 +349,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         protected void execute(final Channel channel) {
             channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid);
+                    channel.unexport(oid,createdAt);
                 }
             });
         }
@@ -381,7 +381,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             final OutputStream os = (OutputStream) channel.getExportedObject(oid);
             markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid);
+                    channel.unexport(oid,createdAt);
                     try {
                         if (error!=null && os instanceof ErrorPropagatingOutputStream)
                             ((ErrorPropagatingOutputStream) os).error(error);

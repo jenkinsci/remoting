@@ -15,7 +15,7 @@ public class ExportTableTest extends TestCase {
         int i = e.export("foo");
         assertEquals("foo", e.get(i));
 
-        e.unexportByOid(i);
+        e.unexportByOid(i,null);
         try {
             e.get(i);
             fail();
