@@ -80,6 +80,11 @@ final class ExportTable<T> {
          */
         private int referenceCount;
 
+        /**
+         * This field can be set programmatically to track reference counting
+         */
+        private ReferenceCountRecorder recorder;
+
         Entry(T object) {
             this.id = iota++;
             this.object = object;
@@ -91,6 +96,8 @@ final class ExportTable<T> {
 
         void addRef() {
             referenceCount++;
+            if (recorder!=null)
+                recorder.onAddRef(null);
         }
 
         /**
@@ -105,6 +112,9 @@ final class ExportTable<T> {
         }
 
         void release(Throwable callSite) {
+            if (recorder!=null)
+                recorder.onRelease(callSite);
+
             if(--referenceCount==0) {
                 table.remove(id);
                 reverse.remove(object);
@@ -128,6 +138,9 @@ final class ExportTable<T> {
             allocationTrace.printStackTrace(w);
             if (releaseTrace!=null) {
                 releaseTrace.printStackTrace(w);
+            }
+            if (recorder!=null) {
+                recorder.dump(w);
             }
         }
 
