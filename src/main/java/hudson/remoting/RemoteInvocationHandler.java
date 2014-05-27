@@ -139,7 +139,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         if(method.getDeclaringClass()==IReadResolve.class) {
             // readResolve on the proxy.
             // if we are going back to where we came from, replace the proxy by the real object
-            if(goingHome)   return channel.getExportedObject(oid);
+            if(goingHome)   return Channel.current().getExportedObject(oid);
             else            return proxy;
         }
 
@@ -186,8 +186,17 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        channel = Channel.current();
         ois.defaultReadObject();
+        if (goingHome) {
+            // We came back to the side that exported the object.
+            // Since this object represents a local object, it shouldn't have non-null channel.
+            // (which would cause the finalize() method to try to unexport the object.)
+            channel = null;
+        } else {
+            channel = Channel.current();
+        }
+
+        hashCode(); // noop for inserting breakpoint
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
