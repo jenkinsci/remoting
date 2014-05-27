@@ -3,6 +3,7 @@ package hudson.remoting;
 import hudson.remoting.ExportTable.Source;
 
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Date;
 import java.util.LinkedList;
 
@@ -47,7 +48,7 @@ class ReferenceCountRecorder {
     }
 
     void onRelease(Throwable callSite) {
-        addEvent(new AddRefEvent(callSite));
+        addEvent(new ReleaseEvent(callSite));
     }
 
     /**
@@ -57,7 +58,10 @@ class ReferenceCountRecorder {
         w.printf("  Reference count recording: cap=%d total=%d\n", cap, total);
         for (Event e : events) {
             w.printf("  %s at %s\n", e.getClass().getSimpleName(), new Date(e.site.timestamp));
-            e.site.printStackTrace(w);
+
+            StringWriter sw = new StringWriter();
+            e.site.printStackTrace(new PrintWriter(sw,true));
+            w.println("    " + sw.toString().trim().replace("\n", "\n    "));
         }
     }
 
