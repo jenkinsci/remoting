@@ -195,8 +195,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         } else {
             channel = Channel.current();
         }
-
-        hashCode(); // noop for inserting breakpoint
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
