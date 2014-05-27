@@ -93,4 +93,8 @@ class Util {
             }
         }
     }
+
+    static String indent(String s) {
+        return "    " + s.trim().replace("\n", "\n    ");
+    }
 }

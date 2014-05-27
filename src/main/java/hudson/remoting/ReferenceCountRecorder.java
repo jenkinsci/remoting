@@ -61,7 +61,7 @@ class ReferenceCountRecorder {
 
             StringWriter sw = new StringWriter();
             e.site.printStackTrace(new PrintWriter(sw,true));
-            w.println("    " + sw.toString().trim().replace("\n", "\n    "));
+            w.println(Util.indent(sw.toString()));
         }
     }
 

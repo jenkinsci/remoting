@@ -294,7 +294,7 @@ final class ExportTable<T> {
         if (!unexportLog.isEmpty()) {
             for (Entry e : unexportLog) {
                 if (e.id==id)
-                    cause = new Exception("Object was recently deallocated\n"+e.dump(), e.releaseTrace);
+                    cause = new Exception("Object was recently deallocated\n"+Util.indent(e.dump()), e.releaseTrace);
             }
             if (cause==null)
                 cause = new Exception("Object appears to be deallocated at lease before "+
