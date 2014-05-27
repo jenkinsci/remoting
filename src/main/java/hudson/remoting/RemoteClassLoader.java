@@ -158,7 +158,7 @@ final class RemoteClassLoader extends URLClassLoader {
                             /**
                              * Converts {@link ClassFile2} to {@link ClassReference} with minimal
                              * proxy creation. This creates a reference to {@link ClassLoader}, so
-                             * it shoudn't be kept beyond the scope of single {@link #findClass(String)}  calll.
+                             * it shoudn't be kept beyond the scope of single {@link #findClass(String)}  call.
                              */
                             class ClassReferenceBuilder {
                                 private final Map<Integer,ClassLoader> classLoaders = new HashMap<Integer, ClassLoader>();
