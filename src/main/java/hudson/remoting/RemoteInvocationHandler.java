@@ -218,8 +218,10 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
     protected void finalize() throws Throwable {
         // unexport the remote object
-        if(channel!=null && !autoUnexportByCaller)
+        if (channel!=null && !autoUnexportByCaller) {
             channel.send(new UnexportCommand(oid));
+            channel = null;
+        }
         super.finalize();
     }
 
