@@ -66,6 +66,17 @@ public class NioChannelHub implements Runnable, Closeable {
      */
     private ExecutorService commandProcessor;
 
+    /**
+     * Counts the # of select loops. Ocassionally useful for diagnosing whether the selector
+     * thread is spending too much CPU time.
+     */
+    private long gen;
+
+    /**
+     * Sets to the thread that's in the {@link #run()} method.
+     */
+    private volatile Thread selectorThread;
+
 
     /**
      * Bi-directional NIO channel used as the transport of a {@link Channel}.
@@ -431,6 +442,9 @@ public class NioChannelHub implements Runnable, Closeable {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
                 if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking()) {
+                    if (selectorThread==null)
+                        throw new IOException("NioChannelHub is not currently running");
+
                     NioTransport t;
                     if (r==w)       t = new MonoNioTransport(r,cap);
                     else            t = new DualNioTransport(r,w,cap);
@@ -461,9 +475,8 @@ public class NioChannelHub implements Runnable, Closeable {
      * This method returns when {@link #close()} is called and the selector is shut down.
      */
     public void run() {
-        final Thread thread = Thread.currentThread();
-        final String oldName = thread.getName();
-        long gen=0;
+        selectorThread = Thread.currentThread();
+        final String oldName = selectorThread.getName();
 
         try {
             while (true) {
@@ -479,7 +492,7 @@ public class NioChannelHub implements Runnable, Closeable {
                         }
                     }
 
-                    thread.setName("NioChannelHub keys="+selector.keys().size()+" gen="+(gen++)+": "+oldName);
+                    selectorThread.setName("NioChannelHub keys=" + selector.keys().size() + " gen=" + (gen++) + ": " + oldName);
                     selector.select();
                 } catch (IOException e) {
                     LOGGER.log(WARNING, "Failed to select", e);
@@ -584,7 +597,8 @@ public class NioChannelHub implements Runnable, Closeable {
             LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
             throw e;
         } finally {
-            thread.setName(oldName);
+            selectorThread.setName(oldName);
+            selectorThread = null;
         }
     }
 
