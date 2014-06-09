@@ -471,7 +471,12 @@ public class NioChannelHub implements Runnable, Closeable {
                     while (true) {
                         Callable<Void, IOException> t = selectorTasks.poll();
                         if (t==null)    break;
-                        t.call();
+                        try {
+                            t.call();
+                        } catch (IOException e) {
+                            LOGGER.log(WARNING, "Failed to process selectorTasks", e);
+                            // but keep on at the next task
+                        }
                     }
 
                     thread.setName("NioChannelHub keys="+selector.keys().size()+" gen="+(gen++)+": "+oldName);
