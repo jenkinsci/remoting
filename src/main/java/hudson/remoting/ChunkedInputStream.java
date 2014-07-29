@@ -96,4 +96,9 @@ class ChunkedInputStream extends InputStream {
                 return; // we've read the all payload of the last chunk
         }
     }
+
+    @Override
+    public void close() throws IOException {
+        base.close();
+    }
 }
