@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
@@ -576,6 +577,8 @@ public class NioChannelHub implements Runnable, Closeable {
                                 }
                             }
                             t.reregister();
+                        } catch (CancelledKeyException e) {
+			    LOGGER.log(WARNING, "Key cancelled", e);
                         } catch (IOException e) {
                             LOGGER.log(WARNING, "Communication problem", e);
                             t.abort(e);
