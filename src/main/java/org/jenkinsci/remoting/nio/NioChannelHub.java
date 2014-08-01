@@ -510,7 +510,7 @@ public class NioChannelHub implements Runnable, Closeable {
                         final NioTransport t = (NioTransport) a;
 
                         try {
-                            if (key.isReadable()) {
+                            if (key.isValid() && key.isReadable()) {
                                 if (t.rb.receive(t.rr()) == -1) {
                                     t.closeR();
                                 }
