@@ -294,6 +294,8 @@ public class Engine extends Thread {
 
                 // try to connect back to the server every 10 secs.
                 waitForServerToBack();
+
+                events.onReconnect();
             }
         } catch (Throwable e) {
             events.error(e);
