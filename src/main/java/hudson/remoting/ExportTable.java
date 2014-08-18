@@ -42,9 +42,9 @@ import static java.util.logging.Level.SEVERE;
  *
  * @author Kohsuke Kawaguchi
  */
-final class ExportTable<T> {
-    private final Map<Integer,Entry> table = new HashMap<Integer,Entry>();
-    private final Map<T,Entry> reverse = new HashMap<T,Entry>();
+final class ExportTable {
+    private final Map<Integer,Entry<?>> table = new HashMap<Integer,Entry<?>>();
+    private final Map<Object,Entry<?>> reverse = new HashMap<Object,Entry<?>>();
     /**
      * {@link ExportList}s which are actively recording the current
      * export operation.
@@ -57,13 +57,14 @@ final class ExportTable<T> {
      *
      * New entries are added to the end, and older ones are removed from the beginning.
      */
-    private final List<Entry> unexportLog = new LinkedList<Entry>();
+    private final List<Entry<?>> unexportLog = new LinkedList<Entry<?>>();
 
     /**
      * Information about one exported object.
      */
-    private final class Entry {
+    private final class Entry<T> {
         final int id;
+        private Class<T> clazz;
         private T object;
         /**
          * Where was this object first exported?
@@ -85,8 +86,9 @@ final class ExportTable<T> {
          */
         private ReferenceCountRecorder recorder;
 
-        Entry(T object) {
+        Entry(Class<T> clazz, T object) {
             this.id = iota++;
+            this.clazz = clazz;
             this.object = object;
             this.allocationTrace = new CreatedAt();
 
@@ -119,9 +121,7 @@ final class ExportTable<T> {
                 table.remove(id);
                 reverse.remove(object);
 
-                // hack to store some information about the object that got unexported
-                // don't want to keep the object alive, and toString() seems bit risky
-                object = (T)object.getClass().getName();
+                object = null;
                 releaseTrace = new ReleasedAt(callSite);
 
                 unexportLog.add(this);
@@ -134,7 +134,7 @@ final class ExportTable<T> {
          * Dumps the contents of the entry.
          */
         void dump(PrintWriter w) throws IOException {
-            w.printf("#%d (ref.%d) : %s\n", id, referenceCount, object);
+            w.printf("#%d (ref.%d) : %s\n", id, referenceCount, object == null ? clazz.getName() : object);
             allocationTrace.printStackTrace(w);
             if (releaseTrace!=null) {
                 releaseTrace.printStackTrace(w);
@@ -248,22 +248,24 @@ final class ExportTable<T> {
      * @return
      *      The assigned 'object ID'. If the object is already exported,
      *      it will return the ID already assigned to it.
+     * @param clazz
+     * @param t
      */
-    public synchronized int export(T t) {
-        return export(t,true);
+    public synchronized <T> int export(Class<T> clazz, T t) {
+        return export(clazz, t,true);
     }
 
     /**
+     * @param clazz
      * @param notifyListener
      *      If false, listener will not be notified. This is used to
-     *      create an export that won't get unexported when the call returns.
      */
-    public synchronized int export(T t, boolean notifyListener) {
+    public synchronized <T> int export(Class<T> clazz, T t, boolean notifyListener) {
         if(t==null)    return 0;   // bootstrap classloader
 
         Entry e = reverse.get(t);
         if(e==null)
-            e = new Entry(t);
+            e = new Entry<T>(clazz, t);
         e.addRef();
 
         if(notifyListener) {
@@ -274,16 +276,24 @@ final class ExportTable<T> {
         return e.id;
     }
 
-    /*package*/ synchronized void pin(T t) {
+    /*package*/ synchronized void pin(Object t) {
         Entry e = reverse.get(t);
-        if(e==null)
-            e = new Entry(t);
-        e.pin();
+        if(e!=null)
+            e.pin();
     }
 
-    public synchronized @Nonnull T get(int id) {
+    public synchronized @Nonnull
+    Object get(int id) {
         Entry e = table.get(id);
         if(e!=null) return e.object;
+
+        throw diagnoseInvalidId(id);
+    }
+
+    public synchronized @Nonnull
+    Class type(int id) {
+        Entry e = table.get(id);
+        if(e!=null) return e.clazz;
 
         throw diagnoseInvalidId(id);
     }
@@ -307,7 +317,7 @@ final class ExportTable<T> {
     /**
      * Removes the exported object from the table.
      */
-    synchronized void unexport(T t, Throwable callSite) {
+    synchronized void unexport(Object t, Throwable callSite) {
         if(t==null)     return;
         Entry e = reverse.get(t);
         if(e==null) {
@@ -341,7 +351,7 @@ final class ExportTable<T> {
         }
     }
 
-    /*package*/ synchronized  boolean isExported(T o) {
+    /*package*/ synchronized  boolean isExported(Object o) {
         return reverse.containsKey(o);
     }
 

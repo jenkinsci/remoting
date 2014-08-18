@@ -163,7 +163,7 @@ public class RemoteInputStream extends InputStream implements Serializable {
             }
         }
 
-        int id = ch.export(core, autoUnexport);
+        int id = ch.internalExport(InputStream.class, core, autoUnexport);
         oos.writeInt(id);
     }
 

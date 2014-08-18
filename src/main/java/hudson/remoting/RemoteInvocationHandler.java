@@ -299,10 +299,11 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         protected Serializable perform(Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
+            Class clazz = channel.getExportedType(oid);
             try {
-                Method m = choose(o);
+                Method m = choose(clazz);
                 if(m==null)
-                    throw new IllegalStateException("Unable to call "+methodName+". No matching method found on "+o.getClass());
+                    throw new IllegalStateException("Unable to call "+methodName+". No matching method found on "+clazz+" for " + o);
                 m.setAccessible(true);  // in case the class is not public
                 Object r;
                 try {
@@ -322,9 +323,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         /**
          * Chooses the method to invoke.
          */
-        private Method choose(Object o) {
+        private Method choose(Class clazz) {
             OUTER:
-            for(Method m : o.getClass().getMethods()) {
+            for(Method m : clazz.getMethods()) {
                 if(!m.getName().equals(methodName))
                     continue;
                 Class<?>[] paramTypes = m.getParameterTypes();
