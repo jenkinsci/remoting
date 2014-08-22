@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.33</version>
+    <version>1.34</version>
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
@@ -176,7 +176,7 @@ THE SOFTWARE.
           <!--rulesets>
             <ruleset>ruleset.xml</ruleset>
           </rulesets-->
-          <targetJdk>1.5</targetJdk>
+          <targetJdk>1.6</targetJdk>
         </configuration>
       </plugin>
       <plugin>
@@ -322,7 +322,7 @@ THE SOFTWARE.
         <configuration>
           <signature>
             <groupId>org.codehaus.mojo.signature</groupId>
-            <artifactId>java15</artifactId>
+            <artifactId>java16</artifactId>
             <version>1.0</version>
           </signature>
         </configuration>
