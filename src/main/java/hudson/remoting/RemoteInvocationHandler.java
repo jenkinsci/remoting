@@ -299,7 +299,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         protected Serializable perform(Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
-            Class clazz = channel.getExportedType(oid);
+            Class[] clazz = channel.getExportedTypes(oid);
             try {
                 Method m = choose(clazz);
                 if(m==null)
@@ -323,19 +323,21 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         /**
          * Chooses the method to invoke.
          */
-        private Method choose(Class clazz) {
-            OUTER:
-            for(Method m : clazz.getMethods()) {
-                if(!m.getName().equals(methodName))
-                    continue;
-                Class<?>[] paramTypes = m.getParameterTypes();
-                if(paramTypes.length!=arguments.length)
-                    continue;
-                for( int i=0; i<types.length; i++ ) {
-                    if(!types[i].equals(paramTypes[i].getName()))
-                        continue OUTER;
+        private Method choose(Class[] interfaces) {
+            for(Class clazz: interfaces) {
+                OUTER:
+                for (Method m : clazz.getMethods()) {
+                    if (!m.getName().equals(methodName))
+                        continue;
+                    Class<?>[] paramTypes = m.getParameterTypes();
+                    if (paramTypes.length != arguments.length)
+                        continue;
+                    for (int i = 0; i < types.length; i++) {
+                        if (!types[i].equals(paramTypes[i].getName()))
+                            continue OUTER;
+                    }
+                    return m;
                 }
-                return m;
             }
             return null;
         }

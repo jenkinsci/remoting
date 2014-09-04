@@ -64,7 +64,7 @@ final class ExportTable {
      */
     private final class Entry<T> {
         final int id;
-        private Class<T> clazz;
+        private Class<? super T>[] interfaces;
         private T object;
         /**
          * Where was this object first exported?
@@ -86,9 +86,9 @@ final class ExportTable {
          */
         private ReferenceCountRecorder recorder;
 
-        Entry(Class<T> clazz, T object) {
+        Entry(T object, Class<? super T>... interfaces) {
             this.id = iota++;
-            this.clazz = clazz;
+            this.interfaces = interfaces.clone();
             this.object = object;
             this.allocationTrace = new CreatedAt();
 
@@ -130,11 +130,22 @@ final class ExportTable {
             }
         }
 
+        private String interfaceNames() {
+            StringBuilder buf = new StringBuilder(10 + getInterfaces().length * 128);
+            String sep = "[";
+            for (Class<? super T> clazz: getInterfaces()) {
+                buf.append(sep).append(clazz.getName());
+                sep = ", ";
+            }
+            buf.append("]");
+            return buf.toString();
+        }
+
         /**
          * Dumps the contents of the entry.
          */
         void dump(PrintWriter w) throws IOException {
-            w.printf("#%d (ref.%d) : %s\n", id, referenceCount, object == null ? clazz.getName() : object);
+            w.printf("#%d (ref.%d) : %s\n", id, referenceCount, object == null ? interfaceNames() : object);
             allocationTrace.printStackTrace(w);
             if (releaseTrace!=null) {
                 releaseTrace.printStackTrace(w);
@@ -154,6 +165,24 @@ final class ExportTable {
             } catch (IOException e) {
                 throw new Error(e);   // impossible
             }
+        }
+
+        synchronized Class<? super T>[] getInterfaces() {
+            return interfaces;
+        }
+
+        synchronized void setInterfaces(Class<? super T>[] interfaces) {
+            this.interfaces = interfaces;
+        }
+
+        synchronized void addInterface(Class<? super T> clazz) {
+            for (Class<? super T> c: interfaces) {
+                if (c.equals(clazz)) return;
+            }
+            Class<? super T>[] replacement = new Class[interfaces.length+1];
+            System.arraycopy(interfaces, 0, replacement, 0, interfaces.length);
+            replacement[interfaces.length] = clazz;
+            interfaces = replacement;
         }
 
     }
@@ -264,8 +293,11 @@ final class ExportTable {
         if(t==null)    return 0;   // bootstrap classloader
 
         Entry e = reverse.get(t);
-        if(e==null)
-            e = new Entry<T>(clazz, t);
+        if (e == null) {
+            e = new Entry<T>(t, clazz);
+        } else {
+            e.addInterface(clazz);
+        }
         e.addRef();
 
         if(notifyListener) {
@@ -291,9 +323,9 @@ final class ExportTable {
     }
 
     public synchronized @Nonnull
-    Class type(int id) {
+    Class[] type(int id) {
         Entry e = table.get(id);
-        if(e!=null) return e.clazz;
+        if(e!=null) return e.getInterfaces();
 
         throw diagnoseInvalidId(id);
     }

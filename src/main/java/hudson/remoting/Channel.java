@@ -595,7 +595,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return exportedObjects.get(oid);
     }
 
-    /*package*/ @Nonnull Class getExportedType(int oid) {
+    /*package*/ @Nonnull Class[] getExportedTypes(int oid) {
         return exportedObjects.type(oid);
     }
 
