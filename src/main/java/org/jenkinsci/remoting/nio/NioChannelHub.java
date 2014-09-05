@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
@@ -325,6 +326,9 @@ public class NioChannelHub implements Runnable, Closeable {
             }
         }
 
+        /**
+         * If both directions are closed, cancel the whole key.
+         */
         @SelectorThreadOnly
         private void maybeCancelKey() throws IOException {
             SelectionKey key = ch.keyFor(selector);
@@ -578,6 +582,15 @@ public class NioChannelHub implements Runnable, Closeable {
                             t.reregister();
                         } catch (IOException e) {
                             LOGGER.log(WARNING, "Communication problem", e);
+                            t.abort(e);
+                        } catch (CancelledKeyException e) {
+                            // see JENKINS-24050. I don't understand how this can happen, given that the selector
+                            // thread is the only thread that cancels keys. So to better understand what's going on,
+                            // report the problem.
+                            LOGGER.log(SEVERE, "Unexpected key cancellation for "+t, e);
+                            // to be on the safe side, abort the communication. if we don't do this, it's possible
+                            // that the key never gets re-registered to the selector, and the traffic will hang
+                            // on this channel.
                             t.abort(e);
                         }
                     } else {
