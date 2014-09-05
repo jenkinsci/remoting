@@ -115,7 +115,13 @@ public class NioChannelHub implements Runnable, Closeable {
          */
         private final SingleLaneExecutorService swimLane = new SingleLaneExecutorService(commandProcessor);
 
-        NioTransport(Capability remoteCapability) {
+        /**
+         * Name given to the transport to assist trouble-shooting.
+         */
+        private final String name;
+
+        NioTransport(String name, Capability remoteCapability) {
+            this.name = name;
             this.remoteCapability = remoteCapability;
         }
 
@@ -194,7 +200,7 @@ public class NioChannelHub implements Runnable, Closeable {
             } catch (IOException _) {
                 // ignore
             }
-            receiver.terminate((IOException)new IOException("Failed to abort").initCause(e));
+            receiver.terminate((IOException)new IOException("Connection aborted: "+this).initCause(e));
         }
 
         @Override
@@ -253,6 +259,11 @@ public class NioChannelHub implements Runnable, Closeable {
                 }
             });
         }
+
+        @Override
+        public String toString() {
+            return super.toString()+"[name="+name+"]";
+        }
     }
 
     /**
@@ -267,8 +278,8 @@ public class NioChannelHub implements Runnable, Closeable {
          */
         Closeable rc,wc;
 
-        MonoNioTransport(SelectableChannel ch, Capability remoteCapability) {
-            super(remoteCapability);
+        MonoNioTransport(String name, SelectableChannel ch, Capability remoteCapability) {
+            super(name,remoteCapability);
 
             this.ch = ch;
             this.rc = Closeables.input(ch);
@@ -349,8 +360,8 @@ public class NioChannelHub implements Runnable, Closeable {
     class DualNioTransport extends NioTransport {
         private final SelectableChannel r,w;
 
-        DualNioTransport(SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
-            super(remoteCapability);
+        DualNioTransport(String name, SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
+            super(name,remoteCapability);
 
             assert r instanceof ReadableByteChannel && w instanceof WritableByteChannel;
             this.r = r;
@@ -451,8 +462,8 @@ public class NioChannelHub implements Runnable, Closeable {
                         throw new IOException("NioChannelHub is not currently running",whatKilledSelectorThread);
 
                     NioTransport t;
-                    if (r==w)       t = new MonoNioTransport(r,cap);
-                    else            t = new DualNioTransport(r,w,cap);
+                    if (r==w)       t = new MonoNioTransport(getName(),r,cap);
+                    else            t = new DualNioTransport(getName(),r,w,cap);
                     t.scheduleReregister();
                     return t;
                 }
