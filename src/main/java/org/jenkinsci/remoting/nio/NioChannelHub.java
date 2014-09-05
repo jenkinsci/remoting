@@ -77,6 +77,7 @@ public class NioChannelHub implements Runnable, Closeable {
      * Sets to the thread that's in the {@link #run()} method.
      */
     private volatile Thread selectorThread;
+    private volatile Throwable whatKilledSelectorThread;
 
 
     /**
@@ -447,7 +448,7 @@ public class NioChannelHub implements Runnable, Closeable {
                 if (w==null)    w = factory.create(os);
                 if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking()) {
                     if (selectorThread==null)
-                        throw new IOException("NioChannelHub is not currently running");
+                        throw new IOException("NioChannelHub is not currently running",whatKilledSelectorThread);
 
                     NioTransport t;
                     if (r==w)       t = new MonoNioTransport(r,cap);
@@ -604,10 +605,12 @@ public class NioChannelHub implements Runnable, Closeable {
         } catch (RuntimeException e) {
             abortAll(e);
             LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
+            whatKilledSelectorThread = e;
             throw e;
         } catch (Error e) {
             abortAll(e);
             LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
+            whatKilledSelectorThread = e;
             throw e;
         } finally {
             selectorThread.setName(oldName);
