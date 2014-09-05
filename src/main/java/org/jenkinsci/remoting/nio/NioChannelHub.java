@@ -602,6 +602,7 @@ public class NioChannelHub implements Runnable, Closeable {
         } catch (ClosedSelectorException e) {
             // end normally
             // TODO: what happens to all the registered ChannelPairs? don't we need to shut them down?
+            whatKilledSelectorThread = e;
         } catch (RuntimeException e) {
             abortAll(e);
             LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
