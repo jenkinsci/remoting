@@ -650,5 +650,19 @@ public class NioChannelHub implements Runnable, Closeable {
         return selector;
     }
 
+    /**
+     * Verifies that the selector thread is running and this hub is active.
+     *
+     * Several bugs have been reported (such as JENKINS-24050) that causes the selector thread to die,
+     * and several more bugs have been reported (such as JENKINS-24155 and JENKINS-24201) that are suspected
+     * to be caused by the death of NIO selector thread.
+     *
+     * This check makes it easier to find this problem and report why the selector thread has died.
+     */
+    public void ensureValid() throws IOException {
+        if (selectorThread==null)
+            throw new IOException("NIO selector thread is not running",whatKilledSelectorThread);
+    }
+
     private static final Logger LOGGER = Logger.getLogger(NioChannelHub.class.getName());
 }
