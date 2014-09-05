@@ -82,5 +82,8 @@ public final class GuiListener implements EngineListener {
         });
     }
 
+    public void onReconnect() {
+    }
+
     private static final Logger LOGGER = Logger.getLogger(GuiListener.class.getName());
 }

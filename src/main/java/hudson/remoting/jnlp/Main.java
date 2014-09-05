@@ -185,6 +185,9 @@ public class Main {
 
         public void onDisconnect() {
         }
+
+        public void onReconnect() {
+        }
     }
 
     private static final Logger LOGGER = Logger.getLogger(Main.class.getName());

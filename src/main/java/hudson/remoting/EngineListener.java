@@ -58,4 +58,10 @@ public interface EngineListener {
      * Called when a connection is terminated.
      */
     void onDisconnect();
+
+    /**
+     * Called when a re-connection is about to be attempted.
+     * @since TODO
+     */
+    void onReconnect();
 }

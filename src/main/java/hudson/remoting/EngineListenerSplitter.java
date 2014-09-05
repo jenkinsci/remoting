@@ -43,4 +43,10 @@ public class EngineListenerSplitter implements EngineListener {
             l.onDisconnect();
         }
     }
+
+    public void onReconnect() {
+        for (EngineListener l : listeners) {
+            l.onReconnect();
+        }
+    }
 }
