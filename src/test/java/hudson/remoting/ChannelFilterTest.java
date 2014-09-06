@@ -45,11 +45,12 @@ public class ChannelFilterTest extends RmiTestBase {
     }
 
     public void testBlacklisting() throws Exception {
-        channel.addLocalExecutionInterceptor(new CallableFilter() {
-            public <V> V call(Callable<V> callable) throws Exception {
-                if (callable instanceof ShadyBusiness)
-                    throw new SecurityException("Rejecting "+callable.getClass().getName());
-                return callable.call();
+        channel.addLocalExecutionInterceptor(new CallableDecorator() {
+            @Override
+            public <V, T extends Throwable> hudson.remoting.Callable<V, T> userRequest(hudson.remoting.Callable<V, T> op, hudson.remoting.Callable<V, T> stem) {
+                if (op instanceof ShadyBusiness)
+                    throw new SecurityException("Rejecting "+op.getClass().getName());
+                return stem;
             }
         });
 
@@ -61,7 +62,8 @@ public class ChannelFilterTest extends RmiTestBase {
             channel.call(new ReverseGunImporter());
             fail("should have failed");
         } catch (SecurityException e) {
-            e.printStackTrace();
+            assertEquals("Rejecting "+GunImporter.class.getName(),e.getMessage());
+//            e.printStackTrace();
         }
     }
 
