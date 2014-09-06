@@ -28,8 +28,8 @@ import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.PipeWindow.Key;
 import hudson.remoting.PipeWindow.Real;
-import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.ForwarderFactory;
+import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
 
 import java.io.Closeable;
@@ -40,19 +40,19 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.net.URL;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.net.URL;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -122,7 +122,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     private final String name;
     private volatile boolean isRestricted;
-    /*package*/ final InterceptingExecutorService executor;
+    /*package*/ final CallableDecoratorList decorators = new CallableDecoratorList();
+    /*package*/ final ExecutorService executor;
 
     /**
      * If non-null, the incoming link is already shut down,
@@ -446,14 +447,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /*package*/ Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
         this.name = settings.getName();
-        this.executor = new InterceptingExecutorService(settings.getExecutors());
+        this.executor = new InterceptingExecutorService(settings.getExecutors(),decorators);
         this.isRestricted = settings.isRestricted();
         this.underlyingOutput = transport.getUnderlyingStream();
         this.jarCache = settings.getJarCache();
 
         this.baseClassLoader = settings.getBaseLoader();
 
-        if(export(this,false)!=1)
+        if(export(this, false)!=1)
             throw new AssertionError(); // export number 1 is reserved for the channel itself
         remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false);
 
@@ -841,19 +842,35 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Adds a {@link CallableFilter} that gets a chance to decorate every {@link Callable}s that run locally
      * sent by the other peer.
-     * 
+     *
      * This is useful to tweak the environment those closures are run, such as setting up the thread context
      * environment.
      */
-    public void addLocalExecutionInterceptor(CallableFilter filter) {
-        executor.addFilter(filter);
+    public void addLocalExecutionInterceptor(CallableDecorator decorator) {
+        decorators.add(decorator);
     }
 
     /**
-     * Rmoves the filter introduced by {@link #addLocalExecutionInterceptor(CallableFilter)}.
+     * Removes the filter introduced by {@link #addLocalExecutionInterceptor(CallableFilter)}.
+     */
+    public void removeLocalExecutionInterceptor(CallableDecorator decorator) {
+        decorators.remove(decorator);
+    }
+
+    /**
+     * @deprecated
+     *      use {@link #addLocalExecutionInterceptor(CallableDecorator)}
+     */
+    public void addLocalExecutionInterceptor(CallableFilter filter) {
+        addLocalExecutionInterceptor(new CallableDecoratorAdapter(filter));
+    }
+
+    /**
+     * @deprecated
+     *      use {@link #removeLocalExecutionInterceptor(CallableDecorator)}
      */
     public void removeLocalExecutionInterceptor(CallableFilter filter) {
-        executor.removeFilter(filter);
+        removeLocalExecutionInterceptor(new CallableDecoratorAdapter(filter));
     }
     
     /**

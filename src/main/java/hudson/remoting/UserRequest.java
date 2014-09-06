@@ -111,6 +111,8 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
                     // OTOH, we need to allow RPCRequest so that method invocations on exported objects will go through.
                     throw new SecurityException("Execution of "+callable.toString()+" is prohibited because the channel is restricted");
 
+                callable = channel.decorators.wrapUserRequest(callable);
+
                 ClassLoader old = Thread.currentThread().getContextClassLoader();
                 Thread.currentThread().setContextClassLoader(cl);
                 // execute the service

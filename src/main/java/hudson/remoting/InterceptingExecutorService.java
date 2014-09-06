@@ -3,29 +3,25 @@ package hudson.remoting;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
- * {@link ExecutorService} that runs all the tasks in a given set of {@link CallableFilter}s.
+ * {@link ExecutorService} that runs all the tasks in a given set of {@link CallableDecorator}s.
  * @author Kohsuke Kawaguchi
  */
 class InterceptingExecutorService extends DelegatingExecutorService {
-    private final CopyOnWriteArrayList<CallableFilter> filters = new CopyOnWriteArrayList<CallableFilter>();
+    private final CallableDecoratorList decorators;
 
-    InterceptingExecutorService(ExecutorService base) {
+    InterceptingExecutorService(ExecutorService base, CallableDecoratorList decorators) {
         super(base);
+        this.decorators = decorators;
     }
 
-    public void addFilter(CallableFilter filter) {
-        filters.add(filter);
-    }
-
-    public void removeFilter(CallableFilter filter) {
-        filters.remove(filter);
-    }
-    
     @Override
     public void execute(Runnable command) {
         submit(command);
@@ -84,16 +80,6 @@ class InterceptingExecutorService extends DelegatingExecutorService {
     }
 
     private <V> Callable<V> wrap(Callable<V> r) {
-        for (CallableFilter f : filters)
-            r = applyFilter(r,f);
-        return r;
-    }
-    
-    private <V> Callable<V> applyFilter(final Callable<V> inner, final CallableFilter filter) {
-        return new Callable<V>() {
-            public V call() throws Exception {
-                return filter.call(inner);
-            }
-        };
+        return decorators.wrapCallable(r);
     }
 }

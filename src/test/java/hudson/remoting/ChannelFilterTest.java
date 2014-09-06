@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import java.io.IOException;
 import java.util.concurrent.Callable;
 
 /**
@@ -40,6 +41,49 @@ public class ChannelFilterTest extends RmiTestBase {
 
         public Object call() throws Exception {
            return c.call();
+        }
+    }
+
+    public void testBlacklisting() throws Exception {
+        channel.addLocalExecutionInterceptor(new CallableFilter() {
+            public <V> V call(Callable<V> callable) throws Exception {
+                if (callable instanceof ShadyBusiness)
+                    throw new SecurityException("Rejecting "+callable.getClass().getName());
+                return callable.call();
+            }
+        });
+
+        // this direction is unrestricted
+        assertEquals("gun",channel.call(new GunImporter()));
+
+        // the other direction should be rejected
+        try {
+            channel.call(new ReverseGunImporter());
+            fail("should have failed");
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /*
+        Option 1:
+                define CallableFilter2 that decorates h.r.Callable, not j.u.c.Callable
+                like 'callUserRequest' maybe
+        Option 2:
+                define a separate interface.
+     */
+
+    private interface ShadyBusiness {}
+
+    static class GunImporter implements hudson.remoting.Callable<String,IOException>, ShadyBusiness {
+        public String call() {
+            return "gun";
+        }
+    }
+
+    static class ReverseGunImporter implements hudson.remoting.Callable<String, Exception> {
+        public String call() throws Exception {
+            return Channel.current().call(new GunImporter());
         }
     }
 }

@@ -4,6 +4,8 @@ package hudson.remoting;
  * Decorator on {@code Callable.call()} to filter the execution.
  *
  * @author Kohsuke Kawaguchi
+ * @deprecated
+ *      Use {@link CallableDecorator}
  */
 public interface CallableFilter {
     /**
