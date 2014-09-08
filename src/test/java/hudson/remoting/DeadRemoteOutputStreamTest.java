@@ -20,8 +20,7 @@ public class DeadRemoteOutputStreamTest extends RmiTestBase implements Serializa
             @Override
             public void write(int b) throws IOException {
                 System.gc();
-                DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
-                throw (IOException)new IOException(MESSAGE).initCause((Exception) cl.load());
+                throw (IOException)new IOException(MESSAGE).initCause((Exception) DummyClassLoader.apply(TestCallable.class));
             }
         });
 

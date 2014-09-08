@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.net.Socket;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Creates {@link Closeable} that does socket half-close.
@@ -17,7 +19,14 @@ class Closeables {
             final SocketChannel s = (SocketChannel) ch;
             return new Closeable() {
                 public void close() throws IOException {
-                    s.socket().shutdownInput();
+                    try {
+                        s.socket().shutdownInput();
+                    } catch (IOException e) {
+                        // at least as of Java7u55, shutdownInput fails if the socket
+                        // is already closed or half-closed, as opposed to be a no-op.
+                        // so let's just ignore close error altogether
+                        LOGGER.log(Level.FINE, "Failed to close "+s,e);
+                    }
                     maybeClose(s);
                 }
             };
@@ -30,7 +39,12 @@ class Closeables {
             final SocketChannel s = (SocketChannel) ch;
             return new Closeable() {
                 public void close() throws IOException {
-                    s.socket().shutdownOutput();
+                    try {
+                        s.socket().shutdownOutput();
+                    } catch (IOException e) {
+                        // see the discussion in try/catch block around shutdownInput above
+                        LOGGER.log(Level.FINE, "Failed to close "+s,e);
+                    }
                     maybeClose(s);
                 }
             };
@@ -48,4 +62,6 @@ class Closeables {
             sc.close();
         }
     }
+
+    private static final Logger LOGGER = Logger.getLogger(Closeables.class.getName());
 }

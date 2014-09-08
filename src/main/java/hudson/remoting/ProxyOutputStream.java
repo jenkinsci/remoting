@@ -349,13 +349,13 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         protected void execute(final Channel channel) {
             channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid);
+                    channel.unexport(oid,createdAt);
                 }
             });
         }
 
         public String toString() {
-            return "Pipe.Unexport("+oid+")";
+            return "ProxyOutputStream.Unexport("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -381,7 +381,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             final OutputStream os = (OutputStream) channel.getExportedObject(oid);
             markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid);
+                    channel.unexport(oid,createdAt);
                     try {
                         if (error!=null && os instanceof ErrorPropagatingOutputStream)
                             ((ErrorPropagatingOutputStream) os).error(error);
@@ -394,7 +394,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
 
         public String toString() {
-            return "Pipe.EOF("+oid+")";
+            return "ProxyOutputStream.EOF("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -425,7 +425,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
 
         public String toString() {
-            return "Pipe.Ack("+oid+','+size+")";
+            return "ProxyOutputStream.Ack("+oid+','+size+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -449,7 +449,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
 
         public String toString() {
-            return "Pipe.Dead("+oid+")";
+            return "ProxyOutputStream.Dead("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;

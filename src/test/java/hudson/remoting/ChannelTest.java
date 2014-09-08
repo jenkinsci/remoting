@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import hudson.remoting.util.GCTask;
 import org.jvnet.hudson.test.Bug;
 
 import java.io.IOException;
@@ -142,12 +143,6 @@ public class ChannelTest extends RmiTestBase {
         }
     }
 
-    private static class GCTask implements Callable<Object, IOException> {
-        public Object call() throws IOException {
-            System.gc();
-            return null;
-        }
-    }
 
     public void testClassLoaderHolder() throws Exception {
         URLClassLoader ucl = new URLClassLoader(new URL[0]);

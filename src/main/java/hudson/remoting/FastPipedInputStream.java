@@ -80,7 +80,7 @@ public class FastPipedInputStream extends InputStream {
 
     private FastPipedOutputStream source() throws IOException {
         FastPipedOutputStream s = source.get();
-        if (s==null)    throw (IOException)new IOException("Writer side has already been abandoned").initCause(allocatedAt);
+        if (s==null)    throw new IOException("Writer side has already been abandoned", allocatedAt);
         return s;
     }
 
@@ -166,7 +166,7 @@ public class FastPipedInputStream extends InputStream {
                     if(closed!=null) {
                         Throwable c = closed.getCause();
                         if (c==null)        return -1;  // EOF
-                        throw (IOException)new IOException().initCause(c);
+                        throw new IOException(c);
                     }
                     source(); // make sure the sink is still trying to read, or else fail the write.
 
@@ -174,7 +174,7 @@ public class FastPipedInputStream extends InputStream {
                     try {
                         buffer.wait(FastPipedOutputStream.TIMEOUT);
                     } catch (InterruptedException e) {
-                        throw new IOException(e.getMessage());
+                        throw new IOException(e);
                     }
                     // Try again.
                     continue;

@@ -61,6 +61,11 @@ class ChunkedInputStream extends InputStream {
         return false;
     }
 
+    /**
+     *
+     * @return
+     *      true if the underlying stream hits EOF
+     */
     private boolean readHeader() throws IOException {
         if (remaining>0)    return false;
 
@@ -81,19 +86,30 @@ class ChunkedInputStream extends InputStream {
     protected void onBreak() {
     }
 
+    /**
+     * Reads bytes until we hit the chunk boundary. Bytes read will be written to the sink.
+     */
     public void readUntilBreak(OutputStream sink) throws IOException {
         byte[] buf = new byte[4096];
         while (true) {
             if (remaining>0) {
+                // more bytes to read in the current chunk
                 int read = read(buf, 0, Math.min(remaining,buf.length));
                 if (read==-1)
                     throw new IOException("Unexpected EOF");
                 sink.write(buf,0,read);
             } else {
-                readHeader(); // move on to the next chunk
+                // move on to the next chunk
+                if (readHeader())
+                    return;     // stream has EOFed. No more bytes to read.
             }
             if (isLast && remaining==0)
                 return; // we've read the all payload of the last chunk
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        base.close();
     }
 }

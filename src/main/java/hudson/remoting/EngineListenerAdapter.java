@@ -18,4 +18,7 @@ public abstract class EngineListenerAdapter implements EngineListener {
 
     public void onDisconnect() {
     }
+
+    public void onReconnect() {
+    }
 }

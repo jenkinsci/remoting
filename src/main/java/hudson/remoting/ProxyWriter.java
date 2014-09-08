@@ -260,7 +260,7 @@ final class ProxyWriter extends Writer {
         }
 
         public String toString() {
-            return "Pipe.Chunk("+oid+","+buf.length+")";
+            return "ProxyWriter.Chunk("+oid+","+buf.length+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -294,7 +294,7 @@ final class ProxyWriter extends Writer {
         }
 
         public String toString() {
-            return "Pipe.Flush("+oid+")";
+            return "ProxyWriter.Flush("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -319,13 +319,13 @@ final class ProxyWriter extends Writer {
         protected void execute(final Channel channel) {
             channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid);
+                    channel.unexport(oid,createdAt);
                 }
             });
         }
 
         public String toString() {
-            return "Pipe.Unexport("+oid+")";
+            return "ProxyWriter.Unexport("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -347,7 +347,7 @@ final class ProxyWriter extends Writer {
             final Writer os = (Writer) channel.getExportedObject(oid);
             channel.pipeWriter.submit(ioId, new Runnable() {
                 public void run() {
-                    channel.unexport(oid);
+                    channel.unexport(oid,createdAt);
                     try {
                         os.close();
                     } catch (IOException e) {
@@ -358,7 +358,7 @@ final class ProxyWriter extends Writer {
         }
 
         public String toString() {
-            return "Pipe.EOF("+oid+")";
+            return "ProxyWriter.EOF("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -390,7 +390,7 @@ final class ProxyWriter extends Writer {
         }
 
         public String toString() {
-            return "Pipe.Ack("+oid+','+size+")";
+            return "ProxyWriter.Ack("+oid+','+size+")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -415,7 +415,7 @@ final class ProxyWriter extends Writer {
         }
 
         public String toString() {
-            return "Pipe.Dead("+oid+")";
+            return "ProxyWriter.Dead("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;

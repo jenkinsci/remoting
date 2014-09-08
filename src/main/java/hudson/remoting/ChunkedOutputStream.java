@@ -68,6 +68,14 @@ class ChunkedOutputStream extends OutputStream {
     }
 
     @Override
+    public void flush() throws IOException {
+        if (size>0) {
+            sendFrame(true);
+            base.flush();
+        }
+    }
+
+    @Override
     public void close() throws IOException {
         sendFrame(false);
         base.close();

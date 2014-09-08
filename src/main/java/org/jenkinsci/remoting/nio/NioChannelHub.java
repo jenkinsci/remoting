@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
@@ -66,6 +67,18 @@ public class NioChannelHub implements Runnable, Closeable {
      */
     private ExecutorService commandProcessor;
 
+    /**
+     * Counts the # of select loops. Ocassionally useful for diagnosing whether the selector
+     * thread is spending too much CPU time.
+     */
+    private long gen;
+
+    /**
+     * Sets to the thread that's in the {@link #run()} method.
+     */
+    private volatile Thread selectorThread;
+    private volatile Throwable whatKilledSelectorThread;
+
 
     /**
      * Bi-directional NIO channel used as the transport of a {@link Channel}.
@@ -102,7 +115,13 @@ public class NioChannelHub implements Runnable, Closeable {
          */
         private final SingleLaneExecutorService swimLane = new SingleLaneExecutorService(commandProcessor);
 
-        NioTransport(Capability remoteCapability) {
+        /**
+         * Name given to the transport to assist trouble-shooting.
+         */
+        private final String name;
+
+        NioTransport(String name, Capability remoteCapability) {
+            this.name = name;
             this.remoteCapability = remoteCapability;
         }
 
@@ -181,7 +200,7 @@ public class NioChannelHub implements Runnable, Closeable {
             } catch (IOException _) {
                 // ignore
             }
-            receiver.terminate((IOException)new IOException("Failed to abort").initCause(e));
+            receiver.terminate((IOException)new IOException("Connection aborted: "+this).initCause(e));
         }
 
         @Override
@@ -240,6 +259,11 @@ public class NioChannelHub implements Runnable, Closeable {
                 }
             });
         }
+
+        @Override
+        public String toString() {
+            return super.toString()+"[name="+name+"]";
+        }
     }
 
     /**
@@ -254,8 +278,8 @@ public class NioChannelHub implements Runnable, Closeable {
          */
         Closeable rc,wc;
 
-        MonoNioTransport(SelectableChannel ch, Capability remoteCapability) {
-            super(remoteCapability);
+        MonoNioTransport(String name, SelectableChannel ch, Capability remoteCapability) {
+            super(name,remoteCapability);
 
             this.ch = ch;
             this.rc = Closeables.input(ch);
@@ -314,6 +338,9 @@ public class NioChannelHub implements Runnable, Closeable {
             }
         }
 
+        /**
+         * If both directions are closed, cancel the whole key.
+         */
         @SelectorThreadOnly
         private void maybeCancelKey() throws IOException {
             SelectionKey key = ch.keyFor(selector);
@@ -333,8 +360,8 @@ public class NioChannelHub implements Runnable, Closeable {
     class DualNioTransport extends NioTransport {
         private final SelectableChannel r,w;
 
-        DualNioTransport(SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
-            super(remoteCapability);
+        DualNioTransport(String name, SelectableChannel r, SelectableChannel w, Capability remoteCapability) {
+            super(name,remoteCapability);
 
             assert r instanceof ReadableByteChannel && w instanceof WritableByteChannel;
             this.r = r;
@@ -431,9 +458,12 @@ public class NioChannelHub implements Runnable, Closeable {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
                 if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking()) {
+                    if (selectorThread==null)
+                        throw new IOException("NioChannelHub is not currently running",whatKilledSelectorThread);
+
                     NioTransport t;
-                    if (r==w)       t = new MonoNioTransport(r,cap);
-                    else            t = new DualNioTransport(r,w,cap);
+                    if (r==w)       t = new MonoNioTransport(getName(),r,cap);
+                    else            t = new DualNioTransport(getName(),r,w,cap);
                     t.scheduleReregister();
                     return t;
                 }
@@ -461,9 +491,8 @@ public class NioChannelHub implements Runnable, Closeable {
      * This method returns when {@link #close()} is called and the selector is shut down.
      */
     public void run() {
-        final Thread thread = Thread.currentThread();
-        final String oldName = thread.getName();
-        long gen=0;
+        selectorThread = Thread.currentThread();
+        final String oldName = selectorThread.getName();
 
         try {
             while (true) {
@@ -471,10 +500,15 @@ public class NioChannelHub implements Runnable, Closeable {
                     while (true) {
                         Callable<Void, IOException> t = selectorTasks.poll();
                         if (t==null)    break;
-                        t.call();
+                        try {
+                            t.call();
+                        } catch (IOException e) {
+                            LOGGER.log(WARNING, "Failed to process selectorTasks", e);
+                            // but keep on at the next task
+                        }
                     }
 
-                    thread.setName("NioChannelHub keys="+selector.keys().size()+" gen="+(gen++)+": "+oldName);
+                    selectorThread.setName("NioChannelHub keys=" + selector.keys().size() + " gen=" + (gen++) + ": " + oldName);
                     selector.select();
                 } catch (IOException e) {
                     LOGGER.log(WARNING, "Failed to select", e);
@@ -561,6 +595,15 @@ public class NioChannelHub implements Runnable, Closeable {
                         } catch (IOException e) {
                             LOGGER.log(WARNING, "Communication problem", e);
                             t.abort(e);
+                        } catch (CancelledKeyException e) {
+                            // see JENKINS-24050. I don't understand how this can happen, given that the selector
+                            // thread is the only thread that cancels keys. So to better understand what's going on,
+                            // report the problem.
+                            LOGGER.log(SEVERE, "Unexpected key cancellation for "+t, e);
+                            // to be on the safe side, abort the communication. if we don't do this, it's possible
+                            // that the key never gets re-registered to the selector, and the traffic will hang
+                            // on this channel.
+                            t.abort(e);
                         }
                     } else {
                         onSelected(key);
@@ -570,16 +613,20 @@ public class NioChannelHub implements Runnable, Closeable {
         } catch (ClosedSelectorException e) {
             // end normally
             // TODO: what happens to all the registered ChannelPairs? don't we need to shut them down?
+            whatKilledSelectorThread = e;
         } catch (RuntimeException e) {
             abortAll(e);
             LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
+            whatKilledSelectorThread = e;
             throw e;
         } catch (Error e) {
             abortAll(e);
             LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
+            whatKilledSelectorThread = e;
             throw e;
         } finally {
-            thread.setName(oldName);
+            selectorThread.setName(oldName);
+            selectorThread = null;
         }
     }
 
@@ -601,6 +648,20 @@ public class NioChannelHub implements Runnable, Closeable {
 
     public Selector getSelector() {
         return selector;
+    }
+
+    /**
+     * Verifies that the selector thread is running and this hub is active.
+     *
+     * Several bugs have been reported (such as JENKINS-24050) that causes the selector thread to die,
+     * and several more bugs have been reported (such as JENKINS-24155 and JENKINS-24201) that are suspected
+     * to be caused by the death of NIO selector thread.
+     *
+     * This check makes it easier to find this problem and report why the selector thread has died.
+     */
+    public void ensureValid() throws IOException {
+        if (selectorThread==null)
+            throw new IOException("NIO selector thread is not running",whatKilledSelectorThread);
     }
 
     private static final Logger LOGGER = Logger.getLogger(NioChannelHub.class.getName());

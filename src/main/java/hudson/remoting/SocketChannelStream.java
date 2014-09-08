@@ -9,6 +9,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Wraps {@link SocketChannel} into {@link InputStream}/{@link OutputStream} in a way
@@ -34,7 +36,13 @@ public class SocketChannelStream {
             }
 
             public void close() throws IOException {
-                s.shutdownInput();
+                if (!s.isInputShutdown()) {
+                    try {
+                        s.shutdownInput();
+                    } catch (IOException e) {
+                        LOGGER.log(Level.FINE, "Failed to shutdownInput", e);
+                    }
+                }
                 if (s.isOutputShutdown()) {
                     ch.close();
                     s.close();
@@ -63,7 +71,13 @@ public class SocketChannelStream {
             }
 
             public void close() throws IOException {
-                s.shutdownOutput();
+                if (!s.isOutputShutdown()) {
+                    try {
+                        s.shutdownOutput();
+                    } catch (IOException e) {
+                        LOGGER.log(Level.FINE, "Failed to shutdownOutput", e);
+                    }
+                }
                 if (s.isInputShutdown()) {
                     ch.close();
                     s.close();
@@ -75,4 +89,6 @@ public class SocketChannelStream {
             }
         });
     }
+
+    private static final Logger LOGGER = Logger.getLogger(SocketChannelStream.class.getName());
 }

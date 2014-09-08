@@ -139,7 +139,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         if(method.getDeclaringClass()==IReadResolve.class) {
             // readResolve on the proxy.
             // if we are going back to where we came from, replace the proxy by the real object
-            if(goingHome)   return channel.getExportedObject(oid);
+            if(goingHome)   return Channel.current().getExportedObject(oid);
             else            return proxy;
         }
 
@@ -186,8 +186,15 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        channel = Channel.current();
         ois.defaultReadObject();
+        if (goingHome) {
+            // We came back to the side that exported the object.
+            // Since this object represents a local object, it shouldn't have non-null channel.
+            // (which would cause the finalize() method to try to unexport the object.)
+            channel = null;
+        } else {
+            channel = Channel.current();
+        }
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
@@ -218,8 +225,10 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
     protected void finalize() throws Throwable {
         // unexport the remote object
-        if(channel!=null && !autoUnexportByCaller)
+        if (channel!=null && !autoUnexportByCaller) {
             channel.send(new UnexportCommand(oid));
+            channel = null;
+        }
         super.finalize();
     }
 
@@ -290,8 +299,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         protected Serializable perform(Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
-            if(o==null)
-                throw new IllegalStateException("Unable to call "+methodName+". Invalid object ID "+oid);
             try {
                 Method m = choose(o);
                 if(m==null)
@@ -301,7 +308,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 try {
                     r = m.invoke(o, arguments);
                 } catch (IllegalArgumentException x) {
-                    throw new IllegalArgumentException("failed to invoke " + m + " on " + o + Arrays.toString(arguments), x);
+                    throw new RemotingSystemException("failed to invoke " + m + " on " + o + Arrays.toString(arguments), x);
                 }
                 if (r==null || r instanceof Serializable)
                     return (Serializable) r;

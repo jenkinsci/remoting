@@ -17,6 +17,10 @@ class RemotingSystemException extends RuntimeException {
         super(cause);
     }
 
+    RemotingSystemException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
     protected RemotingSystemException wrapForRethrow() {
         return new RemotingSystemException(this);
     }

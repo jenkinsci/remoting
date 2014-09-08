@@ -30,8 +30,7 @@ import junit.framework.TestCase;
  */
 public class DummyClassLoaderTest extends TestCase {
     public void testLoad() throws Throwable {
-        DummyClassLoader cl = new DummyClassLoader(this.getClass().getClassLoader());
-        Callable c = (Callable) cl.load();
+        Callable c = (Callable) DummyClassLoader.apply(TestCallable.class);
         System.out.println(c.call());
         // make sure that the returned class is loaded from the dummy classloader
         assertTrue(((Object[])c.call())[0].toString().startsWith(DummyClassLoader.class.getName()));

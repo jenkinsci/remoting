@@ -23,11 +23,19 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.logging.Logger;
+
+import static java.util.logging.Level.SEVERE;
 
 /**
  * Manages unique ID for exported objects, and allows look-up from IDs.
@@ -44,15 +52,27 @@ final class ExportTable<T> {
     private final ThreadLocal<ExportList> lists = new ThreadLocal<ExportList>();
 
     /**
-     * Information about one exporetd object.
+     * For diagnosing problems like JENKINS-20707 where we seem to be unexporting too eagerly,
+     * record most recent unexported objects up to {@link #UNEXPORT_LOG_SIZE}
+     *
+     * New entries are added to the end, and older ones are removed from the beginning.
+     */
+    private final List<Entry> unexportLog = new LinkedList<Entry>();
+
+    /**
+     * Information about one exported object.
      */
     private final class Entry {
         final int id;
-        final T object;
+        private T object;
         /**
          * Where was this object first exported?
          */
-        final Exception allocationTrace;
+        final CreatedAt allocationTrace;
+        /**
+         * Where was this object unexported?
+         */
+        ReleasedAt releaseTrace;
         /**
          * Current reference count.
          * Access to {@link ExportTable} is guarded by synchronized block,
@@ -60,13 +80,15 @@ final class ExportTable<T> {
          */
         private int referenceCount;
 
+        /**
+         * This field can be set programmatically to track reference counting
+         */
+        private ReferenceCountRecorder recorder;
+
         Entry(T object) {
             this.id = iota++;
             this.object = object;
-            this.allocationTrace = new Exception();
-            // force the computation of the stack trace in a Java friendly data structure,
-            // so that the call stack can be seen from the heap dump after the fact. 
-            allocationTrace.getStackTrace();
+            this.allocationTrace = new CreatedAt();
 
             table.put(id,this);
             reverse.put(object,this);
@@ -74,6 +96,8 @@ final class ExportTable<T> {
 
         void addRef() {
             referenceCount++;
+            if (recorder!=null)
+                recorder.onAddRef(null);
         }
 
         /**
@@ -83,14 +107,90 @@ final class ExportTable<T> {
          * (and we can still detect the problem by comparing the reference count with the magic value.
          */
         void pin() {
-            referenceCount += Integer.MAX_VALUE/2;
+            if (referenceCount<Integer.MAX_VALUE/2)
+                referenceCount += Integer.MAX_VALUE/2;
         }
 
-        void release() {
+        void release(Throwable callSite) {
+            if (recorder!=null)
+                recorder.onRelease(callSite);
+
             if(--referenceCount==0) {
                 table.remove(id);
                 reverse.remove(object);
+
+                // hack to store some information about the object that got unexported
+                // don't want to keep the object alive, and toString() seems bit risky
+                object = (T)object.getClass().getName();
+                releaseTrace = new ReleasedAt(callSite);
+
+                unexportLog.add(this);
+                while (unexportLog.size()>UNEXPORT_LOG_SIZE)
+                    unexportLog.remove(0);
             }
+        }
+
+        /**
+         * Dumps the contents of the entry.
+         */
+        void dump(PrintWriter w) throws IOException {
+            w.printf("#%d (ref.%d) : %s\n", id, referenceCount, object);
+            allocationTrace.printStackTrace(w);
+            if (releaseTrace!=null) {
+                releaseTrace.printStackTrace(w);
+            }
+            if (recorder!=null) {
+                recorder.dump(w);
+            }
+        }
+
+        String dump() {
+            try {
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                dump(pw);
+                pw.close();
+                return sw.toString();
+            } catch (IOException e) {
+                throw new Error(e);   // impossible
+            }
+        }
+
+    }
+
+    static class Source extends Exception {
+        protected final long timestamp = System.currentTimeMillis();
+
+        /**
+         * @param callSite
+         *      Optional location that indicates where the actual call site was that triggered the activity,
+         *      in case it was requested from the other side of the channel.
+         */
+        Source(Throwable callSite) {
+            super(callSite);
+            // force the computation of the stack trace in a Java friendly data structure,
+            // so that the call stack can be seen from the heap dump after the fact.
+            getStackTrace();
+        }
+    }
+
+    static class CreatedAt extends Source {
+        CreatedAt() {
+            super(null);
+        }
+
+        public String toString() {
+            return "  Created at "+new Date(timestamp);
+        }
+    }
+
+    static class ReleasedAt extends Source {
+        ReleasedAt(Throwable callSite) {
+            super(callSite);
+        }
+
+        public String toString() {
+            return "  Released at "+new Date(timestamp);
         }
     }
 
@@ -106,10 +206,10 @@ final class ExportTable<T> {
             old=lists.get();
             lists.set(this);
         }
-        void release() {
+        void release(Throwable callSite) {
             synchronized(ExportTable.this) {
                 for (Entry e : this)
-                    e.release();
+                    e.release(callSite);
             }
         }
         void stopRecording() {
@@ -142,7 +242,7 @@ final class ExportTable<T> {
      * Exports the given object.
      *
      * <p>
-     * Until the object is {@link #unexport(Object) unexported}, it will
+     * Until the object is {@link #unexport(Object,Throwable) unexported}, it will
      * not be subject to GC.
      *
      * @return
@@ -181,30 +281,55 @@ final class ExportTable<T> {
         e.pin();
     }
 
-    public synchronized T get(int id) {
+    public synchronized @Nonnull T get(int id) {
         Entry e = table.get(id);
         if(e!=null) return e.object;
-        else        return null;
+
+        throw diagnoseInvalidId(id);
+    }
+
+    private synchronized IllegalStateException diagnoseInvalidId(int id) {
+        Exception cause=null;
+
+        if (!unexportLog.isEmpty()) {
+            for (Entry e : unexportLog) {
+                if (e.id==id)
+                    cause = new Exception("Object was recently deallocated\n"+Util.indent(e.dump()), e.releaseTrace);
+            }
+            if (cause==null)
+                cause = new Exception("Object appears to be deallocated at lease before "+
+                    new Date(unexportLog.get(0).releaseTrace.timestamp));
+        }
+
+        return new IllegalStateException("Invalid object ID "+id+" iota="+iota, cause);
     }
 
     /**
      * Removes the exported object from the table.
      */
-    public synchronized void unexport(T t) {
+    synchronized void unexport(T t, Throwable callSite) {
         if(t==null)     return;
         Entry e = reverse.get(t);
-        if(e==null)    return; // presumably already unexported
-        e.release();
+        if(e==null) {
+            LOGGER.log(SEVERE, "Trying to unexport an object that's not exported: "+t);
+            return;
+        }
+        e.release(callSite);
     }
 
     /**
      * Removes the exported object for the specified oid from the table.
      */
-    public synchronized void unexportByOid(Integer oid) {
+    public synchronized void unexportByOid(Integer oid, Throwable callSite) {
         if(oid==null)     return;
         Entry e = table.get(oid);
-        if(e==null)    return; // presumably already unexported
-        e.release();
+        if(e==null) {
+            LOGGER.log(SEVERE, "Trying to unexport an object that's already unexported", diagnoseInvalidId(oid));
+            if (callSite!=null)
+                LOGGER.log(SEVERE, "2nd unexport attempt is here", callSite);
+            return;
+        }
+        e.release(callSite);
     }
 
     /**
@@ -212,12 +337,15 @@ final class ExportTable<T> {
      */
     public synchronized void dump(PrintWriter w) throws IOException {
         for (Entry e : table.values()) {
-            w.printf("#%d (ref.%d) : %s\n", e.id, e.referenceCount, e.object);
-            e.allocationTrace.printStackTrace(w);
+            e.dump(w);
         }
     }
 
     /*package*/ synchronized  boolean isExported(T o) {
         return reverse.containsKey(o);
     }
+
+    public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName()+".unexportLogSize",1024);
+
+    private static final Logger LOGGER = Logger.getLogger(ExportTable.class.getName());
 }
