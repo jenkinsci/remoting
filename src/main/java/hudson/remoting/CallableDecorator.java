@@ -32,6 +32,9 @@ public abstract class CallableDecorator {
      *      which normally execcutes some pre-processing, then delegate to the 'op', then perform some cleanup.
      *
      *      If there's nothing to filter, return 'op'.
+     * @throws RuntimeException
+     *      Any exception thrown from this method will be propagated to the other side as if the execution of
+     *      the callable has failed with this exception.
      */
     public <V,T extends Throwable> Callable<V,T> userRequest(Callable<V,T> op, Callable<V,T> stem) {
         return stem;
