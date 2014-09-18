@@ -4,10 +4,11 @@ package hudson.remoting;
  * Decorator on {@code Callable.call()} to filter the execution.
  *
  * @author Kohsuke Kawaguchi
+ * @see Channel#addLocalExecutionInterceptor(CallableDecorator)
  */
 public abstract class CallableDecorator {
     /**
-     * Used to decorate everything that execcutes in the channel as a result of a request from the other side,
+     * Used to decorate everything that executes in the channel as a result of a request from the other side,
      * such as RPC executions on exported objects, user-provided {@link Callable} execution, pipe write, and so on.
      */
     public <V> V call(java.util.concurrent.Callable<V> callable) throws Exception {
@@ -29,7 +30,7 @@ public abstract class CallableDecorator {
      *      {@link CallableDecorator}s.
      * @return
      *      Returns the a decorated {@link Callable} that represents the decorated computation,
-     *      which normally execcutes some pre-processing, then delegate to the 'op', then perform some cleanup.
+     *      which normally executes some pre-processing, then delegate to the 'op', then perform some cleanup.
      *
      *      If there's nothing to filter, return 'op'.
      * @throws RuntimeException
