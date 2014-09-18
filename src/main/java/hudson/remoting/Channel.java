@@ -467,6 +467,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.jarLoader = new JarLoaderImpl(); // TODO: figure out a mechanism to allow the user to share this across Channels
         setProperty(JarLoader.OURS,export(JarLoader.class,jarLoader,false));
 
+        this.decorators.addAll(settings.getDecorators());
+
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
                 lastHeard = System.currentTimeMillis();

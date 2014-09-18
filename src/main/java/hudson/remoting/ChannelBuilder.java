@@ -11,6 +11,8 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
@@ -29,6 +31,7 @@ public class ChannelBuilder {
     private OutputStream header;
     private boolean restricted;
     private JarCache jarCache;
+    private List<CallableDecorator> decorators = new ArrayList<CallableDecorator>();
 
     /**
      * Specify the minimum mandatory parameters.
@@ -133,6 +136,15 @@ public class ChannelBuilder {
 
     public JarCache getJarCache() {
         return jarCache;
+    }
+
+    public ChannelBuilder with(CallableDecorator decorator) {
+        this.decorators.add(decorator);
+        return this;
+    }
+
+    public List<CallableDecorator> getDecorators() {
+        return this.decorators;
     }
 
     /**
