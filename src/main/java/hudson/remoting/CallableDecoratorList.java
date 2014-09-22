@@ -10,11 +10,11 @@ import java.util.concurrent.*;
 class CallableDecoratorList extends CopyOnWriteArrayList<CallableDecorator> {
     <V> java.util.concurrent.Callable<V> wrapCallable(java.util.concurrent.Callable<V> r) {
         for (CallableDecorator d : this)
-            r = applyDeccorator(r, d);
+            r = applyDecorator(r, d);
         return r;
     }
 
-    private <V> java.util.concurrent.Callable<V> applyDeccorator(final java.util.concurrent.Callable<V> inner, final CallableDecorator filter) {
+    private <V> java.util.concurrent.Callable<V> applyDecorator(final java.util.concurrent.Callable<V> inner, final CallableDecorator filter) {
         return new java.util.concurrent.Callable<V>() {
             public V call() throws Exception {
                 return filter.call(inner);
