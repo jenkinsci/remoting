@@ -46,6 +46,7 @@ import java.util.Collections;
  * @author Kohsuke Kawaguchi
  * @see RoleSensitive
  * @see RoleChecker
+ * @since TODO
  */
 public final class Role {
     private final String name;

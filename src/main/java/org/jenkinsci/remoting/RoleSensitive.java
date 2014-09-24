@@ -14,6 +14,7 @@ import java.util.Collection;
  *
  * @author Kohsuke Kawaguchi
  * @see RoleChecker
+ * @since TODO
  */
 public interface RoleSensitive {
     /**
