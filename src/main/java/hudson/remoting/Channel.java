@@ -125,7 +125,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * and error reports.
      */
     private final String name;
-    private volatile boolean allowRemoteClassLoading, allowArbitraryCallable;
+    private volatile boolean remoteClassLoadingAllowed, arbitraryCallableAllowed;
     /*package*/ final CallableDecoratorList decorators = new CallableDecoratorList();
     /*package*/ final ExecutorService executor;
 
@@ -452,8 +452,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /*package*/ Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
         this.name = settings.getName();
         this.executor = new InterceptingExecutorService(settings.getExecutors(),decorators);
-        this.allowArbitraryCallable = settings.allowsArbitraryCallable();
-        this.allowRemoteClassLoading = settings.allowsRemoteClassLoading();
+        this.arbitraryCallableAllowed = settings.isArbitraryCallableAllowed();
+        this.remoteClassLoadingAllowed = settings.isRemoteClassLoadingAllowed();
         this.underlyingOutput = transport.getUnderlyingStream();
         this.jarCache = settings.getJarCache();
 
@@ -913,7 +913,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      to test individual features.
      */
     public boolean isRestricted() {
-        return !allowsRemoteClassLoading() || !allowsArbitraryCallable();
+        return !isRemoteClassLoadingAllowed() || !isArbitraryCallableAllowed();
     }
 
     /**
@@ -924,31 +924,31 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      to control individual features.
      */
     public void setRestricted(boolean b) {
-        allowClassLoading(b);
-        allowArbitraryCallable(b);
+        setRemoteClassLoadingAllowed(b);
+        setArbitraryCallableAllowed(b);
     }
 
-    public boolean allowsRemoteClassLoading() {
-        return allowRemoteClassLoading;
+    public boolean isRemoteClassLoadingAllowed() {
+        return remoteClassLoadingAllowed;
     }
 
     /**
      * Controls whether or not this channel is willing to load classes from the other side.
      * The default is on.
      */
-    public void allowClassLoading(boolean b) {
-        this.allowRemoteClassLoading = b;
+    public void setRemoteClassLoadingAllowed(boolean b) {
+        this.remoteClassLoadingAllowed = b;
     }
 
-    public boolean allowsArbitraryCallable() {
-        return allowArbitraryCallable;
+    public boolean isArbitraryCallableAllowed() {
+        return arbitraryCallableAllowed;
     }
 
     /**
-     * @see ChannelBuilder#withArbitraryCallable(boolean)
+     * @see ChannelBuilder#withArbitraryCallableAllowed(boolean)
      */
-    public void allowArbitraryCallable(boolean b) {
-        this.allowArbitraryCallable = b;
+    public void setArbitraryCallableAllowed(boolean b) {
+        this.arbitraryCallableAllowed = b;
     }
 
     /**

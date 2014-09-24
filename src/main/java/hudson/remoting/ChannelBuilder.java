@@ -38,8 +38,8 @@ public class ChannelBuilder {
     private OutputStream header;
     private JarCache jarCache;
     private List<CallableDecorator> decorators = new ArrayList<CallableDecorator>();
-    private boolean allowArbitraryCallable = true;
-    private boolean allowRemoteClassLoading = true;
+    private boolean arbitraryCallableAllowed = true;
+    private boolean remoteClassLoadingAllowed = true;
 
     /**
      * Specify the minimum mandatory parameters.
@@ -125,8 +125,8 @@ public class ChannelBuilder {
      *      Control individual features.
      */
     public ChannelBuilder withRestricted(boolean  restricted) {
-        withArbitraryCallable(!restricted);
-        withRemoteClassLoading(!restricted);
+        withArbitraryCallableAllowed(!restricted);
+        withRemoteClassLoadingAllowed(!restricted);
         return this;
     }
 
@@ -135,7 +135,7 @@ public class ChannelBuilder {
      *      Test individual features instead.
      */
     public boolean isRestricted() {
-        return !allowsArbitraryCallable() || !allowsRemoteClassLoading();
+        return !isArbitraryCallableAllowed() || !isRemoteClassLoadingAllowed();
     }
 
     /**
@@ -144,26 +144,26 @@ public class ChannelBuilder {
      *
      * The default is {@code true}.
      */
-    public ChannelBuilder withArbitraryCallable(boolean b) {
-        this.allowArbitraryCallable = b;
+    public ChannelBuilder withArbitraryCallableAllowed(boolean b) {
+        this.arbitraryCallableAllowed = b;
         return this;
     }
 
-    public boolean allowsArbitraryCallable() {
-        return allowArbitraryCallable;
+    public boolean isArbitraryCallableAllowed() {
+        return arbitraryCallableAllowed;
     }
 
     /**
      * Controls whether or not this channel is willing to load classes from the other side.
      * The default is {@code true}.
      */
-    public ChannelBuilder withRemoteClassLoading(boolean b) {
-        this.allowRemoteClassLoading = b;
+    public ChannelBuilder withRemoteClassLoadingAllowed(boolean b) {
+        this.remoteClassLoadingAllowed = b;
         return this;
     }
 
-    public boolean allowsRemoteClassLoading() {
-        return allowRemoteClassLoading;
+    public boolean isRemoteClassLoadingAllowed() {
+        return remoteClassLoadingAllowed;
     }
 
     public ChannelBuilder withJarCache(JarCache jarCache) {
