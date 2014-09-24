@@ -471,6 +471,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         setProperty(JarLoader.OURS,export(JarLoader.class,jarLoader,false));
 
         this.decorators.addAll(settings.getDecorators());
+        this.properties.putAll(settings.getProperties());
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {

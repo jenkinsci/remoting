@@ -19,7 +19,9 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 
@@ -40,6 +42,7 @@ public class ChannelBuilder {
     private List<CallableDecorator> decorators = new ArrayList<CallableDecorator>();
     private boolean arbitraryCallableAllowed = true;
     private boolean remoteClassLoadingAllowed = true;
+    private final Hashtable<Object,Object> properties = new Hashtable<Object,Object>();
 
     /**
      * Specify the minimum mandatory parameters.
@@ -217,12 +220,32 @@ public class ChannelBuilder {
                 try {
                     stem.checkRoles(checker);
                 } catch (AbstractMethodError e) {
-                    checker.check(stem,Role.UNKNOWN);// not implemented, assume 'unknown'
+                    checker.check(stem, Role.UNKNOWN);// not implemented, assume 'unknown'
                 }
 
                 return stem;
             }
         });
+    }
+
+    /**
+     * Sets the property.
+     *
+     * Properties are modifiable after {@link Channel} is created, but a property set
+     * during channel building is guaranteed to be visible to the other side as soon
+     * as the channel is established.
+     */
+    public ChannelBuilder withProperty(Object key, Object value) {
+        properties.put(key,value);
+        return this;
+    }
+
+    public <T> ChannelBuilder withProperty(ChannelProperty<T> key, T value) {
+        return withProperty((Object) key, value);
+    }
+
+    public Map<Object,Object> getProperties() {
+        return properties;
     }
 
     /**
