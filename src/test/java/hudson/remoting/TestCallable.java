@@ -23,8 +23,12 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.Role;
+
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * {@link Callable} used to verify the classloader used.
@@ -60,6 +64,11 @@ public class TestCallable extends Exception implements Callable {
         r[3] = getClass().getResource(resName);
 
         return r;
+    }
+
+    @Override
+    public Collection<Role> getRecipients() {
+        return Collections.emptyList();
     }
 
     public static class Sub extends TestCallable {}

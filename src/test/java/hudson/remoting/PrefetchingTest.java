@@ -40,7 +40,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         dir.mkdirs();
 
         channel.setJarCache(new FileSystemJarCache(dir, true));
-        channel.call(new Callable<Void, IOException>() {
+        channel.call(new CallableBase<Void, IOException>() {
             public Void call() throws IOException {
                 Channel.current().setJarCache(new FileSystemJarCache(dir, true));
                 return null;
@@ -188,7 +188,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         ((Predicate)r).apply(null); // this verifies that the object is still in a good state
     }
 
-    private static final class Echo<V> implements Callable<V,IOException>, Serializable {
+    private static final class Echo<V> extends CallableBase<V,IOException> implements Serializable {
         V value;
 
         public V call() throws IOException {
@@ -199,7 +199,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     /**
      * Force the remote side to fetch the retrieval of the specific jar file.
      */
-    private static final class ForceJarLoad implements Callable<Void,IOException>, Serializable{
+    private static final class ForceJarLoad extends CallableBase<Void,IOException> implements Serializable{
         private final long sum1,sum2;
 
         private ForceJarLoad(Checksum sum) {

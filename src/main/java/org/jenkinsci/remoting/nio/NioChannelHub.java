@@ -10,6 +10,7 @@ import hudson.remoting.ChannelBuilder;
 import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 import hudson.remoting.SingleLaneExecutorService;
+import org.jenkinsci.remoting.Role;
 
 import java.io.Closeable;
 import java.io.EOFException;
@@ -25,6 +26,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Queue;
@@ -245,6 +247,11 @@ public class NioChannelHub implements Runnable, Closeable {
                     closeR();
                     return null;
                 }
+
+                @Override
+                public Collection<Role> getRecipients() {
+                    return Role.UNKNOWN_SET;    // not actually used over remoting
+                }
             });
         }
 
@@ -256,6 +263,11 @@ public class NioChannelHub implements Runnable, Closeable {
                 public Void call() throws IOException {
                     reregister();
                     return null;
+                }
+
+                @Override
+                public Collection<Role> getRecipients() {
+                    return Role.UNKNOWN_SET;    // not actually used over remoting
                 }
             });
         }

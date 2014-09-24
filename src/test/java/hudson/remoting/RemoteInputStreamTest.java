@@ -47,7 +47,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
     /**
      * Reads N bytes and verify that it matches what's expected.
      */
-    private static class Read implements Callable<Object,IOException> {
+    private static class Read extends CallableBase<Object,IOException> {
         private final RemoteInputStream in;
         private final byte[] expected;
 
@@ -74,7 +74,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
         assertEquals(in.read(),-1);
     }
 
-    private static class TestGreedy2 implements Callable<Void,IOException> {
+    private static class TestGreedy2 extends CallableBase<Void,IOException> {
         private final RemoteInputStream i;
 
         public TestGreedy2(RemoteInputStream i) {
@@ -107,7 +107,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
 
     private static class SkyIsFalling extends IOException {}
 
-    private static class TestErrorPropagation implements Callable<Void, IOException> {
+    private static class TestErrorPropagation extends CallableBase<Void, IOException> {
         private final RemoteInputStream i;
 
         public TestErrorPropagation(RemoteInputStream i) {

@@ -159,7 +159,7 @@ public class ClassRemotingTest extends RmiTestBase {
         return buildSuite(ClassRemotingTest.class);
     }
 
-    private static class RemotePropertyVerifier implements Callable<Object, IOException> {
+    private static class RemotePropertyVerifier extends CallableBase<Object, IOException> {
         public Object call() throws IOException {
             Object o = Channel.current().getRemoteProperty("test");
             assertEquals(o.getClass().getName(), CLASSNAME);

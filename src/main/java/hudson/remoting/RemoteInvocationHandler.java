@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.Role;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -32,6 +34,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Sits behind a proxy object and implements the proxy logic.
@@ -288,6 +292,12 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         public Serializable call() throws Throwable {
             return perform(Channel.current());
+        }
+
+        @Override
+        public Collection<Role> getRecipients() {
+            // this callable only executes public methods exported by this side, so these methods are assumed to be safe
+            return Collections.emptyList();
         }
 
         public ClassLoader getClassLoader() {

@@ -24,7 +24,7 @@
 
 package hudson.remoting;
 
-public class TestLinkage implements Callable {
+public class TestLinkage extends CallableBase {
 
     public Object call() throws Throwable {
         // force classloading of several classes

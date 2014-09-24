@@ -51,7 +51,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
         StringWriter sw = new StringWriter();
         final RemoteWriter w = new RemoteWriter(sw);
 
-        channel.call(new Callable<Void, IOException>() {
+        channel.call(new CallableBase<Void, IOException>() {
             public Void call() throws IOException {
                 writeBunchOfData(w);
                 return null;
@@ -96,7 +96,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
         };
         final RemoteWriter w = new RemoteWriter(sw);
 
-        channel.call(new Callable<Void, IOException>() {
+        channel.call(new CallableBase<Void, IOException>() {
             public Void call() throws IOException {
                 w.write("hello");
                 W = new WeakReference<RemoteWriter>(w);
@@ -111,7 +111,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             assertTrue("There shouldn't be any errors: " + log.toString(), log.size() == 0);
 
             Thread.sleep(100);
-            if (channel.call(new Callable<Boolean, IOException>() {
+            if (channel.call(new CallableBase<Boolean, IOException>() {
                 public Boolean call() throws IOException {
                     System.gc();
                     return W.get()==null;
@@ -136,7 +136,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
         final RemoteWriter w = new RemoteWriter(sw);
 
         for (int i=0; i<16; i++) {
-            channel.call(new Callable<Void, IOException>() {
+            channel.call(new CallableBase<Void, IOException>() {
                 public Void call() throws IOException {
                     w.write("1--",0,1);
                     return null;

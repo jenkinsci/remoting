@@ -47,7 +47,7 @@ public class SimpleTest extends RmiTestBase {
         assertEquals(5,(int)r.get());
     }
 
-    private static class Callable1 implements Callable<Integer, RuntimeException> {
+    private static class Callable1 extends CallableBase<Integer, RuntimeException> {
         public Integer call() throws RuntimeException {
             System.err.println("invoked");
             return 5;
@@ -74,7 +74,7 @@ public class SimpleTest extends RmiTestBase {
         }
     }
 
-    private static class Callable2 implements Callable<Integer, RuntimeException> {
+    private static class Callable2 extends CallableBase<Integer, RuntimeException> {
         public Integer call() throws RuntimeException {
             throw new RuntimeException("foo");
         }
@@ -92,7 +92,7 @@ public class SimpleTest extends RmiTestBase {
 
     public static interface Foo {}
 
-    private static class Echo<T> implements Callable<T,RuntimeException> {
+    private static class Echo<T> extends CallableBase<T,RuntimeException> {
         private final T t;
 
         Echo(T t) {
@@ -124,7 +124,7 @@ public class SimpleTest extends RmiTestBase {
         assertFalse(task.ran);
         // TODO ought to also test various other aspects: cancelling before start, etc.
     }
-    private static class Cancellable implements Callable<Integer, InterruptedException> {
+    private static class Cancellable extends CallableBase<Integer, InterruptedException> {
         boolean ran;
         public Integer call() throws InterruptedException {
             Thread.sleep(9999);

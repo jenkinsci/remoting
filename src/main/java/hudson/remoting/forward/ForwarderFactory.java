@@ -28,10 +28,13 @@ import hudson.remoting.Channel;
 import hudson.remoting.RemoteOutputStream;
 import hudson.remoting.SocketChannelStream;
 import hudson.remoting.VirtualChannel;
+import org.jenkinsci.remoting.Role;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Creates {@link Forwarder}.
@@ -46,6 +49,11 @@ public class ForwarderFactory {
         return channel.call(new Callable<Forwarder,IOException>() {
             public Forwarder call() throws IOException {
                 return new ForwarderImpl(remoteHost,remotePort);
+            }
+
+            @Override
+            public Collection<Role> getRecipients() {
+                return Collections.singleton(ROLE);
             }
 
             private static final long serialVersionUID = 1L;
@@ -79,4 +87,9 @@ public class ForwarderFactory {
             return Channel.current().export(Forwarder.class, this);
         }
     }
+
+    /**
+     * Role that's willing to open a socket to arbitrary node nad forward that to the other side.
+     */
+    public static final Role ROLE = new Role(ForwarderFactory.class);
 }

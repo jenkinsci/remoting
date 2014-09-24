@@ -56,7 +56,7 @@ public class NonSerializableExceptionTest extends RmiTestBase {
         }
     }
 
-    private static final class Failure implements Callable {
+    private static final class Failure extends CallableBase {
         public Object call() throws Throwable {
             throw new NoneSerializableException("message1",new SocketException("message2"));
         }

@@ -1,6 +1,7 @@
 package org.jenkinsci.remoting.nio;
 
 import hudson.remoting.Callable;
+import hudson.remoting.CallableBase;
 import hudson.remoting.Capability;
 import hudson.remoting.Channel;
 import hudson.remoting.Channel.Mode;
@@ -41,7 +42,7 @@ public class SocketClientMain {
     }
 
     private static String echo(Channel ch, final String arg) throws Exception {
-        return ch.call(new Callable<String,Exception>() {
+        return ch.call(new CallableBase<String, Exception>() {
             public String call() throws Exception {
                 LOGGER.info("Echoing back "+arg);
                 return arg;

@@ -28,12 +28,15 @@ import hudson.remoting.Channel;
 import hudson.remoting.RemoteOutputStream;
 import hudson.remoting.SocketChannelStream;
 import hudson.remoting.VirtualChannel;
+import org.jenkinsci.remoting.Role;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
@@ -113,8 +116,18 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
                 t.start();
                 return Channel.current().export(ListeningPort.class,t);
             }
+
+            @Override
+            public Collection<Role> getRecipients() {
+                return Collections.singleton(ROLE);
+            }
         });
     }
 
     private static final Logger LOGGER = Logger.getLogger(PortForwarder.class.getName());
+
+    /**
+     * Role that's willing to listen on a socket and forward that to the other side.
+     */
+    public static final Role ROLE = new Role(PortForwarder.class);
 }

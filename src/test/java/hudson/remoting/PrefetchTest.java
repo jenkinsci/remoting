@@ -40,7 +40,7 @@ public class PrefetchTest extends RmiTestBase {
         System.out.println(channel.call(vt));
     }
 
-    private static class VerifyTask implements Callable<String,IOException> {
+    private static class VerifyTask extends CallableBase<String,IOException> {
         public String call() throws IOException {
             StackMapAttribute sma = new StackMapAttribute();
             return Which.jarFile(sma.getClass()).getPath();

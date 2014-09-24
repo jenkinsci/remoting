@@ -32,7 +32,7 @@ public class ChannelFilterTest extends RmiTestBase {
     
     private final ThreadLocal<Object> STORE = new ThreadLocal<Object>();
 
-    private static class CallableCallable implements hudson.remoting.Callable<Object, Exception> {
+    private static class CallableCallable extends CallableBase<Object, Exception> {
         private final Callable c;
 
         public CallableCallable(Callable c) {
@@ -77,13 +77,13 @@ public class ChannelFilterTest extends RmiTestBase {
 
     private interface ShadyBusiness {}
 
-    static class GunImporter implements hudson.remoting.Callable<String,IOException>, ShadyBusiness {
+    static class GunImporter extends CallableBase<String,IOException> implements ShadyBusiness {
         public String call() {
             return "gun";
         }
     }
 
-    static class ReverseGunImporter implements hudson.remoting.Callable<String, Exception> {
+    static class ReverseGunImporter extends CallableBase<String, Exception> {
         public String call() throws Exception {
             return Channel.current().call(new GunImporter());
         }

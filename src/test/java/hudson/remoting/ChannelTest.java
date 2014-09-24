@@ -30,7 +30,7 @@ public class ChannelTest extends RmiTestBase {
         }
     }
 
-    private static class CallableImpl implements Callable<Object,IOException> {
+    private static class CallableImpl extends CallableBase<Object,IOException> {
         public Object call() throws IOException {
             return null;
         }
@@ -107,7 +107,7 @@ public class ChannelTest extends RmiTestBase {
         f.get(1, TimeUnit.SECONDS);
     }
 
-    private static class WaitForRemotePropertyCallable implements Callable<Void, Exception> {
+    private static class WaitForRemotePropertyCallable extends CallableBase<Void, Exception> {
         public Void call() throws Exception {
             Thread.sleep(500);
             Channel.current().setProperty("foo","bar");
@@ -130,7 +130,7 @@ public class ChannelTest extends RmiTestBase {
         }
     }
 
-    private static class GreetingTask implements Callable<Object, IOException> {
+    private static class GreetingTask extends CallableBase<Object, IOException> {
         private final Greeter g;
 
         public GreetingTask(Greeter g) {
@@ -150,7 +150,7 @@ public class ChannelTest extends RmiTestBase {
         assertSame(ucl,h.get());
     }
 
-    private static class Echo<T> implements Callable<T,RuntimeException> {
+    private static class Echo<T> extends CallableBase<T,RuntimeException> {
         private final T t;
 
         Echo(T t) {

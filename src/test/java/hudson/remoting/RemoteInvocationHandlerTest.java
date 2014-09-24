@@ -27,7 +27,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         }
     }
 
-    private static class Task implements Callable<Void,Error> {
+    private static class Task extends CallableBase<Void,Error> {
         private final Contract c;
         Task(Contract c) {
             this.c = c;
@@ -68,7 +68,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         }
     }
 
-    private static class AsyncTask implements Callable<Void,Error> {
+    private static class AsyncTask extends CallableBase<Void,Error> {
         private final AsyncContract c;
         AsyncTask(AsyncContract c) {
             this.c = c;

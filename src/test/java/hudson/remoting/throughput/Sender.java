@@ -1,6 +1,7 @@
 package hudson.remoting.throughput;
 
 import hudson.remoting.Callable;
+import hudson.remoting.CallableBase;
 import hudson.remoting.Channel;
 import hudson.remoting.Future;
 import hudson.remoting.Pipe;
@@ -40,7 +41,7 @@ public class Sender {
                     new BufferedOutputStream(SocketChannelStream.out(s)));
 
             final Pipe p = Pipe.createLocalToRemote();
-            Future<byte[]> f = ch.callAsync(new Callable<byte[], Exception>() {
+            Future<byte[]> f = ch.callAsync(new CallableBase<byte[], Throwable>() {
                 public byte[] call() throws Exception {
                     return digest(p.getIn());
                 }

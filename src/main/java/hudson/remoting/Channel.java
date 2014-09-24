@@ -31,6 +31,7 @@ import hudson.remoting.PipeWindow.Real;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
+import org.jenkinsci.remoting.Role;
 
 import javax.annotation.Nonnull;
 import java.io.Closeable;
@@ -42,6 +43,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.Locale;
@@ -937,6 +939,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             Channel.current().maximumBytecodeLevel = level;
             return null;
         }
+
+        @Override
+        public Collection<Role> getRecipients() {
+            // this designation is somewhat dubious, but I can't think of any attack vector that involvse this.
+            // it would have been simpler if the setMaximumBytecodeLevel only controlled the local setting,
+            // not the remote setting
+            return Collections.emptyList();
+        }
     }
 
     /**
@@ -1275,6 +1285,17 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         public Object call() throws InterruptedException {
             Channel.current().syncLocalIO();
             return null;
+        }
+
+        /**
+         * This callable is needed for the proper operation of pipes.
+         * In the worst case it causes a bit of wasted CPU cycles without any side-effect,
+         * and one can always refuse to read/write from/to pipe, so this layer need not provide
+         * any security.
+         */
+        @Override
+        public Collection<Role> getRecipients() {
+            return Collections.emptySet();
         }
 
         private static final long serialVersionUID = 1L;

@@ -86,7 +86,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
     /**
      * Just writes forever to the pipe
      */
-    private static class InfiniteWriter implements Callable<Void, Exception> {
+    private static class InfiniteWriter extends CallableBase<Void, Exception> {
         private final Pipe pipe;
 
         public InfiniteWriter(Pipe pipe) {
@@ -101,7 +101,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
         }
     }
 
-    private static class WritingCallable implements Callable<Integer, IOException> {
+    private static class WritingCallable extends CallableBase<Integer, IOException> {
         private final Pipe pipe;
 
         public WritingCallable(Pipe pipe) {
@@ -189,7 +189,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
         target.readRest();
     }
 
-    private static class CreateSaturationTestProxy implements Callable<ISaturationTest,IOException> {
+    private static class CreateSaturationTestProxy extends CallableBase<ISaturationTest,IOException> {
         private final Pipe pipe;
 
         public CreateSaturationTestProxy(Pipe pipe) {
@@ -214,7 +214,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
         }
     }
 
-    private static class ReadingCallable implements Callable<Integer, IOException> {
+    private static class ReadingCallable extends CallableBase<Integer, IOException> {
         private final Pipe pipe;
 
         public ReadingCallable(Pipe pipe) {
@@ -260,7 +260,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
      */
     public void testQuickBurstWrite() throws Exception {
         final Pipe p = Pipe.createLocalToRemote();
-        Future<Integer> f = channel.callAsync(new Callable<Integer, IOException>() {
+        Future<Integer> f = channel.callAsync(new CallableBase<Integer, IOException>() {
             public Integer call() throws IOException {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 IOUtils.copy(p.getIn(), baos);
@@ -277,7 +277,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
         assertEquals(1,(int)f.get());
     }
 
-    private static class DevNullSink implements Callable<OutputStream, IOException> {
+    private static class DevNullSink extends CallableBase<OutputStream, IOException> {
         public OutputStream call() throws IOException {
             return new RemoteOutputStream(new NullOutputStream());
         }

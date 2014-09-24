@@ -23,8 +23,11 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.Role;
+
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 
 /**
  * {@link Callable} used to deliver a jar file to {@link RemoteClassLoader}.
@@ -58,5 +61,14 @@ final class PreloadJarTask implements DelegatingCallable<Boolean,IOException> {
         for (URL jar : jars)
             r |= rcl.prefetch(jar);
         return r;
+    }
+
+    /**
+     * This task is only useful in the context that allows remote classloading, and by that point
+     * any access control check is pointless. So just declare the worst possible role.
+     */
+    @Override
+    public Collection<Role> getRecipients() {
+        return Role.UNKNOWN_SET;
     }
 }

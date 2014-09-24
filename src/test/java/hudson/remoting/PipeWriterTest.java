@@ -29,7 +29,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
     /**
      * Base test case for the response / IO coordination.
      */
-    abstract class ResponseIoCoordCallable implements Callable<Object,Exception> {
+    abstract class ResponseIoCoordCallable extends CallableBase<Object,Exception> {
         public Object call() throws Exception {
             long start = System.currentTimeMillis();
             System.out.println("touch");
@@ -111,7 +111,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
     /**
      * Base test case for the request / IO coordination.
      */
-    abstract class RequestIoCoordCallable implements Callable<Object,Exception> {
+    abstract class RequestIoCoordCallable extends CallableBase<Object,Exception> {
         public Object call() throws IOException {
             long start = System.currentTimeMillis();
             System.out.println("touch");

@@ -23,7 +23,11 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.Role;
+
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.util.concurrent.TimeoutException;
@@ -143,6 +147,11 @@ public abstract class PingThread extends Thread {
 
         public Void call() throws IOException {
             return null;
+        }
+
+        @Override
+        public Collection<Role> getRecipients() {
+            return Collections.emptyList(); // this callable is literally no-op, can't get any safer than that
         }
     }
 
