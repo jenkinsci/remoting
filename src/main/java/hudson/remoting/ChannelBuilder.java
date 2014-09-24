@@ -35,9 +35,10 @@ public class ChannelBuilder {
     private Mode mode = Mode.NEGOTIATE;
     private Capability capability = new Capability();
     private OutputStream header;
-    private boolean restricted;
     private JarCache jarCache;
     private List<CallableDecorator> decorators = new ArrayList<CallableDecorator>();
+    private boolean allowArbitraryCallable = true;
+    private boolean allowRemoteClassLoading = true;
 
     /**
      * Specify the minimum mandatory parameters.
@@ -117,23 +118,52 @@ public class ChannelBuilder {
     }
 
     /**
-     * If true, this channel won't accept {@link Command}s that allow the remote end to execute arbitrary closures
-     * --- instead they can only call methods on objects that are exported by this channel.
-     * This also prevents the remote end from loading classes into JVM.
+     * For compatibility reasons, activates/disables all the security restriction features.
      *
-     * Note that it still allows the remote end to deserialize arbitrary object graph
-     * (provided that all the classes are already available in this JVM), so exactly how
-     * safe the resulting behavior is is up to discussion.
+     * @deprecated
+     *      Control individual features.
      */
     public ChannelBuilder withRestricted(boolean  restricted) {
-        this.restricted = restricted;
+        withArbitraryCallable(!restricted);
+        withRemoteClassLoading(!restricted);
         return this;
     }
 
+    /**
+     * @deprecated
+     *      Test individual features instead.
+     */
     public boolean isRestricted() {
-        return restricted;
+        return !allowsArbitraryCallable() || !allowsRemoteClassLoading();
     }
 
+    /**
+     * If false, this channel only allows the other side to invoke methods on exported objects,
+     * but not {@link Channel#call(Callable)} (and its family of methods.)
+     *
+     * The default is {@code true}.
+     */
+    public ChannelBuilder withArbitraryCallable(boolean b) {
+        this.allowArbitraryCallable = b;
+        return this;
+    }
+
+    public boolean allowsArbitraryCallable() {
+        return allowArbitraryCallable;
+    }
+
+    /**
+     * Controls whether or not this channel is willing to load classes from the other side.
+     * The default is {@code true}.
+     */
+    public ChannelBuilder withRemoteClassLoading(boolean b) {
+        this.allowRemoteClassLoading = b;
+        return this;
+    }
+
+    public boolean allowsRemoteClassLoading() {
+        return allowRemoteClassLoading;
+    }
 
     public ChannelBuilder withJarCache(JarCache jarCache) {
         this.jarCache = jarCache;
@@ -170,7 +200,7 @@ public class ChannelBuilder {
                 if (!actual.containsAll(expected)) {
                     Collection<Role> c = new ArrayList<Role>(expected);
                     c.removeAll(actual);
-                    throw new SecurityException("Unexpected role: "+c);
+                    throw new SecurityException("Unexpected role: " + c);
                 }
             }
         });
@@ -186,7 +216,7 @@ public class ChannelBuilder {
                 Collection<Role> recipients;
                 try {
                     recipients = stem.getRecipients();
-                    if (recipients==null || recipients.isEmpty())
+                    if (recipients == null || recipients.isEmpty())
                         recipients = Role.UNKNOWN_SET;  // fix up illegal value
                 } catch (AbstractMethodError e) {
                     recipients = Role.UNKNOWN_SET;  // not implemented, assume 'unknown'
