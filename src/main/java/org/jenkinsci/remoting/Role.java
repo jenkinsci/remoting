@@ -54,6 +54,10 @@ public final class Role {
         this.name = name;
     }
 
+    public Role(Class name) {
+        this(name.getName());
+    }
+
     /**
      * Gets a human readable name of this role.
      *
