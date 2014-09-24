@@ -47,7 +47,7 @@ import java.util.Collections;
  * @see RoleSensitive
  * @see RoleChecker
  */
-public class Role {
+public final class Role {
     private final String name;
 
     public Role(String name) {
@@ -67,6 +67,14 @@ public class Role {
     @Override
     public String toString() {
         return super.toString()+"["+name+"]";
+    }
+
+    @Override public boolean equals(Object obj) {
+        return obj instanceof Role && ((Role) obj).name.equals(name);
+    }
+
+    @Override public int hashCode() {
+        return name.hashCode();
     }
 
     /**
