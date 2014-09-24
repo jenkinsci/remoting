@@ -21,9 +21,5 @@ class RemotingSystemException extends RuntimeException {
         super(message, cause);
     }
 
-    protected RemotingSystemException wrapForRethrow() {
-        return new RemotingSystemException(this);
-    }
-
     private static final long serialVersionUID = 1L;
 }

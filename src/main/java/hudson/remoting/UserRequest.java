@@ -34,6 +34,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
+import java.util.Arrays;
 
 /**
  * {@link Request} that can take {@link Callable} whose actual implementation
@@ -216,9 +217,10 @@ final class UserResponse<RSP,EXC extends Throwable> implements Serializable {
         try {
             Object o = UserRequest.deserialize(channel,response,cl);
 
-            if(isException)
-                throw (EXC)o;
-            else
+            if(isException) {
+                channel.attachCallSiteStackTrace((Throwable)o);
+                throw (EXC) o;
+            } else
                 return (RSP) o;
         } finally {
             Channel.setCurrent(old);

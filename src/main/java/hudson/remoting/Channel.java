@@ -1335,6 +1335,22 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         private static final long serialVersionUID = 1L;
     }
 
+    /**
+     * Decorates the stack elements of the given {@link Throwable} by adding the call site information.
+     */
+    /*package*/ void attachCallSiteStackTrace(Throwable t) {
+        Exception e = new Exception();
+        StackTraceElement[] callSite = e.getStackTrace();
+        StackTraceElement[] original = t.getStackTrace();
+
+        StackTraceElement[] combined = new StackTraceElement[original.length+1+callSite.length];
+        System.arraycopy(original,0,combined,0,original.length); // original stack trace at the top
+        combined[original.length] = new StackTraceElement(".....","remote call to "+name,null,-2);
+        System.arraycopy(callSite,0,combined,original.length+1,callSite.length);
+
+        t.setStackTrace(combined);
+    }
+
     public String getName() {
         return name;
     }
