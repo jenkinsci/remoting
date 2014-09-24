@@ -447,7 +447,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             .withJarCache(jarCache), transport);
     }
 
-
+    /**
+     * @since TODO
+     */
     protected Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
         this.name = settings.getName();
         this.executor = new InterceptingExecutorService(settings.getExecutors(),decorators);
@@ -928,6 +930,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         setArbitraryCallableAllowed(b);
     }
 
+    /**
+     * @since TODO
+     */
     public boolean isRemoteClassLoadingAllowed() {
         return remoteClassLoadingAllowed;
     }
@@ -935,17 +940,22 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Controls whether or not this channel is willing to load classes from the other side.
      * The default is on.
+     * @since TODO
      */
     public void setRemoteClassLoadingAllowed(boolean b) {
         this.remoteClassLoadingAllowed = b;
     }
 
+    /**
+     * @since TODO
+     */
     public boolean isArbitraryCallableAllowed() {
         return arbitraryCallableAllowed;
     }
 
     /**
      * @see ChannelBuilder#withArbitraryCallableAllowed(boolean)
+     * @since TODO
      */
     public void setArbitraryCallableAllowed(boolean b) {
         this.arbitraryCallableAllowed = b;

@@ -146,12 +146,16 @@ public class ChannelBuilder {
      * but not {@link Channel#call(Callable)} (and its family of methods.)
      *
      * The default is {@code true}.
+     * @since TODO
      */
     public ChannelBuilder withArbitraryCallableAllowed(boolean b) {
         this.arbitraryCallableAllowed = b;
         return this;
     }
 
+    /**
+     * @since TODO
+     */
     public boolean isArbitraryCallableAllowed() {
         return arbitraryCallableAllowed;
     }
@@ -159,12 +163,16 @@ public class ChannelBuilder {
     /**
      * Controls whether or not this channel is willing to load classes from the other side.
      * The default is {@code true}.
+     * @since TODO
      */
     public ChannelBuilder withRemoteClassLoadingAllowed(boolean b) {
         this.remoteClassLoadingAllowed = b;
         return this;
     }
 
+    /**
+     * @since TODO
+     */
     public boolean isRemoteClassLoadingAllowed() {
         return remoteClassLoadingAllowed;
     }
@@ -189,6 +197,7 @@ public class ChannelBuilder {
 
     /**
      * Convenience method to install {@link RoleChecker} that verifies against the fixed set of roles.
+     * @since TODO
      */
     public ChannelBuilder withRoles(Role... roles) {
         return withRoles(Arrays.asList(roles));
@@ -196,6 +205,7 @@ public class ChannelBuilder {
 
     /**
      * Convenience method to install {@link RoleChecker} that verifies against the fixed set of roles.
+     * @since TODO
      */
     public ChannelBuilder withRoles(final Collection<? extends Role> actual) {
         return withRoleChecker(new RoleChecker() {
@@ -212,6 +222,7 @@ public class ChannelBuilder {
 
     /**
      * Installs another {@link RoleChecker}.
+     * @since TODO
      */
     public ChannelBuilder withRoleChecker(final RoleChecker checker) {
         return with(new CallableDecorator() {
@@ -234,16 +245,23 @@ public class ChannelBuilder {
      * Properties are modifiable after {@link Channel} is created, but a property set
      * during channel building is guaranteed to be visible to the other side as soon
      * as the channel is established.
+     * @since TODO
      */
     public ChannelBuilder withProperty(Object key, Object value) {
         properties.put(key,value);
         return this;
     }
 
+    /**
+     * @since TODO
+     */
     public <T> ChannelBuilder withProperty(ChannelProperty<T> key, T value) {
         return withProperty((Object) key, value);
     }
 
+    /**
+     * @since TODO
+     */
     public Map<Object,Object> getProperties() {
         return properties;
     }
