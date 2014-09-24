@@ -18,25 +18,22 @@ import java.util.Collection;
  */
 public interface RoleSensitive {
     /**
-     * Returns {@link Role}s that are expected by the JVM that executes this callable.
-     *
-     * <p>
-     * When multiple values are in the set, the intended recipient is one that can play all the roles
-     * (that is, the callable is a composite of a number of smaller callables each designating different
-     * recipient.)
+     * Verifies the roles expected by this callable by invoking {@link RoleChecker#check(RoleSensitive, Collection)}
+     * method (or its variants), to provide an opportunity for {@link RoleChecker} to reject this object.
      *
      * @return
-     *      Never null (but if you see it, treat as {@link Role#UNKNOWN_SET}.)
-     *      Empty collection is legal, but it should be used with caution sparingly. It indicates that
-     *      the recipient can be anyone and the callable is safe to execute everywhere.
-     *      OTOH, it robs the ability for {@link RoleChecker} to refuse execution.
+     *      If the method returns normally, the check has passed.
+     *
+     * @throws SecurityException
+     *      If there's a mismatch in the expected roles and the actual roles that should prevent
+     *      the execution of this callable.
      *
      * @throws AbstractMethodError
      *      In the history of this library, this interface was added rather later, so there's lots of
      *      {@link Callable}s out there that do not implement this method.
      *      For this reason, code that calls this method should be prepared to
-     *      receive {@link AbstractMethodError}, and treat that as if this method is returning
-     *      {@link Role#UNKNOWN_SET}
+     *      receive {@link AbstractMethodError}, and treat that as if the invocation of
+     *      {@code checker.check(this,Role.UNKNOWN)} has happened.
      */
-    Collection<Role> getRecipients();
+    void checkRoles(RoleChecker checker) throws SecurityException;
 }

@@ -11,6 +11,7 @@ import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 import hudson.remoting.SingleLaneExecutorService;
 import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.Closeable;
 import java.io.EOFException;
@@ -249,8 +250,8 @@ public class NioChannelHub implements Runnable, Closeable {
                 }
 
                 @Override
-                public Collection<Role> getRecipients() {
-                    return Role.UNKNOWN_SET;    // not actually used over remoting
+                public void checkRoles(RoleChecker checker) throws SecurityException {
+                    throw new AssertionError();    // not actually used over remoting
                 }
             });
         }
@@ -266,8 +267,8 @@ public class NioChannelHub implements Runnable, Closeable {
                 }
 
                 @Override
-                public Collection<Role> getRecipients() {
-                    return Role.UNKNOWN_SET;    // not actually used over remoting
+                public void checkRoles(RoleChecker checker) throws SecurityException {
+                    throw new AssertionError();    // not actually used over remoting
                 }
             });
         }

@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -295,9 +296,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         }
 
         @Override
-        public Collection<Role> getRecipients() {
+        public void checkRoles(RoleChecker checker) throws SecurityException {
             // this callable only executes public methods exported by this side, so these methods are assumed to be safe
-            return Collections.emptyList();
         }
 
         public ClassLoader getClassLoader() {

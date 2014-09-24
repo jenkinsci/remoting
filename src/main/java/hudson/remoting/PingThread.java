@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -150,8 +151,8 @@ public abstract class PingThread extends Thread {
         }
 
         @Override
-        public Collection<Role> getRecipients() {
-            return Collections.emptyList(); // this callable is literally no-op, can't get any safer than that
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+            // this callable is literally no-op, can't get any safer than that
         }
     }
 

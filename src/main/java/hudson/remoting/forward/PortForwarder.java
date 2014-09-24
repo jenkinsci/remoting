@@ -29,14 +29,13 @@ import hudson.remoting.RemoteOutputStream;
 import hudson.remoting.SocketChannelStream;
 import hudson.remoting.VirtualChannel;
 import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
@@ -118,8 +117,8 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
             }
 
             @Override
-            public Collection<Role> getRecipients() {
-                return Collections.singleton(ROLE);
+            public void checkRoles(RoleChecker checker) throws SecurityException {
+                checker.check(this,ROLE);
             }
         });
     }

@@ -23,12 +23,10 @@
  */
 package hudson.remoting;
 
-import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
 
-import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
-import java.util.Collection;
-import java.util.Collections;
+import java.io.InputStream;
 
 /**
  * {@link Callable} used to verify the classloader used.
@@ -67,8 +65,7 @@ public class TestCallable extends Exception implements Callable {
     }
 
     @Override
-    public Collection<Role> getRecipients() {
-        return Collections.emptyList();
+    public void checkRoles(RoleChecker checker) throws SecurityException {
     }
 
     public static class Sub extends TestCallable {}

@@ -214,16 +214,11 @@ public class ChannelBuilder {
         return with(new CallableDecorator() {
             @Override
             public <V, T extends Throwable> Callable<V, T> userRequest(Callable<V, T> op, Callable<V, T> stem) {
-                Collection<Role> recipients;
                 try {
-                    recipients = stem.getRecipients();
-                    if (recipients == null || recipients.isEmpty())
-                        recipients = Role.UNKNOWN_SET;  // fix up illegal value
+                    stem.checkRoles(checker);
                 } catch (AbstractMethodError e) {
-                    recipients = Role.UNKNOWN_SET;  // not implemented, assume 'unknown'
+                    checker.check(stem,Role.UNKNOWN);// not implemented, assume 'unknown'
                 }
-
-                checker.check(op,recipients); // or should we pass 'stem'?
 
                 return stem;
             }
