@@ -448,7 +448,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
 
-    /*package*/ Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
+    protected Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
         this.name = settings.getName();
         this.executor = new InterceptingExecutorService(settings.getExecutors(),decorators);
         this.arbitraryCallableAllowed = settings.isArbitraryCallableAllowed();
