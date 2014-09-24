@@ -1,7 +1,11 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
+import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.RoleSensitive;
 
+import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
@@ -12,6 +16,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -145,6 +151,52 @@ public class ChannelBuilder {
 
     public List<CallableDecorator> getDecorators() {
         return this.decorators;
+    }
+
+    /**
+     * Convenience method to install {@link RoleChecker} that verifies against the fixed set of roles.
+     */
+    public ChannelBuilder withRoles(Role... roles) {
+        return withRoles(Arrays.asList(roles));
+    }
+
+    /**
+     * Convenience method to install {@link RoleChecker} that verifies against the fixed set of roles.
+     */
+    public ChannelBuilder withRoles(final Collection<? extends Role> actual) {
+        return withRoleChecker(new RoleChecker() {
+            @Override
+            public void check(RoleSensitive subject, @Nonnull Collection<Role> expected) {
+                if (!actual.containsAll(expected)) {
+                    Collection<Role> c = new ArrayList<Role>(expected);
+                    c.removeAll(actual);
+                    throw new SecurityException("Unexpected role: "+c);
+                }
+            }
+        });
+    }
+
+    /**
+     * Installs another {@link RoleChecker}.
+     */
+    public ChannelBuilder withRoleChecker(final RoleChecker checker) {
+        return with(new CallableDecorator() {
+            @Override
+            public <V, T extends Throwable> Callable<V, T> userRequest(Callable<V, T> op, Callable<V, T> stem) {
+                Collection<Role> recipients;
+                try {
+                    recipients = stem.getRecipients();
+                    if (recipients==null || recipients.isEmpty())
+                        recipients = Role.UNKNOWN_SET;  // fix up illegal value
+                } catch (AbstractMethodError e) {
+                    recipients = Role.UNKNOWN_SET;  // not implemented, assume 'unknown'
+                }
+
+                checker.check(op,recipients); // or should we pass 'stem'?
+
+                return stem;
+            }
+        });
     }
 
     /**

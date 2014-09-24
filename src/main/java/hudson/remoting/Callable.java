@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.RoleSensitive;
+
 import java.io.Serializable;
 
 /**
@@ -31,7 +33,7 @@ import java.io.Serializable;
  * @see Channel
  * @author Kohsuke Kawaguchi
  */
-public interface Callable<V,T extends Throwable> extends Serializable {
+public interface Callable<V,T extends Throwable> extends Serializable, RoleSensitive {
     /**
      * Performs computation and returns the result,
      * or throws some exception.
