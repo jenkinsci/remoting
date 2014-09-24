@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.CallableDecorator;
 import java.util.concurrent.*;
 
 /**

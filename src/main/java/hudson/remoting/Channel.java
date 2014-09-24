@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.CallableDecorator;
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.ExportTable.ExportList;

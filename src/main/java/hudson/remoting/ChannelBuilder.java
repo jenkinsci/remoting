@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.CallableDecorator;
 import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;

@@ -1,4 +1,6 @@
-package hudson.remoting;
+package org.jenkinsci.remoting;
+
+import hudson.remoting.Callable;
 
 /**
  * Decorator on {@code Callable.call()} to filter the execution.

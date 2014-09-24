@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.CallableDecorator;
+
 /**
  * Use {@link CallableFilter} as {@link CallableDecorator}
  * @author Kohsuke Kawaguchi
