@@ -9,6 +9,7 @@ import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
+import hudson.remoting.ObjectInputStreamEx;
 import hudson.remoting.SingleLaneExecutorService;
 
 import java.io.Closeable;
@@ -78,6 +79,10 @@ public class NioChannelHub implements Runnable, Closeable {
      */
     private volatile Thread selectorThread;
     private volatile Throwable whatKilledSelectorThread;
+
+    // used to ensure that NioChannelHub.run() has started before creating new channels
+    private boolean started = false;
+    private final Object startedLock = new Object();
 
 
     /**
@@ -458,6 +463,18 @@ public class NioChannelHub implements Runnable, Closeable {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
                 if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking()) {
+                    try {
+                        // run() might be called asynchronously from another thread, so wait until that gets going
+                        // if you see the execution hanging here forever, that means you forgot to call run()
+                        // from another thread.
+                        synchronized (startedLock) {
+                            while (!started)
+                                startedLock.wait();
+                        }
+                    } catch (InterruptedException e) {
+                        throw (InterruptedIOException)new InterruptedIOException().initCause(e);
+                    }
+
                     if (selectorThread==null)
                         throw new IOException("NioChannelHub is not currently running",whatKilledSelectorThread);
 
@@ -491,6 +508,10 @@ public class NioChannelHub implements Runnable, Closeable {
      * This method returns when {@link #close()} is called and the selector is shut down.
      */
     public void run() {
+        synchronized (startedLock) {
+            started = true;
+            startedLock.notifyAll();
+        }
         selectorThread = Thread.currentThread();
         final String oldName = selectorThread.getName();
 
