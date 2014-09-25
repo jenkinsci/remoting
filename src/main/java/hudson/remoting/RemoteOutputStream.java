@@ -79,7 +79,7 @@ public final class RemoteOutputStream extends OutputStream implements Serializab
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        int id = Channel.current().export(core,false); // this export is unexported in ProxyOutputStream.finalize() 
+        int id = Channel.current().internalExport(OutputStream.class, core, false); // this export is unexported in ProxyOutputStream.finalize()
         oos.writeInt(id);
     }
 

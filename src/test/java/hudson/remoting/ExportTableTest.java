@@ -10,9 +10,9 @@ import java.io.StringWriter;
  */
 public class ExportTableTest extends TestCase {
     public void testDiagnosis() throws Exception {
-        ExportTable<Object> e = new ExportTable<Object>();
+        ExportTable e = new ExportTable();
 
-        int i = e.export("foo");
+        int i = e.export(Object.class, "foo");
         assertEquals("foo", e.get(i));
 
         e.unexportByOid(i,null);

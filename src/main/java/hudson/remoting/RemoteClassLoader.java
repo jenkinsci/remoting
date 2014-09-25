@@ -673,7 +673,7 @@ final class RemoteClassLoader extends URLClassLoader {
      * Exports and just returns the object ID, instead of obtaining the proxy.
      */
     static int exportId(ClassLoader cl, Channel local) {
-        return local.export(new ClassLoaderProxy(cl,local), false);
+        return local.internalExport(IClassLoader.class, new ClassLoaderProxy(cl, local), false);
     }
 
     /*package*/ static final class ClassLoaderProxy implements IClassLoader {

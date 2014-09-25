@@ -26,7 +26,6 @@ package hudson.remoting;
 import org.jenkinsci.remoting.CallableDecorator;
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
-import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.PipeWindow.Key;
 import hudson.remoting.PipeWindow.Real;
 import hudson.remoting.forward.ForwarderFactory;
@@ -172,7 +171,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Objects exported via {@link #export(Class, Object)}.
      */
-    /*package (for test)*/ final ExportTable<Object> exportedObjects = new ExportTable<Object>();
+    /*package (for test)*/ final ExportTable exportedObjects = new ExportTable();
 
     /**
      * {@link PipeWindow}s keyed by their OIDs (of the OutputStream exported by the other side.)
@@ -460,7 +459,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         this.baseClassLoader = settings.getBaseLoader();
 
-        if(export(this, false)!=1)
+        if(internalExport(IChannel.class, this, false)!=1)
             throw new AssertionError(); // export number 1 is reserved for the channel itself
         remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false);
 
@@ -589,24 +588,28 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         // either local side will auto-unexport, or the remote side will unexport when it's GC-ed
         boolean autoUnexportByCaller = exportedObjects.isRecording();
-        final int id = export(instance,autoUnexportByCaller);
+        final int id = internalExport(type, instance, autoUnexportByCaller);
         return RemoteInvocationHandler.wrap(null, id, type, userProxy, autoUnexportByCaller);
     }
 
-    /*package*/ int export(Object instance) {
-        return exportedObjects.export(instance);
+    /*package*/ <T> int internalExport(Class<T> clazz, T instance) {
+        return exportedObjects.export(clazz, instance);
     }
 
-    /*package*/ int export(Object instance, boolean automaticUnexport) {
-        return exportedObjects.export(instance, automaticUnexport);
+    /*package*/ <T> int internalExport(Class<T> clazz, T instance, boolean automaticUnexport) {
+        return exportedObjects.export(clazz, instance, automaticUnexport);
     }
 
     /*package*/ @Nonnull Object getExportedObject(int oid) {
         return exportedObjects.get(oid);
     }
 
+    /*package*/ @Nonnull Class[] getExportedTypes(int oid) {
+        return exportedObjects.type(oid);
+    }
+
     /*package*/ void unexport(int id, Throwable cause) {
-        exportedObjects.unexportByOid(id,cause);
+        exportedObjects.unexportByOid(id, cause);
     }
 
     /**
@@ -1017,7 +1020,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     private static final class CloseCommand extends Command {
         private CloseCommand(Channel channel, Throwable cause) {
-            super(channel,cause);
+            super(channel, cause);
         }
 
         protected void execute(Channel channel) {
@@ -1074,7 +1077,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         w.printf(Locale.ENGLISH, "Class loading prefetch hit=%s (%d%%)\n", p, p*100/l);
         w.printf(Locale.ENGLISH, "Class loading time=%,dms\n", classLoadingTime.get() / (1000 * 1000));
         w.printf(Locale.ENGLISH, "Resource loading count=%d\n", resourceLoadingCount.get());
-        w.printf(Locale.ENGLISH, "Resource loading time=%,dms\n",resourceLoadingTime.get()/(1000*1000));
+        w.printf(Locale.ENGLISH, "Resource loading time=%,dms\n", resourceLoadingTime.get() / (1000 * 1000));
     }
 
     /**
@@ -1378,7 +1381,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         exportedObjects.dump(w);
     }
 
-    public ExportList startExportRecording() {
+    public ExportTable.ExportList startExportRecording() {
         return exportedObjects.startRecording();
     }
 
