@@ -10,17 +10,40 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         assertEquals("value", i.arg);
     }
 
+    public void testExportPrimary() throws Exception {
+        final Impl i = new Impl();
+        Contract2 c2 = channel.export(Contract2.class, i);
+        Contract c = channel.export(Contract.class, i);
+        channel.call(new Task2(c2));
+        assertEquals("value", i.arg);
+    }
+
+    public void testExportSecondary() throws Exception {
+        final Impl i = new Impl();
+        Contract c1 = channel.export(Contract.class, i);
+        Contract2 c2 = channel.export(Contract2.class, i);
+        channel.call(new Task2(c2));
+        assertEquals("value", i.arg);
+    }
+
     public interface Contract {
         void meth(String arg1);
     }
 
-    private static class Impl implements Contract, Serializable {
+    public interface Contract2 {
+        void meth2(String arg);
+    }
+
+    private static class Impl implements Contract, Serializable, Contract2 {
         String arg;
         public void meth(String arg1, String arg2) {
             assert false : "should be ignored";
         }
         public void meth(String arg1) {
             this.arg = arg1;
+        }
+        public void meth2(String arg) {
+            this.arg = arg;
         }
         private Object writeReplace() {
             return Channel.current().export(Contract.class, this);
@@ -34,6 +57,17 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         }
         public Void call() throws Error {
             c.meth("value");
+            return null;
+        }
+    }
+
+    private static class Task2 implements Callable<Void,Error> {
+        private final Contract2 c;
+        Task2(Contract2 c) {
+            this.c = c;
+        }
+        public Void call() throws Error {
+            c.meth2("value");
             return null;
         }
     }

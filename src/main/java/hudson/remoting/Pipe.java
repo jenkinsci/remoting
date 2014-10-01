@@ -155,14 +155,14 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
         if(in!=null && out==null) {
             // remote will write to local
             FastPipedOutputStream pos = new FastPipedOutputStream((FastPipedInputStream)in);
-            int oid = Channel.current().export(pos,false);  // this export is unexported in ProxyOutputStream.finalize() 
+            int oid = Channel.current().internalExport(Object.class, pos, false);  // this export is unexported in ProxyOutputStream.finalize()
 
             oos.writeBoolean(true); // marker
             oos.writeInt(oid);
         } else {
             // remote will read from local this object gets unexported when the pipe is connected.
             // see ConnectCommand
-            int oid = Channel.current().export(out,false);
+            int oid = Channel.current().internalExport(Object.class, out, false);
 
             oos.writeBoolean(false);
             oos.writeInt(oid);
@@ -187,7 +187,7 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
             // we want 'oidRos' to send data to this PipedOutputStream
             FastPipedOutputStream pos = new FastPipedOutputStream();
             FastPipedInputStream pis = new FastPipedInputStream(pos);
-            final int oidPos = channel.export(pos,false); // this gets unexported when the remote ProxyOutputStream closes.
+            final int oidPos = channel.internalExport(Object.class, pos, false); // this gets unexported when the remote ProxyOutputStream closes.
 
             // tell 'ros' to connect to our 'pos'.
             channel.send(new ConnectCommand(oidRos, oidPos));
