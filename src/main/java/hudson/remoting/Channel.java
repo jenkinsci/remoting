@@ -929,8 +929,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      to control individual features.
      */
     public void setRestricted(boolean b) {
-        setRemoteClassLoadingAllowed(b);
-        setArbitraryCallableAllowed(b);
+        setRemoteClassLoadingAllowed(!b);
+        setArbitraryCallableAllowed(!b);
     }
 
     /**
