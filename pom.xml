@@ -360,6 +360,7 @@ THE SOFTWARE.
         <configuration>
           <excludeFilterFile>${basedir}/src/findbugs-filter.xml</excludeFilterFile>
           <failOnError>true</failOnError>
+          <threshold>Low</threshold><!-- we want to find serialization related problems -->
         </configuration>
         <executions>
           <execution>
