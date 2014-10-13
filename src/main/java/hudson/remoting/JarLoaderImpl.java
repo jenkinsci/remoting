@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
  */
 class JarLoaderImpl implements JarLoader {
     private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<Checksum,URL>();
+
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
     private final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<URL,Checksum>();
 
     private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<Checksum>());

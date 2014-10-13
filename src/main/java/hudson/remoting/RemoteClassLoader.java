@@ -60,6 +60,7 @@ import static java.util.logging.Level.*;
  *
  * @author Kohsuke Kawaguchi
  */
+@edu.umd.cs.findbugs.annotations.SuppressWarnings({"DMI_COLLECTION_OF_URLS","DMI_BLOCKING_METHODS_ON_URL"}) // TODO: fix this
 final class RemoteClassLoader extends URLClassLoader {
 
     private static final Logger LOGGER = Logger.getLogger(RemoteClassLoader.class.getName());

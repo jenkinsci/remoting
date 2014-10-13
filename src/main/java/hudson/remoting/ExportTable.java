@@ -244,6 +244,8 @@ final class ExportTable {
         void stopRecording() {
             lists.set(old);
         }
+
+        private static final long serialVersionUID = 1L;    // we don't actually serialize this class but just to shutup FindBugs
     }
 
     /**
