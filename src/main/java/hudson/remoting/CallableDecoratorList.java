@@ -31,4 +31,7 @@ class CallableDecoratorList extends CopyOnWriteArrayList<CallableDecorator> {
 
         return decorated;
     }
+
+    // this class isn't actually getting serialized, but this makes FindBugs happy
+    private static final long serialVersionUID = 1L;
 }
