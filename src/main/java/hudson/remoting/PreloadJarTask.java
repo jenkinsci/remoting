@@ -59,4 +59,6 @@ final class PreloadJarTask implements DelegatingCallable<Boolean,IOException> {
             r |= rcl.prefetch(jar);
         return r;
     }
+
+    private static final long serialVersionUID = -773448303394727271L;
 }

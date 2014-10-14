@@ -78,5 +78,7 @@ public class ForwarderFactory {
         private Object writeReplace() {
             return Channel.current().export(Forwarder.class, this);
         }
+
+        private static final long serialVersionUID = 8382509901649461466L;
     }
 }
