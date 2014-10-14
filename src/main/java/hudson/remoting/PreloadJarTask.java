@@ -71,4 +71,6 @@ final class PreloadJarTask implements DelegatingCallable<Boolean,IOException> {
     public void checkRoles(RoleChecker checker) throws SecurityException {
         checker.check(this,Role.UNKNOWN);
     }
+
+    private static final long serialVersionUID = -773448303394727271L;
 }

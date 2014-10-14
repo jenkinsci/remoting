@@ -198,6 +198,7 @@ public class Launcher {
         }
     }
 
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings("DM_DEFAULT_ENCODING")    // log file, just like console output, should be in platform default encoding
     public void run() throws Exception {
         if (slaveLog!=null) {
             System.setErr(new PrintStream(new TeeOutputStream(System.err,new FileOutputStream(slaveLog))));
@@ -367,6 +368,7 @@ public class Launcher {
      * Listens on an ephemeral port, record that port number in a port file,
      * then accepts one TCP connection.
      */
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings("DM_DEFAULT_ENCODING")    // port number file should be in platform default encoding
     private void runAsTcpServer() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
         // and avoid hanging forever

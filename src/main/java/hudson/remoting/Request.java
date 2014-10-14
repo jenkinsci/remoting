@@ -394,5 +394,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
             Future<?> f = r.future;
             if(f!=null)     f.cancel(true);
         }
+
+        private static final long serialVersionUID = -1709992419006993208L;
     }
 }

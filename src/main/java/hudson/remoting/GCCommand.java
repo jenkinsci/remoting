@@ -29,6 +29,7 @@ package hudson.remoting;
  * @author Kohsuke Kawaguchi
  */
 class GCCommand extends Command {
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings("DM_GC")
     protected void execute(Channel channel) {
         System.gc();
     }
