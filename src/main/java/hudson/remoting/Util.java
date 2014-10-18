@@ -6,6 +6,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.URLConnection;
+import java.net.MalformedURLException;
+import java.net.Proxy;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.URL;
 
 /**
  * Misc. I/O utilities
@@ -96,5 +103,32 @@ class Util {
 
     static String indent(String s) {
         return "    " + s.trim().replace("\n", "\n    ");
+    }
+
+    /**
+     * Gets URL connection.
+     * If http_proxy environment variable exists,  the connection uses the proxy.
+     */
+    static URLConnection openURLConnection(URL url) throws IOException {
+        String httpProxy = null;
+        // If http.proxyHost property exists, openConnection() uses it.
+        if (System.getProperty("http.proxyHost") == null) {
+            httpProxy = System.getenv("http_proxy");
+        }
+        URLConnection con = null;
+        if (httpProxy != null && "http".equals(url.getProtocol())) {
+            try {
+                URL proxyUrl = new URL(httpProxy);
+                SocketAddress addr = new InetSocketAddress(proxyUrl.getHost(), proxyUrl.getPort());
+                Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
+                con = url.openConnection(proxy);
+            } catch (MalformedURLException e) {
+                System.err.println("Not use http_proxy property or environment variable which is invalid: "+e.getMessage());
+                con = url.openConnection();
+            }
+        } else {
+            con = url.openConnection();
+        }
+        return con;
     }
 }

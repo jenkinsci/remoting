@@ -33,8 +33,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.URL;
+import java.net.MalformedURLException;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -183,7 +187,7 @@ public class Engine extends Thread {
                     URL salURL = new URL(s+"tcpSlaveAgentListener/");
 
                     // find out the TCP port
-                    HttpURLConnection con = (HttpURLConnection)salURL.openConnection();
+                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL);
                     if (con instanceof HttpURLConnection) {
                     	if (credentials != null) {
                     		// TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
@@ -350,7 +354,29 @@ public class Engine extends Thread {
         int retry = 1;
         while(true) {
             try {
-                Socket s = new Socket(host, Integer.parseInt(port));
+                boolean isProxy = false;
+                Socket s = null;
+                if (System.getProperty("http.proxyHost") != null) {
+                    String proxyHost = System.getProperty("http.proxyHost");
+                    String proxyPort = System.getProperty("http.proxyPort", "80");
+                    s = new Socket(proxyHost, Integer.parseInt(proxyPort));
+                    isProxy = true;
+                } else {
+                    String httpProxy = System.getenv("http_proxy");
+                    if (httpProxy != null) {
+                        try {
+                            URL url = new URL(httpProxy);
+                            s = new Socket(url.getHost(), url.getPort());
+                            isProxy = true;
+                        } catch (MalformedURLException e) {
+                            System.err.println("Not use http_proxy environment variable which is invalid: "+e.getMessage());
+                            s = new Socket(host, Integer.parseInt(port));
+                        }
+                    } else {
+                        s = new Socket(host, Integer.parseInt(port));
+                    }
+                }
+
                 s.setTcpNoDelay(true); // we'll do buffering by ourselves
 
                 // set read time out to avoid infinite hang. the time out should be long enough so as not
@@ -358,6 +384,20 @@ public class Engine extends Thread {
                 // abruptly, we shouldn't hang forever, and at some point we should notice that the connection
                 // is gone.
                 s.setSoTimeout(30*60*1000); // 30 mins. See PingThread for the ping interval
+
+                if (isProxy) {
+                    String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
+                    s.getOutputStream().write(connectCommand.getBytes());
+
+                    BufferedInputStream is = new BufferedInputStream(s.getInputStream());
+                    String line = readLine(is);
+                    String[] responseLineParts = line.split(" ");
+                    if(responseLineParts.length < 2 || !responseLineParts[1].equals("200"))
+                        throw new IOException("Got a bad response from proxy: " + line);
+                    while(!(line = readLine(is)).isEmpty()) {
+                        // Do nothing, scrolling through headers returned from proxy
+                    }
+                }
                 return s;
             } catch (IOException e) {
                 if(retry++>10)
