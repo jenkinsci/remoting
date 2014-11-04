@@ -67,6 +67,11 @@ final class ExportTable {
         private Class<? super T>[] interfaces;
         private T object;
         /**
+         * {@code object.getClass().getName()} kept around so that we can see the type even after it
+         * gets deallocated.
+         */
+        private final String objectType;
+        /**
          * Where was this object first exported?
          */
         final CreatedAt allocationTrace;
@@ -90,6 +95,7 @@ final class ExportTable {
             this.id = iota++;
             this.interfaces = interfaces.clone();
             this.object = object;
+            this.objectType = object.getClass().getName();
             this.allocationTrace = new CreatedAt();
 
             table.put(id,this);
@@ -145,7 +151,7 @@ final class ExportTable {
          * Dumps the contents of the entry.
          */
         void dump(PrintWriter w) throws IOException {
-            w.printf("#%d (ref.%d) : %s\n", id, referenceCount, object == null ? interfaceNames() : object);
+            w.printf("#%d (ref.%d) : object=%s type=%s interfaces=%s\n", id, referenceCount, object, objectType, interfaceNames());
             allocationTrace.printStackTrace(w);
             if (releaseTrace!=null) {
                 releaseTrace.printStackTrace(w);
