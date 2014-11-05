@@ -506,10 +506,16 @@ public class Launcher {
      */
     public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing, JarCache cache) throws IOException, InterruptedException {
         ExecutorService executor = Executors.newCachedThreadPool();
-        Channel channel = new ChannelBuilder("channel", executor)
-                    .withMode(mode)
-                    .withJarCache(cache)
-                    .build(is,os);
+        ChannelBuilder cb = new ChannelBuilder("channel", executor)
+                .withMode(mode)
+                .withJarCache(cache);
+
+        // expose StandardOutputStream as a channel property, which is a better way to make this available
+        // to the user of Channel than Channel#getUnderlyingOutput()
+        if (os instanceof StandardOutputStream)
+            cb.withProperty(StandardOutputStream.class,os);
+
+        Channel channel = cb.build(is, os);
         System.err.println("channel started");
         long timeout = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),

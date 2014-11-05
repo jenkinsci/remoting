@@ -41,6 +41,10 @@ import java.io.PrintStream;
  * gets established and JNA is brought in via remoting. Having {@link Launcher} uses this wrapper class allows
  * us to do that without recreating the stream.
  *
+ * <p>
+ * When a channel uses {@link StandardOutputStream} to communicate, the convention is to make that object
+ * available as a channel property.
+ *
  * @author Kohsuke Kawaguchi
  */
 public class StandardOutputStream extends OutputStream {
