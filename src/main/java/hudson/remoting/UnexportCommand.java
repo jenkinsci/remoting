@@ -30,12 +30,22 @@ package hudson.remoting;
 public class UnexportCommand extends Command {
     private final int oid;
 
-    public UnexportCommand(int oid) {
+    UnexportCommand(int oid, Throwable cause) {
         this.oid = oid;
+        this.createdAt.initCause(cause);
+    }
+
+    public UnexportCommand(int oid) {
+        this(oid,null);
     }
 
     protected void execute(Channel channel) {
         channel.unexport(oid,createdAt);
+    }
+
+    @Override
+    public String toString() {
+        return super.toString();
     }
 
     private static final long serialVersionUID = 1L;

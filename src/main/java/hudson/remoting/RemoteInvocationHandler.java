@@ -85,12 +85,18 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     private boolean goingHome;
 
     /**
+     * Diagnostic information that remembers where the proxy was created.
+     */
+    private final Throwable origin;
+
+    /**
      * Creates a proxy that wraps an existing OID on the remote.
      */
-    RemoteInvocationHandler(Channel channel, int id, boolean userProxy, boolean autoUnexportByCaller) {
+    RemoteInvocationHandler(Channel channel, int id, boolean userProxy, boolean autoUnexportByCaller, Class proxyType) {
         this.channel = channel;
         this.oid = id;
         this.userProxy = userProxy;
+        this.origin = new Exception("Proxy "+toString()+" was created for "+proxyType);
         this.autoUnexportByCaller = autoUnexportByCaller;
     }
 
@@ -103,7 +109,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         if(cl==null || cl==ClassLoader.getSystemClassLoader())
             cl = IReadResolve.class.getClassLoader();
         return type.cast(Proxy.newProxyInstance(cl, new Class[]{type,IReadResolve.class},
-            new RemoteInvocationHandler(channel,id,userProxy,autoUnexportByCaller)));
+            new RemoteInvocationHandler(channel,id,userProxy,autoUnexportByCaller,type)));
     }
 
     /*package*/ static Class getProxyClass(Class type) {
@@ -231,7 +237,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     protected void finalize() throws Throwable {
         // unexport the remote object
         if (channel!=null && !autoUnexportByCaller) {
-            channel.send(new UnexportCommand(oid));
+            channel.send(new UnexportCommand(oid,origin));
             channel = null;
         }
         super.finalize();
