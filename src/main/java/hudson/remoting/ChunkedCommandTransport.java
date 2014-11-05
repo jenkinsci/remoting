@@ -16,10 +16,16 @@ class ChunkedCommandTransport extends AbstractSynchronousByteArrayCommandTranspo
     private final ChunkedInputStream in;
     private final ChunkedOutputStream out;
 
-    /*package*/ ChunkedCommandTransport(Capability remoteCapability, InputStream in, OutputStream out) {
+    /**
+     * See {@link CommandTransport#getUnderlyingStream()}
+     */
+    private final OutputStream rawOut;
+
+    /*package*/ ChunkedCommandTransport(Capability remoteCapability, InputStream in, OutputStream out, OutputStream rawOut) {
         this.remoteCapability = remoteCapability;
         this.in = new ChunkedInputStream(in);
         this.out = new ChunkedOutputStream(8192,out);
+        this.rawOut = rawOut;
     }
 
     @Override
@@ -48,5 +54,10 @@ class ChunkedCommandTransport extends AbstractSynchronousByteArrayCommandTranspo
     @Override
     public void closeRead() throws IOException {
         in.close();
+    }
+
+    @Override
+    OutputStream getUnderlyingStream() {
+        return rawOut;
     }
 }
