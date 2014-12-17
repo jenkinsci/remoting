@@ -1,8 +1,11 @@
 package hudson.remoting;
 
+import hudson.remoting.forward.Forwarder;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.net.URL;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
@@ -22,7 +25,8 @@ import java.util.concurrent.ConcurrentSkipListSet;
  *
  * @author Kohsuke Kawaguchi
  */
-class JarLoaderImpl implements JarLoader {
+@edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_BAD_FIELD")
+class JarLoaderImpl implements JarLoader, Serializable {
     private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<Checksum,URL>();
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
@@ -93,5 +97,14 @@ class JarLoaderImpl implements JarLoader {
         }
     }
 
+    /**
+     * When sent to the remote node, send a proxy.
+     */
+    private Object writeReplace() {
+        return Channel.current().export(JarLoader.class, this);
+    }
+
     public static final String DIGEST_ALGORITHM = System.getProperty(JarLoaderImpl.class.getName()+".algorithm","SHA-256");
+
+    private static final long serialVersionUID = 1L;
 }
