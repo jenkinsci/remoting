@@ -9,9 +9,7 @@ import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
-import hudson.remoting.ObjectInputStreamEx;
 import hudson.remoting.SingleLaneExecutorService;
-import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.Closeable;
@@ -28,7 +26,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Queue;
@@ -523,9 +520,9 @@ public class NioChannelHub implements Runnable, Closeable {
     public void run() {
         synchronized (startedLock) {
             started = true;
+            selectorThread = Thread.currentThread();
             startedLock.notifyAll();
         }
-        selectorThread = Thread.currentThread();
         final String oldName = selectorThread.getName();
 
         try {
