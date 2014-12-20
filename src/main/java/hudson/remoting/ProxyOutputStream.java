@@ -23,7 +23,6 @@
  */
 package hudson.remoting;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
@@ -39,12 +38,6 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
     private int oid;
 
     private PipeWindow window;
-
-    /**
-     * If bytes are written to this stream before it's connected
-     * to a remote object, bytes will be stored in this buffer.
-     */
-    private ByteArrayOutputStream tmp;
 
     /**
      * Set to true if the stream is closed.
@@ -89,82 +82,69 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
         window =  channel.getPipeWindow(oid);
 
-        // if we already have bytes to write, do so now.
-        if(tmp!=null) {
-            byte[] b = tmp.toByteArray();
-            tmp = null;
-            _write(b,0,b.length);
-        }
         if(closed)  // already marked closed?
             doClose(error);
+
+        notifyAll(); // release blocking writes
     }
 
     public void write(int b) throws IOException {
         write(new byte[]{(byte)b},0,1);
     }
 
-    public void write(byte b[], int off, int len) throws IOException {
-        if(closed)
-            throw new IOException("stream is already closed");
-        _write(b, off, len);
-    }
+    public synchronized void write(byte[] b, int off, int len) throws IOException {
+        try {
+            // block until stream gets connected
+            while (channel==null) {
+                if(closed)
+                    throw new IOException("stream is already closed");
+                wait();
+            }
 
-    /**
-     * {@link #write(byte[])} without the close check.
-     */
-    private synchronized void _write(byte[] b, int off, int len) throws IOException {
-        if(channel==null) {
-            if(tmp==null)
-                tmp = new ByteArrayOutputStream();
-            tmp.write(b,off,len);
-        } else {
             final int max = window.max();
 
             while (len>0) {
-                int sendable;
-                try {
-                    /*
-                        To avoid fragmentation of the pipe window, at least demand that 10% of the pipe window
-                        be reclaimed.
+                /*
+                    To avoid fragmentation of the pipe window, at least demand that 10% of the pipe window
+                    be reclaimed.
 
-                        Imagine a large latency network where we are always low on the window size,
-                        and we are continuously sending data of irregular size. In such a circumstance,
-                        a fragmentation will happen. We start sending out a small Chunk at a time (say 4 bytes),
-                        and when its Ack comes back, it gets immediately consumed by another out-bound Chunk of 4 bytes.
+                    Imagine a large latency network where we are always low on the window size,
+                    and we are continuously sending data of irregular size. In such a circumstance,
+                    a fragmentation will happen. We start sending out a small Chunk at a time (say 4 bytes),
+                    and when its Ack comes back, it gets immediately consumed by another out-bound Chunk of 4 bytes.
 
-                        Clearly, it's better to wait a bit until we have a sizable pipe window, then send out
-                        a bigger Chunk, since Chunks have static overheads. This code does just that.
+                    Clearly, it's better to wait a bit until we have a sizable pipe window, then send out
+                    a bigger Chunk, since Chunks have static overheads. This code does just that.
 
-                        (Except when what we are trying to send as a whole is smaller than the current available
-                        window size, in which case there's no point in waiting.)
-                     */
-                    sendable = Math.min(window.get(Math.min(max/10,len)),len);
-                    /*
-                        Imagine if we have a lot of data to send and the pipe window is fully available.
-                        If we create one Chunk that fully uses the window size, we need to wait for the
-                        whole Chunk to get to the other side, then the Ack to come back to this side,
-                        before we can send a next Chunk. While the Ack is traveling back to us, we have
-                        to sit idle. This fails to utilize available bandwidth.
+                    (Except when what we are trying to send as a whole is smaller than the current available
+                    window size, in which case there's no point in waiting.)
+                 */
+                int sendable = Math.min(window.get(Math.min(max/10,len)),len);
+                /*
+                    Imagine if we have a lot of data to send and the pipe window is fully available.
+                    If we create one Chunk that fully uses the window size, we need to wait for the
+                    whole Chunk to get to the other side, then the Ack to come back to this side,
+                    before we can send a next Chunk. While the Ack is traveling back to us, we have
+                    to sit idle. This fails to utilize available bandwidth.
 
-                        A better strategy is to create a smaller Chunk, say half the window size.
-                        This allows the other side to send back the ack while we are sending the second
-                        Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
-                        to overlap, and that improves the utilization.
+                    A better strategy is to create a smaller Chunk, say half the window size.
+                    This allows the other side to send back the ack while we are sending the second
+                    Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
+                    to overlap, and that improves the utilization.
 
-                        It's not clear what the best size of the chunk to send (there's a certain
-                        overhead in our Command structure, around 100-200 bytes), so I'm just starting
-                        with 2. Further analysis would be needed to determine the best value.
-                     */
-                    sendable = Math.min(sendable, max /2);
-                } catch (InterruptedException e) {
-                    throw (IOException)new InterruptedIOException().initCause(e);
-                }
+                    It's not clear what the best size of the chunk to send (there's a certain
+                    overhead in our Command structure, around 100-200 bytes), so I'm just starting
+                    with 2. Further analysis would be needed to determine the best value.
+                 */
+                sendable = Math.min(sendable, max /2);
 
                 channel.send(new Chunk(channel.newIoId(),oid,b,off,sendable));
                 window.decrease(sendable);
                 off+=sendable;
                 len-=sendable;
             }
+        } catch (InterruptedException e) {
+            throw (IOException)new InterruptedIOException().initCause(e);
         }
     }
 
@@ -184,6 +164,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
         if(channel!=null)
             doClose(e);
+        notifyAll();    // unblock any pending write
     }
 
     private void doClose(Throwable error) throws IOException {
