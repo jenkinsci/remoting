@@ -30,6 +30,10 @@ import java.io.IOException;
 /**
  * Implementation of the JNLP-connect protocol.
  *
+ * The slave sends the master the slave name it wants to register as and the
+ * computed HMAC of the slave name. If accepted the master will reply with a
+ * confirmation response.
+ *
  * This was the first protocol supported by Jenkins. JNLP slaves will use this
  * as a last resort when connecting to old versions of Jenkins masters.
  *

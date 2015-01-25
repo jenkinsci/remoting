@@ -32,14 +32,23 @@ import java.util.Properties;
 /**
  * Implementation of the JNLP2-connect protocol.
  *
+ * This is an extension of the JNLP1-connect protocol. On successful
+ * connection to the master the slave will receive a cookie from the master,
+ * which the slave stores.
+ *
+ * If the slave needs to reconnect it will send the same cookie as part of
+ * the new connection request. The master can use the cookie to determine if
+ * the incoming request is an initial connection request or a reconnection
+ * and take appropriate action.
+ *
  * @author Akshay Dayal
  */
 class JnlpProtocol2 extends JnlpProtocol {
 
     /**
-     * This cookie identifies the current connection, allowing us to force the server to drop
-     * the client if we initiate a reconnection from our end (even when the server still thinks
-     * the connection is alive.)
+     * This cookie identifies the current connection, allowing us to force the
+     * server to drop the client if we initiate a reconnection from our end
+     * (even when the server still thinks the connection is alive.)
      */
     private String cookie;
 
