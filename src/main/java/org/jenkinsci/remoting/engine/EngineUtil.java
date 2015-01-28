@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.remoting.engine;
+package org.jenkinsci.remoting.engine;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -43,7 +43,7 @@ public class EngineUtil {
      * @return The line read.
      * @throws IOException
      */
-    public static String readLine(InputStream inputStream) throws IOException {
+    protected static String readLine(InputStream inputStream) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         while (true) {
             int ch = inputStream.read();
@@ -62,7 +62,7 @@ public class EngineUtil {
      * @return The set of headers stored in a {@link Properties}.
      * @throws IOException
      */
-    public static Properties readResponseHeaders(BufferedInputStream inputStream) throws IOException {
+    protected static Properties readResponseHeaders(BufferedInputStream inputStream) throws IOException {
         Properties response = new Properties();
         while (true) {
             String line = EngineUtil.readLine(inputStream);

@@ -21,12 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.remoting.engine;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.verify;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.when;
+package org.jenkinsci.remoting.engine;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +32,11 @@ import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.BufferedInputStream;
 import java.io.DataOutputStream;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.powermock.api.mockito.PowerMockito.mockStatic;
+import static org.powermock.api.mockito.PowerMockito.when;
 
 /**
  * Tests for {@link JnlpProtocol1}.

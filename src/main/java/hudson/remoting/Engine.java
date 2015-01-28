@@ -24,8 +24,8 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
-import hudson.remoting.engine.JnlpProtocol;
-import hudson.remoting.engine.JnlpProtocolFactory;
+import org.jenkinsci.remoting.engine.JnlpProtocol;
+import org.jenkinsci.remoting.engine.JnlpProtocolFactory;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -179,18 +179,16 @@ public class Engine extends Thread {
 
                     // find out the TCP port
                     HttpURLConnection con = (HttpURLConnection)salURL.openConnection();
-                    if (con != null) {
-                    	if (credentials != null) {
-                    		// TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
-                    		String encoding = Base64.encode(credentials.getBytes("UTF-8"));
-                    		con.setRequestProperty("Authorization", "Basic " + encoding);
-                    	}
+                  	if (credentials != null) {
+                   		// TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
+                   		String encoding = Base64.encode(credentials.getBytes("UTF-8"));
+                   		con.setRequestProperty("Authorization", "Basic " + encoding);
+                   	}
 
-                    	if (proxyCredentials != null) {
-    	                    String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
-    	                    con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
-                    	}
-                    }
+                   	if (proxyCredentials != null) {
+   	                    String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
+   	                    con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+                   	}
                     try {
                         try {
                             con.setConnectTimeout(30000);
@@ -233,29 +231,29 @@ public class Engine extends Thread {
                 Socket jnlpSocket = connect(port);
                 DataOutputStream outputStream = new DataOutputStream(jnlpSocket.getOutputStream());
                 BufferedInputStream inputStream = new BufferedInputStream(jnlpSocket.getInputStream());
-                String response = "";
+                boolean connected = false;
 
                 // Try available protocols.
                 for (JnlpProtocol protocol : protocols) {
                     events.status("Trying protocol: " + protocol.getName());
-                    response = protocol.performHandshake(outputStream, inputStream);
+                    String response = protocol.performHandshake(outputStream, inputStream);
 
                     // On success do not try other protocols.
                     if (response.equals(GREETING_SUCCESS)) {
+                        connected = true;
                         break;
                     }
 
                     // On failure log the response and form a new connection.
                     events.status("Server didn't understand the protocol: " + response);
                     jnlpSocket.close();
-                    Thread.sleep(500);
                     jnlpSocket = connect(port);
                     outputStream = new DataOutputStream(jnlpSocket.getOutputStream());
                     inputStream = new BufferedInputStream(jnlpSocket.getInputStream());
                 }
 
                 // If no protocol worked.
-                if (!response.equals(GREETING_SUCCESS)) {
+                if (!connected) {
                     onConnectionRejected("None of the protocols were accepted");
                     continue;
                 }
@@ -374,5 +372,9 @@ public class Engine extends Thread {
 
     private static final Logger LOGGER = Logger.getLogger(Engine.class.getName());
 
+    /**
+     * @deprecated Use {@link JnlpProtocol#GREETING_SUCCESS}.
+     */
+    @Deprecated
     public static final String GREETING_SUCCESS = JnlpProtocol.GREETING_SUCCESS;
 }

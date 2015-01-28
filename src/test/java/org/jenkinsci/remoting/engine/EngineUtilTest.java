@@ -21,16 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.remoting.engine;
-
-import static org.junit.Assert.assertEquals;
+package org.jenkinsci.remoting.engine;
 
 import org.junit.Test;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Tests for {@link EngineUtil}.
@@ -71,6 +71,6 @@ public class EngineUtilTest {
     }
 
     private BufferedInputStream stringToStream(String str) {
-        return new BufferedInputStream(new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8)));
+        return new BufferedInputStream(new ByteArrayInputStream(str.getBytes(Charset.forName("UTF-8"))));
     }
 }

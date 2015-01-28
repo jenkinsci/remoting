@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.remoting.engine;
+package org.jenkinsci.remoting.engine;
 
 import java.io.BufferedInputStream;
 import java.io.DataOutputStream;

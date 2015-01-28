@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.remoting.engine;
+package org.jenkinsci.remoting.engine;
 
 import java.io.BufferedInputStream;
 import java.io.DataOutputStream;
@@ -29,16 +29,16 @@ import java.io.IOException;
 
 /**
  * Handshake protocol used by JNLP slave when initiating a connection to
- * master.
+ * master. Protocols may be stateful.
  *
  * @author Akshay Dayal
  */
 public abstract class JnlpProtocol {
 
-    final String secretKey;
-    final String slaveName;
+    protected final String secretKey;
+    protected final String slaveName;
 
-    JnlpProtocol(String secretKey, String slaveName) {
+    protected JnlpProtocol(String secretKey, String slaveName) {
         this.secretKey = secretKey;
         this.slaveName = slaveName;
     }

@@ -21,13 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package hudson.remoting.engine;
+package org.jenkinsci.remoting.engine;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Creates protocols to be used to initiate connection with master.
+ *
+ * The slave engine will call this factory once when it starts and try the
+ * protocols in the order they are returned.
  *
  * @author Akshay Dayal
  */
