@@ -261,7 +261,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                     // Note that the wait method can wake up for no reasons at all (AKA spurious wakeup),
                     long now = System.nanoTime();
                     long end = now + unit.toNanos(timeout);
-                    while (response == null && (end - now > 0)) {
+                    while (response == null && (end - now > 0L)) {
                         if (isCancelled()) {
                             throw new CancellationException();
                         }

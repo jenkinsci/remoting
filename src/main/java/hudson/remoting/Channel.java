@@ -1016,7 +1016,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public synchronized void join(long timeout) throws InterruptedException {
         long now = System.nanoTime();
         long end = now + (timeout * 1000L);
-        while ((end - now > 0) && (inClosed == null || outClosed == null)) {
+        while ((end - now > 0L) && (inClosed == null || outClosed == null)) {
             wait((end - now) / 1000L);
             now = System.nanoTime();
         }
