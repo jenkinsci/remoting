@@ -57,6 +57,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -276,7 +278,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     @GuardedBy("lastHeardLock")
     private long lastHeard;
-    private Object lastHeardLock = new String("lastHeardLock");
+    private final ReadWriteLock lastHeardLock = new ReentrantReadWriteLock(true);
 
     /**
      * Single-thread executor for running pipe I/O operations.
@@ -1400,14 +1402,22 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @see #lastHeard
      */
     public long getLastHeard() {
-        synchronized (lastHeardLock) {
+        try {
+            lastHeardLock.readLock().lock();
             return lastHeard;
+        }
+        finally {
+            lastHeardLock.readLock().unlock();
         }
     }
 
     private void updateLastHeard() {
-        synchronized (lastHeardLock) {
+        try {
+            lastHeardLock.writeLock().lock();
             lastHeard = System.currentTimeMillis();
+        }
+        finally {
+            lastHeardLock.writeLock().unlock();
         }
     }
 
