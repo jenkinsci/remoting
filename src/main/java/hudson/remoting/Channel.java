@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import org.jenkinsci.remoting.CallableDecorator;
+
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.PipeWindow.Key;
@@ -31,9 +32,12 @@ import hudson.remoting.PipeWindow.Real;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
+
 import org.jenkinsci.remoting.RoleChecker;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -270,7 +274,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * without telling us anything, the {@link SocketOutputStream#write(int)} will
      * return right away, and the socket only really times out after 10s of minutes.
      */
-    private volatile long lastHeard;
+    @GuardedBy("lastHeardLock")
+    private long lastHeard;
+    private Object lastHeardLock = new String("lastHeardLock");
 
     /**
      * Single-thread executor for running pipe I/O operations.
@@ -476,7 +482,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
-                lastHeard = System.currentTimeMillis();
+                updateLastHeard();
                 if (logger.isLoggable(Level.FINE))
                     logger.fine("Received " + cmd);
                 try {
@@ -1006,9 +1012,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @since 1.299
      */
     public synchronized void join(long timeout) throws InterruptedException {
-        long start = System.currentTimeMillis();
-        while(System.currentTimeMillis()-start<timeout && (inClosed==null || outClosed==null))
-            wait(timeout+start-System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        long end = now + timeout;
+        while (now < end && (inClosed == null || outClosed == null)) {
+            wait(now - end);
+            // XXX this is not safe against Clock skew - but System.nanoTime()
+            // has performance implications.
+            now = System.currentTimeMillis();
+        }
     }
 
     /**
@@ -1389,7 +1400,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @see #lastHeard
      */
     public long getLastHeard() {
-        return lastHeard;
+        synchronized (lastHeardLock) {
+            return lastHeard;
+        }
+    }
+
+    private void updateLastHeard() {
+        synchronized (lastHeardLock) {
+            lastHeard = System.currentTimeMillis();
+        }
     }
 
     /*package*/ static Channel setCurrent(Channel channel) {

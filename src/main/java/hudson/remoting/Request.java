@@ -259,13 +259,15 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                 synchronized(Request.this) {
                     // wait until the response arrives
                     // Note that the wait method can wake up for no reasons at all (AKA spurious wakeup),
-                    long end = System.currentTimeMillis() + unit.toMillis(timeout);
-                    long now;
-                    while(response==null && (now=System.currentTimeMillis())<end) {
+                    long now = System.currentTimeMillis();
+                    long end = now + unit.toMillis(timeout);
+                    while (response==null && (now < end)) {
                         if (isCancelled()) {
                             throw new CancellationException();
                         }
                         Request.this.wait(Math.max(1,end-now));
+                        // XXX this is not safe against Clock skew - but System.nanoTime() has performance implications.
+                        now = System.currentTimeMillis();
                     }
                     if(response==null)
                         throw new TimeoutException();

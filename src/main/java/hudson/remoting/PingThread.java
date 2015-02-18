@@ -23,16 +23,15 @@
  */
 package hudson.remoting;
 
-import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
+
 import java.util.concurrent.ExecutionException;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Periodically perform a ping.
@@ -42,7 +41,7 @@ import java.util.logging.Logger;
  * or when the disconnection is not properly detected.
  *
  * <p>
- * {@link #onDead()} method needs to be overrided to define
+ * {@link #onDead()} method needs to be overridden to define
  * what to do when a connection appears to be dead.
  *
  * @author Kohsuke Kawaguchi
@@ -103,13 +102,12 @@ public abstract class PingThread extends Thread {
     private void ping() throws IOException, InterruptedException {
         Future<?> f = channel.callAsync(new Ping());
         long start = System.currentTimeMillis();
-        long end = start +timeout;
+        long end = start + timeout;
 
-        long remaining;
+        long remaining = end - start;
         do {
-            remaining = end-System.currentTimeMillis();
             try {
-                f.get(Math.max(0,remaining),MILLISECONDS);
+                f.get(Math.max(10,remaining),MILLISECONDS);
                 return;
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof RequestAbortedException)
@@ -120,6 +118,9 @@ public abstract class PingThread extends Thread {
                 // get method waits "at most the amount specified in the timeout",
                 // so let's make sure that it really waited enough
             }
+            // XXX this is not safe against Clock skew - but System.nanoTime()
+            // has performance implications.
+            remaining = end - System.currentTimeMillis();
         } while(remaining>0);
 
         onDead(new TimeoutException("Ping started on "+start+" hasn't completed at "+System.currentTimeMillis()));//.initCause(e)
