@@ -1015,7 +1015,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         long now = System.currentTimeMillis();
         long end = now + timeout;
         while (now < end && (inClosed == null || outClosed == null)) {
-            wait(now - end);
+            wait(end - now);
             // XXX this is not safe against Clock skew - but System.nanoTime()
             // has performance implications.
             now = System.currentTimeMillis();
