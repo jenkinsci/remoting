@@ -51,6 +51,7 @@ import java.util.Vector;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
@@ -476,7 +477,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
-                lastHeard = System.currentTimeMillis();
+                updateLastHeard();
                 if (logger.isLoggable(Level.FINE))
                     logger.fine("Received " + cmd);
                 try {
@@ -1006,9 +1007,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @since 1.299
      */
     public synchronized void join(long timeout) throws InterruptedException {
-        long start = System.currentTimeMillis();
-        while(System.currentTimeMillis()-start<timeout && (inClosed==null || outClosed==null))
-            wait(timeout+start-System.currentTimeMillis());
+        long now = System.nanoTime();
+        long end = now + TimeUnit.MILLISECONDS.toNanos(timeout);
+        while ((end - now > 0L) && (inClosed == null || outClosed == null)) {
+            wait(TimeUnit.NANOSECONDS.toMillis(end - now));
+            now = System.nanoTime();
+        }
     }
 
     /**
@@ -1386,10 +1390,17 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
+     * TODO: this is not safe against clock skew and is called from jenkins core (and potentially plugins)
      * @see #lastHeard
      */
     public long getLastHeard() {
+        // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
         return lastHeard;
+    }
+
+    private void updateLastHeard() {
+        // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
+        lastHeard = System.currentTimeMillis();
     }
 
     /*package*/ static Channel setCurrent(Channel channel) {

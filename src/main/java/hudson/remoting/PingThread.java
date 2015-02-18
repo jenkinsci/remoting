@@ -23,16 +23,15 @@
  */
 package hudson.remoting;
 
-import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.concurrent.ExecutionException;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
+
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 /**
  * Periodically perform a ping.
@@ -42,7 +41,7 @@ import java.util.logging.Logger;
  * or when the disconnection is not properly detected.
  *
  * <p>
- * {@link #onDead()} method needs to be overrided to define
+ * {@link #onDead()} method needs to be overridden to define
  * what to do when a connection appears to be dead.
  *
  * @author Kohsuke Kawaguchi
@@ -81,14 +80,15 @@ public abstract class PingThread extends Thread {
     public void run() {
         try {
             while(true) {
-                long nextCheck = System.currentTimeMillis()+interval;
+                long nextCheck = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(interval);
 
                 ping();
 
                 // wait until the next check
                 long diff;
-                while((diff=nextCheck-System.currentTimeMillis())>0)
-                    Thread.sleep(diff);
+                while((diff = nextCheck - System.nanoTime()) > 0) {
+                    Thread.sleep(TimeUnit.NANOSECONDS.toMillis(diff));
+                }
             }
         } catch (ChannelClosedException e) {
             LOGGER.fine(getName()+" is closed. Terminating");
@@ -103,13 +103,13 @@ public abstract class PingThread extends Thread {
     private void ping() throws IOException, InterruptedException {
         Future<?> f = channel.callAsync(new Ping());
         long start = System.currentTimeMillis();
-        long end = start +timeout;
 
-        long remaining;
+        long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
+        long remaining = end - System.nanoTime();
+
         do {
-            remaining = end-System.currentTimeMillis();
             try {
-                f.get(Math.max(0,remaining),MILLISECONDS);
+                f.get(Math.max(TimeUnit.MILLISECONDS.toNanos(10),remaining),TimeUnit.NANOSECONDS);
                 return;
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof RequestAbortedException)
@@ -120,9 +120,10 @@ public abstract class PingThread extends Thread {
                 // get method waits "at most the amount specified in the timeout",
                 // so let's make sure that it really waited enough
             }
+            remaining = end - System.nanoTime();
         } while(remaining>0);
 
-        onDead(new TimeoutException("Ping started on "+start+" hasn't completed at "+System.currentTimeMillis()));//.initCause(e)
+        onDead(new TimeoutException("Ping started at "+start+" hasn't completed by "+System.currentTimeMillis()));//.initCause(e)
     }
 
     /**
