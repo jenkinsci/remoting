@@ -86,12 +86,11 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
     }
 
     public synchronized boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-        long now = System.currentTimeMillis();
-        long end = now+unit.toMillis(timeout);
-        while (!isTerminated() && now < end) {
-            wait(end - now);
-            // XXX this is not safe against Clock skew - but System.nanoTime() has performance implications.
-            now = System.currentTimeMillis();
+        long now = System.nanoTime();
+        long end = now + unit.toNanos(timeout);
+        while (!isTerminated() && end - now < 0L) {
+            wait((end - now) /  1000L);
+            now = System.nanoTime();
         }
         return isTerminated();
     }

@@ -89,7 +89,6 @@ import java.io.StreamCorruptedException;
             else
                 return (StreamCorruptedException)new StreamCorruptedException().initCause(e);
         }
-
         return rawIn.analyzeCrash(e,(channel!=null ? channel : this).toString());
     }
 

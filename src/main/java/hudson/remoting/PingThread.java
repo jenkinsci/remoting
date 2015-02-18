@@ -26,8 +26,8 @@ package hudson.remoting;
 import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.IOException;
-
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
@@ -80,14 +80,15 @@ public abstract class PingThread extends Thread {
     public void run() {
         try {
             while(true) {
-                long nextCheck = System.currentTimeMillis()+interval;
+                long nextCheck = System.nanoTime() + (interval * 1000L);
 
                 ping();
 
                 // wait until the next check
                 long diff;
-                while((diff=nextCheck-System.currentTimeMillis())>0)
-                    Thread.sleep(diff);
+                while((diff = nextCheck - System.nanoTime()) > 0) {
+                    Thread.sleep(diff / 1000L);
+                }
             }
         } catch (ChannelClosedException e) {
             LOGGER.fine(getName()+" is closed. Terminating");
@@ -102,12 +103,13 @@ public abstract class PingThread extends Thread {
     private void ping() throws IOException, InterruptedException {
         Future<?> f = channel.callAsync(new Ping());
         long start = System.currentTimeMillis();
-        long end = start + timeout;
 
-        long remaining = end - start;
+        long end = System.nanoTime() + (timeout * 1000L);
+        long remaining = end - System.nanoTime();
+
         do {
             try {
-                f.get(Math.max(10,remaining),MILLISECONDS);
+                f.get(Math.max(10000,remaining),TimeUnit.NANOSECONDS);
                 return;
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof RequestAbortedException)
@@ -118,12 +120,10 @@ public abstract class PingThread extends Thread {
                 // get method waits "at most the amount specified in the timeout",
                 // so let's make sure that it really waited enough
             }
-            // XXX this is not safe against Clock skew - but System.nanoTime()
-            // has performance implications.
-            remaining = end - System.currentTimeMillis();
+            remaining = end - System.nanoTime();
         } while(remaining>0);
 
-        onDead(new TimeoutException("Ping started on "+start+" hasn't completed at "+System.currentTimeMillis()));//.initCause(e)
+        onDead(new TimeoutException("Ping started at "+start+" hasn't completed by "+System.currentTimeMillis()));//.initCause(e)
     }
 
     /**

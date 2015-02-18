@@ -71,12 +71,11 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
 
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         synchronized (q) {
-            long now = System.currentTimeMillis();
-            long end = now + unit.toMillis(timeout);
-            while (isAlive() && now < end) {
-                q.wait(end - now);
-                // XXX this is not safe against Clock skew - but System.nanoTime() has performance implications.
-                now = System.currentTimeMillis();
+            long now = System.nanoTime();
+            long end = now + unit.toNanos(timeout);
+            while (isAlive() && (end - now > 0)) {
+                q.wait((end - now) / 1000L);
+                now = System.nanoTime();
             }
         }
         return isTerminated();

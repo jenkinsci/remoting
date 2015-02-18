@@ -1014,13 +1014,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @since 1.299
      */
     public synchronized void join(long timeout) throws InterruptedException {
-        long now = System.currentTimeMillis();
-        long end = now + timeout;
-        while (now < end && (inClosed == null || outClosed == null)) {
-            wait(end - now);
-            // XXX this is not safe against Clock skew - but System.nanoTime()
-            // has performance implications.
-            now = System.currentTimeMillis();
+        long now = System.nanoTime();
+        long end = now + (timeout * 1000L);
+        while ((end - now > 0) && (inClosed == null || outClosed == null)) {
+            wait((end - now) / 1000L);
+            now = System.nanoTime();
         }
     }
 
@@ -1402,6 +1400,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @see #lastHeard
      */
     public long getLastHeard() {
+        // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
         try {
             lastHeardLock.readLock().lock();
             return lastHeard;
@@ -1414,6 +1413,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     private void updateLastHeard() {
         try {
             lastHeardLock.writeLock().lock();
+            // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
             lastHeard = System.currentTimeMillis();
         }
         finally {
