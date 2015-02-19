@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import org.jenkinsci.remoting.CallableDecorator;
+
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.PipeWindow.Key;
@@ -31,9 +32,12 @@ import hudson.remoting.PipeWindow.Real;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
+
 import org.jenkinsci.remoting.RoleChecker;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,8 +55,11 @@ import java.util.Vector;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -270,7 +277,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * without telling us anything, the {@link SocketOutputStream#write(int)} will
      * return right away, and the socket only really times out after 10s of minutes.
      */
-    private volatile long lastHeard;
+    @GuardedBy("lastHeardLock")
+    private long lastHeard;
+    private final ReadWriteLock lastHeardLock = new ReentrantReadWriteLock(true);
 
     /**
      * Single-thread executor for running pipe I/O operations.
@@ -476,7 +485,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
-                lastHeard = System.currentTimeMillis();
+                updateLastHeard();
                 if (logger.isLoggable(Level.FINE))
                     logger.fine("Received " + cmd);
                 try {
@@ -1006,9 +1015,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @since 1.299
      */
     public synchronized void join(long timeout) throws InterruptedException {
-        long start = System.currentTimeMillis();
-        while(System.currentTimeMillis()-start<timeout && (inClosed==null || outClosed==null))
-            wait(timeout+start-System.currentTimeMillis());
+        long now = System.nanoTime();
+        long end = now + TimeUnit.MILLISECONDS.toNanos(timeout);
+        while ((end - now > 0L) && (inClosed == null || outClosed == null)) {
+            wait(TimeUnit.NANOSECONDS.toMillis(end - now));
+            now = System.nanoTime();
+        }
     }
 
     /**
@@ -1389,7 +1401,25 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @see #lastHeard
      */
     public long getLastHeard() {
-        return lastHeard;
+        // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
+        try {
+            lastHeardLock.readLock().lock();
+            return lastHeard;
+        }
+        finally {
+            lastHeardLock.readLock().unlock();
+        }
+    }
+
+    private void updateLastHeard() {
+        try {
+            lastHeardLock.writeLock().lock();
+            // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
+            lastHeard = System.currentTimeMillis();
+        }
+        finally {
+            lastHeardLock.writeLock().unlock();
+        }
     }
 
     /*package*/ static Channel setCurrent(Channel channel) {
