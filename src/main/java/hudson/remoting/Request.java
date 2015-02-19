@@ -265,7 +265,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                         if (isCancelled()) {
                             throw new CancellationException();
                         }
-                        Request.this.wait(Math.max(1, (end - now) / 1000L));
+                        Request.this.wait(Math.max(1, TimeUnit.NANOSECONDS.toMillis(end - now)));
                         now = System.nanoTime();
                     }
                     if (response == null)

@@ -55,6 +55,7 @@ import java.util.Vector;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -1015,9 +1016,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public synchronized void join(long timeout) throws InterruptedException {
         long now = System.nanoTime();
-        long end = now + (timeout * 1000L);
+        long end = now + TimeUnit.MILLISECONDS.toNanos(timeout);
         while ((end - now > 0L) && (inClosed == null || outClosed == null)) {
-            wait((end - now) / 1000L);
+            wait(TimeUnit.NANOSECONDS.toMillis(end - now));
             now = System.nanoTime();
         }
     }

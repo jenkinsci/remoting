@@ -80,14 +80,14 @@ public abstract class PingThread extends Thread {
     public void run() {
         try {
             while(true) {
-                long nextCheck = System.nanoTime() + (interval * 1000L);
+                long nextCheck = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(interval);
 
                 ping();
 
                 // wait until the next check
                 long diff;
                 while((diff = nextCheck - System.nanoTime()) > 0) {
-                    Thread.sleep(diff / 1000L);
+                    Thread.sleep(TimeUnit.NANOSECONDS.toMillis(diff));
                 }
             }
         } catch (ChannelClosedException e) {
@@ -104,12 +104,12 @@ public abstract class PingThread extends Thread {
         Future<?> f = channel.callAsync(new Ping());
         long start = System.currentTimeMillis();
 
-        long end = System.nanoTime() + (timeout * 1000L);
+        long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
         long remaining = end - System.nanoTime();
 
         do {
             try {
-                f.get(Math.max(10000,remaining),TimeUnit.NANOSECONDS);
+                f.get(Math.max(TimeUnit.MILLISECONDS.toNanos(10),remaining),TimeUnit.NANOSECONDS);
                 return;
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof RequestAbortedException)

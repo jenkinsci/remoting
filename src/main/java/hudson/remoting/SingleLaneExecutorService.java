@@ -89,7 +89,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
         long now = System.nanoTime();
         long end = now + unit.toNanos(timeout);
         while (!isTerminated() && (end - now) > 0L) {
-            wait((end - now) /  1000L);
+            wait(TimeUnit.NANOSECONDS.toMillis(end - now));
             now = System.nanoTime();
         }
         return isTerminated();

@@ -41,7 +41,7 @@ class SynchronousExecutorService extends AbstractExecutorService {
             if (d<0) {
                 return false;
             }
-            wait(d / 1000L);
+            wait(TimeUnit.NANOSECONDS.toMillis(d));
             now = System.nanoTime();
         }
         return true;

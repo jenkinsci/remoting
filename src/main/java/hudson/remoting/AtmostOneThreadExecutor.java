@@ -74,7 +74,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
             long now = System.nanoTime();
             long end = now + unit.toNanos(timeout);
             while (isAlive() && (end - now > 0L)) {
-                q.wait((end - now) / 1000L);
+                q.wait(TimeUnit.NANOSECONDS.toMillis(end - now));
                 now = System.nanoTime();
             }
         }
