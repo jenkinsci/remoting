@@ -84,10 +84,10 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
 
     public void execute(Runnable command) {
         synchronized (q) {
-            q.add(command);
             if (isShutdown()) {
                 throw new RejectedExecutionException("This executor has been shutdown.");
             }
+            q.add(command);
             if (!isAlive()) {
                 worker = factory.newThread(new Worker());
                 worker.start();
