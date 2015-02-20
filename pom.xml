@@ -161,14 +161,6 @@ THE SOFTWARE.
     </resources>
     <plugins>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <!-- version specified in grandparent pom -->
-        <configuration>
-          <threshold>High</threshold>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
         <!-- version specified in grandparent pom -->
