@@ -23,16 +23,13 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
+
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.SEVERE;
@@ -43,8 +40,11 @@ import static java.util.logging.Level.SEVERE;
  * @author Kohsuke Kawaguchi
  */
 final class ExportTable {
-    private final Map<Integer,Entry<?>> table = new HashMap<Integer,Entry<?>>();
-    private final Map<Object,Entry<?>> reverse = new HashMap<Object,Entry<?>>();
+    /**
+     * Entry table map based on unique id.
+     */
+    private final Map<Integer, Entry<?>> etable = new IdentityHashMap<Integer, Entry<?>>();
+
     /**
      * {@link ExportList}s which are actively recording the current
      * export operation.
@@ -98,8 +98,7 @@ final class ExportTable {
             this.objectType = object.getClass().getName();
             this.allocationTrace = new CreatedAt();
 
-            table.put(id,this);
-            reverse.put(object,this);
+            etable.put(id, this);
         }
 
         void addRef() {
@@ -124,8 +123,7 @@ final class ExportTable {
                 recorder.onRelease(callSite);
 
             if(--referenceCount==0) {
-                table.remove(id);
-                reverse.remove(object);
+                etable.remove(id);
 
                 object = null;
                 releaseTrace = new ReleasedAt(callSite);
@@ -300,7 +298,7 @@ final class ExportTable {
     public synchronized <T> int export(Class<T> clazz, T t, boolean notifyListener) {
         if(t==null)    return 0;   // bootstrap classloader
 
-        Entry e = reverse.get(t);
+        Entry e = getEntry(t);
         if (e == null) {
             e = new Entry<T>(t, clazz);
         } else {
@@ -317,14 +315,14 @@ final class ExportTable {
     }
 
     /*package*/ synchronized void pin(Object t) {
-        Entry e = reverse.get(t);
+        Entry e = getEntry(t);
         if(e!=null)
             e.pin();
     }
 
     public synchronized @Nonnull
     Object get(int id) {
-        Entry e = table.get(id);
+        Entry e = etable.get(id);
         if(e!=null) return e.object;
 
         throw diagnoseInvalidId(id);
@@ -332,7 +330,7 @@ final class ExportTable {
 
     public synchronized @Nonnull
     Class[] type(int id) {
-        Entry e = table.get(id);
+        Entry e = etable.get(id);
         if(e!=null) return e.getInterfaces();
 
         throw diagnoseInvalidId(id);
@@ -359,7 +357,7 @@ final class ExportTable {
      */
     synchronized void unexport(Object t, Throwable callSite) {
         if(t==null)     return;
-        Entry e = reverse.get(t);
+        Entry e = getEntry(t);
         if(e==null) {
             LOGGER.log(SEVERE, "Trying to unexport an object that's not exported: "+t);
             return;
@@ -372,7 +370,7 @@ final class ExportTable {
      */
     public synchronized void unexportByOid(Integer oid, Throwable callSite) {
         if(oid==null)     return;
-        Entry e = table.get(oid);
+        Entry e = etable.get(oid);
         if(e==null) {
             LOGGER.log(SEVERE, "Trying to unexport an object that's already unexported", diagnoseInvalidId(oid));
             if (callSite!=null)
@@ -386,13 +384,29 @@ final class ExportTable {
      * Dumps the contents of the table to a file.
      */
     public synchronized void dump(PrintWriter w) throws IOException {
-        for (Entry e : table.values()) {
+        for (Entry e : etable.values()) {
             e.dump(w);
         }
     }
 
+    /**
+     * Used to get an entry in the table given the {@link Callable}.
+     *
+     * @param o The object to search the ExportTable.
+     * @return The entry assigned to the object. Will return null if no object exists.
+     */
+    @Nullable
+    private synchronized Entry getEntry(Object o) {
+        for (Entry e : etable.values()) {
+            if (e.object.equals(o)) {
+                return e;
+            }
+        }
+        return null;
+    }
+
     /*package*/ synchronized  boolean isExported(Object o) {
-        return reverse.containsKey(o);
+        return getEntry(o) != null;
     }
 
     public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName()+".unexportLogSize",1024);
