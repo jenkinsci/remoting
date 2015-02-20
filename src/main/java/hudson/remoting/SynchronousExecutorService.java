@@ -38,7 +38,7 @@ class SynchronousExecutorService extends AbstractExecutorService {
 
         while (count!=0) {
             long d = end - now;
-            if (d<0) {
+            if (d<=0) {
                 return false;
             }
             wait(TimeUnit.NANOSECONDS.toMillis(d));
