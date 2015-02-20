@@ -68,6 +68,13 @@ class ResourceImageInJar extends ResourceImageRef {
     private URL toResourceURL(URL jar, String resourcePath) throws IOException {
         if (path!=null)
             resourcePath = path;
+        /*
+            James Nord & Kohsuke:
+                Note that when we open a stream from this jar:// URL, it internally caches
+                open jar file (see sun.net.www.protocol.jar.JarURLConnection.JarURLInputStream.close())
+                and leave it open. During unit test, this pins the file, and it prevents the test tear down code
+                from deleting the file.
+         */
         return new URL("jar:"+ jar +"!/"+resourcePath);
     }
 
