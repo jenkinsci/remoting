@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
@@ -39,8 +40,8 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
     }
 
     public void shutdown() {
-        shutdown = true;
         synchronized (q) {
+            shutdown = true;
             if (isAlive())
                 worker.interrupt();
         }
@@ -55,6 +56,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
 
     public List<Runnable> shutdownNow() {
         synchronized (q) {
+            shutdown = true;
             List<Runnable> r = new ArrayList<Runnable>(q);
             q.clear();
             return r;
@@ -82,6 +84,9 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
 
     public void execute(Runnable command) {
         synchronized (q) {
+            if (isShutdown()) {
+                throw new RejectedExecutionException("This executor has been shutdown.");
+            }
             q.add(command);
             if (!isAlive()) {
                 worker = factory.newThread(new Worker());
