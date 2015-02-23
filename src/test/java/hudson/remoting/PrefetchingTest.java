@@ -2,17 +2,22 @@
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import junit.framework.AssertionFailedError;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.AntClassLoader;
+import org.junit.Assert;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.concurrent.ExecutionException;
+
+import static org.hamcrest.core.AllOf.allOf;
+import static org.hamcrest.core.StringContains.containsString;
+import static org.hamcrest.core.StringEndsWith.endsWith;
+import static org.hamcrest.core.StringStartsWith.startsWith;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -131,9 +136,9 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
      * Validates that the resource is coming from a jar.
      */
     private void verifyResource(String v) throws IOException, InterruptedException {
-        assertTrue(v, v.startsWith("jar:file:"));
-        assertTrue(v, v.contains(dir.getPath()));
-        assertTrue(v, v.endsWith("::hello"));
+        Assert.assertThat(v, allOf(startsWith("jar:file:"), 
+                                   containsString(dir.toURI().getPath()), 
+                                   endsWith("::hello")));
     }
 
     /**
@@ -159,9 +164,9 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
         verifyResource(lines[0]);
 
-        assertTrue(lines[1].startsWith("jar:file:"));
-        assertTrue(lines[1].contains(dir.getPath()));
-        assertTrue(lines[1].endsWith("::hello2"));
+        Assert.assertThat(lines[1], allOf(startsWith("jar:file:"), 
+                                          containsString(dir.toURI().getPath()), 
+                                          endsWith("::hello2")));
     }
 
     /**
