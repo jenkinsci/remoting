@@ -109,7 +109,7 @@ public abstract class PingThread extends Thread {
 
         do {
             try {
-                f.get(Math.max(TimeUnit.MILLISECONDS.toNanos(10),remaining),TimeUnit.NANOSECONDS);
+                f.get(Math.max(1,remaining),TimeUnit.NANOSECONDS);
                 return;
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof RequestAbortedException)
