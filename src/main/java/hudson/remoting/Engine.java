@@ -175,6 +175,7 @@ public class Engine extends Thread {
 
                 events.status("Locating server among " + candidateUrls);
                 Throwable firstError=null;
+                String host=null;
                 String port=null;
 
                 for (URL url : candidateUrls) {
@@ -218,6 +219,8 @@ public class Engine extends Thread {
                                 firstError = new Exception(url+" is not Jenkins");
                             continue;
                         }
+                        host = con.getHeaderField("X-Jenkins-JNLP-Host"); // controlled by hudson.TcpSlaveAgentListener.hostName
+                        if(host == null) host=url.getHost();
                     } finally {
                         con.disconnect();
                     }
@@ -234,7 +237,7 @@ public class Engine extends Thread {
                     return;
                 }
 
-                Socket s = connect(port);
+                Socket s = connect(host, port);
 
                 events.status("Handshaking");
 
@@ -255,7 +258,7 @@ public class Engine extends Thread {
                 if (greeting.startsWith("Unknown protocol")) {
                     LOGGER.info("The server didn't understand the v2 handshake. Falling back to v1 handshake");
                     s.close();
-                    s = connect(port);
+                    s = connect(host, port);
                     in = new BufferedInputStream(s.getInputStream());
                     dos = new DataOutputStream(s.getOutputStream());
 
@@ -332,10 +335,9 @@ public class Engine extends Thread {
     }
 
     /**
-     * Connects to TCP slave port, with a few retries.
+     * Connects to TCP slave host:port, with a few retries.
      */
-    private Socket connect(String port) throws IOException, InterruptedException {
-        String host = this.hudsonUrl.getHost();
+    private Socket connect(String host, String port) throws IOException, InterruptedException {
 
         if(tunnel!=null) {
             String[] tokens = tunnel.split(":",3);
