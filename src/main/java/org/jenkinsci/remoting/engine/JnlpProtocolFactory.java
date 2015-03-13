@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -43,11 +43,9 @@ public class JnlpProtocolFactory {
      * The protocols should be tried in the order they are given.
      */
     public static List<JnlpProtocol> createProtocols(String secretKey, String slaveName) {
-        List<JnlpProtocol> protocols = new ArrayList<JnlpProtocol>();
-        // New protocols should be tried first.
-        protocols.add(new JnlpProtocol2(secretKey, slaveName));
-        protocols.add(new JnlpProtocol1(secretKey, slaveName));
-
-        return protocols;
+        return Arrays.asList(
+            new JnlpProtocol2(secretKey, slaveName),
+            new JnlpProtocol1(secretKey, slaveName)
+        );
     }
 }
