@@ -1,0 +1,76 @@
+/*
+ * The MIT License
+ * 
+ * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+package org.jenkinsci.remoting.engine;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+/**
+ * Engine utility methods.
+ *
+ * @author Akshay Dayal
+ */
+public class EngineUtil {
+
+    /**
+     * Read until '\n' and returns it as a string.
+     *
+     * @param inputStream The input stream to read from.
+     * @return The line read.
+     * @throws IOException
+     */
+    protected static String readLine(InputStream inputStream) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        while (true) {
+            int ch = inputStream.read();
+            if (ch<0 || ch=='\n') {
+                // Trim off possible '\r'
+                return byteArrayOutputStream.toString("UTF-8").trim();
+            }
+            byteArrayOutputStream.write(ch);
+        }
+    }
+
+    /**
+     * Read headers from a response.
+     *
+     * @param inputStream The input stream to read from.
+     * @return The set of headers stored in a {@link Properties}.
+     * @throws IOException
+     */
+    protected static Properties readResponseHeaders(BufferedInputStream inputStream) throws IOException {
+        Properties response = new Properties();
+        while (true) {
+            String line = EngineUtil.readLine(inputStream);
+            if (line.length()==0) {
+                return response;
+            }
+            int idx = line.indexOf(':');
+            response.put(line.substring(0,idx).trim(), line.substring(idx+1).trim());
+        }
+    }
+}

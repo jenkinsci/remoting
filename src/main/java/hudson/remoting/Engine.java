@@ -24,23 +24,22 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
+import org.jenkinsci.remoting.engine.JnlpProtocol;
+import org.jenkinsci.remoting.engine.JnlpProtocolFactory;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
-import java.util.Properties;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.List;
-import java.util.Collections;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.INFO;
@@ -105,13 +104,6 @@ public class Engine extends Thread {
 
     private boolean noReconnect;
 
-    /**
-     * This cookie identifiesof the current connection, allowing us to force the server to drop
-     * the client if we initiate a reconnection from our end (even when the server still thinks
-     * the connection is alive.)
-     */
-    private String cookie;
-
     private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
 
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
@@ -163,6 +155,9 @@ public class Engine extends Thread {
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     @Override
     public void run() {
+        // Create the protocols that will be attempted to connect to the master.
+        List<JnlpProtocol> protocols = JnlpProtocolFactory.createProtocols(secretKey, slaveName);
+
         try {
             boolean first = true;
             while(true) {
@@ -184,17 +179,15 @@ public class Engine extends Thread {
 
                     // find out the TCP port
                     HttpURLConnection con = (HttpURLConnection)salURL.openConnection();
-                    if (con instanceof HttpURLConnection) {
-                    	if (credentials != null) {
-                    		// TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
-                    		String encoding = Base64.encode(credentials.getBytes("UTF-8"));
-                    		con.setRequestProperty("Authorization", "Basic " + encoding);
-                    	}
-                    	
-                    	if (proxyCredentials != null) {
-    	                    String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
-    	                    con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
-                    	}
+                    if (credentials != null) {
+                        // TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
+                        String encoding = Base64.encode(credentials.getBytes("UTF-8"));
+                        con.setRequestProperty("Authorization", "Basic " + encoding);
+                    }
+
+                    if (proxyCredentials != null) {
+   	                String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
+   	                con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
                     }
                     try {
                         try {
@@ -234,54 +227,41 @@ public class Engine extends Thread {
                     return;
                 }
 
-                Socket s = connect(port);
-
                 events.status("Handshaking");
+                Socket jnlpSocket = connect(port);
+                DataOutputStream outputStream = new DataOutputStream(jnlpSocket.getOutputStream());
+                BufferedInputStream inputStream = new BufferedInputStream(jnlpSocket.getInputStream());
+                boolean connected = false;
 
-                DataOutputStream dos = new DataOutputStream(s.getOutputStream());
-                BufferedInputStream in = new BufferedInputStream(s.getInputStream());
+                // Try available protocols.
+                for (JnlpProtocol protocol : protocols) {
+                    events.status("Trying protocol: " + protocol.getName());
+                    String response = protocol.performHandshake(outputStream, inputStream);
 
-                dos.writeUTF("Protocol:JNLP2-connect");
-                Properties props = new Properties();
-                props.put("Secret-Key", secretKey);
-                props.put("Node-Name", slaveName);
-                if (cookie!=null)
-                    props.put("Cookie", cookie);
-                ByteArrayOutputStream o = new ByteArrayOutputStream();
-                props.store(o, null);
-                dos.writeUTF(o.toString("UTF-8"));
-
-                String greeting = readLine(in);
-                if (greeting.startsWith("Unknown protocol")) {
-                    LOGGER.info("The server didn't understand the v2 handshake. Falling back to v1 handshake");
-                    s.close();
-                    s = connect(port);
-                    in = new BufferedInputStream(s.getInputStream());
-                    dos = new DataOutputStream(s.getOutputStream());
-
-                    dos.writeUTF("Protocol:JNLP-connect");
-                    dos.writeUTF(secretKey);
-                    dos.writeUTF(slaveName);
-
-                    greeting = readLine(in); // why, oh why didn't I use DataOutputStream when writing to the network?
-                    if (!greeting.equals(GREETING_SUCCESS)) {
-                        onConnectionRejected(greeting);
-                        continue;
+                    // On success do not try other protocols.
+                    if (response.equals(GREETING_SUCCESS)) {
+                        connected = true;
+                        break;
                     }
-                } else {
-                    if (greeting.equals(GREETING_SUCCESS)) {
-                        Properties responses = readResponseHeaders(in);
-                        cookie = responses.getProperty("Cookie");
-                    } else {
-                        onConnectionRejected(greeting);
-                        continue;
-                    }
+
+                    // On failure log the response and form a new connection.
+                    events.status("Server didn't understand the protocol: " + response);
+                    jnlpSocket.close();
+                    jnlpSocket = connect(port);
+                    outputStream = new DataOutputStream(jnlpSocket.getOutputStream());
+                    inputStream = new BufferedInputStream(jnlpSocket.getInputStream());
+                }
+
+                // If no protocol worked.
+                if (!connected) {
+                    onConnectionRejected("None of the protocols were accepted");
+                    continue;
                 }
 
                 final Channel channel = new ChannelBuilder("channel", executor)
                         .withJarCache(jarCache)
                         .withMode(Mode.BINARY)
-                        .build(in, new BufferedOutputStream(s.getOutputStream()));
+                        .build(inputStream, new BufferedOutputStream(jnlpSocket.getOutputStream()));
 
                 events.status("Connected");
                 channel.join();
@@ -305,30 +285,6 @@ public class Engine extends Thread {
     private void onConnectionRejected(String greeting) throws InterruptedException {
         events.error(new Exception("The server rejected the connection: "+greeting));
         Thread.sleep(10*1000);
-    }
-
-    private Properties readResponseHeaders(BufferedInputStream in) throws IOException {
-        Properties response = new Properties();
-        while (true) {
-            String line = readLine(in);
-            if (line.length()==0)
-                return response;
-            int idx = line.indexOf(':');
-            response.put(line.substring(0,idx).trim(), line.substring(idx+1).trim());
-        }
-    }
-
-    /**
-     * Read until '\n' and returns it as a string.
-     */
-    private static String readLine(InputStream in) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        while (true) {
-            int ch = in.read();
-            if (ch<0 || ch=='\n')
-                return baos.toString("UTF-8").trim(); // trim off possible '\r'
-            baos.write(ch);
-        }
     }
 
     /**
@@ -416,5 +372,9 @@ public class Engine extends Thread {
 
     private static final Logger LOGGER = Logger.getLogger(Engine.class.getName());
 
-    public static final String GREETING_SUCCESS = "Welcome";
+    /**
+     * @deprecated Use {@link JnlpProtocol#GREETING_SUCCESS}.
+     */
+    @Deprecated
+    public static final String GREETING_SUCCESS = JnlpProtocol.GREETING_SUCCESS;
 }
