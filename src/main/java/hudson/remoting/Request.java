@@ -256,21 +256,22 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
             }
 
             public RSP get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                synchronized(Request.this) {
+                synchronized (Request.this) {
                     // wait until the response arrives
                     // Note that the wait method can wake up for no reasons at all (AKA spurious wakeup),
-                    long end = System.currentTimeMillis() + unit.toMillis(timeout);
-                    long now;
-                    while(response==null && (now=System.currentTimeMillis())<end) {
+                    long now = System.nanoTime();
+                    long end = now + unit.toNanos(timeout);
+                    while (response == null && (end - now > 0L)) {
                         if (isCancelled()) {
                             throw new CancellationException();
                         }
-                        Request.this.wait(Math.max(1,end-now));
+                        Request.this.wait(Math.max(1, TimeUnit.NANOSECONDS.toMillis(end - now)));
+                        now = System.nanoTime();
                     }
-                    if(response==null)
+                    if (response == null)
                         throw new TimeoutException();
 
-                    if(response.exception!=null)
+                    if (response.exception != null)
                         throw new ExecutionException(response.exception);
 
                     return response.returnValue;

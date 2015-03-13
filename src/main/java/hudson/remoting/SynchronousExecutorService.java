@@ -33,12 +33,16 @@ class SynchronousExecutorService extends AbstractExecutorService {
     }
 
     public synchronized boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-        long end = System.currentTimeMillis() + unit.toMillis(timeout);
+        long now = System.nanoTime();
+        long end = now + unit.toNanos(timeout);
 
         while (count!=0) {
-            long d = end - System.currentTimeMillis();
-            if (d<0)    return false;
-            wait(d);
+            long d = end - now;
+            if (d<=0) {
+                return false;
+            }
+            wait(TimeUnit.NANOSECONDS.toMillis(d));
+            now = System.nanoTime();
         }
         return true;
     }
