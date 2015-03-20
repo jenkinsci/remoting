@@ -170,6 +170,7 @@ public class Engine extends Thread {
 
                 events.status("Locating server among " + candidateUrls);
                 Throwable firstError=null;
+                String host=null;
                 String port=null;
 
                 for (URL url : candidateUrls) {
@@ -211,6 +212,8 @@ public class Engine extends Thread {
                                 firstError = new Exception(url+" is not Jenkins");
                             continue;
                         }
+                        host = con.getHeaderField("X-Jenkins-JNLP-Host"); // controlled by hudson.TcpSlaveAgentListener.hostName
+                        if (host == null) host=url.getHost();
                     } finally {
                         con.disconnect();
                     }
@@ -228,7 +231,7 @@ public class Engine extends Thread {
                 }
 
                 events.status("Handshaking");
-                Socket jnlpSocket = connect(port);
+                Socket jnlpSocket = connect(host,port);
                 DataOutputStream outputStream = new DataOutputStream(jnlpSocket.getOutputStream());
                 BufferedInputStream inputStream = new BufferedInputStream(jnlpSocket.getInputStream());
                 boolean connected = false;
@@ -247,7 +250,7 @@ public class Engine extends Thread {
                     // On failure log the response and form a new connection.
                     events.status("Server didn't understand the protocol: " + response);
                     jnlpSocket.close();
-                    jnlpSocket = connect(port);
+                    jnlpSocket = connect(host,port);
                     outputStream = new DataOutputStream(jnlpSocket.getOutputStream());
                     inputStream = new BufferedInputStream(jnlpSocket.getInputStream());
                 }
@@ -288,10 +291,9 @@ public class Engine extends Thread {
     }
 
     /**
-     * Connects to TCP slave port, with a few retries.
+     * Connects to TCP slave host:port, with a few retries.
      */
-    private Socket connect(String port) throws IOException, InterruptedException {
-        String host = this.hudsonUrl.getHost();
+    private Socket connect(String host, String port) throws IOException, InterruptedException {
 
         if(tunnel!=null) {
             String[] tokens = tunnel.split(":",3);
