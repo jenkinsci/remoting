@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
+import org.jenkinsci.remoting.engine.EngineUtil;
 import org.jenkinsci.remoting.engine.JnlpProtocol;
 import org.jenkinsci.remoting.engine.JnlpProtocolFactory;
 
@@ -33,16 +34,22 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
+import java.net.MalformedURLException;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.INFO;
+import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
 
 /**
  * Slave agent engine that proactively connects to Jenkins master.
@@ -179,7 +186,7 @@ public class Engine extends Thread {
                     URL salURL = new URL(s+"tcpSlaveAgentListener/");
 
                     // find out the TCP port
-                    HttpURLConnection con = (HttpURLConnection)salURL.openConnection();
+                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL);
                     if (credentials != null) {
                         // TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
                         String encoding = Base64.encode(credentials.getBytes("UTF-8"));
@@ -187,8 +194,8 @@ public class Engine extends Thread {
                     }
 
                     if (proxyCredentials != null) {
-   	                String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
-   	                con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+                        String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
+                        con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
                     }
                     try {
                         try {
@@ -308,7 +315,29 @@ public class Engine extends Thread {
         int retry = 1;
         while(true) {
             try {
-                Socket s = new Socket(host, Integer.parseInt(port));
+                boolean isProxy = false;
+                Socket s;
+                if (System.getProperty("http.proxyHost") != null) {
+                    String proxyHost = System.getProperty("http.proxyHost");
+                    String proxyPort = System.getProperty("http.proxyPort", "80");
+                    s = new Socket(proxyHost, Integer.parseInt(proxyPort));
+                    isProxy = true;
+                } else {
+                    String httpProxy = System.getenv("http_proxy");
+                    if (httpProxy != null) {
+                        try {
+                            URL url = new URL(httpProxy);
+                            s = new Socket(url.getHost(), url.getPort());
+                            isProxy = true;
+                        } catch (MalformedURLException e) {
+                            System.err.println("Not use http_proxy environment variable which is invalid: "+e.getMessage());
+                            s = new Socket(host, Integer.parseInt(port));
+                        }
+                    } else {
+                        s = new Socket(host, Integer.parseInt(port));
+                    }
+                }
+
                 s.setTcpNoDelay(true); // we'll do buffering by ourselves
 
                 // set read time out to avoid infinite hang. the time out should be long enough so as not
@@ -316,6 +345,20 @@ public class Engine extends Thread {
                 // abruptly, we shouldn't hang forever, and at some point we should notice that the connection
                 // is gone.
                 s.setSoTimeout(30*60*1000); // 30 mins. See PingThread for the ping interval
+
+                if (isProxy) {
+                    String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
+                    s.getOutputStream().write(connectCommand.getBytes());
+
+                    BufferedInputStream is = new BufferedInputStream(s.getInputStream());
+                    String line = readLine(is);
+                    String[] responseLineParts = line.split(" ");
+                    if(responseLineParts.length < 2 || !responseLineParts[1].equals("200"))
+                        throw new IOException("Got a bad response from proxy: " + line);
+                    while(!readLine(is).isEmpty()) {
+                        // Do nothing, scrolling through headers returned from proxy
+                    }
+                }
                 return s;
             } catch (IOException e) {
                 if(retry++>10)

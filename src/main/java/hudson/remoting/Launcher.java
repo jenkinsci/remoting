@@ -253,7 +253,7 @@ public class Launcher {
         }
         while (true) {
             try {
-                URLConnection con = slaveJnlpURL.openConnection();
+                URLConnection con = Util.openURLConnection(slaveJnlpURL);
                 if (con instanceof HttpURLConnection) {
                     HttpURLConnection http = (HttpURLConnection) con;
                     if  (slaveJnlpCredentials != null) {

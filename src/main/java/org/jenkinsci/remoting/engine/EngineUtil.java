@@ -31,6 +31,8 @@ import java.util.Properties;
 
 /**
  * Engine utility methods.
+ * 
+ * Internal class. DO NOT USE FROM OUTSIDE.
  *
  * @author Akshay Dayal
  */
@@ -43,7 +45,7 @@ public class EngineUtil {
      * @return The line read.
      * @throws IOException
      */
-    protected static String readLine(InputStream inputStream) throws IOException {
+    public static String readLine(InputStream inputStream) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         while (true) {
             int ch = inputStream.read();
