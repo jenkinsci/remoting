@@ -348,7 +348,7 @@ public class Engine extends Thread {
 
                 if (isProxy) {
                     String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
-                    s.getOutputStream().write(connectCommand.getBytes());
+                    s.getOutputStream().write(connectCommand.getBytes("UTF-8")); // TODO: internationalized domain names
 
                     BufferedInputStream is = new BufferedInputStream(s.getInputStream());
                     String line = readLine(is);
