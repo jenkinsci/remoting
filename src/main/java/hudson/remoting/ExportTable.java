@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
-import static java.util.logging.Level.SEVERE;
+import static java.util.logging.Level.*;
 
 /**
  * Manages unique ID for exported objects, and allows look-up from IDs.
@@ -336,6 +336,38 @@ final class ExportTable {
         if(e!=null) return e.getInterfaces();
 
         throw diagnoseInvalidId(id);
+    }
+
+    /**
+     * Propagate a channel termination error to all the exported objects.
+     * 
+     * <p>
+     * Exported {@link Pipe}s are vulnerable to infinite blocking
+     * when the channel is lost and the sender side is cut off. The reader
+     * end will not see that the writer has disappeared.
+     */
+    public void abort(Throwable e) {
+        List<Entry<?>> values;
+        synchronized (this) {
+            values = new ArrayList<Entry<?>>(table.values());
+        }
+        for (Entry<?> v : values) {
+            if (v.object instanceof ErrorPropagatingOutputStream) {
+                try {
+                    ((ErrorPropagatingOutputStream)v.object).error(e);
+                } catch (IOException x) {
+                    LOGGER.log(INFO, "Failed to propagate a channel termination error",x);
+                }
+            }
+        }
+        
+        // clear the references to allow exported objects to get GCed.
+        // don't bother putting them into #unexportLog because this channel
+        // is forever closed.
+        synchronized (this) {
+            table.clear();
+            reverse.clear();
+        }
     }
 
     private synchronized IllegalStateException diagnoseInvalidId(int id) {

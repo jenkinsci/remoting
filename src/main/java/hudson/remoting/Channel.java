@@ -822,6 +822,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                         }
                         executingCalls.clear();
                     }
+                    exportedObjects.abort(e);
                 } finally {
                     notifyAll();
                 }
