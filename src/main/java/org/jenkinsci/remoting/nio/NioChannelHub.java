@@ -541,6 +541,7 @@ public class NioChannelHub implements Runnable, Closeable {
                     selectorThread.setName("NioChannelHub keys=" + selector.keys().size() + " gen=" + (gen++) + ": " + oldName);
                     selector.select();
                 } catch (IOException e) {
+                    whatKilledSelectorThread = e;
                     LOGGER.log(WARNING, "Failed to select", e);
                     abortAll(e);
                     return;
@@ -645,18 +646,20 @@ public class NioChannelHub implements Runnable, Closeable {
             // TODO: what happens to all the registered ChannelPairs? don't we need to shut them down?
             whatKilledSelectorThread = e;
         } catch (RuntimeException e) {
-            abortAll(e);
-            LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
             whatKilledSelectorThread = e;
+            LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
+            abortAll(e);
             throw e;
         } catch (Error e) {
-            abortAll(e);
-            LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
             whatKilledSelectorThread = e;
+            LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
+            abortAll(e);
             throw e;
         } finally {
             selectorThread.setName(oldName);
             selectorThread = null;
+            if (whatKilledSelectorThread==null)
+                whatKilledSelectorThread = new AssertionError("NioChannelHub shouldn't exit normally");
         }
     }
 
