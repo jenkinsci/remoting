@@ -485,8 +485,7 @@ public class NioChannelHub implements Runnable, Closeable {
                         throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                     }
 
-                    if (selectorThread==null)
-                        throw new IOException("NioChannelHub is not currently running",whatKilledSelectorThread);
+                    ensureValid();
 
                     NioTransport t;
                     if (r==w)       t = new MonoNioTransport(getName(),r,cap);
