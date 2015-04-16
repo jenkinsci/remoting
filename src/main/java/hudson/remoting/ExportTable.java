@@ -355,7 +355,7 @@ final class ExportTable {
             if (v.object instanceof ErrorPropagatingOutputStream) {
                 try {
                     ((ErrorPropagatingOutputStream)v.object).error(e);
-                } catch (IOException x) {
+                } catch (Throwable x) {
                     LOGGER.log(INFO, "Failed to propagate a channel termination error",x);
                 }
             }
