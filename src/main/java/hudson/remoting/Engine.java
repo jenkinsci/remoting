@@ -24,25 +24,18 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
-import org.jenkinsci.remoting.engine.EngineUtil;
 import org.jenkinsci.remoting.engine.JnlpProtocol;
 import org.jenkinsci.remoting.engine.JnlpProtocolFactory;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
+import java.net.MalformedURLException;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.net.URL;
 import java.util.Collections;
 import java.util.List;
-import java.net.MalformedURLException;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -163,7 +156,7 @@ public class Engine extends Thread {
     @Override
     public void run() {
         // Create the protocols that will be attempted to connect to the master.
-        List<JnlpProtocol> protocols = JnlpProtocolFactory.createProtocols(secretKey, slaveName);
+        List<JnlpProtocol> protocols = JnlpProtocolFactory.createProtocols(slaveName, secretKey, events);
 
         try {
             boolean first = true;
@@ -239,39 +232,35 @@ public class Engine extends Thread {
 
                 events.status("Handshaking");
                 Socket jnlpSocket = connect(host,port);
-                DataOutputStream outputStream = new DataOutputStream(jnlpSocket.getOutputStream());
-                BufferedInputStream inputStream = new BufferedInputStream(jnlpSocket.getInputStream());
-                boolean connected = false;
+                ChannelBuilder channelBuilder = new ChannelBuilder("channel", executor)
+                        .withJarCache(jarCache)
+                        .withMode(Mode.BINARY);
+                Channel channel = null;
 
                 // Try available protocols.
                 for (JnlpProtocol protocol : protocols) {
                     events.status("Trying protocol: " + protocol.getName());
-                    String response = protocol.performHandshake(outputStream, inputStream);
+                    try {
+                        channel = protocol.establishChannel(jnlpSocket, channelBuilder);
+                    } catch (IOException ioe) {
+                        events.status("Protocol failed to establish channel", ioe);
+                    }
 
                     // On success do not try other protocols.
-                    if (response.equals(GREETING_SUCCESS)) {
-                        connected = true;
+                    if (channel != null) {
                         break;
                     }
 
-                    // On failure log the response and form a new connection.
-                    events.status("Server didn't understand the protocol: " + response);
+                    // On failure form a new connection.
                     jnlpSocket.close();
                     jnlpSocket = connect(host,port);
-                    outputStream = new DataOutputStream(jnlpSocket.getOutputStream());
-                    inputStream = new BufferedInputStream(jnlpSocket.getInputStream());
                 }
 
                 // If no protocol worked.
-                if (!connected) {
+                if (channel == null) {
                     onConnectionRejected("None of the protocols were accepted");
                     continue;
                 }
-
-                final Channel channel = new ChannelBuilder("channel", executor)
-                        .withJarCache(jarCache)
-                        .withMode(Mode.BINARY)
-                        .build(inputStream, new BufferedOutputStream(jnlpSocket.getOutputStream()));
 
                 events.status("Connected");
                 channel.join();

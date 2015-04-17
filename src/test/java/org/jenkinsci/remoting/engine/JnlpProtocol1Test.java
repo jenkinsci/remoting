@@ -23,20 +23,32 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import hudson.remoting.Channel;
+import hudson.remoting.ChannelBuilder;
+import hudson.remoting.EngineListenerSplitter;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.verify;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.inOrder;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
+import static org.powermock.api.mockito.PowerMockito.whenNew;
 
 /**
  * Tests for {@link JnlpProtocol1}.
@@ -50,13 +62,22 @@ public class JnlpProtocol1Test {
     private static final String SECRET = "secret";
     private static final String SLAVE_NAME = "slave-name";
 
+    @Mock private Socket mockSocket;
+    @Mock private ChannelBuilder mockChannelBuilder;
+    @Mock private Channel mockChannel;
+    @Mock private OutputStream mockOutputStream;
+    @Mock private InputStream mockInputStream;
+    @Mock private DataOutputStream mockDataOutputStream;
+    @Mock private BufferedOutputStream mockBufferedOutputStream;
+    @Mock private BufferedInputStream mockBufferedInputStream;
+    @Mock private EngineListenerSplitter mockEvents;
     private JnlpProtocol1 protocol;
-    @Mock private DataOutputStream outputStream;
-    @Mock private BufferedInputStream inputStream;
+    private InOrder inOrder;
 
     @Before
     public void setUp() throws Exception {
-        protocol = new JnlpProtocol1(SECRET, SLAVE_NAME);
+        protocol = new JnlpProtocol1(SLAVE_NAME, SECRET, mockEvents);
+        inOrder = inOrder(mockDataOutputStream);
     }
 
     @Test
@@ -65,14 +86,37 @@ public class JnlpProtocol1Test {
     }
 
     @Test
-    public void testPerformHandshake() throws Exception {
+    public void testPerformHandshakeFails() throws Exception {
         mockStatic(EngineUtil.class);
-        when(EngineUtil.readLine(inputStream)).thenReturn("response");
+        when(EngineUtil.readLine(mockBufferedInputStream)).thenReturn("bad-response");
 
-        assertEquals("response", protocol.performHandshake(outputStream, inputStream));
+        assertFalse(protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
 
-        verify(outputStream).writeUTF("Protocol:JNLP-connect");
-        verify(outputStream).writeUTF(SECRET);
-        verify(outputStream).writeUTF(SLAVE_NAME);
+        inOrder.verify(mockDataOutputStream).writeUTF("Protocol:JNLP-connect");
+        inOrder.verify(mockDataOutputStream).writeUTF(SECRET);
+        inOrder.verify(mockDataOutputStream).writeUTF(SLAVE_NAME);
+    }
+
+    @Test
+    public void testPerformHandshakeSucceeds() throws Exception {
+        mockStatic(EngineUtil.class);
+        when(EngineUtil.readLine(mockBufferedInputStream)).thenReturn(JnlpProtocol.GREETING_SUCCESS);
+
+        assertTrue(protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
+
+        inOrder.verify(mockDataOutputStream).writeUTF("Protocol:JNLP-connect");
+        inOrder.verify(mockDataOutputStream).writeUTF(SECRET);
+        inOrder.verify(mockDataOutputStream).writeUTF(SLAVE_NAME);
+    }
+
+    @Test
+    public void testBuildChannel() throws Exception {
+        when(mockSocket.getOutputStream()).thenReturn(mockOutputStream);
+        when(mockSocket.getInputStream()).thenReturn(mockInputStream);
+        whenNew(BufferedOutputStream.class).withArguments(mockOutputStream).thenReturn(mockBufferedOutputStream);
+        whenNew(BufferedInputStream.class).withArguments(mockInputStream).thenReturn(mockBufferedInputStream);
+        when(mockChannelBuilder.build(mockBufferedInputStream, mockBufferedOutputStream)).thenReturn(mockChannel);
+
+        assertSame(mockChannel, protocol.buildChannel(mockSocket, mockChannelBuilder));
     }
 }

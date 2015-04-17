@@ -49,6 +49,12 @@ public class EngineUtilTest {
     }
 
     @Test
+    public void testReadChars() throws Exception {
+        assertEquals("first", EngineUtil.readChars(stringToStream("firstsecond"), 5));
+        assertEquals("", EngineUtil.readChars(stringToStream("firstsecond"), 0));
+    }
+
+    @Test
     public void testReadResponseHeadersNonePresent() throws Exception {
         assertEquals(new Properties(), EngineUtil.readResponseHeaders(stringToStream("")));
     }
