@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
-import static java.util.logging.Level.SEVERE;
+import static java.util.logging.Level.*;
 
 /**
  * Manages unique ID for exported objects, and allows look-up from IDs.
@@ -265,13 +265,13 @@ final class ExportTable {
      *
      * @see ExportList#stopRecording()
      */
-    public ExportList startRecording() {
+    ExportList startRecording() {
         ExportList el = new ExportList();
         lists.set(el);
         return el;
     }
 
-    public boolean isRecording() {
+    boolean isRecording() {
         return lists.get()!=null;
     }
 
@@ -288,7 +288,7 @@ final class ExportTable {
      * @param clazz
      * @param t
      */
-    public synchronized <T> int export(Class<T> clazz, T t) {
+    synchronized <T> int export(Class<T> clazz, T t) {
         return export(clazz, t,true);
     }
 
@@ -297,7 +297,7 @@ final class ExportTable {
      * @param notifyListener
      *      If false, listener will not be notified. This is used to
      */
-    public synchronized <T> int export(Class<T> clazz, T t, boolean notifyListener) {
+    synchronized <T> int export(Class<T> clazz, T t, boolean notifyListener) {
         if(t==null)    return 0;   // bootstrap classloader
 
         Entry e = reverse.get(t);
@@ -322,7 +322,7 @@ final class ExportTable {
             e.pin();
     }
 
-    public synchronized @Nonnull
+    synchronized @Nonnull
     Object get(int id) {
         Entry e = table.get(id);
         if(e!=null) return e.object;
@@ -330,12 +330,44 @@ final class ExportTable {
         throw diagnoseInvalidId(id);
     }
 
-    public synchronized @Nonnull
+    synchronized @Nonnull
     Class[] type(int id) {
         Entry e = table.get(id);
         if(e!=null) return e.getInterfaces();
 
         throw diagnoseInvalidId(id);
+    }
+
+    /**
+     * Propagate a channel termination error to all the exported objects.
+     * 
+     * <p>
+     * Exported {@link Pipe}s are vulnerable to infinite blocking
+     * when the channel is lost and the sender side is cut off. The reader
+     * end will not see that the writer has disappeared.
+     */
+    void abort(Throwable e) {
+        List<Entry<?>> values;
+        synchronized (this) {
+            values = new ArrayList<Entry<?>>(table.values());
+        }
+        for (Entry<?> v : values) {
+            if (v.object instanceof ErrorPropagatingOutputStream) {
+                try {
+                    ((ErrorPropagatingOutputStream)v.object).error(e);
+                } catch (Throwable x) {
+                    LOGGER.log(INFO, "Failed to propagate a channel termination error",x);
+                }
+            }
+        }
+        
+        // clear the references to allow exported objects to get GCed.
+        // don't bother putting them into #unexportLog because this channel
+        // is forever closed.
+        synchronized (this) {
+            table.clear();
+            reverse.clear();
+        }
     }
 
     private synchronized IllegalStateException diagnoseInvalidId(int id) {
@@ -370,7 +402,7 @@ final class ExportTable {
     /**
      * Removes the exported object for the specified oid from the table.
      */
-    public synchronized void unexportByOid(Integer oid, Throwable callSite) {
+    synchronized void unexportByOid(Integer oid, Throwable callSite) {
         if(oid==null)     return;
         Entry e = table.get(oid);
         if(e==null) {
@@ -385,7 +417,7 @@ final class ExportTable {
     /**
      * Dumps the contents of the table to a file.
      */
-    public synchronized void dump(PrintWriter w) throws IOException {
+    synchronized void dump(PrintWriter w) throws IOException {
         for (Entry e : table.values()) {
             e.dump(w);
         }
