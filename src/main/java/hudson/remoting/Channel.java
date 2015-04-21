@@ -1452,7 +1452,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         // dead-lock prevention.
         //
         // creating a new proxy class is a classloading activity, so it can create a dead-lock situation
-        // if thread A starts classloading via RemoteClassLoader.ladClass(),
+        // if thread A starts classloading via RemoteClassLoader.loadClass(),
         // then thread B use JarCacheSupport.prefetch and tries to create a proxy for JarLoader
         //    (which blocks as Proxy.getProxyClass waits for RemoteClassLoader.defineClass lock by thread A)
         // then thread A tries to touch JarLoader proxy (which blocks on thread B)
