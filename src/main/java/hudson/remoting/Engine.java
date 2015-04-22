@@ -83,10 +83,10 @@ public class Engine extends Thread {
     private final EngineListenerSplitter events = new EngineListenerSplitter();
 
     /**
-     * To make Hudson more graceful against user error,
-     * JNLP agent can try to connect to multiple possible Hudson URLs.
+     * To make Jenkins more graceful against user error,
+     * JNLP agent can try to connect to multiple possible Jenkins URLs.
      * This field specifies those candidate URLs, such as
-     * "http://foo.bar/hudson/".
+     * "http://foo.bar/jenkins/".
      */
     private List<URL> candidateUrls;
 
