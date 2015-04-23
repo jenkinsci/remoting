@@ -47,15 +47,16 @@ import java.util.Properties;
  * then setup an encrypted {@link Channel}.
  *
  * <p>The slave secret is never exchanged, but instead used as a shared secret
- * to generate symmetric key {@link javax.crypto.Cipher}s that can be used to
- * perform a secure handshake. During the handshake both the slave and the
- * master send each other challenge phrases which can only be decrypted with
- * the correct cipher created with the slave secret. Once decrypted the SHA-256
- * hash of the challenge is computed and sent back to authenticate.
+ * to generate matching symmetric key {@link javax.crypto.Cipher}s by both
+ * sides which are used to perform a secure handshake. During the handshake
+ * both the slave and the master send each other challenge phrases which can
+ * only be decrypted with the matching cipher created with the slave secret.
+ * Once decrypted the SHA-256 hash of the challenge is computed and sent back
+ * to authenticate.
  *
- * <p>Once the handshake is successful another pair of symmetric key ciphers is
- * created using random keys that are exchanged. These ciphers are used to
- * create an encrypted channel.
+ * <p>Once the handshake is successful another pair of symmetric key ciphers
+ * are created by the slave using random keys. These are then shared with the
+ * master. These ciphers are used to create an encrypted channel by both sides.
  *
  * <p>The following goes over the handshake in more detail:
  * <pre>
