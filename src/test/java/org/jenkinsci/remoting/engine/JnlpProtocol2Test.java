@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
+ * Copyright (c) 2004-2015, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,13 +41,13 @@ import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.util.Date;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.inOrder;
 import static org.powermock.api.mockito.PowerMockito.mockStatic;
 import static org.powermock.api.mockito.PowerMockito.when;
@@ -59,14 +59,13 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
  * @author Akshay Dayal
  */
 @RunWith(PowerMockRunner.class)
-@PrepareForTest({JnlpProtocol2.class, EngineUtil.class})
+@PrepareForTest({EngineUtil.class, JnlpProtocol2.class})
 public class JnlpProtocol2Test {
 
     private static final String SECRET = "secret";
     private static final String SLAVE_NAME = "slave-name";
     private static final String COOKIE = "some-cookie";
     private static final String COOKIE2 = "some-other-cookie";
-    private static final Date THE_DATE = new Date();
 
     @Mock private Socket mockSocket;
     @Mock private ChannelBuilder mockChannelBuilder;
@@ -84,6 +83,7 @@ public class JnlpProtocol2Test {
     public void setUp() throws Exception {
         protocol = new JnlpProtocol2(SLAVE_NAME, SECRET, mockEvents);
         inOrder = inOrder(mockDataOutputStream);
+        mockStatic(EngineUtil.class);
     }
 
     @Test
@@ -93,31 +93,23 @@ public class JnlpProtocol2Test {
 
     @Test
     public void testPerformHandshakeFails() throws Exception {
-        // The date comment when writing properties to stream should be the
-        // same in the scope of the tests.
-        whenNew(Date.class).withNoArguments().thenReturn(THE_DATE);
-
         Properties expectedProperties = new Properties();
         expectedProperties.put(JnlpProtocol2.SECRET_KEY, SECRET);
         expectedProperties.put(JnlpProtocol2.SLAVE_NAME_KEY, SLAVE_NAME);
         ByteArrayOutputStream expectedPropertiesStream = new ByteArrayOutputStream();
         expectedProperties.store(expectedPropertiesStream, null);
 
-        mockStatic(EngineUtil.class);
         when(EngineUtil.readLine(mockBufferedInputStream)).thenReturn("error");
 
         assertFalse(protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
 
         inOrder.verify(mockDataOutputStream).writeUTF("Protocol:JNLP2-connect");
-        inOrder.verify(mockDataOutputStream).writeUTF(expectedPropertiesStream.toString("UTF-8"));
+        inOrder.verify(mockDataOutputStream).writeUTF(argThat(
+                new PropertiesStringMatcher(expectedPropertiesStream.toString("UTF-8"))));
     }
 
     @Test
     public void testPerformHandshakeSucceeds() throws Exception {
-        // The date comment when writing properties to stream should be the
-        // same in the scope of the tests.
-        whenNew(Date.class).withNoArguments().thenReturn(THE_DATE);
-
         // Properties slave sends to master.
         Properties expectedProperties = new Properties();
         expectedProperties.put(JnlpProtocol2.SECRET_KEY, SECRET);
@@ -128,7 +120,6 @@ public class JnlpProtocol2Test {
         Properties responseProperties = new Properties();
         responseProperties.put(JnlpProtocol2.COOKIE_KEY, COOKIE);
 
-        mockStatic(EngineUtil.class);
         when(EngineUtil.readLine(mockBufferedInputStream)).thenReturn(JnlpProtocol.GREETING_SUCCESS);
         when(EngineUtil.readResponseHeaders(mockBufferedInputStream)).thenReturn(responseProperties);
 
@@ -136,24 +127,23 @@ public class JnlpProtocol2Test {
         assertEquals(COOKIE, protocol.getCookie());
 
         inOrder.verify(mockDataOutputStream).writeUTF("Protocol:JNLP2-connect");
-        inOrder.verify(mockDataOutputStream).writeUTF(expectedPropertiesStream.toString("UTF-8"));
+        inOrder.verify(mockDataOutputStream).writeUTF(argThat(
+                new PropertiesStringMatcher(expectedPropertiesStream.toString("UTF-8"))));
     }
 
     @Test
     public void testRepeatedHandshakeSendsCookie() throws Exception {
-        // The date comment when writing properties to stream should be the
-        // same in the scope of the tests.
-        whenNew(Date.class).withNoArguments().thenReturn(THE_DATE);
-
         // Properties slave sends to master the first time.
         Properties expectedProperties = new Properties();
         expectedProperties.put(JnlpProtocol2.SECRET_KEY, SECRET);
         expectedProperties.put(JnlpProtocol2.SLAVE_NAME_KEY, SLAVE_NAME);
         ByteArrayOutputStream expectedPropertiesStream = new ByteArrayOutputStream();
         expectedProperties.store(expectedPropertiesStream, null);
+
         // Properties master sends back first time.
         Properties responseProperties = new Properties();
         responseProperties.put(JnlpProtocol2.COOKIE_KEY, COOKIE);
+
         // Properties slave sends to master the second time.
         Properties expectedProperties2 = new Properties();
         expectedProperties2.put(JnlpProtocol2.SECRET_KEY, SECRET);
@@ -161,11 +151,11 @@ public class JnlpProtocol2Test {
         expectedProperties2.put(JnlpProtocol2.COOKIE_KEY, COOKIE);
         ByteArrayOutputStream expectedPropertiesStream2 = new ByteArrayOutputStream();
         expectedProperties2.store(expectedPropertiesStream2, null);
+
         // Properties master sends back second time.
         Properties responseProperties2 = new Properties();
         responseProperties2.put(JnlpProtocol2.COOKIE_KEY, COOKIE2);
 
-        mockStatic(EngineUtil.class);
         when(EngineUtil.readLine(mockBufferedInputStream)).thenReturn(JnlpProtocol.GREETING_SUCCESS);
         when(EngineUtil.readResponseHeaders(mockBufferedInputStream)).thenReturn(responseProperties)
                 .thenReturn(responseProperties2);
@@ -176,9 +166,11 @@ public class JnlpProtocol2Test {
         assertEquals(COOKIE2, protocol.getCookie());
 
         inOrder.verify(mockDataOutputStream).writeUTF("Protocol:JNLP2-connect");
-        inOrder.verify(mockDataOutputStream).writeUTF(expectedPropertiesStream.toString("UTF-8"));
+        inOrder.verify(mockDataOutputStream).writeUTF(argThat(
+                new PropertiesStringMatcher(expectedPropertiesStream.toString("UTF-8"))));
         inOrder.verify(mockDataOutputStream).writeUTF("Protocol:JNLP2-connect");
-        inOrder.verify(mockDataOutputStream).writeUTF(expectedPropertiesStream2.toString("UTF-8"));
+        inOrder.verify(mockDataOutputStream).writeUTF(argThat(
+                new PropertiesStringMatcher(expectedPropertiesStream2.toString("UTF-8"))));
     }
 
     @Test

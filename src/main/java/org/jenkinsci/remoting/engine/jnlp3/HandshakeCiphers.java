@@ -1,12 +1,36 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2004-2015, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package org.jenkinsci.remoting.engine.jnlp3;
 
-import javax.annotation.Nullable;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.security.spec.KeySpec;
 
 /**
@@ -30,32 +54,38 @@ public class HandshakeCiphers {
         this.decryptCipher = decryptCipher;
     }
 
-    public byte[] getSpecKey() {
-        return spec.getIV();
-    }
-
     /**
      * Encrypt a message that will be sent during the handshake process.
      *
      * @param raw The raw message to encrypt.
-     * @throws Exception If there is an issue encrypting the message.
+     * @throws IOException If there is an issue encrypting the message.
      */
-    public String encrypt(String raw) throws Exception {
-        String encrypted = new String(encryptCipher.doFinal(raw.getBytes("UTF-8")), "ISO-8859-1");
-        encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
-        return encrypted;
+    public String encrypt(String raw) throws IOException {
+        try {
+            String encrypted = new String(encryptCipher.doFinal(
+                    raw.getBytes(Charset.forName("UTF-8"))), Charset.forName("ISO-8859-1"));
+            encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
+            return encrypted;
+        } catch (Exception e) {
+            throw new IOException("Failed to encrypt message", e);
+        }
     }
 
     /**
      * Decrypt a message that was received during the handshake process.
      *
      * @param encrypted The message to decrypt.
-     * @throws Exception If there is an issue decrypting the message.
+     * @throws IOException If there is an issue decrypting the message.
      */
-    public String decrypt(String encrypted) throws Exception {
-        String raw = new String(decryptCipher.doFinal(encrypted.getBytes("ISO-8859-1")), "UTF-8");
-        decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
-        return raw;
+    public String decrypt(String encrypted) throws IOException {
+        try {
+            String raw = new String(decryptCipher.doFinal(
+                    encrypted.getBytes(Charset.forName("ISO-8859-1"))), Charset.forName("UTF-8"));
+            decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
+            return raw;
+        } catch (Exception e) {
+            throw new IOException("Failed to decrypt message", e);
+        }
     }
 
     /**
@@ -63,47 +93,44 @@ public class HandshakeCiphers {
      * will be used during the handshake process.
      *
      * <p>The slave name and slave secret are used to create a
-     * {@link PBEKeySpec} which is then used to create the ciphers. If a
-     * specKey is not provided one will be generated.
-     *
-     * <p>The person initiating the handshake would let a specKey be generated
-     * and send that to the other participant so they will be able to create
-     * identical ciphers.
+     * {@link PBEKeySpec} and an {@link IvParameterSpec}which is then used to
+     * create the ciphers.
      *
      * @param slaveName The slave for which the handshake is taking place.
      * @param slaveSecret The slave secret.
-     * @param specKey The spec key to use.
-     * @throws Exception If there is a problem creating the ciphers.
+     * @throws IOException If there is a problem creating the ciphers.
      */
     public static HandshakeCiphers create(
-            String slaveName, String slaveSecret, @Nullable byte[] specKey) throws Exception {
-        if (specKey == null) {
-            specKey = CipherUtils.generate128BitKey();
+            String slaveName, String slaveSecret) throws IOException {
+        try {
+            byte[] specKey = Jnlp3Util.generate128BitKey(slaveName + slaveSecret);
+            IvParameterSpec spec = new IvParameterSpec(specKey);
+
+            SecretKey secretKey = generateSecretKey(slaveName, slaveSecret);
+            Cipher encryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+            encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
+            Cipher decryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
+            decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
+
+            return new HandshakeCiphers(secretKey, spec, encryptCipher, decryptCipher);
+        } catch (Exception e) {
+            throw new IOException("Failed to create handshake ciphers", e);
         }
-
-        SecretKey secretKey = generateSecretKey(slaveName, slaveSecret);
-        IvParameterSpec spec = new IvParameterSpec(specKey);
-        Cipher encryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-        encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
-        Cipher decryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
-        decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
-
-        return new HandshakeCiphers(secretKey, spec, encryptCipher, decryptCipher);
     }
 
     private static SecretKey generateSecretKey(String slaveName, String slaveSecret)
             throws Exception {
         SecretKeyFactory factory = SecretKeyFactory.getInstance(FACTORY_ALGORITHM);
         KeySpec spec = new PBEKeySpec(
-                slaveSecret.toCharArray(), slaveName.getBytes("UTF-8"),
+                slaveSecret.toCharArray(), slaveName.getBytes(Charset.forName("UTF-8")),
                 INTEGRATION_COUNT, KEY_LENGTH);
         SecretKey tmpSecret = factory.generateSecret(spec);
         return new SecretKeySpec(tmpSecret.getEncoded(), SPEC_ALGORITHM);
     }
 
-    static final String CIPHER_TRANSFORMATION = "AES/CTR/PKCS5Padding";
-    static final String FACTORY_ALGORITHM = "PBKDF2WithHmacSHA1";
-    static final String SPEC_ALGORITHM = "AES";
-    static final int INTEGRATION_COUNT = 65536;
-    static final int KEY_LENGTH = 128;
+    private static final String CIPHER_TRANSFORMATION = "AES/CTR/PKCS5Padding";
+    private static final String FACTORY_ALGORITHM = "PBKDF2WithHmacSHA1";
+    private static final String SPEC_ALGORITHM = "AES";
+    private static final int INTEGRATION_COUNT = 65536;
+    private static final int KEY_LENGTH = 128;
 }
