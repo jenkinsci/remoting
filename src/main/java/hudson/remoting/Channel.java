@@ -55,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 /**
@@ -829,8 +830,16 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             } // JENKINS-14909: leave synch block
         } finally {
             if (e instanceof OrderlyShutdown) e = null;
-            for (Listener l : listeners.toArray(new Listener[0]))
-                l.onClosed(this, e);
+            for (Listener l : listeners.toArray(new Listener[0])) {
+                try {
+                    l.onClosed(this, e);
+                } catch (Throwable t) {
+                    LogRecord lr = new LogRecord(Level.SEVERE, "Listener {0} propagated an exception for channel {1}'s close: {2}");
+                    lr.setThrown(t);
+                    lr.setParameters(new Object[]{l, this, t.getMessage()});
+                    logger.log(lr);
+                }
+            }
         }
     }
 
