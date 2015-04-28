@@ -1,12 +1,12 @@
 package hudson.remoting;
 
 import com.google.common.hash.Hashing;
-import com.google.common.io.Files;
 import org.hamcrest.core.StringContains;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -20,6 +20,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -35,8 +36,8 @@ public class FileSystemJarCacheTest {
 
     private static final String CONTENTS = "These are the contents";
 
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
+    @Rule public ExpectedException expectedEx = ExpectedException.none();
+    @Rule public TemporaryFolder tmp = new TemporaryFolder();
 
     @Mock private Channel mockChannel;
     @Mock private JarLoader mockJarLoader;
@@ -45,12 +46,22 @@ public class FileSystemJarCacheTest {
 
     @Before
     public void setUp() throws Exception {
-        File rootDir = Files.createTempDir();
-        rootDir.deleteOnExit();
-        fileSystemJarCache = new FileSystemJarCache(rootDir, true);
+
+        fileSystemJarCache = new FileSystemJarCache(tmp.getRoot(), true);
 
         expectedChecksum = ChecksumTest.createdExpectedChecksum(
                 Hashing.sha256().hashBytes(CONTENTS.getBytes(Charset.forName("UTF-8"))));
+    }
+
+    @Test
+    public void testRetrieveAlreadyExists() throws Exception {
+        File expectedFile = fileSystemJarCache.map(expectedChecksum.sum1, expectedChecksum.sum2);
+        expectedFile.getParentFile().mkdirs();
+        assertTrue(expectedFile.createNewFile());
+
+        URL url = fileSystemJarCache.retrieve(
+                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+        assertEquals(expectedFile.toURI().toURL(), url);
     }
 
     @Test
@@ -89,8 +100,7 @@ public class FileSystemJarCacheTest {
                 any(RemoteOutputStream.class));
 
         expectedEx.expect(IOException.class);
-        expectedEx.expectCause(hasMessage(
-                StringContains.containsString("Checksum of retrieved jar doesn't match")));
+        expectedEx.expectCause(hasMessage(StringContains.containsString("Incorrect checksum")));
         fileSystemJarCache.retrieve(
                 mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
     }

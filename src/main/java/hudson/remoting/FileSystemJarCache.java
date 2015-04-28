@@ -56,6 +56,14 @@ public class FileSystemJarCache extends JarCacheSupport {
     protected URL retrieve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         File target = map(sum1, sum2);
         File parent = target.getParentFile();
+
+        if (target.exists()) {
+            // Assume its already been fetched correctly before. ie. We are not going to validate
+            // the checksum.
+            LOGGER.fine(String.format("Jar file already exists: %16X%16X", sum1, sum2));
+            return target.toURI().toURL();
+        }
+
         parent.mkdirs();
         try {
             File tmp = File.createTempFile(target.getName(),"tmp", parent);
@@ -68,21 +76,36 @@ public class FileSystemJarCache extends JarCacheSupport {
                     o.close();
                 }
 
-                tmp.renameTo(target);
-
-                if (target.exists()) {
-                    Checksum expected = new Checksum(sum1, sum2);
-                    Checksum actual = Checksum.forFile(target);
-                    if (!expected.equals(actual)) {
-                        throw new IOException("Checksum of retrieved jar doesn't match: " + target);
-                    }
-                    // even if we fail to rename, we are OK as long as the target actually exists at this point
-                    // this can happen if two FileSystemJarCache instances share the same cache dir
-                    return target.toURI().toURL();
+                // Verify the checksum of the download.
+                Checksum expected = new Checksum(sum1, sum2);
+                Checksum actual = Checksum.forFile(tmp);
+                if (!expected.equals(actual)) {
+                    throw new IOException(String.format(
+                            "Incorrect checksum of retrieved jar: %s\nExpected: %s\nActual: %s",
+                            tmp.getAbsolutePath(), expected, actual));
                 }
 
-                // for example if the file system went read only in the mean time
-                throw new IOException("Unable to create "+target+" from "+tmp);
+                if (!tmp.renameTo(target)) {
+                    if (!target.exists()) {
+                        throw new IOException("Unable to create " + target + " from " + tmp);
+                    }
+
+                    // Even if we fail to rename, we are OK as long as the target actually exists at
+                    // this point. This can happen if two FileSystemJarCache instances share the
+                    // same cache dir.
+                    //
+                    // Verify the checksum to be sure the target is correct.
+                    expected = new Checksum(sum1, sum2);
+                    actual = Checksum.forFile(target);
+                    if (!expected.equals(actual)) {
+                        throw new IOException(String.format(
+                                "Incorrect checksum of jar: %s\nExpected: %s\nActual: %s",
+                                target.getAbsolutePath(), expected, actual));
+                    }
+                }
+
+
+                return target.toURI().toURL();
             } finally {
                 tmp.delete();
             }

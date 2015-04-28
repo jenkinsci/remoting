@@ -3,7 +3,9 @@ package hudson.remoting;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -23,10 +25,12 @@ public class ChecksumTest {
     private static final String FILE_CONTENTS1 = "These are the file contents";
     private static final String FILE_CONTENTS2 = "These are some other file contents";
 
+    @Rule public TemporaryFolder tmp = new TemporaryFolder();
+
     @Test
     public void testForFileAndURL() throws Exception {
-        File tmpFile1 = createTmpFile("file1", FILE_CONTENTS1);
-        File tmpFile2 = createTmpFile("file2", FILE_CONTENTS2);
+        File tmpFile1 = createTmpFile("file1.txt", FILE_CONTENTS1);
+        File tmpFile2 = createTmpFile("file2.txt", FILE_CONTENTS2);
         HashCode hash1 = Files.hash(tmpFile1, Hashing.sha256());
         HashCode hash2 = Files.hash(tmpFile2, Hashing.sha256());
 
@@ -40,8 +44,7 @@ public class ChecksumTest {
     }
 
     private File createTmpFile(String name, String contents) throws Exception {
-        File tmpFile = File.createTempFile(name, ".txt");
-        tmpFile.deleteOnExit();
+        File tmpFile = tmp.newFile(name);
         Files.append(contents, tmpFile, Charset.forName("UTF-8"));
         return tmpFile;
     }
