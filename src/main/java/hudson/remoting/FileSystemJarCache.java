@@ -95,7 +95,6 @@ public class FileSystemJarCache extends JarCacheSupport {
                     // same cache dir.
                     //
                     // Verify the checksum to be sure the target is correct.
-                    expected = new Checksum(sum1, sum2);
                     actual = Checksum.forFile(target);
                     if (!expected.equals(actual)) {
                         throw new IOException(String.format(
