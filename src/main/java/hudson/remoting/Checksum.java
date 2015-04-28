@@ -73,7 +73,7 @@ final class Checksum {
      */
     static Checksum forURL(URL url) throws IOException {
         try {
-            MessageDigest md = MessageDigest.getInstance(DIGEST_ALGORITHM);
+            MessageDigest md = MessageDigest.getInstance(JarLoaderImpl.DIGEST_ALGORITHM);
             Util.copy(url.openStream(), new DigestOutputStream(new NullOutputStream(), md));
             return new Checksum(md.digest(), md.getDigestLength() / 8);
         } catch (NoSuchAlgorithmException e) {
@@ -94,7 +94,4 @@ final class Checksum {
         public void write(byte[] b, int off, int len) {
         }
     }
-
-    public static final String DIGEST_ALGORITHM = System.getProperty(
-            JarLoaderImpl.class.getName() + ".algorithm", "SHA-256");
 }

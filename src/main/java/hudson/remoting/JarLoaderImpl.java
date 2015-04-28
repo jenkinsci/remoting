@@ -75,5 +75,7 @@ class JarLoaderImpl implements JarLoader, Serializable {
         return Channel.current().export(JarLoader.class, this);
     }
 
+    public static final String DIGEST_ALGORITHM = System.getProperty(JarLoaderImpl.class.getName()+".algorithm","SHA-256");
+
     private static final long serialVersionUID = 1L;
 }
