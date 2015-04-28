@@ -46,7 +46,6 @@ public class FileSystemJarCacheTest {
 
     @Before
     public void setUp() throws Exception {
-
         fileSystemJarCache = new FileSystemJarCache(tmp.getRoot(), true);
 
         expectedChecksum = ChecksumTest.createdExpectedChecksum(
