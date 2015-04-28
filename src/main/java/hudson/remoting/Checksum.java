@@ -2,7 +2,13 @@ package hudson.remoting;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URL;
+import java.security.DigestOutputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Represents 128bit checksum of a jar file.
@@ -17,7 +23,7 @@ final class Checksum {
         this.sum2 = sum2;
     }
 
-    Checksum(byte[] arrayOf16bytes, int numOfLong) {
+    private Checksum(byte[] arrayOf16bytes, int numOfLong) {
         try {
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(arrayOf16bytes));
             long l1=0,l2=0;
@@ -54,4 +60,41 @@ final class Checksum {
     public String toString() {
         return String.format("%016X%016X",sum1,sum2);
     }
+
+    /**
+     * Returns the checksum for the given file.
+     */
+    static Checksum forFile(File file) throws IOException {
+        return forURL(file.toURI().toURL());
+    }
+
+    /**
+     * Returns the checksum for the given URL.
+     */
+    static Checksum forURL(URL url) throws IOException {
+        try {
+            MessageDigest md = MessageDigest.getInstance(DIGEST_ALGORITHM);
+            Util.copy(url.openStream(), new DigestOutputStream(new NullOutputStream(), md));
+            return new Checksum(md.digest(), md.getDigestLength() / 8);
+        } catch (NoSuchAlgorithmException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private static class NullOutputStream extends OutputStream {
+        @Override
+        public void write(int b) {
+        }
+
+        @Override
+        public void write(byte[] b) {
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) {
+        }
+    }
+
+    public static final String DIGEST_ALGORITHM = System.getProperty(
+            JarLoaderImpl.class.getName() + ".algorithm", "SHA-256");
 }

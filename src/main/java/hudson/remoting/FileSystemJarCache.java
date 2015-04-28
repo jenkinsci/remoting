@@ -71,8 +71,14 @@ public class FileSystemJarCache extends JarCacheSupport {
                 tmp.renameTo(target);
 
                 if (target.exists()) {
+                    Checksum expected = new Checksum(sum1, sum2);
+                    Checksum actual = Checksum.forFile(target);
+                    System.out.println(actual.toString());
+                    if (!expected.equals(actual)) {
+                        throw new IOException("Checksum of retrieved jar doesn't match: " + target);
+                    }
                     // even if we fail to rename, we are OK as long as the target actually exists at this point
-                    // this can happen if two FileSystejarCache instances share the same cache dir
+                    // this can happen if two FileSystemJarCache instances share the same cache dir
                     return target.toURI().toURL();
                 }
 
