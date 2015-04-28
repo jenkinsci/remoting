@@ -40,8 +40,7 @@ class JarLoaderImpl implements JarLoader, Serializable {
     }
 
     public boolean isPresentOnRemote(Checksum sum) {
-        boolean ret = presentOnRemote.contains(sum);
-        return ret;
+        return presentOnRemote.contains(sum);
     }
 
     public void notifyJarPresence(long sum1, long sum2) {

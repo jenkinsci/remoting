@@ -23,34 +23,31 @@
  */
 package hudson.remoting;
 
-import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.MalformedURLException;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static hudson.remoting.Util.getBaseName;
-import static hudson.remoting.Util.makeResource;
-import static hudson.remoting.Util.readFully;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.WARNING;
+import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
+
+import static hudson.remoting.Util.*;
+import static java.util.logging.Level.*;
 
 /**
  * Loads class files from the other peer through {@link Channel}.

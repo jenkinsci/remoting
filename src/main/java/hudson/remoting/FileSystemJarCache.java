@@ -73,7 +73,6 @@ public class FileSystemJarCache extends JarCacheSupport {
                 if (target.exists()) {
                     Checksum expected = new Checksum(sum1, sum2);
                     Checksum actual = Checksum.forFile(target);
-                    System.out.println(actual.toString());
                     if (!expected.equals(actual)) {
                         throw new IOException("Checksum of retrieved jar doesn't match: " + target);
                     }
