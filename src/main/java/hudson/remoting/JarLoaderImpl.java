@@ -1,7 +1,5 @@
 package hudson.remoting;
 
-import hudson.remoting.forward.Forwarder;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -15,22 +13,20 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * Implements {@link JarLoader} to be called from the other side.
  *
- * TODO: move {@link #knownJars} and {@link #checksums} to another class to share it across
  * {@link JarLoaderImpl}s.
  *
  * @author Kohsuke Kawaguchi
  */
 @edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_BAD_FIELD")
 class JarLoaderImpl implements JarLoader, Serializable {
-    private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<Checksum,URL>();
+    private static final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<Checksum,URL>();
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
-    private final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<URL,Checksum>();
+    private static final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<URL,Checksum>();
 
     private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<Checksum>());
 
