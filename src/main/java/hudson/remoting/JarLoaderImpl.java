@@ -17,8 +17,6 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Implements {@link JarLoader} to be called from the other side.
  *
- * {@link JarLoaderImpl}s.
- *
  * @author Kohsuke Kawaguchi
  */
 @edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_BAD_FIELD")
