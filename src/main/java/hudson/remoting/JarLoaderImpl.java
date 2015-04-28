@@ -74,8 +74,8 @@ class JarLoaderImpl implements JarLoader, Serializable {
             throw new AssertionError(e);
         }
 
-        knownJars.put(v,jar);
-        checksums.put(jar,v);
+        knownJars.putIfAbsent(v,jar);
+        checksums.putIfAbsent(jar,v);
         return v;
     }
 
