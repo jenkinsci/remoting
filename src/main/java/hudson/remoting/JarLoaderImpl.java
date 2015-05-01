@@ -1,21 +1,15 @@
 package hudson.remoting;
 
-import hudson.remoting.forward.Forwarder;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.URL;
-import java.security.DigestOutputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * Implements {@link JarLoader} to be called from the other side.
@@ -70,31 +64,11 @@ class JarLoaderImpl implements JarLoader, Serializable {
         Checksum v = checksums.get(jar);    // cache hit
         if (v!=null)    return v;
 
-        try {
-            MessageDigest md = MessageDigest.getInstance(DIGEST_ALGORITHM);
-            Util.copy(jar.openStream(),new DigestOutputStream(new NullOutputStream(),md));
-            v = new Checksum(md.digest(),md.getDigestLength()/8);
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError(e);
-        }
+        v = Checksum.forURL(jar);
 
         knownJars.put(v,jar);
         checksums.put(jar,v);
         return v;
-    }
-
-    class NullOutputStream extends OutputStream {
-        @Override
-        public void write(int b) {
-        }
-
-        @Override
-        public void write(byte[] b) {
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) {
-        }
     }
 
     /**
