@@ -14,17 +14,14 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * Implements {@link JarLoader} to be called from the other side.
  *
- * TODO: move {@link #knownJars} and {@link #checksums} to another class to share it across
- * {@link JarLoaderImpl}s.
- *
  * @author Kohsuke Kawaguchi
  */
 @edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_BAD_FIELD")
 class JarLoaderImpl implements JarLoader, Serializable {
-    private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<Checksum,URL>();
+    private static final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<Checksum,URL>();
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
-    private final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<URL,Checksum>();
+    private static final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<URL,Checksum>();
 
     private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<Checksum>());
 
@@ -66,8 +63,8 @@ class JarLoaderImpl implements JarLoader, Serializable {
 
         v = Checksum.forURL(jar);
 
-        knownJars.put(v,jar);
-        checksums.put(jar,v);
+        knownJars.putIfAbsent(v,jar);
+        checksums.putIfAbsent(jar,v);
         return v;
     }
 
