@@ -84,7 +84,8 @@ public class JnlpProtocol2Test {
         mockStatic(EngineUtil.class);
         when(EngineUtil.readLine(mockBufferedInputStream)).thenReturn("error");
 
-        assertEquals("error", protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
+        assertEquals("error",
+                protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
 
         inOrder.verify(mockDataOutputStream).writeUTF("Protocol:JNLP2-connect");
         inOrder.verify(mockDataOutputStream).writeUTF(argThat(
@@ -104,10 +105,13 @@ public class JnlpProtocol2Test {
         responseProperties.put(JnlpProtocol2.COOKIE_KEY, COOKIE);
 
         mockStatic(EngineUtil.class);
-        when(EngineUtil.readLine(mockBufferedInputStream)).thenReturn(JnlpProtocol.GREETING_SUCCESS);
-        when(EngineUtil.readResponseHeaders(mockBufferedInputStream)).thenReturn(responseProperties);
+        when(EngineUtil.readLine(mockBufferedInputStream))
+                .thenReturn(JnlpProtocol.GREETING_SUCCESS);
+        when(EngineUtil.readResponseHeaders(mockBufferedInputStream))
+                .thenReturn(responseProperties);
 
-        assertEquals(JnlpProtocol.GREETING_SUCCESS, protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
+        assertEquals(JnlpProtocol.GREETING_SUCCESS,
+                protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
         assertEquals(COOKIE, protocol.getCookie());
 
         inOrder.verify(mockDataOutputStream).writeUTF("Protocol:JNLP2-connect");
@@ -141,13 +145,16 @@ public class JnlpProtocol2Test {
         responseProperties2.put(JnlpProtocol2.COOKIE_KEY, COOKIE2);
 
         mockStatic(EngineUtil.class);
-        when(EngineUtil.readLine(mockBufferedInputStream)).thenReturn(JnlpProtocol.GREETING_SUCCESS);
+        when(EngineUtil.readLine(mockBufferedInputStream))
+                .thenReturn(JnlpProtocol.GREETING_SUCCESS);
         when(EngineUtil.readResponseHeaders(mockBufferedInputStream)).thenReturn(responseProperties)
                 .thenReturn(responseProperties2);
 
-        assertEquals(JnlpProtocol.GREETING_SUCCESS, protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
+        assertEquals(JnlpProtocol.GREETING_SUCCESS,
+                protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
         assertEquals(COOKIE, protocol.getCookie());
-        assertEquals(JnlpProtocol.GREETING_SUCCESS, protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
+        assertEquals(JnlpProtocol.GREETING_SUCCESS,
+                protocol.performHandshake(mockDataOutputStream, mockBufferedInputStream));
         assertEquals(COOKIE2, protocol.getCookie());
 
         inOrder.verify(mockDataOutputStream).writeUTF("Protocol:JNLP2-connect");
