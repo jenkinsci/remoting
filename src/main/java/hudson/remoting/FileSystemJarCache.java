@@ -66,7 +66,7 @@ public class FileSystemJarCache extends JarCacheSupport {
 
         parent.mkdirs();
         try {
-            File tmp = File.createTempFile(target.getName(),"tmp", parent);
+            File tmp = File.createTempFile(target.getName(), "tmp", parent);
             try {
                 RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
                 try {
@@ -98,7 +98,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                     actual = Checksum.forFile(target);
                     if (!expected.equals(actual)) {
                         throw new IOException(String.format(
-                                "Incorrect checksum of jar: %s\nExpected: %s\nActual: %s",
+                                "Incorrect checksum of previous jar: %s\nExpected: %s\nActual: %s",
                                 target.getAbsolutePath(), expected, actual));
                     }
                 }
