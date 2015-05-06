@@ -7,6 +7,7 @@ package hudson.remoting;
  * @deprecated
  *      Use {@link CallableDecorator}
  */
+@Deprecated
 public interface CallableFilter {
     /**
      * This implementation should normally look something like this:

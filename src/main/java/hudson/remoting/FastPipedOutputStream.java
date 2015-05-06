@@ -71,6 +71,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
      * @deprecated as of 1.350
      *      bufferSize parameter is ignored.
      */
+    @Deprecated
     public FastPipedOutputStream(FastPipedInputStream sink, int bufferSize) throws IOException {
         this(sink);
     }

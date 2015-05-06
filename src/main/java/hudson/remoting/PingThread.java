@@ -133,6 +133,7 @@ public abstract class PingThread extends Thread {
      *      Override {@link #onDead(Throwable)} to receive the cause, but also override this method
      *      and provide a fallback behaviour to be backward compatible with earlier version of remoting library.
      */
+    @Deprecated
     protected abstract void onDead();
 
     /**

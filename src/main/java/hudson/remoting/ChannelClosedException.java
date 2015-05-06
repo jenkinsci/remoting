@@ -12,6 +12,7 @@ public class ChannelClosedException extends IOException {
      * @deprecated
      *      Use {@link #ChannelClosedException(Throwable)}.
      */
+    @Deprecated
     public ChannelClosedException() {
         super("channel is already closed");
     }

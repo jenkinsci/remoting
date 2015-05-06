@@ -58,6 +58,7 @@ public class RemoteInputStream extends InputStream implements Serializable {
      *      Use {@link #RemoteInputStream(InputStream, Flag)} and specify either {@link Flag#GREEDY}
      *      or {@link Flag#NOT_GREEDY}.
      */
+    @Deprecated
     public RemoteInputStream(InputStream core) {
         this(core, NOT_GREEDY);
     }
@@ -72,6 +73,7 @@ public class RemoteInputStream extends InputStream implements Serializable {
      *      Use {@link #RemoteInputStream(InputStream, Flag, Flag )} with {@link Flag#MANUAL_UNEXPORT}.
      *      Also specify either {@link Flag#GREEDY} or {@link Flag#NOT_GREEDY}.
      */
+    @Deprecated
     public RemoteInputStream(InputStream core, boolean autoUnexport) {
         this(core, NOT_GREEDY, autoUnexport?NOT_GREEDY:MANUAL_UNEXPORT);
     }

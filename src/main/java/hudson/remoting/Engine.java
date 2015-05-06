@@ -78,6 +78,7 @@ public class Engine extends Thread {
      * @deprecated
      *      Use {@link #events}.
      */
+    @Deprecated
     public final EngineListener listener;
 
     private final EngineListenerSplitter events = new EngineListenerSplitter();

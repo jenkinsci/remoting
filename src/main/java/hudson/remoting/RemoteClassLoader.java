@@ -431,6 +431,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * @deprecated Use {@link Util#deleteDirectoryOnExit(File)}
      */
+    @Deprecated
     public static void deleteDirectoryOnExit(File dir) {
         Util.deleteDirectoryOnExit(dir);
     }

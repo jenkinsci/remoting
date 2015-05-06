@@ -93,6 +93,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      {@link PipeWriter} does this job better, but kept for backward compatibility to communicate
      *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
      */
+    @Deprecated
     /*package*/ volatile transient Future<?> lastIo;
 
     protected Request() {
@@ -372,6 +373,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      {@link PipeWriter} does this job better, but kept for backward compatibility to communicate
      *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
      */
+    @Deprecated
     /*package*/ static ThreadLocal<Request> CURRENT = new ThreadLocal<Request>();
 
     /*package*/ static int getCurrentRequestId() {
