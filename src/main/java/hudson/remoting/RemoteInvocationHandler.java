@@ -319,7 +319,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             try {
                 Method m = choose(clazz);
                 if(m==null)
-                    throw new IllegalStateException("Unable to call "+methodName+". No matching method found on "+clazz+" for " + o);
+                    throw new IllegalStateException("Unable to call " + methodName + ". No matching method found in " + Arrays.toString(clazz) + " for " + o);
                 m.setAccessible(true);  // in case the class is not public
                 Object r;
                 try {
