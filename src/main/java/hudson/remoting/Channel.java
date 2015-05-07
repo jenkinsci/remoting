@@ -153,12 +153,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Remembers last I/O ID issued from locally to the other side, per thread.
      * int[1] is used as a holder of int.
      */
-    private final ThreadLocal<int[]> lastIoId = new ThreadLocal<int[]>() {
-        @Override
-        protected int[] initialValue() {
-            return new int[1];
-        }
-    };
+    private final ThreadLocal<int[]> lastIoId = new ThreadLastIoId();
 
     /**
      * Records the {@link Request}s being executed on this channel, sent by the remote peer.
@@ -1483,5 +1478,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         //
         // to avoid situations like this, create proxy classes that we need during the classloading
         jarLoaderProxy=RemoteInvocationHandler.getProxyClass(JarLoader.class);
+    }
+
+    private static class ThreadLastIoId extends ThreadLocal<int[]> {
+        @Override
+        protected int[] initialValue() {
+            return new int[1];
+        }
     }
 }
