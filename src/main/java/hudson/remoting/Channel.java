@@ -931,7 +931,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Returns true if this channel has any of the security restrictions enabled.
      *
      * @deprecated
-     *      Use methods like {@link #allowsRemoteClassLoading()} and {@link #allowsArbitraryCallable()}
+     *      Use methods like {@link #isRemoteClassLoadingAllowed()} and {@link #isArbitraryCallableAllowed()}
      *      to test individual features.
      */
     @Deprecated
@@ -943,7 +943,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Activates/disables all the security restriction mode.
      *
      * @deprecated
-     *      Use methods like {@link #allowClassLoading(boolean)} and {@link #allowArbitraryCallable(boolean)}
+     *      Use methods like {@link #setRemoteClassLoadingAllowed(boolean)} and {@link #setArbitraryCallableAllowed(boolean)}
      *      to control individual features.
      */
     @Deprecated
