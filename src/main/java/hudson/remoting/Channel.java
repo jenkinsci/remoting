@@ -1425,7 +1425,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /*package*/ static Channel setCurrent(Channel channel) {
         Channel old = CURRENT.get();
-        CURRENT.set(channel);
+        if (channel == null) {
+            CURRENT.remove();
+        } else {
+            CURRENT.set(channel);
+        }
         return old;
     }
 
