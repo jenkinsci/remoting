@@ -7,12 +7,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.ProxySelector;
+import java.net.URI;
 import java.net.URLConnection;
 import java.net.MalformedURLException;
 import java.net.Proxy;
-import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.URL;
+import java.util.Iterator;
 
 /**
  * Misc. I/O utilities
@@ -130,5 +132,33 @@ class Util {
             con = url.openConnection();
         }
         return con;
+    }
+
+    static InetSocketAddress getResolvedHttpProxyAddress(String host, int port) throws IOException {
+        InetSocketAddress targetAddress = null;
+        Iterator<Proxy> proxies = ProxySelector.getDefault().select(URI.create(String.format("http://%s:%d", host, port))).iterator();
+        while (targetAddress == null && proxies.hasNext()) {
+            Proxy proxy = proxies.next();
+            if(proxy.type() == Proxy.Type.HTTP) {
+                if (!(proxy.address() instanceof InetSocketAddress))
+                    throw new IOException("Unsupported proxy address type " + proxy.address().getClass());
+                InetSocketAddress proxyAddress = (InetSocketAddress) proxy.address();
+                if(proxyAddress.isUnresolved())
+                    proxyAddress = new InetSocketAddress(proxyAddress.getHostName(), proxyAddress.getPort());
+                targetAddress = proxyAddress;
+            }
+        }
+        if(targetAddress == null) {
+            String httpProxy = System.getenv("http_proxy");
+            if(httpProxy != null) {
+                try {
+                    URL url = new URL(httpProxy);
+                    targetAddress = new InetSocketAddress(url.getHost(), url.getPort());
+                } catch (MalformedURLException e) {
+                    System.err.println("Not use http_proxy environment variable which is invalid: "+e.getMessage());
+                }
+            }
+        }
+        return targetAddress;
     }
 }
