@@ -13,6 +13,7 @@ import java.io.File;
 import java.nio.charset.Charset;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 
 /**
@@ -41,6 +42,17 @@ public class ChecksumTest {
         assertEquals(createdExpectedChecksum(hash2), Checksum.forURL(tmpFile2.toURI().toURL()));
 
         assertNotEquals(Checksum.forFile(tmpFile1), Checksum.forFile(tmpFile2));
+    }
+
+    @Test
+    public void testCaching() throws Exception {
+        File tmpFile = createTmpFile("file.txt", FILE_CONTENTS1);
+        HashCode hash = Files.hash(tmpFile, Hashing.sha256());
+        assertEquals(createdExpectedChecksum(hash), Checksum.forFile(tmpFile));
+
+        tmpFile.delete();
+        assertFalse(tmpFile.exists());
+        assertEquals(createdExpectedChecksum(hash), Checksum.forFile(tmpFile));
     }
 
     private File createTmpFile(String name, String contents) throws Exception {

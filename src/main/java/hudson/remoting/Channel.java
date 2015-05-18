@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -81,13 +81,13 @@ import java.util.logging.Logger;
  * In this sense, {@link Channel} is a mechanism to delegate/offload computation
  * to other JVMs and somewhat like an agent system. This is bit different from
  * remoting technologies like CORBA or web services, where the server exposes a
- * certain functionality that clients invoke. 
+ * certain functionality that clients invoke.
  *
  * <p>
  * {@link Callable} object, as well as the return value / exceptions,
  * are transported by using Java serialization. All the necessary class files
  * are also shipped over {@link Channel} on-demand, so there's no need to
- * pre-deploy such classes on both JVMs. 
+ * pre-deploy such classes on both JVMs.
  *
  *
  * <h2>Implementor's Note</h2>
@@ -196,7 +196,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     private final WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>> pipeWindows = new WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>>();
 
     /**
-     * Registered listeners. 
+     * Registered listeners.
      */
     private final Vector<Listener> listeners = new Vector<Listener>();
     private int gcCounter;
@@ -297,7 +297,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
-     * 
+     *
      * @since 1.161
      */
     public enum Mode {
@@ -479,7 +479,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         this.transport = transport;
 
-        this.jarLoader = new JarLoaderImpl(); // TODO: figure out a mechanism to allow the user to share this across Channels
+        this.jarLoader = new JarLoaderImpl();
         setProperty(JarLoader.OURS, jarLoader);
 
         this.decorators.addAll(settings.getDecorators());
@@ -525,7 +525,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public boolean isOutClosed() {
         return outClosed!=null;
     }
-    
+
     /**
      * Returns {@code true} if the channel is either in the process of closing down or has closed down.
      * @since 2.33
@@ -580,7 +580,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      so it's not usable for implementing lower-layer services that are
      *      used by {@link RemoteClassLoader}.
      *
-     *      To create proxies for objects inside remoting, pass in false. 
+     *      To create proxies for objects inside remoting, pass in false.
      */
     /*package*/ <T> T export(Class<T> type, T instance, boolean userProxy) {
         if(instance==null)
@@ -906,7 +906,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public void removeLocalExecutionInterceptor(CallableFilter filter) {
         removeLocalExecutionInterceptor(new CallableDecoratorAdapter(filter));
     }
-    
+
     /**
      * Waits for this {@link Channel} to be closed down.
      *
@@ -1191,7 +1191,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Sets the property value on this side of the channel.
-     * 
+     *
      * @see #getProperty(Object)
      */
     public synchronized Object setProperty(Object key, Object value) {
@@ -1260,7 +1260,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param recvPort
      *      The port on this local machine that we'll listen to. 0 to let
      *      OS pick a random available port. If you specify 0, use
-     *      {@link ListeningPort#getPort()} to figure out the actual assigned port. 
+     *      {@link ListeningPort#getPort()} to figure out the actual assigned port.
      * @param forwardHost
      *      The remote host that the connection will be forwarded to.
      *      Connection to this host will be made from the other JVM that
@@ -1437,7 +1437,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * This method can be invoked during the serialization/deserialization of
      * objects when they are transferred to the remote {@link Channel},
-     * as well as during {@link Callable#call()} is invoked. 
+     * as well as during {@link Callable#call()} is invoked.
      *
      * @return null
      *      if the calling thread is not performing serialization.
