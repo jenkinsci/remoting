@@ -127,6 +127,7 @@ public class ChannelBuilder {
      * @deprecated
      *      Control individual features.
      */
+    @Deprecated
     public ChannelBuilder withRestricted(boolean  restricted) {
         withArbitraryCallableAllowed(!restricted);
         withRemoteClassLoadingAllowed(!restricted);
@@ -137,6 +138,7 @@ public class ChannelBuilder {
      * @deprecated
      *      Test individual features instead.
      */
+    @Deprecated
     public boolean isRestricted() {
         return !isArbitraryCallableAllowed() || !isRemoteClassLoadingAllowed();
     }

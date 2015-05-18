@@ -64,6 +64,7 @@ public class Which {
     /**
      * @deprecated Use {@link #classFileUrl(Class)}
      */
+    @Deprecated
     public static URL jarURL(Class clazz) throws IOException {
         return classFileUrl(clazz);
     }

@@ -497,6 +497,7 @@ public class Launcher {
      * @deprecated
      *      Use {@link #main(InputStream, OutputStream, Mode, boolean, JarCache)}
      */
+    @Deprecated
     public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing) throws IOException, InterruptedException {
         main(is, os, mode, performPing,
                 new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true));

@@ -45,6 +45,7 @@ public class SocketInputStream extends FilterInputStream {
      * @deprecated
      *      Use {@link SocketChannelStream#in(Socket)}
      */
+    @Deprecated
     public SocketInputStream(Socket socket) throws IOException {
         super(socket.getInputStream());
         this.socket = socket;

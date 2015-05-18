@@ -204,6 +204,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      *      {@link PipeWriter} does this job better, but kept for backward compatibility to communicate
      *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
      */
+    @Deprecated
     private static void markForIoSync(Channel channel, int requestId, java.util.concurrent.Future<?> ioOp) {
         Request<?,?> call = channel.pendingCalls.get(requestId);
         // call==null if:

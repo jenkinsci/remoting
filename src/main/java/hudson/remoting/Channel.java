@@ -118,6 +118,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @deprecated
      *      See {@link #getUnderlyingOutput()}.
      */
+    @Deprecated
     private final OutputStream underlyingOutput;
 
     /**
@@ -351,6 +352,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
      */
+    @Deprecated
     public Channel(String name, ExecutorService exec, InputStream is, OutputStream os) throws IOException {
         this(name,exec,Mode.BINARY,is,os,null);
     }
@@ -359,6 +361,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
      */
+    @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os) throws IOException {
         this(name,exec,mode,is,os,null);
     }
@@ -367,6 +370,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
      */
+    @Deprecated
     public Channel(String name, ExecutorService exec, InputStream is, OutputStream os, OutputStream header) throws IOException {
         this(name,exec,Mode.BINARY,is,os,header);
     }
@@ -375,6 +379,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
      */
+    @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header) throws IOException {
         this(name,exec,mode,is,os,header,false);
     }
@@ -383,6 +388,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
      */
+    @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted) throws IOException {
         this(name,exec,mode,is,os,header,restricted,null);
     }
@@ -394,6 +400,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
      */
+    @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted, ClassLoader base) throws IOException {
         this(name,exec,mode,is,os,header,restricted,base,new Capability());
     }
@@ -412,6 +419,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      Use {@link ChannelBuilder}
      * @since 2.13
      */
+    @Deprecated
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
         this(new ChannelBuilder(name,exec)
                 .withBaseLoader(base)
@@ -441,6 +449,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @since 2.24
      * @deprecated as of 2.38
      */
+    @Deprecated
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base, JarCache jarCache) throws IOException {
         this(new ChannelBuilder(name,exec)
             .withBaseLoader(base)
@@ -884,6 +893,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @deprecated
      *      use {@link #addLocalExecutionInterceptor(CallableDecorator)}
      */
+    @Deprecated
     public void addLocalExecutionInterceptor(CallableFilter filter) {
         addLocalExecutionInterceptor(new CallableDecoratorAdapter(filter));
     }
@@ -892,6 +902,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @deprecated
      *      use {@link #removeLocalExecutionInterceptor(CallableDecorator)}
      */
+    @Deprecated
     public void removeLocalExecutionInterceptor(CallableFilter filter) {
         removeLocalExecutionInterceptor(new CallableDecoratorAdapter(filter));
     }
@@ -928,6 +939,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      Use methods like {@link #allowsRemoteClassLoading()} and {@link #allowsArbitraryCallable()}
      *      to test individual features.
      */
+    @Deprecated
     public boolean isRestricted() {
         return !isRemoteClassLoadingAllowed() || !isArbitraryCallableAllowed();
     }
@@ -939,6 +951,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      Use methods like {@link #allowClassLoading(boolean)} and {@link #allowArbitraryCallable(boolean)}
      *      to control individual features.
      */
+    @Deprecated
     public void setRestricted(boolean b) {
         setRemoteClassLoadingAllowed(!b);
         setArbitraryCallableAllowed(!b);
@@ -1219,6 +1232,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      Because {@link ChannelProperty} is identity-equality, this method would never work.
      *      This is a design error.
      */
+    @Deprecated
     public <T> T waitForRemoteProperty(ChannelProperty<T> key) throws InterruptedException {
         return key.type.cast(waitForRemoteProperty((Object) key));
     }
@@ -1235,6 +1249,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      make that assumption for the above reason. This method may return null in the future version
      *      to indicate that the {@link Channel} is not sitting on top of a stream pair.
      */
+    @Deprecated
     public OutputStream getUnderlyingOutput() {
         return underlyingOutput;
     }
