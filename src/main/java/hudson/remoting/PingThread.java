@@ -41,7 +41,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
  * or when the disconnection is not properly detected.
  *
  * <p>
- * {@link #onDead()} method needs to be overridden to define
+ * {@link #onDead(Throwable)} method needs to be overridden to define
  * what to do when a connection appears to be dead.
  *
  * @author Kohsuke Kawaguchi
@@ -141,9 +141,7 @@ public abstract class PingThread extends Thread {
      *
      * @since 2.9
      */
-    protected void onDead(Throwable diagnosis) {
-        onDead();   // fall back
-    }
+    protected abstract void onDead(Throwable diagnosis);
 
     private static final class Ping implements Callable<Void, IOException> {
         private static final long serialVersionUID = 1L;
