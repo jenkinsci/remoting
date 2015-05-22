@@ -525,9 +525,6 @@ public class Launcher {
         if (performPing && timeout > 0 && interval > 0) {
             new PingThread(channel, timeout, interval) {
                 @Override
-                protected void onDead() {
-                    onDead(null);
-                }
                 protected void onDead(Throwable diagnosis) {
                     System.err.println("Ping failed. Terminating. Cause: " + diagnosis);
                     if (diagnosis != null) {

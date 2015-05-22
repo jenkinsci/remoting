@@ -134,7 +134,9 @@ public abstract class PingThread extends Thread {
      *      and provide a fallback behaviour to be backward compatible with earlier version of remoting library.
      */
     @Deprecated
-    protected abstract void onDead();
+    protected void onDead() {
+        onDead(new RuntimeException("No cause"));
+    }
 
     /**
      * Called when ping failed.
