@@ -36,7 +36,9 @@ public abstract class JarCacheSupport extends JarCache {
     /**
      * Throttle the jar downloading activity so that it won't eat up all the channel bandwidth.
      */
-    private final ExecutorService downloader = new AtmostOneThreadExecutor();
+    private final ExecutorService downloader = new AtmostOneThreadExecutor(
+            new NamingThreadFactory(new DaemonThreadFactory(), JarCacheSupport.class.getSimpleName())
+    );
 
     @Override
     public Future<URL> resolve(final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
