@@ -158,7 +158,7 @@ public class Launcher {
             System.err.println("Illegal parameter: "+target);
             System.exit(1);
         }
-        connectionTarget = new InetSocketAddress(tokens[0],Integer.valueOf(tokens[1]));
+        connectionTarget = new InetSocketAddress(tokens[0],Integer.parseInt(tokens[1]));
     }
 
     /**
