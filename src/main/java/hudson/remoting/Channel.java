@@ -1529,6 +1529,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * A reference for the {@link Channel} that can be cleared out on {@link #close()}/{@link #terminate(IOException)}.
+     * Could probably be replaced with {@link AtomicReference} but then we would not retain the only change being
+     * from valid channel to {@code null} channel symmantics of this class.
      * @since FIXME after merge
      * @see #reference
      */
