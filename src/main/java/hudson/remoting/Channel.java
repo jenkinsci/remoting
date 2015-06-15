@@ -1517,6 +1517,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         jarLoaderProxy=RemoteInvocationHandler.getProxyClass(JarLoader.class);
     }
 
+    /**
+     * Do not use an anonymous inner class as that can cause a {@code this} reference to escape.
+     */
     private static class ThreadLastIoId extends ThreadLocal<int[]> {
         @Override
         protected int[] initialValue() {
