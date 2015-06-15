@@ -47,6 +47,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -408,6 +409,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             }
             inQueue.set(false); // we have started execution and running is true, so queued can be reset
             try {
+                long nextSweep = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
                 while (!referenceLists.isEmpty()) {
                     try {
                         Reference<?> ref = queue.remove(100);
@@ -441,17 +443,20 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                     } catch (InterruptedException e) {
                         logger.log(Level.FINE, "Interrupted", e);
                     }
-                    // purge any dead channels, it does not matter if we spend a long time here as we are
-                    // removing future potential work for us from ever entering the queue and freeing garbage
-                    for (Iterator<Map.Entry<Channel.Ref, List<PhantomReferenceImpl>>>
-                         iterator = referenceLists.entrySet().iterator(); 
-                         iterator.hasNext(); ) {
-                        final Map.Entry<Channel.Ref, List<PhantomReferenceImpl>> entry = iterator.next();
-                        final Channel.Ref r = entry.getKey();
-                        if (r == null || r.channel() == null) {
-                            iterator.remove();
-                            // take them out of the queue
-                            cleanList(entry.getValue());
+                    if (System.nanoTime() > nextSweep) {
+                        nextSweep = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
+                        // purge any dead channels, it does not matter if we spend a long time here as we are
+                        // removing future potential work for us from ever entering the queue and freeing garbage
+                        for (Iterator<Map.Entry<Channel.Ref, List<PhantomReferenceImpl>>>
+                             iterator = referenceLists.entrySet().iterator();
+                             iterator.hasNext(); ) {
+                            final Map.Entry<Channel.Ref, List<PhantomReferenceImpl>> entry = iterator.next();
+                            final Channel.Ref r = entry.getKey();
+                            if (r == null || r.channel() == null) {
+                                iterator.remove();
+                                // take them out of the queue
+                                cleanList(entry.getValue());
+                            }
                         }
                     }
                 }
