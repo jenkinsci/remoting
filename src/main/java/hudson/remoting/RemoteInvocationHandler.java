@@ -170,6 +170,23 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     }
     
     /**
+     * Returns the backing channel or throws an {@link IOException} if the channel is disconnected or
+     * otherwise unavailable.
+     *
+     * @return the backing channel.
+     * @throws IOException if the channel is disconnected or otherwise unavailable.
+     * @since FIXME after merge
+     */
+    @CheckForNull
+    private Channel channelOrFail() throws IOException {
+        Channel channel = channel();
+        if (channel == null) {
+            throw new IOException("Backing channel is disconnected.");
+        }
+        return channel;
+    }
+
+    /**
      * If the given object is a proxy to a remote object in the specified channel,
      * return its object ID. Otherwise return -1.
      * <p>
@@ -228,11 +245,11 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         RPCRequest req = new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null);
         try {
             if(userProxy) {
-                if (async)  channel().callAsync(req);
-                else        return channel().call(req);
+                if (async)  channelOrFail().callAsync(req);
+                else        return channelOrFail().call(req);
             } else {
-                if (async)  req.callAsync(channel());
-                else        return req.call(channel());
+                if (async)  req.callAsync(channelOrFail());
+                else        return req.call(channelOrFail());
             }
             return null;
         } catch (Throwable e) {
