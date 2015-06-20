@@ -140,9 +140,12 @@ class Util {
         while (targetAddress == null && proxies.hasNext()) {
             Proxy proxy = proxies.next();
             if(proxy.type() == Proxy.Type.HTTP) {
-                if (!(proxy.address() instanceof InetSocketAddress))
-                    throw new IOException("Unsupported proxy address type " + proxy.address().getClass());
-                InetSocketAddress proxyAddress = (InetSocketAddress) proxy.address();
+                final SocketAddress address = proxy.address();
+                if (!(address instanceof InetSocketAddress)) {
+                    System.err.println("Unsupported proxy address type " + (address != null ? address.getClass() : "null"));
+                    continue;
+                }
+                InetSocketAddress proxyAddress = (InetSocketAddress) address;
                 if(proxyAddress.isUnresolved())
                     proxyAddress = new InetSocketAddress(proxyAddress.getHostName(), proxyAddress.getPort());
                 targetAddress = proxyAddress;
