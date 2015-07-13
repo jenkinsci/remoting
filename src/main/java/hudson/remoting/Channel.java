@@ -23,7 +23,6 @@
  */
 package hudson.remoting;
 
-import org.jenkinsci.remoting.CallableDecorator;
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.PipeWindow.Key;
@@ -31,8 +30,10 @@ import hudson.remoting.PipeWindow.Real;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
+import org.jenkinsci.remoting.CallableDecorator;
 import org.jenkinsci.remoting.RoleChecker;
 
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.io.IOException;
@@ -153,12 +154,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Remembers last I/O ID issued from locally to the other side, per thread.
      * int[1] is used as a holder of int.
      */
-    private final ThreadLocal<int[]> lastIoId = new ThreadLocal<int[]>() {
-        @Override
-        protected int[] initialValue() {
-            return new int[1];
-        }
-    };
+    private final ThreadLocal<int[]> lastIoId = new ThreadLastIoId();
 
     /**
      * Records the {@link Request}s being executed on this channel, sent by the remote peer.
@@ -194,6 +190,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * and therefore should be OK.
      */
     private final WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>> pipeWindows = new WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>>();
+    /**
+     * There are cases where complex object cycles can cause a closed channel to fail to be garbage collected,
+     * these typically arrise when an {@link #export(Class, Object)} is {@link #setProperty(Object, Object)}
+     * (a supported and intended use case), the {@link Ref} allows us to break the object cycle on channel
+     * termination and simplify the circles into chains which can then be collected easily by the garbage collector.
+     * @since FIXME after merge
+     */
+    private final Ref reference = new Ref(this);
 
     /**
      * Registered listeners. 
@@ -502,6 +506,17 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 Channel.this.terminate(e);
             }
         });
+    }
+
+    /**
+     * Gets the {@link Ref} for this {@link Channel}. The {@link Ref} will be {@linkplain Ref#clear()}ed when
+     * the channel is terminated in order to break any complex object cycles.
+     * @return the {@link Ref} for this {@link Channel}
+     * @since FIXME after merge
+     */
+    @Nonnull
+    /*package*/ Ref ref() {
+        return reference;
     }
 
     /**
@@ -814,6 +829,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             synchronized (this) {
                 if (e == null) throw new IllegalArgumentException();
                 outClosed = inClosed = e;
+                // we need to clear these out early in order to ensure that a GC operation while
+                // proceding with the close does not result in a batch of UnexportCommand instances
+                // being attempted to send over the locked and now closing channel.
+                RemoteInvocationHandler.notifyChannelTermination(this);
                 try {
                     transport.closeRead();
                 } catch (IOException x) {
@@ -833,6 +852,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                         executingCalls.clear();
                     }
                     exportedObjects.abort(e);
+                    // break any object cycles into simple chains to simplify work for the garbage collector
+                    reference.clear();
                 } finally {
                     notifyAll();
                 }
@@ -936,7 +957,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Returns true if this channel has any of the security restrictions enabled.
      *
      * @deprecated
-     *      Use methods like {@link #allowsRemoteClassLoading()} and {@link #allowsArbitraryCallable()}
+     *      Use methods like {@link #isRemoteClassLoadingAllowed()} and {@link #isArbitraryCallableAllowed()}
      *      to test individual features.
      */
     @Deprecated
@@ -948,7 +969,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Activates/disables all the security restriction mode.
      *
      * @deprecated
-     *      Use methods like {@link #allowClassLoading(boolean)} and {@link #allowArbitraryCallable(boolean)}
+     *      Use methods like {@link #setRemoteClassLoadingAllowed(boolean)} and {@link #setArbitraryCallableAllowed(boolean)}
      *      to control individual features.
      */
     @Deprecated
@@ -1128,7 +1149,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public synchronized void close(Throwable diagnosis) throws IOException {
         if(outClosed!=null)  return;  // already closed
 
-        send(new CloseCommand(this,diagnosis));
+        try {
+            send(new CloseCommand(this, diagnosis));
+        } catch (IOException e) {
+            // send should only ever - worst case - throw an IOException so we'll just catch that and not Throwable
+            logger.log(Level.WARNING, "Having to terminate early", e);
+            terminate(e);
+            return;
+        }
         outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
         notifyAll();
         try {
@@ -1430,7 +1458,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /*package*/ static Channel setCurrent(Channel channel) {
         Channel old = CURRENT.get();
-        CURRENT.set(channel);
+        if (channel == null) {
+            CURRENT.remove();
+        } else {
+            CURRENT.set(channel);
+        }
         return old;
     }
 
@@ -1483,5 +1515,83 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         //
         // to avoid situations like this, create proxy classes that we need during the classloading
         jarLoaderProxy=RemoteInvocationHandler.getProxyClass(JarLoader.class);
+    }
+
+    /**
+     * Do not use an anonymous inner class as that can cause a {@code this} reference to escape.
+     */
+    private static class ThreadLastIoId extends ThreadLocal<int[]> {
+        @Override
+        protected int[] initialValue() {
+            return new int[1];
+        }
+    }
+
+    /**
+     * A reference for the {@link Channel} that can be cleared out on {@link #close()}/{@link #terminate(IOException)}.
+     * Could probably be replaced with {@link AtomicReference} but then we would not retain the only change being
+     * from valid channel to {@code null} channel symmantics of this class.
+     * @since FIXME after merge
+     * @see #reference
+     */
+    /*package*/ static final class Ref {
+        /**
+         * The channel.
+         */
+        @CheckForNull
+        private Channel channel;
+
+        /**
+         * Constructor.
+         * @param channel the {@link Channel}.
+         */
+        private Ref(@CheckForNull Channel channel) {
+            this.channel = channel;
+        }
+
+        /**
+         * Returns the {@link Channel} or {@code null} if the the {@link Channel} has been closed/terminated.
+         * @return the {@link Channel} or {@code null} 
+         */
+        @CheckForNull
+        public Channel channel() {
+            return channel;
+        }
+
+        /**
+         * Clears the {@link #channel} to signify that the {@link Channel} has been closed and break any complex
+         * object cycles that might prevent the full garbage collection of the channel's associated object tree.
+         */
+        public void clear() {
+            channel = null;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean equals(Object o) {
+            // compare based on instance identity
+            return this == o;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public int hashCode() {
+            return System.identityHashCode(this);
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String toString() {
+            final StringBuilder sb = new StringBuilder("Channel.Ref{");
+            sb.append("channel=").append(channel);
+            sb.append('}');
+            return sb.toString();
+        }
     }
 }

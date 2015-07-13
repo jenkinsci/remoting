@@ -23,20 +23,34 @@
  */
 package hudson.remoting;
 
-import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 
+import javax.annotation.CheckForNull;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
+import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Sits behind a proxy object and implements the proxy logic.
@@ -44,6 +58,16 @@ import java.util.Collections;
  * @author Kohsuke Kawaguchi
  */
 final class RemoteInvocationHandler implements InvocationHandler, Serializable {
+    /**
+     * Our logger.
+     */
+    private static final Logger logger = Logger.getLogger(RemoteInvocationHandler.class.getName());
+    /**
+     * The {@link Unexporter} to track {@link RemoteInvocationHandler} instances that should be unexported when
+     * collected by the garbage collector.
+     * @since FIXME after merge
+     */
+    private static final Unexporter UNEXPORTER = new Unexporter();
     /**
      * This proxy acts as a proxy to the object of
      * Object ID on the remote {@link Channel}.
@@ -57,8 +81,10 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * This field is null when a {@link RemoteInvocationHandler} is just
      * created and not working as a remote proxy. Once tranferred to the
      * remote system, this field is set to non-null. 
+     * @since FIXME after merge
      */
-    private transient Channel channel;
+    @CheckForNull
+    private transient Channel.Ref channel;
 
     /**
      * True if we are proxying an user object.
@@ -93,7 +119,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * Creates a proxy that wraps an existing OID on the remote.
      */
     RemoteInvocationHandler(Channel channel, int id, boolean userProxy, boolean autoUnexportByCaller, Class proxyType) {
-        this.channel = channel;
+        this.channel = channel == null ? null : channel.ref();
         this.oid = id;
         this.userProxy = userProxy;
         this.origin = new Exception("Proxy "+toString()+" was created for "+proxyType);
@@ -108,12 +134,57 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         // if the type is a JDK-defined type, classloader should be for IReadResolve
         if(cl==null || cl==ClassLoader.getSystemClassLoader())
             cl = IReadResolve.class.getClassLoader();
-        return type.cast(Proxy.newProxyInstance(cl, new Class[]{type,IReadResolve.class},
-            new RemoteInvocationHandler(channel,id,userProxy,autoUnexportByCaller,type)));
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(channel, id, userProxy, autoUnexportByCaller, type);
+        if (channel != null) {
+            if (!autoUnexportByCaller) {
+                UNEXPORTER.watch(handler);
+            }
+        }
+        return type.cast(Proxy.newProxyInstance(cl, new Class[]{type, IReadResolve.class}, handler));
     }
 
+    /**
+     * Called as soon as a channel is terminated, we cannot use {@link Channel.Listener} as that is called after
+     * termination has completed and we need to clean up the {@link PhantomReferenceImpl} before they try to
+     * clean themselves up by sending the {@link UnexportCommand} over the closing {@link Channel}.
+     *
+     * @param channel the {@link Channel} that is terminating/terminated.
+     * @since FIXME after merge
+     */
+    /*package*/ static void notifyChannelTermination(Channel channel) {
+        UNEXPORTER.onChannelTermination(channel);
+    }
+    
     /*package*/ static Class getProxyClass(Class type) {
         return Proxy.getProxyClass(type.getClassLoader(), new Class[]{type,IReadResolve.class});
+    }
+
+    /**
+     * Returns the backing channel or {@code null} if the channel is disconnected or otherwise unavailable.
+     *
+     * @return the backing channel or {@code null}.
+     * @since FIXME after merge
+     */
+    @CheckForNull
+    private Channel channel() {
+        return this.channel == null ? null : this.channel.channel();
+    }
+    
+    /**
+     * Returns the backing channel or throws an {@link IOException} if the channel is disconnected or
+     * otherwise unavailable.
+     *
+     * @return the backing channel.
+     * @throws IOException if the channel is disconnected or otherwise unavailable.
+     * @since FIXME after merge
+     */
+    @CheckForNull
+    private Channel channelOrFail() throws IOException {
+        Channel channel = channel();
+        if (channel == null) {
+            throw new IOException("Backing channel is disconnected.");
+        }
+        return channel;
     }
 
     /**
@@ -127,7 +198,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         InvocationHandler h = Proxy.getInvocationHandler(proxy);
         if (h instanceof RemoteInvocationHandler) {
             RemoteInvocationHandler rih = (RemoteInvocationHandler) h;
-            if(rih.channel==src)
+            if(rih.channel()==src)
                 return rih.oid;
         }
         return -1;
@@ -141,7 +212,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         InvocationHandler h = Proxy.getInvocationHandler(proxy);
         if (h instanceof RemoteInvocationHandler) {
             RemoteInvocationHandler rih = (RemoteInvocationHandler) h;
-            return rih.channel;
+            return rih.channel();
         }
         return null;
     }
@@ -175,11 +246,11 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         RPCRequest req = new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null);
         try {
             if(userProxy) {
-                if (async)  channel.callAsync(req);
-                else        return channel.call(req);
+                if (async)  channelOrFail().callAsync(req);
+                else        return channelOrFail().call(req);
             } else {
-                if (async)  req.callAsync(channel);
-                else        return req.call(channel);
+                if (async)  req.callAsync(channelOrFail());
+                else        return req.call(channelOrFail());
             }
             return null;
         } catch (Throwable e) {
@@ -204,7 +275,13 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             // (which would cause the finalize() method to try to unexport the object.)
             channel = null;
         } else {
-            channel = Channel.current();
+            Channel channel = Channel.current();
+            this.channel = channel == null ? null : channel.ref();
+            if (channel != null) {
+                if (!autoUnexportByCaller) {
+                    UNEXPORTER.watch(this);
+                }
+            }
         }
     }
 
@@ -233,16 +310,221 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         return oid;
     }
 
+    /**
+     * Finalizers are run only under extreme GC pressure whereas {@link PhantomReference} are cleared out
+     * more quickly, thus we use a {@link PhantomReference} in place of the override of {@link Object#finalize()}
+     * that was previously used in order to unexport.
+     * @since FIXME after merge
+     */
+    private static class PhantomReferenceImpl extends PhantomReference<RemoteInvocationHandler> {
 
-    protected void finalize() throws Throwable {
-        // unexport the remote object
-        if (channel!=null && !autoUnexportByCaller) {
-            channel.send(new UnexportCommand(oid,origin));
-            channel = null;
+        /**
+         * The object id to unexport.
+         */
+        private final int oid;
+        /**
+         * The origin from where the object was created.
+         */
+        private Throwable origin;
+        /**
+         * The reference to the channel on which to unexport.
+         */
+        private Channel.Ref channel;
+
+        /**
+         * Construct our reference and bind to the {@link ReferenceQueue} after capturing the required state for
+         * {@link #cleanup()}.
+         *
+         * @param referent       the {@link RemoteInvocationHandler} we will clean up.
+         * @param referenceQueue the {@link ReferenceQueue}
+         */
+        private PhantomReferenceImpl(RemoteInvocationHandler referent,
+                                    ReferenceQueue<? super RemoteInvocationHandler> referenceQueue) {
+            super(referent, referenceQueue);
+            this.oid = referent.oid;
+            this.origin = referent.origin;
+            this.channel = referent.channel;
         }
-        super.finalize();
+
+        /**
+         * Sends the {@link UnexportCommand} for the specified {@link #oid} if the {@link Channel} is still open.
+         * @throws IOException if the {@link UnexportCommand} could not be sent.
+         */
+        private void cleanup() throws IOException {
+            if (this.channel == null) {
+                return;
+            }
+            Channel channel = this.channel.channel();
+            if (channel != null && !channel.isClosingOrClosed()) {
+                try {
+                    channel.send(new UnexportCommand(oid, origin));
+                } finally {
+                    // clear out references to simplify GC
+                    this.origin = null;
+                    this.channel = null;
+                }
+            }
+        }
     }
 
+    /**
+     * Manages the cleanup of {@link RemoteInvocationHandler} instances that need to be auto unexported.
+     * @since FIXME after merge
+     */
+    private static class Unexporter implements Runnable {
+
+        /**
+         * Our executor service, we use at most one thread for all {@link Channel} instances in the current classloader.
+         */
+        private final ExecutorService svc = new AtmostOneThreadExecutor(
+                new NamingThreadFactory(new DaemonThreadFactory(), RemoteInvocationHandler.class.getSimpleName())
+        );
+        /**
+         * Flag to track that {@link #UNEXPORTER} has been queued for execution.
+         */
+        private final AtomicBoolean inQueue = new AtomicBoolean(false);
+        /**
+         * Flag to track that {@link #UNEXPORTER} is running.
+         */
+        private final AtomicBoolean isAlive = new AtomicBoolean(false);
+        /**
+         * Our {@link ReferenceQueue} for picking up references that have been collected by the garbage collector
+         * and need the corresponding {@link UnexportCommand} sent.
+         */
+        private final ReferenceQueue<? super RemoteInvocationHandler> queue = new ReferenceQueue<RemoteInvocationHandler>();
+        /**
+         * The "live" {@link PhantomReferenceImpl} instances for each active {@link Channel}.
+         */
+        private final ConcurrentMap<Channel.Ref,List<PhantomReferenceImpl>> referenceLists 
+                = new ConcurrentHashMap<Channel.Ref, List<PhantomReferenceImpl>>();
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void run() {
+            if (!isAlive.compareAndSet(false, true)) {
+                inQueue.set(false); // we have started execution so clear the flag, must happen after check of running
+                return;
+            }
+            inQueue.set(false); // we have started execution and running is true, so queued can be reset
+            try {
+                long nextSweep = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
+                while (!referenceLists.isEmpty()) {
+                    try {
+                        Reference<?> ref = queue.remove(100);
+                        if (ref instanceof PhantomReferenceImpl) {
+                            PhantomReferenceImpl r = (PhantomReferenceImpl) ref;
+                            final Channel.Ref channelRef = r.channel;
+                            try {
+                                r.cleanup();
+                            } catch (IOException e) {
+                                logger.log(Level.WARNING,
+                                        String.format("Couldn't clean up oid=%d from %s", r.oid, r.origin), e);
+                            } catch (Error e) {
+                                logger.log(Level.SEVERE,
+                                        String.format("Couldn't clean up oid=%d from %s", r.oid, r.origin), e);
+                                throw e; // pass on as there is nothing we can do with an error
+                            } catch (Throwable e) {
+                                logger.log(Level.WARNING,
+                                        String.format("Couldn't clean up oid=%d from %s", r.oid, r.origin), e);
+                            } finally {
+                                if (channelRef != null) {
+                                    final List<PhantomReferenceImpl> referenceList = referenceLists.get(channelRef);
+                                    if (referenceList != null) {
+                                        referenceList.remove(r);
+                                        if (channelRef.channel() == null) {
+                                            cleanList(referenceList);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (InterruptedException e) {
+                        logger.log(Level.FINE, "Interrupted", e);
+                    }
+                    if (System.nanoTime() > nextSweep) {
+                        nextSweep = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
+                        // purge any dead channels, it does not matter if we spend a long time here as we are
+                        // removing future potential work for us from ever entering the queue and freeing garbage
+                        for (Iterator<Map.Entry<Channel.Ref, List<PhantomReferenceImpl>>>
+                             iterator = referenceLists.entrySet().iterator();
+                             iterator.hasNext(); ) {
+                            final Map.Entry<Channel.Ref, List<PhantomReferenceImpl>> entry = iterator.next();
+                            final Channel.Ref r = entry.getKey();
+                            if (r == null || r.channel() == null) {
+                                iterator.remove();
+                                // take them out of the queue
+                                cleanList(entry.getValue());
+                            }
+                        }
+                    }
+                }
+            } finally {
+                isAlive.set(false);
+            }
+        }
+
+        /**
+         * Cleans a {@link List} of {@link PhantomReferenceImpl} as the {@link Channel} has closed.
+         *
+         * @param referenceList the {@link List}.
+         */
+        private void cleanList(@CheckForNull List<PhantomReferenceImpl> referenceList) {
+            if (referenceList == null) {
+                return;
+            }
+            for (PhantomReferenceImpl phantom: referenceList) {
+                phantom.clear();
+            }
+            // simplify life for the Garbage collector by reducing reference counts
+            referenceList.clear();
+        }
+
+        /**
+         * Watch the specified {@link RemoteInvocationHandler} for garbage collection so that it can be unexported
+         * when collected.
+         * 
+         * @param handler the {@link RemoteInvocationHandler} instance to watch.
+         */
+        private void watch(RemoteInvocationHandler handler) {
+            Channel.Ref ref = handler.channel;
+            if (ref == null || ref.channel() == null) {
+                // channel is dead anyway, so we could not send an UnexportCommand even if we wanted to
+                return;
+            }
+            List<PhantomReferenceImpl> referenceList;
+            while (null == (referenceList = referenceLists.get(ref))) {
+                referenceLists.putIfAbsent(ref, Collections.synchronizedList(new ArrayList<PhantomReferenceImpl>()));
+            }
+            referenceList.add(new PhantomReferenceImpl(handler, queue));
+            if (isAlive.get()) {
+                // if already running we are all set and can return
+                return;
+            }
+            // ok, we may need to schedule another execution
+            if (inQueue.compareAndSet(false, true)) {
+                // let's submit... if there are multiple instances in the queue, only one will run at a time
+                // and when it finishes the others will either exit due to and empty referencesList or else
+                // we wanted them running anyway
+                try {
+                    svc.submit(UNEXPORTER);
+                } catch (RejectedExecutionException e) {
+                    // we must be in the process of being shut down
+                }
+            }
+        }
+
+        /**
+         * Stop watching {@link RemoteInvocationHandler} instances for the specified {@link Channel} as it is
+         * terminating/ed.
+         * @param channel the {@link Channel}.
+         */
+        private void onChannelTermination(Channel channel) {
+            cleanList(referenceLists.remove(channel.ref()));
+        }
+    }
+    
     private static final long serialVersionUID = 1L;
 
     /**

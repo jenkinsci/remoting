@@ -46,6 +46,8 @@ import java.util.logging.Logger;
 
 import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
 
+import javax.annotation.CheckForNull;
+
 import static hudson.remoting.Util.*;
 import static java.util.logging.Level.*;
 
@@ -83,7 +85,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * Remote peer that the {@link #proxy} is connected to.
      */
-    private final Channel channel;
+    private /*mostly final*/ Channel.Ref channel;
 
     private final Map<String,URLish> resourceMap = new HashMap<String,URLish>();
     private final Map<String,Vector<URLish>> resourcesMap = new HashMap<String,Vector<URLish>>();
@@ -113,11 +115,22 @@ final class RemoteClassLoader extends URLClassLoader {
 
     private RemoteClassLoader(ClassLoader parent, IClassLoader proxy) {
         super(new URL[0],parent);
-        this.channel = RemoteInvocationHandler.unwrap(proxy);
+        final Channel channel = RemoteInvocationHandler.unwrap(proxy);
+        this.channel = channel == null ? null : channel.ref();
         this.underlyingProxy = proxy;
-        if (!channel.remoteCapability.supportsPrefetch() || channel.getJarCache()==null)
+        if (channel == null || !channel.remoteCapability.supportsPrefetch() || channel.getJarCache()==null)
             proxy = new DumbClassLoaderBridge(proxy);
         this.proxy = proxy;
+    }
+
+    /**
+     * Returns the backing channel or {@code null} if the channel is disconnected or otherwise unavailable.
+     * @return the backing channel or {@code null}.
+     * @since FIXME after merge
+     */
+    @CheckForNull
+    private Channel channel() {
+        return this.channel == null ? null : this.channel.channel();
     }
 
     /**
@@ -133,7 +146,8 @@ final class RemoteClassLoader extends URLClassLoader {
             // first attempt to load from locally fetched jars
             return super.findClass(name);
         } catch (ClassNotFoundException e) {
-            if(!channel.isRemoteClassLoadingAllowed())
+            final Channel channel = channel();
+            if(channel == null || !channel.isRemoteClassLoadingAllowed())
                 throw e;
             // delegate to remote
             if (channel.remoteCapability.supportsMultiClassLoaderRPC()) {
@@ -309,7 +323,8 @@ final class RemoteClassLoader extends URLClassLoader {
             throw new ClassFormatError(name + " is <8 bytes long");
         }
         short bytecodeLevel = (short) ((bytes[6] << 8) + (bytes[7] & 0xFF) - 44);
-        if (bytecodeLevel > channel.maximumBytecodeLevel) {
+        final Channel channel = channel();
+        if (channel != null && bytecodeLevel > channel.maximumBytecodeLevel) {
             throw new ClassFormatError("this channel is restricted to JDK 1." + channel.maximumBytecodeLevel + " compatibility but " + name + " was compiled for 1." + bytecodeLevel);
         }
 
@@ -347,7 +362,8 @@ final class RemoteClassLoader extends URLClassLoader {
     public URL findResource(String name) {
         // first attempt to load from locally fetched jars
         URL url = super.findResource(name);
-        if(url!=null || !channel.isRemoteClassLoadingAllowed())   return url;
+        final Channel channel = channel();
+        if(url!=null || channel == null || !channel.isRemoteClassLoadingAllowed())   return url;
 
         try {
             if(resourceMap.containsKey(name)) {
@@ -393,7 +409,8 @@ final class RemoteClassLoader extends URLClassLoader {
     }
 
     public Enumeration<URL> findResources(String name) throws IOException {
-        if(!channel.isRemoteClassLoadingAllowed())
+        final Channel channel = channel();
+        if(channel == null || !channel.isRemoteClassLoadingAllowed())
             return EMPTY_ENUMERATION;
 
         // TODO: use the locally fetched jars to speed up the look up

@@ -70,13 +70,15 @@ public class ChannelTest extends RmiTestBase {
                 // if so, try again. if we kept failing after a number of retries,
                 // then it's highly suspicious that the caller is doing the deallocation,
                 // which is a bug.
+                System.out.println("Bitten by over-eager GC, will retry test");
                 continue;
             }
 
             // now we verify that 'g' gets eventually unexported by remote.
             // to do so, we keep calling System.gc().
             for (int i=0; i<30 && channel.exportedObjects.isExported(g); i++) {
-                channel.call(new GCTask());
+                System.out.println("Attempting to force GC on remote end");
+                channel.call(new GCTask(true));
                 Thread.sleep(100);
             }
 
