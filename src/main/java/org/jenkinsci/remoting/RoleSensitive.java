@@ -20,7 +20,9 @@ public interface RoleSensitive {
     /**
      * Verifies the roles expected by this callable by invoking {@link RoleChecker#check(RoleSensitive, Collection)}
      * method (or its variants), to provide an opportunity for {@link RoleChecker} to reject this object.
-     *
+     * <p><strong>Do not implement this method</strong> unless you know what you are doing.
+     * If you have a Jenkins {@link Callable} or {@code FileCallable}, use of the standard abstract base classes instead,
+     * such as {@code MasterToSlaveCallable}, {@code MasterToSlaveFileCallable}, {@code NotReallyRoleSensitiveCallable}, etc.
      * @return
      *      If the method returns normally, the check has passed.
      *

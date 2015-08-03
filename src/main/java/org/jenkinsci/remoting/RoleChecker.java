@@ -19,7 +19,7 @@ public abstract class RoleChecker {
     /**
      * Called from {@link RoleSensitive#checkRoles(RoleChecker)} to ensure that this side of the channel
      * is willing to execute {@link Callable}s that expects one of the given roles on their intended recipients.
-     *
+     * <p><strong>If you think you need to implement {@link RoleSensitive#checkRoles}</strong> please reread that method’s Javadoc.
      * <p>
      * Normally, each side of the channel has a fixed set of roles (say {@code actualRoles}),
      * and the implementation would be {@code actualRoles.containsAll(roles)}.
