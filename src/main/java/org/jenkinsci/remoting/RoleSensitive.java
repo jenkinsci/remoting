@@ -23,6 +23,7 @@ public interface RoleSensitive {
      * <p><strong>Do not implement this method</strong> unless you know what you are doing.
      * If you have a Jenkins {@link Callable} or {@code FileCallable}, use the standard abstract base classes instead,
      * such as {@code MasterToSlaveCallable}, {@code MasterToSlaveFileCallable}, {@code NotReallyRoleSensitiveCallable}, etc.
+     * See <a href="https://wiki.jenkins-ci.org/display/JENKINS/Slave+To+Master+Access+Control/#SlaveToMasterAccessControl-I%27maplugindeveloper.WhatshouldIdo%3F">this document</a> for details.
      * @return
      *      If the method returns normally, the check has passed.
      *
