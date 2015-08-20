@@ -131,7 +131,7 @@ public class RemoteInputStream extends InputStream implements Serializable {
                                     if (o instanceof ErrorPropagatingOutputStream) {
                                         try {
                                             ((ErrorPropagatingOutputStream) o).error(e);
-                                        } catch (IOException _) {
+                                        } catch (IOException ignored) {
                                             // can't do anything. just give up
                                         }
                                     }
@@ -140,7 +140,7 @@ public class RemoteInputStream extends InputStream implements Serializable {
 
                                 try {
                                     o.write(buf, 0, len);
-                                } catch (IOException _) {
+                                } catch (IOException ignored) {
                                     // can't do anything. just give up
                                 }
                             }
@@ -149,12 +149,12 @@ public class RemoteInputStream extends InputStream implements Serializable {
                             // so there's no 'closeIn' flag.
                             try {
                                 i.close();
-                            } catch (IOException _) {
+                            } catch (IOException ignored) {
                                 // swallow and ignore
                             }
                             try {
                                 o.close();
-                            } catch (IOException _) {
+                            } catch (IOException ignored) {
                                 // swallow and ignore
                             }
                         }

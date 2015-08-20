@@ -164,11 +164,11 @@ public class Launcher {
     /**
      * Bypass HTTPS security check by using free-for-all trust manager.
      *
-     * @param _
+     * @param ignored
      *      This is ignored.
      */
     @Option(name="-noCertificateCheck")
-    public void setNoCertificateCheck(boolean _) throws NoSuchAlgorithmException, KeyManagementException {
+    public void setNoCertificateCheck(boolean ignored) throws NoSuchAlgorithmException, KeyManagementException {
         System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, new TrustManager[]{new NoCheckTrustManager()}, new java.security.SecureRandom());
