@@ -63,7 +63,7 @@ class FlightRecorderInputStream extends InputStream {
         diagnosisThread.start();
         try {
             diagnosisThread.join(1000);
-        } catch (InterruptedException _) {
+        } catch (InterruptedException ignored) {
             // we are only waiting for a fixed amount of time, so we'll pretend like we were in a busy loop
             Thread.currentThread().interrupt();
             // fall through

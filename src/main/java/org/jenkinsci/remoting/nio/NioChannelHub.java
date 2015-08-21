@@ -197,12 +197,12 @@ public class NioChannelHub implements Runnable, Closeable {
         public void abort(Throwable e) {
             try {
                 closeR();
-            } catch (IOException _) {
+            } catch (IOException ignored) {
                 // ignore
             }
             try {
                 closeW();
-            } catch (IOException _) {
+            } catch (IOException ignored) {
                 // ignore
             }
             receiver.terminate((IOException)new IOException("Connection aborted: "+this).initCause(e));
