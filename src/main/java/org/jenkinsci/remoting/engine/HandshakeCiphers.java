@@ -31,6 +31,7 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.security.GeneralSecurityException;
 import java.security.spec.KeySpec;
 
 /**
@@ -66,7 +67,7 @@ class HandshakeCiphers {
                     raw.getBytes(Charset.forName("UTF-8"))), Charset.forName("ISO-8859-1"));
             encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
             return encrypted;
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new IOException("Failed to encrypt message", e);
         }
     }
@@ -83,7 +84,7 @@ class HandshakeCiphers {
                     encrypted.getBytes(Charset.forName("ISO-8859-1"))), Charset.forName("UTF-8"));
             decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
             return raw;
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new IOException("Failed to decrypt message", e);
         }
     }
@@ -113,13 +114,13 @@ class HandshakeCiphers {
             decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
 
             return new HandshakeCiphers(secretKey, spec, encryptCipher, decryptCipher);
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new IOException("Failed to create handshake ciphers", e);
         }
     }
 
     private static SecretKey generateSecretKey(String slaveName, String slaveSecret)
-            throws Exception {
+            throws GeneralSecurityException {
         SecretKeyFactory factory = SecretKeyFactory.getInstance(FACTORY_ALGORITHM);
         KeySpec spec = new PBEKeySpec(
                 slaveSecret.toCharArray(), slaveName.getBytes(Charset.forName("UTF-8")),

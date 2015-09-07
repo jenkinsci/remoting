@@ -28,6 +28,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 /**
  * {@link javax.crypto.Cipher}s that will be used to construct an encrypted
@@ -91,7 +92,7 @@ class ChannelCiphers {
             decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
 
             return new ChannelCiphers(aesKey, specKey, encryptCipher, decryptCipher);
-        } catch (Exception e) {
+        } catch (GeneralSecurityException e) {
             throw new IOException("Failed to create channel ciphers", e);
         }
     }
