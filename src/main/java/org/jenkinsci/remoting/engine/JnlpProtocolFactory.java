@@ -45,12 +45,11 @@ public class JnlpProtocolFactory {
      *
      * The protocols should be tried in the order they are given.
      *
-     * @param slaveName The name of the registered slave.
      * @param slaveSecret The secret associated with the slave.
+     * @param slaveName The name of the registered slave.
      * @param events The {@link EngineListener} that the protocol shall send events to.
      */
-    public static List<JnlpProtocol> createProtocols(String slaveName, String slaveSecret,
-            EngineListener events) {
+    public static List<JnlpProtocol> createProtocols(String slaveSecret, String slaveName, EngineListener events) {
         return Arrays.asList(
             new JnlpProtocol2(slaveName, slaveSecret, events),
             new JnlpProtocol1(slaveName, slaveSecret, events)
@@ -61,7 +60,7 @@ public class JnlpProtocolFactory {
      * @deprecated as of 2.51. Use {@link #createProtocols(String, String, EngineListener)}.
      */
     public static List<JnlpProtocol> createProtocols(String slaveSecret, String slaveName) {
-        return createProtocols(slaveName,slaveSecret,new EngineListenerSplitter());
+        return createProtocols(slaveSecret, slaveName, new EngineListenerSplitter());
     }
 
 }

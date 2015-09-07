@@ -156,7 +156,7 @@ public class Engine extends Thread {
     @Override
     public void run() {
         // Create the protocols that will be attempted to connect to the master.
-        List<JnlpProtocol> protocols = JnlpProtocolFactory.createProtocols(slaveName, secretKey, events);
+        List<JnlpProtocol> protocols = JnlpProtocolFactory.createProtocols(secretKey, slaveName, events);
 
         try {
             boolean first = true;
