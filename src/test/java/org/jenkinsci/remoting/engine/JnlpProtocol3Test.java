@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
@@ -63,9 +64,7 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
  */
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({EngineUtil.class, Jnlp3Util.class, JnlpProtocol3.class})
-@PowerMockIgnore({"javax.crypto.*", "javax.crypto.spec.*",
-        "org.jenkinsci.remoting.engine.HandshakeCiphers",
-        "org.jenkinsci.remoting.engine.ChannelCiphers"})
+@PowerMockIgnore({"javax.crypto.*", "javax.crypto.spec.*"})
 public class JnlpProtocol3Test {
 
     private static final String SECRET = "secret";
@@ -94,6 +93,8 @@ public class JnlpProtocol3Test {
         inOrder = inOrder(mockDataOutputStream);
         mockStatic(EngineUtil.class);
         mockStatic(Jnlp3Util.class);
+        when(Jnlp3Util.generate128BitKey(Mockito.anyString())).thenCallRealMethod();
+        when(Jnlp3Util.generate128BitKey()).thenCallRealMethod();
     }
 
     @Test
