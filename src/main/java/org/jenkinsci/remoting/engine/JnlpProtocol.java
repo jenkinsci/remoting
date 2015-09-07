@@ -25,7 +25,7 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
-import hudson.remoting.EngineListenerSplitter;
+import hudson.remoting.EngineListener;
 
 import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
@@ -43,9 +43,12 @@ public abstract class JnlpProtocol {
 
     protected final String slaveName;
     protected final String slaveSecret;
-    protected final EngineListenerSplitter events;
+    /**
+     * Listener to send updates to.
+     */
+    protected final EngineListener events;
 
-    JnlpProtocol(String slaveName, String slaveSecret, EngineListenerSplitter events) {
+    JnlpProtocol(String slaveName, String slaveSecret, EngineListener events) {
         this.slaveName = slaveName;
         this.slaveSecret = slaveSecret;
         this.events = events;

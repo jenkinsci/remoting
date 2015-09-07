@@ -25,7 +25,7 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
-import hudson.remoting.EngineListenerSplitter;
+import hudson.remoting.EngineListener;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -47,7 +47,7 @@ import java.net.Socket;
  */
 class JnlpProtocol1 extends JnlpProtocol {
 
-    JnlpProtocol1(String slaveName, String slaveSecret, EngineListenerSplitter events) {
+    JnlpProtocol1(String slaveName, String slaveSecret, EngineListener events) {
         super(slaveName, slaveSecret, events);
     }
 

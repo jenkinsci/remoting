@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import hudson.remoting.EngineListenerSplitter;
+import hudson.remoting.EngineListener;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,10 +46,10 @@ public class JnlpProtocolFactory {
      *
      * @param slaveName The name of the registered slave.
      * @param slaveSecret The secret associated with the slave.
-     * @param events The {@link EngineListenerSplitter} to use for logging.
+     * @param events The {@link EngineListener} that the protocl shall send events to.
      */
     public static List<JnlpProtocol> createProtocols(String slaveName, String slaveSecret,
-            EngineListenerSplitter events) {
+            EngineListener events) {
         return Arrays.asList(
             new JnlpProtocol2(slaveName, slaveSecret, events),
             new JnlpProtocol1(slaveName, slaveSecret, events)
