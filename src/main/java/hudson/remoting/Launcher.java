@@ -78,6 +78,7 @@ import java.security.SecureRandom;
 import java.util.Properties;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.io.IOUtils;
 
 /**
  * Entry point for running a {@link Channel}. This is the main method of the slave JVM.
@@ -556,13 +557,16 @@ public class Launcher {
 
     private static String computeVersion() {
         Properties props = new Properties();
+        InputStream is = null;
         try {
-            InputStream is = Launcher.class.getResourceAsStream("hudson-version.properties");
+            is = Launcher.class.getResourceAsStream("hudson-version.properties");
             if(is!=null)
                 props.load(is);
         } catch (IOException e) {
             e.printStackTrace();
-        }
+        } finally {
+            IOUtils.closeQuietly(is);
+        } 
         return props.getProperty("version", "?");
     }
 
