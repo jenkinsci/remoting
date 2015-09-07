@@ -66,12 +66,12 @@ public class EngineUtil {
      * @throws IOException
      */
     public static String readChars(InputStream inputStream, int len) throws IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buf = new byte[len];
         for (int i = 0; i < len; i++) {
-            byteArrayOutputStream.write(inputStream.read());
+            buf[i] = (byte)inputStream.read();
         }
 
-        return byteArrayOutputStream.toString("UTF-8");
+        return new String(buf,"UTF-8");
     }
 
     /**
