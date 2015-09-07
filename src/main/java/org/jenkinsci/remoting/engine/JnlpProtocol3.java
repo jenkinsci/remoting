@@ -39,6 +39,9 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.Properties;
 
+import static org.jenkinsci.remoting.engine.EngineUtil.*;
+import static org.jenkinsci.remoting.engine.jnlp3.Jnlp3Util.createChallengeResponse;
+
 /**
  * Implementation of the JNLP3-connect protocol.
  *
@@ -181,9 +184,8 @@ public class JnlpProtocol3 extends JnlpProtocol {
         outputStream.writeUTF(o.toString("UTF-8"));
 
         // Validate challenge response.
-        Integer challengeResponseLength = Integer.parseInt(EngineUtil.readLine(inputStream));
-        String encryptedChallengeResponse = EngineUtil.readChars(
-                inputStream, challengeResponseLength);
+        Integer challengeResponseLength = Integer.parseInt(readLine(inputStream));
+        String encryptedChallengeResponse = readChars(inputStream, challengeResponseLength);
         String challengeResponse = handshakeCiphers.decrypt(encryptedChallengeResponse);
         if (!Jnlp3Util.validateChallengeResponse(challenge, challengeResponse)) {
             events.status(NAME + ": Incorrect challenge response from master");
@@ -197,20 +199,20 @@ public class JnlpProtocol3 extends JnlpProtocol {
     private boolean authenticateToMaster(BufferedInputStream inputStream,
             DataOutputStream outputStream, HandshakeCiphers handshakeCiphers) throws IOException {
         // Read the master challenge.
-        Integer challengeLength = Integer.parseInt(EngineUtil.readLine(inputStream));
-        String encryptedChallenge = EngineUtil.readChars(inputStream, challengeLength);
+        Integer challengeLength = Integer.parseInt(readLine(inputStream));
+        String encryptedChallenge = readChars(inputStream, challengeLength);
         String masterChallenge = handshakeCiphers.decrypt(encryptedChallenge);
 
         // Send the response.
-        String challengeResponse = Jnlp3Util.createChallengeResponse(masterChallenge);
+        String challengeResponse = createChallengeResponse(masterChallenge);
         String encryptedChallengeResponse = handshakeCiphers.encrypt(challengeResponse);
         outputStream.writeUTF(encryptedChallengeResponse);
 
         // See if the master accepted us.
-        if (!GREETING_SUCCESS.equals(EngineUtil.readLine(inputStream))) {
+        if (!GREETING_SUCCESS.equals(readLine(inputStream))) {
             return false;
         }
-        cookie = handshakeCiphers.decrypt(EngineUtil.readLine(inputStream));
+        cookie = handshakeCiphers.decrypt(readLine(inputStream));
         return true;
     }
 
