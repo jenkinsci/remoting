@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
+ * Copyright (c) 2004-2015, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,16 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import hudson.remoting.Channel;
+import hudson.remoting.ChannelBuilder;
+import hudson.remoting.EngineListener;
+
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.Socket;
 import java.util.Properties;
 
 /**
@@ -52,8 +58,8 @@ class JnlpProtocol2 extends JnlpProtocol {
      */
     private String cookie;
 
-    JnlpProtocol2(String secretKey, String slaveName) {
-        super(secretKey, slaveName);
+    JnlpProtocol2(String slaveName, String slaveSecret, EngineListener events) {
+        super(slaveName, slaveSecret, events);
     }
 
     @Override
@@ -66,25 +72,32 @@ class JnlpProtocol2 extends JnlpProtocol {
     }
 
     @Override
-    public String performHandshake(DataOutputStream outputStream,
+    boolean performHandshake(DataOutputStream outputStream,
             BufferedInputStream inputStream) throws IOException {
         initiateHandshake(outputStream);
 
-        // Get the response from the master,
+        // Check if the server accepted.
         String response = EngineUtil.readLine(inputStream);
-
-        // If success, look for the cookie.
-        if (response.equals(GREETING_SUCCESS)) {
-            Properties responses = EngineUtil.readResponseHeaders(inputStream);
-            cookie = responses.getProperty(COOKIE_KEY);
+        if (!response.equals(GREETING_SUCCESS)) {
+            events.status("Server didn't accept the handshake: " + response);
+            return false;
         }
 
-        return response;
+        Properties responses = EngineUtil.readResponseHeaders(inputStream);
+        cookie = responses.getProperty(COOKIE_KEY);
+        return true;
+    }
+
+    @Override
+    Channel buildChannel(Socket socket, ChannelBuilder channelBuilder) throws IOException {
+        return channelBuilder.build(
+                new BufferedInputStream(socket.getInputStream()),
+                new BufferedOutputStream(socket.getOutputStream()));
     }
 
     private void initiateHandshake(DataOutputStream outputStream) throws IOException {
         Properties props = new Properties();
-        props.put(SECRET_KEY, secretKey);
+        props.put(SECRET_KEY, slaveSecret);
         props.put(SLAVE_NAME_KEY, slaveName);
 
         // If there is a cookie send that as well.

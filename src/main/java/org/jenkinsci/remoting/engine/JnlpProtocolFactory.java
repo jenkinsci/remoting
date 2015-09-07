@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
+ * Copyright (c) 2004-2015, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import hudson.remoting.EngineListener;
+import hudson.remoting.EngineListenerSplitter;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -41,11 +44,23 @@ public class JnlpProtocolFactory {
      * connecting to the master.
      *
      * The protocols should be tried in the order they are given.
+     *
+     * @param slaveSecret The secret associated with the slave.
+     * @param slaveName The name of the registered slave.
+     * @param events The {@link EngineListener} that the protocol shall send events to.
      */
-    public static List<JnlpProtocol> createProtocols(String secretKey, String slaveName) {
+    public static List<JnlpProtocol> createProtocols(String slaveSecret, String slaveName, EngineListener events) {
         return Arrays.asList(
-            new JnlpProtocol2(secretKey, slaveName),
-            new JnlpProtocol1(secretKey, slaveName)
+            new JnlpProtocol2(slaveName, slaveSecret, events),
+            new JnlpProtocol1(slaveName, slaveSecret, events)
         );
     }
+
+    /**
+     * @deprecated as of 2.51. Use {@link #createProtocols(String, String, EngineListener)}.
+     */
+    public static List<JnlpProtocol> createProtocols(String slaveSecret, String slaveName) {
+        return createProtocols(slaveSecret, slaveName, new EngineListenerSplitter());
+    }
+
 }

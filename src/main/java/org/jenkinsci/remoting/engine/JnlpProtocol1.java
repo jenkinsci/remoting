@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
+ * Copyright (c) 2004-2015, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,15 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import hudson.remoting.Channel;
+import hudson.remoting.ChannelBuilder;
+import hudson.remoting.EngineListener;
+
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.Socket;
 
 /**
  * Implementation of the JNLP-connect protocol.
@@ -41,8 +47,8 @@ import java.io.IOException;
  */
 class JnlpProtocol1 extends JnlpProtocol {
 
-    JnlpProtocol1(String secretKey, String slaveName) {
-        super(secretKey, slaveName);
+    JnlpProtocol1(String slaveName, String slaveSecret, EngineListener events) {
+        super(slaveName, slaveSecret, events);
     }
 
     @Override
@@ -51,15 +57,28 @@ class JnlpProtocol1 extends JnlpProtocol {
     }
 
     @Override
-    public String performHandshake(DataOutputStream outputStream,
+    boolean performHandshake(DataOutputStream outputStream,
             BufferedInputStream inputStream) throws IOException {
         // Initiate the handshake.
         outputStream.writeUTF(PROTOCOL_PREFIX + NAME);
-        outputStream.writeUTF(secretKey);
+        outputStream.writeUTF(slaveSecret);
         outputStream.writeUTF(slaveName);
 
-        // Get the response from the master,
-        return EngineUtil.readLine(inputStream);
+        // Check if the server accepted.
+        String response = EngineUtil.readLine(inputStream);
+        if (!response.equals(GREETING_SUCCESS)) {
+            events.status("Server didn't accept the handshake: " + response);
+            return false;
+        }
+
+        return true;
+    }
+
+    @Override
+    Channel buildChannel(Socket socket, ChannelBuilder channelBuilder) throws IOException {
+        return channelBuilder.build(
+                new BufferedInputStream(socket.getInputStream()),
+                new BufferedOutputStream(socket.getOutputStream()));
     }
 
     static final String NAME = "JNLP-connect";

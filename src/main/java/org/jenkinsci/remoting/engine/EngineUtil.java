@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
+ * Copyright (c) 2004-2015, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,6 +55,23 @@ public class EngineUtil {
             }
             byteArrayOutputStream.write(ch);
         }
+    }
+
+    /**
+     * Read a certain amount of characters from the stream.
+     *
+     * @param inputStream The input stream to read from.
+     * @param len The amount of characters to read.
+     * @return The characters read.
+     * @throws IOException
+     */
+    public static String readChars(InputStream inputStream, int len) throws IOException {
+        byte[] buf = new byte[len];
+        for (int i = 0; i < len; i++) {
+            buf[i] = (byte)inputStream.read();
+        }
+
+        return new String(buf,"UTF-8");
     }
 
     /**

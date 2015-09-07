@@ -45,7 +45,7 @@ public interface EngineListener {
     void status(String msg);
 
     /**
-     * Status message, with additoinal stack trace that indicates an error that was recovered.
+     * Status message, with additional stack trace that indicates an error that was recovered.
      */
     void status(String msg, Throwable t);
 

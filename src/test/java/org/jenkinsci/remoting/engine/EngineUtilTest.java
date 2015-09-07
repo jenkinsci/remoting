@@ -1,7 +1,7 @@
 /*
  * The MIT License
  * 
- * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
+ * Copyright (c) 2004-2015, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,6 +46,12 @@ public class EngineUtilTest {
         assertEquals("onlyone", EngineUtil.readLine(stringToStream("onlyone")));
         assertEquals("onlyone-trim", EngineUtil.readLine(stringToStream("onlyone-trim ")));
         assertEquals("", EngineUtil.readLine(stringToStream("")));
+    }
+
+    @Test
+    public void testReadChars() throws Exception {
+        assertEquals("first", EngineUtil.readChars(stringToStream("firstsecond"), 5));
+        assertEquals("", EngineUtil.readChars(stringToStream("firstsecond"), 0));
     }
 
     @Test
