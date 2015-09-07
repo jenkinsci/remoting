@@ -48,6 +48,8 @@ public abstract class JnlpProtocol {
      */
     protected final EngineListener events;
 
+    // so as not to commit to binary compatibility with subtypes, not allowing external modules
+    // to define subtypes
     JnlpProtocol(String slaveName, String slaveSecret, EngineListener events) {
         this.slaveName = slaveName;
         this.slaveSecret = slaveSecret;
