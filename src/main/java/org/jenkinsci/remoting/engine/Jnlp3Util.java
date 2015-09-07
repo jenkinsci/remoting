@@ -56,7 +56,7 @@ class Jnlp3Util {
             return Arrays.copyOf(messageDigest.digest(), 16);
         } catch (NoSuchAlgorithmException nsae) {
             // This should never happen.
-            return null;
+            throw new AssertionError(nsae);
         }
     }
 
@@ -93,7 +93,7 @@ class Jnlp3Util {
             return new String(messageDigest.digest(), Charset.forName("UTF-8"));
         } catch (NoSuchAlgorithmException nsae) {
             // This should never happen.
-            return null;
+            throw new AssertionError(nsae);
         }
     }
 
