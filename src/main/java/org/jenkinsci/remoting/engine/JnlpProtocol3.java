@@ -26,9 +26,6 @@ package org.jenkinsci.remoting.engine;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.EngineListenerSplitter;
-import org.jenkinsci.remoting.engine.jnlp3.ChannelCiphers;
-import org.jenkinsci.remoting.engine.jnlp3.HandshakeCiphers;
-import org.jenkinsci.remoting.engine.jnlp3.Jnlp3Util;
 
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
@@ -40,7 +37,7 @@ import java.net.Socket;
 import java.util.Properties;
 
 import static org.jenkinsci.remoting.engine.EngineUtil.*;
-import static org.jenkinsci.remoting.engine.jnlp3.Jnlp3Util.createChallengeResponse;
+import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
 
 /**
  * Implementation of the JNLP3-connect protocol.
@@ -107,7 +104,7 @@ import static org.jenkinsci.remoting.engine.jnlp3.Jnlp3Util.createChallengeRespo
  *
  * @author Akshay Dayal
  */
-public class JnlpProtocol3 extends JnlpProtocol {
+class JnlpProtocol3 extends JnlpProtocol {
 
     /**
      * This cookie identifies the current connection, allowing us to force the

@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.remoting.engine.jnlp3;
+package org.jenkinsci.remoting.engine;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -35,7 +35,7 @@ import java.io.IOException;
  *
  * @author Akshay Dayal
  */
-public class ChannelCiphers {
+class ChannelCiphers {
 
     private final byte[] aesKey;
     private final byte[] specKey;

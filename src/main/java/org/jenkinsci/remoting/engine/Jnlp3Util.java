@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.remoting.engine.jnlp3;
+package org.jenkinsci.remoting.engine;
 
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -35,7 +35,7 @@ import java.util.Arrays;
  *
  * @author Akshay Dayal
  */
-public class Jnlp3Util {
+class Jnlp3Util {
 
     /**
      * Generate a random 128bit key.

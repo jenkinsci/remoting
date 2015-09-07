@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.remoting.engine.jnlp3;
+package org.jenkinsci.remoting.engine;
 
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNot;

@@ -26,8 +26,6 @@ package org.jenkinsci.remoting.engine;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.EngineListenerSplitter;
-import org.jenkinsci.remoting.engine.jnlp3.HandshakeCiphers;
-import org.jenkinsci.remoting.engine.jnlp3.Jnlp3Util;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,8 +64,8 @@ import static org.powermock.api.mockito.PowerMockito.whenNew;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest({EngineUtil.class, Jnlp3Util.class, JnlpProtocol3.class})
 @PowerMockIgnore({"javax.crypto.*", "javax.crypto.spec.*",
-        "org.jenkinsci.remoting.engine.jnlp3.HandshakeCiphers",
-        "org.jenkinsci.remoting.engine.jnlp3.ChannelCiphers"})
+        "org.jenkinsci.remoting.engine.HandshakeCiphers",
+        "org.jenkinsci.remoting.engine.ChannelCiphers"})
 public class JnlpProtocol3Test {
 
     private static final String SECRET = "secret";

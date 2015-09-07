@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.remoting.engine.jnlp3;
+package org.jenkinsci.remoting.engine;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -39,7 +39,7 @@ import java.security.spec.KeySpec;
  *
  * @author Akshay Dayal
  */
-public class HandshakeCiphers {
+class HandshakeCiphers {
 
     private final SecretKey secretKey;
     private final IvParameterSpec spec;
