@@ -47,7 +47,7 @@ public class JnlpProtocolFactory {
      *
      * @param slaveName The name of the registered slave.
      * @param slaveSecret The secret associated with the slave.
-     * @param events The {@link EngineListener} that the protocl shall send events to.
+     * @param events The {@link EngineListener} that the protocol shall send events to.
      */
     public static List<JnlpProtocol> createProtocols(String slaveName, String slaveSecret,
             EngineListener events) {
