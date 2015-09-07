@@ -24,6 +24,7 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.EngineListener;
+import hudson.remoting.EngineListenerSplitter;
 
 import java.util.Arrays;
 import java.util.List;
@@ -55,4 +56,12 @@ public class JnlpProtocolFactory {
             new JnlpProtocol1(slaveName, slaveSecret, events)
         );
     }
+
+    /**
+     * @deprecated as of 2.51. Use {@link #createProtocols(String, String, EngineListener)}.
+     */
+    public static List<JnlpProtocol> createProtocols(String slaveSecret, String slaveName) {
+        return createProtocols(slaveName,slaveSecret,new EngineListenerSplitter());
+    }
+
 }
