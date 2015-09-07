@@ -483,7 +483,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         this.transport = transport;
 
-        this.jarLoader = new JarLoaderImpl(); // TODO: figure out a mechanism to allow the user to share this across Channels
+        this.jarLoader = new JarLoaderImpl();
         setProperty(JarLoader.OURS, jarLoader);
 
         this.decorators.addAll(settings.getDecorators());
