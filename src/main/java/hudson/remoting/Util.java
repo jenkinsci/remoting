@@ -139,6 +139,9 @@ class Util {
         Iterator<Proxy> proxies = ProxySelector.getDefault().select(URI.create(String.format("http://%s:%d", host, port))).iterator();
         while (targetAddress == null && proxies.hasNext()) {
             Proxy proxy = proxies.next();
+            if(proxy.type() == Proxy.Type.DIRECT) {
+                break;
+            }
             if(proxy.type() == Proxy.Type.HTTP) {
                 final SocketAddress address = proxy.address();
                 if (!(address instanceof InetSocketAddress)) {
