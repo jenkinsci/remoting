@@ -206,7 +206,7 @@ abstract class PipeWindow {
                     return available;
 
                 while (available<min) {
-                    wait();
+                    wait(100);
                     checkDeath();
                 }
 
