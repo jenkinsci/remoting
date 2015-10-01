@@ -31,6 +31,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
@@ -304,31 +305,21 @@ public class Engine extends Thread {
         events.status(msg);
         int retry = 1;
         while(true) {
+        	boolean isHttpProxy = false;
+            InetSocketAddress targetAddress = null;
             try {
-                boolean isProxy = false;
-                Socket s;
-                if (System.getProperty("http.proxyHost") != null) {
-                    String proxyHost = System.getProperty("http.proxyHost");
-                    String proxyPort = System.getProperty("http.proxyPort", "80");
-                    s = new Socket(proxyHost, Integer.parseInt(proxyPort));
-                    isProxy = true;
-                } else {
-                    String httpProxy = System.getenv("http_proxy");
-                    if (httpProxy != null) {
-                        try {
-                            URL url = new URL(httpProxy);
-                            s = new Socket(url.getHost(), url.getPort());
-                            isProxy = true;
-                        } catch (MalformedURLException e) {
-                            System.err.println("Not use http_proxy environment variable which is invalid: "+e.getMessage());
-                            s = new Socket(host, Integer.parseInt(port));
-                        }
-                    } else {
-                        s = new Socket(host, Integer.parseInt(port));
-                    }
-                }
+            	Socket s = null;
+            	targetAddress = Util.getResolvedHttpProxyAddress(host, Integer.parseInt(port));
 
-                s.setTcpNoDelay(true); // we'll do buffering by ourselves
+            	if (targetAddress == null) {
+            		targetAddress = new InetSocketAddress(host, Integer.parseInt(port));;
+                } else {
+                	isHttpProxy = true;
+                }
+            	s = new Socket();
+            	s.connect(targetAddress);
+            	
+            	s.setTcpNoDelay(true); // we'll do buffering by ourselves
 
                 // set read time out to avoid infinite hang. the time out should be long enough so as not
                 // to interfere with normal operation. the main purpose of this is that when the other peer dies
@@ -336,7 +327,7 @@ public class Engine extends Thread {
                 // is gone.
                 s.setSoTimeout(30*60*1000); // 30 mins. See PingThread for the ping interval
 
-                if (isProxy) {
+                if (isHttpProxy) {
                     String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
                     s.getOutputStream().write(connectCommand.getBytes("UTF-8")); // TODO: internationalized domain names
 
@@ -351,8 +342,15 @@ public class Engine extends Thread {
                 }
                 return s;
             } catch (IOException e) {
-                if(retry++>10)
-                    throw (IOException)new IOException("Failed to connect to "+host+':'+port).initCause(e);
+            	if (retry++>10) {
+            		String suffix = "";
+            		if (isHttpProxy) {
+            			suffix = " through proxy " + targetAddress.toString();
+            		}
+            		// Cast -> InitCause method is returning a type Throwable.
+            		// Therefore we need to cast it to IOException.
+            		throw (IOException) new IOException("Failed to connect to " + host + ':' + port + suffix).initCause(e);
+            	}
                 Thread.sleep(1000*10);
                 events.status(msg+" (retrying:"+retry+")",e);
             }

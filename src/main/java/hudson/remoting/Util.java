@@ -8,10 +8,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URLConnection;
+import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.net.MalformedURLException;
 import java.net.Proxy;
+import java.net.ProxySelector;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.URI;
 import java.net.URL;
 
 /**
@@ -123,7 +128,7 @@ class Util {
                 Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
                 con = url.openConnection(proxy);
             } catch (MalformedURLException e) {
-                System.err.println("Not use http_proxy property or environment variable which is invalid: "+e.getMessage());
+            	LOGGER.log(Level.WARNING, INVALID_HTTP_PROXY_MSG + " HTTP Proxy: " + httpProxy);
                 con = url.openConnection();
             }
         } else {
@@ -131,4 +136,37 @@ class Util {
         }
         return con;
     }
+    
+    static InetSocketAddress getResolvedHttpProxyAddress(String host, int port) throws IOException {
+    	InetSocketAddress targetAddress = null;
+    	Iterator<Proxy> proxies = ProxySelector.getDefault().select(URI.create(String.format("http://%s:%d", host, port))).iterator();
+    	// No break -> The while condition already checks if targetAddress is null.
+    	while (targetAddress == null && proxies.hasNext()) {
+    		Proxy proxy = proxies.next();
+    		if (proxy.type() == Proxy.Type.HTTP) {
+    			if (!(proxy.address() instanceof InetSocketAddress))
+    				throw new IOException("Unsupported proxy address type " + proxy.address().getClass());
+    			InetSocketAddress proxyAddress = (InetSocketAddress) proxy.address();
+    			if(proxyAddress.isUnresolved())
+    				proxyAddress = new InetSocketAddress(proxyAddress.getHostName(), proxyAddress.getPort());
+    			targetAddress = proxyAddress;
+    		}
+    	}
+    	if (targetAddress == null) {
+    		String httpProxy = System.getenv("http_proxy");
+    		if (httpProxy != null) {
+    			try {
+    				URL url = new URL(httpProxy);
+    				targetAddress = new InetSocketAddress(url.getHost(), url.getPort());
+    			} catch (MalformedURLException e) {
+    				LOGGER.log(Level.WARNING, INVALID_HTTP_PROXY_MSG + " HTTP Proxy: " + httpProxy);
+    			}
+    		}
+    	}
+    	return targetAddress;
+    }
+    
+    private static final Logger LOGGER = Logger.getLogger(Util.class.getName());
+    
+    private static final String INVALID_HTTP_PROXY_MSG = "Cannot use http_proxy environment variable which is invalid.";
 }
