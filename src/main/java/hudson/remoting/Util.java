@@ -11,6 +11,9 @@ import java.net.URLConnection;
 import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.ProxySelector;
@@ -128,7 +131,7 @@ class Util {
                 Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
                 con = url.openConnection(proxy);
             } catch (MalformedURLException e) {
-            	LOGGER.log(Level.WARNING, INVALID_HTTP_PROXY_MSG + " HTTP Proxy: " + httpProxy);
+                LOGGER.log(Level.WARNING, INVALID_HTTP_PROXY_MSG + " HTTP Proxy: " + httpProxy);
                 con = url.openConnection();
             }
         } else {
@@ -136,37 +139,46 @@ class Util {
         }
         return con;
     }
-    
+
+    /**
+     * Attempts to get a resolved HTTP Proxy Address.
+     * If http_proxy environment variable exists,  the connection uses the proxy.
+     */
+    @CheckForNull
     static InetSocketAddress getResolvedHttpProxyAddress(String host, int port) throws IOException {
-    	InetSocketAddress targetAddress = null;
-    	Iterator<Proxy> proxies = ProxySelector.getDefault().select(URI.create(String.format("http://%s:%d", host, port))).iterator();
-    	// No break -> The while condition already checks if targetAddress is null.
-    	while (targetAddress == null && proxies.hasNext()) {
-    		Proxy proxy = proxies.next();
-    		if (proxy.type() == Proxy.Type.HTTP) {
-    			if (!(proxy.address() instanceof InetSocketAddress))
-    				throw new IOException("Unsupported proxy address type " + proxy.address().getClass());
-    			InetSocketAddress proxyAddress = (InetSocketAddress) proxy.address();
-    			if(proxyAddress.isUnresolved())
-    				proxyAddress = new InetSocketAddress(proxyAddress.getHostName(), proxyAddress.getPort());
-    			targetAddress = proxyAddress;
-    		}
-    	}
-    	if (targetAddress == null) {
-    		String httpProxy = System.getenv("http_proxy");
-    		if (httpProxy != null) {
-    			try {
-    				URL url = new URL(httpProxy);
-    				targetAddress = new InetSocketAddress(url.getHost(), url.getPort());
-    			} catch (MalformedURLException e) {
-    				LOGGER.log(Level.WARNING, INVALID_HTTP_PROXY_MSG + " HTTP Proxy: " + httpProxy);
-    			}
-    		}
-    	}
-    	return targetAddress;
+        InetSocketAddress targetAddress = null;
+        Iterator<Proxy> proxies = ProxySelector.getDefault().select(URI.create(String.format("http://%s:%d", host, port))).iterator();
+        // No break -> The while condition already checks if targetAddress is null.
+        while (targetAddress == null && proxies.hasNext()) {
+            Proxy proxy = proxies.next();
+            if (proxy.type() == Proxy.Type.HTTP) {
+                if (!(proxy.address() instanceof InetSocketAddress)) {
+                    throw new IOException("Unsupported proxy address type " + proxy.address().getClass());
+                }
+                InetSocketAddress proxyAddress = (InetSocketAddress) proxy.address();
+                if (proxyAddress == null) {
+                    targetAddress = null; // Direct connection
+                } else if (proxyAddress.isUnresolved()) {
+                    proxyAddress = new InetSocketAddress(proxyAddress.getHostName(), proxyAddress.getPort());
+                }
+                targetAddress = proxyAddress;
+            }
+        }
+        if (targetAddress == null) {
+            String httpProxy = System.getenv("http_proxy");
+            if (httpProxy != null) {
+                try {
+                    URL url = new URL(httpProxy);
+                    targetAddress = new InetSocketAddress(url.getHost(), url.getPort());
+                } catch (MalformedURLException e) {
+                    LOGGER.log(Level.WARNING, INVALID_HTTP_PROXY_MSG + " HTTP Proxy: " + httpProxy);
+                }
+            }
+        }
+        return targetAddress;
     }
-    
+
     private static final Logger LOGGER = Logger.getLogger(Util.class.getName());
-    
+
     private static final String INVALID_HTTP_PROXY_MSG = "Cannot use http_proxy environment variable which is invalid.";
 }

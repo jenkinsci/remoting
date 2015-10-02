@@ -305,21 +305,21 @@ public class Engine extends Thread {
         events.status(msg);
         int retry = 1;
         while(true) {
-        	boolean isHttpProxy = false;
+            boolean isHttpProxy = false;
             InetSocketAddress targetAddress = null;
             try {
-            	Socket s = null;
-            	targetAddress = Util.getResolvedHttpProxyAddress(host, Integer.parseInt(port));
+                Socket s = null;
+                targetAddress = Util.getResolvedHttpProxyAddress(host, Integer.parseInt(port));
 
-            	if (targetAddress == null) {
-            		targetAddress = new InetSocketAddress(host, Integer.parseInt(port));;
+                if (targetAddress == null) {
+                    targetAddress = new InetSocketAddress(host, Integer.parseInt(port));
                 } else {
-                	isHttpProxy = true;
+                    isHttpProxy = true;
                 }
-            	s = new Socket();
-            	s.connect(targetAddress);
-            	
-            	s.setTcpNoDelay(true); // we'll do buffering by ourselves
+                s = new Socket();
+                s.connect(targetAddress);
+
+                s.setTcpNoDelay(true); // we'll do buffering by ourselves
 
                 // set read time out to avoid infinite hang. the time out should be long enough so as not
                 // to interfere with normal operation. the main purpose of this is that when the other peer dies
@@ -334,25 +334,25 @@ public class Engine extends Thread {
                     BufferedInputStream is = new BufferedInputStream(s.getInputStream());
                     String line = readLine(is);
                     String[] responseLineParts = line.split(" ");
-                    if(responseLineParts.length < 2 || !responseLineParts[1].equals("200"))
-                        throw new IOException("Got a bad response from proxy: " + line);
-                    while(!readLine(is).isEmpty()) {
-                        // Do nothing, scrolling through headers returned from proxy
+                    if (responseLineParts.length < 2 || !responseLineParts[1].equals("200"))
+                	throw new IOException("Got a bad response from proxy: " + line);
+                    while (!readLine(is).isEmpty()) {
+                	// Do nothing, scrolling through headers returned from proxy
                     }
                 }
                 return s;
             } catch (IOException e) {
-            	if (retry++>10) {
-            		String suffix = "";
-            		if (isHttpProxy) {
-            			suffix = " through proxy " + targetAddress.toString();
-            		}
-            		// Cast -> InitCause method is returning a type Throwable.
-            		// Therefore we need to cast it to IOException.
-            		throw (IOException) new IOException("Failed to connect to " + host + ':' + port + suffix).initCause(e);
-            	}
-                Thread.sleep(1000*10);
-                events.status(msg+" (retrying:"+retry+")",e);
+                if (retry++>10) {
+                    String suffix = "";
+                    if (isHttpProxy) {
+                        suffix = " through proxy " + targetAddress.toString();
+                    }
+                    // Cast -> InitCause method is returning a type Throwable.
+                    // Therefore we need to cast it to IOException.
+                    throw new IOException("Failed to connect to " + host + ':' + port + suffix, e);
+                }
+        	Thread.sleep(1000*10);
+        	events.status(msg+" (retrying:"+retry+")",e);
             }
         }
     }
@@ -378,7 +378,7 @@ public class Engine extends Thread {
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
-                    if(con.getResponseCode()==200)
+                    if (con.getResponseCode()==200)
                         return;
                     LOGGER.info("Master isn't ready to talk to us. Will retry again: response code=" + con.getResponseCode());
                 } catch (IOException e) {
