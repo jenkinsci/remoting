@@ -373,8 +373,9 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.1</version>
+        <version>3.0.2</version>
         <configuration>
+          <xmlOutput>true</xmlOutput>
           <excludeFilterFile>${basedir}/src/findbugs-filter.xml</excludeFilterFile>
           <failOnError>true</failOnError>
           <threshold>Low</threshold><!-- we want to find serialization related problems -->
