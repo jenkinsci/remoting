@@ -31,6 +31,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
@@ -304,29 +305,19 @@ public class Engine extends Thread {
         events.status(msg);
         int retry = 1;
         while(true) {
+            boolean isHttpProxy = false;
+            InetSocketAddress targetAddress = null;
             try {
-                boolean isProxy = false;
-                Socket s;
-                if (System.getProperty("http.proxyHost") != null) {
-                    String proxyHost = System.getProperty("http.proxyHost");
-                    String proxyPort = System.getProperty("http.proxyPort", "80");
-                    s = new Socket(proxyHost, Integer.parseInt(proxyPort));
-                    isProxy = true;
+                Socket s = null;
+                targetAddress = Util.getResolvedHttpProxyAddress(host, Integer.parseInt(port));
+
+                if (targetAddress == null) {
+                    targetAddress = new InetSocketAddress(host, Integer.parseInt(port));
                 } else {
-                    String httpProxy = System.getenv("http_proxy");
-                    if (httpProxy != null) {
-                        try {
-                            URL url = new URL(httpProxy);
-                            s = new Socket(url.getHost(), url.getPort());
-                            isProxy = true;
-                        } catch (MalformedURLException e) {
-                            System.err.println("Not use http_proxy environment variable which is invalid: "+e.getMessage());
-                            s = new Socket(host, Integer.parseInt(port));
-                        }
-                    } else {
-                        s = new Socket(host, Integer.parseInt(port));
-                    }
+                    isHttpProxy = true;
                 }
+                s = new Socket();
+                s.connect(targetAddress);
 
                 s.setTcpNoDelay(true); // we'll do buffering by ourselves
 
@@ -336,25 +327,32 @@ public class Engine extends Thread {
                 // is gone.
                 s.setSoTimeout(30*60*1000); // 30 mins. See PingThread for the ping interval
 
-                if (isProxy) {
+                if (isHttpProxy) {
                     String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
                     s.getOutputStream().write(connectCommand.getBytes("UTF-8")); // TODO: internationalized domain names
 
                     BufferedInputStream is = new BufferedInputStream(s.getInputStream());
                     String line = readLine(is);
                     String[] responseLineParts = line.split(" ");
-                    if(responseLineParts.length < 2 || !responseLineParts[1].equals("200"))
-                        throw new IOException("Got a bad response from proxy: " + line);
-                    while(!readLine(is).isEmpty()) {
-                        // Do nothing, scrolling through headers returned from proxy
+                    if (responseLineParts.length < 2 || !responseLineParts[1].equals("200"))
+                	throw new IOException("Got a bad response from proxy: " + line);
+                    while (!readLine(is).isEmpty()) {
+                	// Do nothing, scrolling through headers returned from proxy
                     }
                 }
                 return s;
             } catch (IOException e) {
-                if(retry++>10)
-                    throw (IOException)new IOException("Failed to connect to "+host+':'+port).initCause(e);
-                Thread.sleep(1000*10);
-                events.status(msg+" (retrying:"+retry+")",e);
+                if (retry++>10) {
+                    String suffix = "";
+                    if (isHttpProxy) {
+                        suffix = " through proxy " + targetAddress.toString();
+                    }
+                    // Cast -> InitCause method is returning a type Throwable.
+                    // Therefore we need to cast it to IOException.
+                    throw new IOException("Failed to connect to " + host + ':' + port + suffix, e);
+                }
+        	Thread.sleep(1000*10);
+        	events.status(msg+" (retrying:"+retry+")",e);
             }
         }
     }
@@ -380,7 +378,7 @@ public class Engine extends Thread {
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
-                    if(con.getResponseCode()==200)
+                    if (con.getResponseCode()==200)
                         return;
                     LOGGER.info("Master isn't ready to talk to us. Will retry again: response code=" + con.getResponseCode());
                 } catch (IOException e) {
