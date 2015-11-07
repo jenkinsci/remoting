@@ -31,7 +31,7 @@ import static org.junit.Assert.*;
  * <li>{@link Capability#read(InputStream)}
  * <li>{@link UserRequest#deserialize(Channel, byte[], ClassLoader)},
  * <li>{@link ChannelBuilder#makeTransport(InputStream, OutputStream, Mode, Capability)}
- * <li>{@link AbstractByteArrayCommandTransport#setup(Channel, CommandReceiver)}
+ * <li>{@link AbstractByteArrayCommandTransport#setup(Channel, CommandReceiver)} (TODO)
  * <li>{@link AbstractSynchronousByteArrayCommandTransport#read()}
  * </ul>
  *
@@ -66,6 +66,27 @@ public class ClassFilterTest implements Serializable {
         });
     }
 
+    /**
+     * Set up a channel pair with no capacity. In the context of this test,
+     * the lack of chunked encoding triggers a different transport implementation, and the lack of
+     * multi-classloader support triggers {@link UserRequest} to select a different deserialization mechanism.
+     */
+    private void setUpWithNoCapacity() throws Exception {
+        setUp(new InProcessRunner() {
+            @Override
+            protected ChannelBuilder configureNorth() {
+                return super.configureNorth()
+                        .withCapability(Capability.NONE)
+                        .withClassFilter(new TestFilter());
+            }
+
+            @Override
+            protected ChannelBuilder configureSouth() {
+                return super.configureSouth().withCapability(Capability.NONE);
+            }
+        });
+    }
+
     private void setUp(InProcessRunner runner) throws Exception {
         this.runner = runner;
         north = runner.start();
@@ -96,6 +117,10 @@ public class ClassFilterTest implements Serializable {
         }
     }
 
+    /**
+     * This test case targets object stream created in
+     * {@link UserRequest#deserialize(Channel, byte[], ClassLoader)} with multiclassloader support.
+     */
     @Test
     public void userRequest() throws Exception {
         setUp();
@@ -103,25 +128,12 @@ public class ClassFilterTest implements Serializable {
     }
 
     /**
-     * Variant of {@link #userRequest()} test targets compatibility mode without multiclassloader support.
-     * This also tests {@link ChannelBuilder#makeTransport(InputStream, OutputStream, Mode, Capability)}
-     * by not having the chunking capability.
+     * Variant of {@link #userRequest()} test that targets
+     * {@link UserRequest#deserialize(Channel, byte[], ClassLoader)} *without* multiclassloader support.
      */
     @Test
     public void userRequest_singleClassLoader() throws Exception {
-        setUp(new InProcessRunner() {
-            @Override
-            protected ChannelBuilder configureNorth() {
-                return super.configureNorth()
-                        .withCapability(Capability.NONE)
-                        .withClassFilter(new TestFilter());
-            }
-
-            @Override
-            protected ChannelBuilder configureSouth() {
-                return super.configureSouth().withCapability(Capability.NONE);
-            }
-        });
+        setUpWithNoCapacity();
         userRequestTestSequence();
     }
 
@@ -137,11 +149,8 @@ public class ClassFilterTest implements Serializable {
             fire("napoleon", south);
             fail("Expected call to fail");
         } catch (IOException e) {
-            StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            e.printStackTrace(pw);
-
-            assertTrue(sw.toString(), sw.toString().contains("Rejected: "+Security218.class.getName()));
+            String msg = toString(e);
+            assertTrue(msg, msg.contains("Rejected: " + Security218.class.getName()));
             assertTrue(ATTACKS.toString(), ATTACKS.isEmpty());
             assertFalse(ATTACKS.contains("napoleon>north"));
         }
@@ -162,9 +171,60 @@ public class ClassFilterTest implements Serializable {
     }
 
     /**
-     * An attack payload that leaves a trace on the receiver side if it gets read from the stream.
+     * This test case targets command stream created in
+     * {@link AbstractSynchronousByteArrayCommandTransport#read()}, which is used
+     * by {@link ChunkedCommandTransport}.
      */
-    static class Security218 implements Serializable {
+    @Test
+    public void AbstractSynchronousByteArrayCommandTransport_read() throws Exception {
+        setUp();
+        commandStreamTestSequence();
+    }
+
+    /**
+     * This test case targets command stream created in
+     * {@link ChannelBuilder#makeTransport(InputStream, OutputStream, Mode, Capability)}
+     * by not having the chunking capability.
+     */
+    @Test
+    public void ChannelBuilder_makeTransport() throws Exception {
+        setUpWithNoCapacity();
+        commandStreamTestSequence();
+    }
+
+    private void commandStreamTestSequence() throws Exception {
+        // control case to prove that an attack will succeed to without filter.
+        north.send(new Security218("eisenhower"));
+        north.syncIO(); // any synchronous RPC call would do
+        assertTrue(ATTACKS.contains("eisenhower>south"));
+
+        ATTACKS.clear();
+
+        // the test case that should be rejected by a filter
+        try {
+            south.send(new Security218("hitler"));
+            north.syncIO();
+            fail("the receiving end will abort after receiving Security218, so syncIO should fail");
+        } catch (RequestAbortedException e) {
+            String msg = toString(e);
+            assertTrue(msg, msg.contains("Rejected: " + Security218.class.getName()));
+            assertTrue(ATTACKS.toString(), ATTACKS.isEmpty());
+            assertFalse(ATTACKS.contains("hitler>north"));
+        }
+    }
+
+    private String toString(Throwable t) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        t.printStackTrace(pw);
+        return sw.toString();
+    }
+
+    /**
+     * An attack payload that leaves a trace on the receiver side if it gets read from the stream.
+     * Extends from {@link Command} to be able to test command stream.
+     */
+    static class Security218 extends Command implements Serializable {
         private final String attack;
 
         public Security218(String attack) {
@@ -174,6 +234,11 @@ public class ClassFilterTest implements Serializable {
         private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
             ois.defaultReadObject();
             ATTACKS.add(attack + ">" + Channel.current().getName());
+        }
+
+        @Override
+        protected void execute(Channel channel) {
+            // nothing to do here
         }
     }
 
