@@ -151,7 +151,6 @@ public class ClassFilterTest implements Serializable {
             String msg = toString(e);
             assertTrue(msg, msg.contains("Rejected: " + Security218.class.getName()));
             assertTrue(getAttack(), getAttack().isEmpty());
-            assertFalse(getAttack().contains("napoleon>north"));
         }
     }
 
@@ -238,7 +237,6 @@ public class ClassFilterTest implements Serializable {
 
         // either way, the attack payload should have been discarded before it gets deserialized
         assertTrue(getAttack(), getAttack().isEmpty());
-        assertFalse(getAttack().contains("hitler>north"));
     }
 
     private String toString(Throwable t) {
