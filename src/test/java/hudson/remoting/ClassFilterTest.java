@@ -56,9 +56,7 @@ public class ClassFilterTest implements Serializable {
     private static class TestFilter extends ClassFilter {
         @Override
         protected boolean isBlacklisted(String name) {
-            if (name.contains("Security218"))
-                return true;
-            return false;
+            return name.contains("Security218");
         }
     }
 
@@ -97,14 +95,7 @@ public class ClassFilterTest implements Serializable {
     @Test
     public void userRequest() throws Exception {
         try {
-            final Security218 a = new Security218("napoleon");
-            south.call(new CallableBase<Void, IOException>() {
-                @Override
-                public Void call() throws IOException {
-                    a.toString();   // this will ensure 'a' gets sent over
-                    return null;
-                }
-            });
+            fire("napoleon", south);
             fail("Expected call to fail");
         } catch (IOException e) {
             StringWriter sw = new StringWriter();
@@ -122,15 +113,19 @@ public class ClassFilterTest implements Serializable {
      */
     @Test
     public void userRequest_control() throws Exception {
-        final Security218 a = new Security218("caesar");
-        north.call(new CallableBase<Void, IOException>() {
+        fire("caesar", north);
+        assertTrue(ATTACKS.contains("caesar>south"));
+    }
+
+    private void fire(String name, Channel from) throws IOException, InterruptedException {
+        final Security218 a = new Security218(name);
+        from.call(new CallableBase<Void, IOException>() {
             @Override
             public Void call() throws IOException {
                 a.toString();   // this will ensure 'a' gets sent over
                 return null;
             }
         });
-        assertTrue(ATTACKS.contains("caesar>south"));
     }
 
     /**
