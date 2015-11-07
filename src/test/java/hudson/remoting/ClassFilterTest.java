@@ -1,11 +1,15 @@
 package hudson.remoting;
 
+import hudson.remoting.Channel.Mode;
+import hudson.remoting.CommandTransport.CommandReceiver;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
@@ -15,6 +19,20 @@ import java.util.Set;
 import static org.junit.Assert.*;
 
 /**
+ * Tests the effect of {@link ClassFilter}.
+ *
+ * <p>
+ * This test code targets each of the known layers where object serialization is used.
+ * Specifically, those are {@link ObjectInputStream} (and subtypes) created in:
+ *
+ * <ul>
+ * <li>{@link Capability#read(InputStream)}
+ * <li>{@link UserRequest#deserialize(Channel, byte[], ClassLoader)},
+ * <li>{@link ChannelBuilder#makeTransport(InputStream, OutputStream, Mode, Capability)}
+ * <li>{@link AbstractByteArrayCommandTransport#setup(Channel, CommandReceiver)}
+ * <li>{@link AbstractSynchronousByteArrayCommandTransport#read()}
+ * </ul>
+ *
  * @author Kohsuke Kawaguchi
  */
 public class ClassFilterTest implements Serializable {
@@ -57,7 +75,7 @@ public class ClassFilterTest implements Serializable {
     }
 
     @Test
-    public void successful_defense() throws Exception {
+    public void userRequest() throws Exception {
         try {
             final Security218 a = new Security218("napoleon");
             south.call(new CallableBase<Void, IOException>() {
@@ -80,10 +98,10 @@ public class ClassFilterTest implements Serializable {
     }
 
     /**
-     * Control case for {@link #successful_defense()} that proves that we are testing the right thing.
+     * Control case for {@link #userRequest()} that proves that we are testing the right thing.
      */
     @Test
-    public void successful_attack() throws Exception {
+    public void userRequest_control() throws Exception {
         final Security218 a = new Security218("caesar");
         north.call(new CallableBase<Void, IOException>() {
             @Override
