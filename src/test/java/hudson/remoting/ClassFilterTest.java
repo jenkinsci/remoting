@@ -220,7 +220,13 @@ public class ClassFilterTest implements Serializable {
         // the test case that should be rejected by a filter
         try {
             south.send(new Security218("hitler"));
-            north.syncIO();
+            north.syncIO(); // transport_chunking hangs if this is 'south.syncIO', because somehow south
+                            // doesn't notice that the north has aborted and the connection is lost.
+                            // this is indicative of a larger problem, but one that's not related to
+                            // SECURITY-218 at hand, so I'm going to leave this with 'north.syncIO'
+                            // it still achieves the effect of blocking until the command is processed by north,
+                            // because the response from south back to north would have to come after Security218
+                            // command.
 
             // fail("the receiving end will abort after receiving Security218, so syncIO should fail");
             // ... except for NIO, which just discards that command and keeps on
