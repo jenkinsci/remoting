@@ -6,9 +6,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
@@ -72,6 +75,23 @@ public class ClassFilterTest implements Serializable {
     @After
     public void tearDown() throws Exception {
         runner.stop(north);
+    }
+
+    /**
+     * Makes sure {@link Capability#read(InputStream)} rejects unexpected payload.
+     */
+    @Test
+    public void capabilityRead() throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(baos));
+        oos.writeObject(new Security218("rifle"));
+        oos.close();
+
+        try {
+            Capability.read(new ByteArrayInputStream(baos.toByteArray()));
+        } catch (SecurityException e) {
+            assertEquals("Rejected: "+Security218.class.getName(), e.getMessage());
+        }
     }
 
     @Test
