@@ -131,7 +131,7 @@ public final class Capability implements Serializable {
                 @Override
                 protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
                     String n = desc.getName();
-                    if (n.equals("java.lang.String") || n.equals(Capability.class.getName()))
+                    if (n.equals("java.lang.String") || n.equals("[Ljava.lang.String;") || n.equals(Capability.class.getName()))
                         return super.resolveClass(desc);
                     throw new SecurityException("Rejected: "+n);
                 }
