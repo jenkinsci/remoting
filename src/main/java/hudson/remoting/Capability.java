@@ -124,11 +124,19 @@ public final class Capability implements Serializable {
         try {
             ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
                 // during deserialization, only accept Capability to protect ourselves
-                // from malicious payload
+                // from malicious payload. Allow java.lang.* and java.util.* so that
+                // future versions of Capability can send more complex data structure.
+                // If we decide to do so in the future, the payload will contain those instances
+                // even though our version of Capability class will discard them after deserialization.
+                //
+                // We can never define additional classes for capability negotiation, because
+                // doing so will blow up the deserialization in older clients.
+                // So we don't need to accept anything other than Capability from
+                // this package.
                 @Override
                 protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
                     String n = desc.getName();
-                    if (n.startsWith("java.lang.") || n.startsWith("hudson.remoting."))
+                    if (n.startsWith("java.lang.") || n.startsWith("java.util.") || n.equals(Capability.class.getName()))
                         return super.resolveClass(desc);
                     throw new ClassNotFoundException(n);
                 }
