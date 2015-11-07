@@ -138,7 +138,7 @@ public final class Capability implements Serializable {
                     String n = desc.getName();
                     if (n.startsWith("java.lang.") || n.startsWith("java.util.") || n.equals(Capability.class.getName()))
                         return super.resolveClass(desc);
-                    throw new SecurityException("rejected:"+n);
+                    throw new SecurityException("Rejected: "+n);
                 }
             };
             return (Capability)ois.readObject();
