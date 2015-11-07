@@ -276,7 +276,7 @@ public class ChannelBuilder {
      * @since 2.53
      */
     public ChannelBuilder withClassFilter(ClassFilter filter) {
-        if (filter==null)   filter = ClassFilter.NONE;
+        if (filter==null)   throw new IllegalArgumentException();
         this.filter = filter;
         return this;
     }
