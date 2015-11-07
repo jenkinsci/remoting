@@ -21,11 +21,11 @@ public abstract class ClassFilter {
      * Wraps a given {@link ClassLoader} into one that does filtering.
      */
     public ClassLoader decorate(final @Nullable ClassLoader actual) {
-        return new ClassLoader(/*not passing in 'actual' to prevent accidental bypassing of a filter*/) {
+        return new ClassLoader(actual) {// see MaskingClassLoader in Jenkins for inspiration
             @Override
-            public Class<?> loadClass(String name) throws ClassNotFoundException {
+            public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
                 if (isBlacklisted(name)) throw new SecurityException("Rejected: " +name);
-                Class<?> c = Class.forName(name, false, actual);
+                Class<?> c = super.loadClass(name,resolve);
                 if (isBlacklisted(c)) throw new SecurityException("Rejected: "+ name);
                 return c;
             }
