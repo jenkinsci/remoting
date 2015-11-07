@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
@@ -13,13 +12,13 @@ import java.util.concurrent.TimeUnit;
  *
  * This is the simplest test moe.
  */
-public class InProcessRunner implements ChannelRunner {
+public class InProcessRunner implements DualSideChannelRunner {
     private ExecutorService executor;
     /**
      * failure occurred in the other {@link Channel}.
      */
     private Exception failure;
-    public Channel south;
+    private Channel south;
 
     public Channel start() throws Exception {
         final FastPipedInputStream in1 = new FastPipedInputStream();
@@ -39,10 +38,7 @@ public class InProcessRunner implements ChannelRunner {
                     southHandoff.put(south);
                     south.join();
                     System.out.println("south completed");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    failure = e;
-                } catch (InterruptedException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     failure = e;
                 }
@@ -81,6 +77,11 @@ public class InProcessRunner implements ChannelRunner {
 
     public String getName() {
         return "local";
+    }
+
+    @Override
+    public Channel getOtherSide() {
+        return south;
     }
 
     protected Capability createCapability() {

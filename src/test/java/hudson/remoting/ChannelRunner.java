@@ -34,7 +34,6 @@ public interface ChannelRunner {
      * Launches a pair of channel and returns this side of it.
      */
     Channel start() throws Exception;
-
     /**
      * Terminates the channel started by {@link #start()} and cleans up
      * any remaining resources.

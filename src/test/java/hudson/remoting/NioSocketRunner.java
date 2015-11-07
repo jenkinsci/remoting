@@ -9,8 +9,8 @@ import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -22,6 +22,8 @@ import static org.junit.Assert.*;
  */
 public class NioSocketRunner extends AbstractNioChannelRunner {
     public Channel start() throws Exception {
+        final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<Channel>();
+
         ServerSocketChannel ss = ServerSocketChannel.open();
         ss.configureBlocking(false);
         ss.socket().bind(null);
@@ -38,11 +40,12 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
                             try {
                                 Socket socket = con.socket();
                                 assertNull(south);
-                                south = newChannelBuilder("south", executor)
+                                Channel south = newChannelBuilder("south", executor)
                                         .withHeaderStream(System.out)
                                         .build(socket);
                                 LOGGER.info("Connected to " + south);
-                            } catch (IOException e) {
+                                southHandoff.put(south);
+                            } catch (Exception e) {
                                 LOGGER.log(Level.WARNING, "Handshake failed", e);
                                 failure = e;
                             }
@@ -71,7 +74,9 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
 
         // create a client channel that connects to the same hub
         SocketChannel client = SocketChannel.open(new InetSocketAddress("localhost", ss.socket().getLocalPort()));
-        return nio.newChannelBuilder("north",executor).withMode(Mode.BINARY).build(client);
+        Channel north = nio.newChannelBuilder("north", executor).withMode(Mode.BINARY).build(client);
+        south = southHandoff.poll(10, TimeUnit.SECONDS);
+        return north;
     }
 
     public String getName() {
