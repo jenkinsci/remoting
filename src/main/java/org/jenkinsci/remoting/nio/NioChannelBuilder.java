@@ -4,6 +4,7 @@ import hudson.remoting.Capability;
 import hudson.remoting.Channel;
 import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChannelBuilder;
+import hudson.remoting.ClassFilter;
 import hudson.remoting.JarCache;
 
 import java.io.IOException;
@@ -81,5 +82,10 @@ public abstract class NioChannelBuilder extends ChannelBuilder {
     @Override
     public NioChannelBuilder withJarCache(JarCache jarCache) {
         return (NioChannelBuilder) super.withJarCache(jarCache);
+    }
+
+    @Override
+    public NioChannelBuilder withClassFilter(ClassFilter filter) {
+        return (NioChannelBuilder)super.withClassFilter(filter);
     }
 }
