@@ -16,8 +16,6 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-import java.util.HashSet;
-import java.util.Set;
 
 import static org.junit.Assert.*;
 
@@ -92,7 +90,7 @@ public class ClassFilterTest implements Serializable {
         this.runner = runner;
         north = runner.start();
         south = runner.getOtherSide();
-        ATTACKS.clear();
+        clearRecord();
     }
 
     @After
@@ -141,9 +139,9 @@ public class ClassFilterTest implements Serializable {
     private void userRequestTestSequence() throws Exception {
         // control case to prove that an attack will succeed to without filter.
         fire("caesar", north);
-        assertTrue(ATTACKS.contains("caesar>south"));
+        assertTrue(getAttack().contains("caesar>south"));
 
-        ATTACKS.clear();
+        clearRecord();
 
         // the test case that should be rejected by a filter.
         try {
@@ -152,8 +150,8 @@ public class ClassFilterTest implements Serializable {
         } catch (IOException e) {
             String msg = toString(e);
             assertTrue(msg, msg.contains("Rejected: " + Security218.class.getName()));
-            assertTrue(ATTACKS.toString(), ATTACKS.isEmpty());
-            assertFalse(ATTACKS.contains("napoleon>north"));
+            assertTrue(getAttack(), getAttack().isEmpty());
+            assertFalse(getAttack().contains("napoleon>north"));
         }
     }
 
@@ -213,9 +211,9 @@ public class ClassFilterTest implements Serializable {
         // control case to prove that an attack will succeed to without filter.
         north.send(new Security218("eisenhower"));
         north.syncIO(); // any synchronous RPC call would do
-        assertTrue(ATTACKS.contains("eisenhower>south"));
+        assertTrue(getAttack().contains("eisenhower>south"));
 
-        ATTACKS.clear();
+        clearRecord();
 
         // the test case that should be rejected by a filter
         try {
@@ -239,8 +237,8 @@ public class ClassFilterTest implements Serializable {
         }
 
         // either way, the attack payload should have been discarded before it gets deserialized
-        assertTrue(ATTACKS.toString(), ATTACKS.isEmpty());
-        assertFalse(ATTACKS.contains("hitler>north"));
+        assertTrue(getAttack(), getAttack().isEmpty());
+        assertFalse(getAttack().contains("hitler>north"));
     }
 
     private String toString(Throwable t) {
@@ -263,7 +261,7 @@ public class ClassFilterTest implements Serializable {
 
         private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
             ois.defaultReadObject();
-            ATTACKS.add(attack + ">" + Channel.current().getName());
+            System.setProperty("attack", attack + ">" + Channel.current().getName());
         }
 
         @Override
@@ -272,8 +270,11 @@ public class ClassFilterTest implements Serializable {
         }
     }
 
-    /**
-     * Successful attacks will leave a trace here.
-     */
-    static Set<String> ATTACKS = new HashSet<String>();
+    private String getAttack() {
+        return System.getProperty("attack");
+    }
+
+    private void clearRecord() {
+        System.setProperty("attack", "");
+    }
 }
