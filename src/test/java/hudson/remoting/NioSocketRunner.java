@@ -65,7 +65,7 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
                 try {
                     nio.run();
                 } catch (Throwable e) {
-                    LOGGER.log(Level.WARNING, "Faild to keep the NIO selector thread going",e);
+                    LOGGER.log(Level.WARNING, "Faield to keep the NIO selector thread going",e);
                     failure = e;
                 }
             }
