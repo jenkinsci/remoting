@@ -24,9 +24,9 @@ public abstract class ClassFilter {
         return new ClassLoader(/*not passing in 'actual' to prevent accidental bypassing of a filter*/) {
             @Override
             public Class<?> loadClass(String name) throws ClassNotFoundException {
-                if (isBlacklisted(name)) throw new ClassNotFoundException(name);
+                if (isBlacklisted(name)) throw new ClassNotFoundException("Rejected: " +name);
                 Class<?> c = Class.forName(name, false, actual);
-                if (isBlacklisted(c)) throw new ClassNotFoundException(name);
+                if (isBlacklisted(c)) throw new ClassNotFoundException("Rejected: "+ name);
                 return c;
             }
         };
