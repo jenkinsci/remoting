@@ -3,7 +3,6 @@ package hudson.remoting;
 import hudson.remoting.Channel.Mode;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -43,13 +42,7 @@ public class ClassFilterTest implements Serializable {
     /**
      * North can defend itself from south but not the other way around.
      */
-    private transient InProcessRunner runner = new InProcessRunner() {
-        @Override
-        protected ChannelBuilder configureNorth() {
-            return super.configureNorth()
-                    .withClassFilter(new TestFilter());
-        }
-    };
+    private transient InProcessRunner runner;
 
     private transient Channel north, south;
 
@@ -61,10 +54,20 @@ public class ClassFilterTest implements Serializable {
     }
 
     /**
-     * Set up a channel pair where french side is well protected by british side is not.
+     * Set up a channel pair where north side is well protected from south side but not the other way around.
      */
-    @Before
-    public void setUp() throws Exception {
+    private void setUp() throws Exception {
+        setUp(new InProcessRunner() {
+            @Override
+            protected ChannelBuilder configureNorth() {
+                return super.configureNorth()
+                        .withClassFilter(new TestFilter());
+            }
+        });
+    }
+
+    private void setUp(InProcessRunner runner) throws Exception {
+        this.runner = runner;
         north = runner.start();
         south = runner.south;
         ATTACKS.clear();
@@ -72,7 +75,8 @@ public class ClassFilterTest implements Serializable {
 
     @After
     public void tearDown() throws Exception {
-        runner.stop(north);
+        if (runner!=null)
+            runner.stop(north);
     }
 
     /**
@@ -94,6 +98,7 @@ public class ClassFilterTest implements Serializable {
 
     @Test
     public void userRequest() throws Exception {
+        setUp();
         try {
             fire("napoleon", south);
             fail("Expected call to fail");
@@ -113,6 +118,7 @@ public class ClassFilterTest implements Serializable {
      */
     @Test
     public void userRequest_control() throws Exception {
+        setUp();
         fire("caesar", north);
         assertTrue(ATTACKS.contains("caesar>south"));
     }
@@ -140,7 +146,7 @@ public class ClassFilterTest implements Serializable {
 
         private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
             ois.defaultReadObject();
-            ATTACKS.add(attack+">"+Channel.current().getName());
+            ATTACKS.add(attack + ">" + Channel.current().getName());
         }
     }
 
