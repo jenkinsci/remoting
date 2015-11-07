@@ -3,10 +3,10 @@ package hudson.remoting;
 import hudson.remoting.Channel.Mode;
 
 import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Runs a channel in the same JVM.
@@ -51,7 +51,7 @@ public class InProcessRunner implements ChannelRunner {
         t.start();
 
         Channel north = configureNorth().build(in1, out2);
-        south = southHandoff.take();
+        south = southHandoff.poll(10, TimeUnit.SECONDS);
         return north;
     }
 

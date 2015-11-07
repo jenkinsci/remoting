@@ -99,6 +99,40 @@ public class ClassFilterTest implements Serializable {
     @Test
     public void userRequest() throws Exception {
         setUp();
+        userRequestTestSequence();
+    }
+
+    /**
+     * Variant of {@link #userRequest()} test targets compatibility mode without multiclassloader support.
+     * This also tests {@link ChannelBuilder#makeTransport(InputStream, OutputStream, Mode, Capability)}
+     * by not having the chunking capability.
+     */
+    @Test
+    public void userRequest_singleClassLoader() throws Exception {
+        setUp(new InProcessRunner() {
+            @Override
+            protected ChannelBuilder configureNorth() {
+                return super.configureNorth()
+                        .withCapability(Capability.NONE)
+                        .withClassFilter(new TestFilter());
+            }
+
+            @Override
+            protected ChannelBuilder configureSouth() {
+                return super.configureSouth().withCapability(Capability.NONE);
+            }
+        });
+        userRequestTestSequence();
+    }
+
+    private void userRequestTestSequence() throws Exception {
+        // control case to prove that an attack will succeed to without filter.
+        fire("caesar", north);
+        assertTrue(ATTACKS.contains("caesar>south"));
+
+        ATTACKS.clear();
+
+        // the test case that should be rejected by a filter.
         try {
             fire("napoleon", south);
             fail("Expected call to fail");
@@ -114,16 +148,9 @@ public class ClassFilterTest implements Serializable {
     }
 
     /**
-     * Control case for {@link #userRequest()} that proves that we are testing the right thing.
+     * Sends an attack payload over {@link Channel#call(Callable)}
      */
-    @Test
-    public void userRequest_control() throws Exception {
-        setUp();
-        fire("caesar", north);
-        assertTrue(ATTACKS.contains("caesar>south"));
-    }
-
-    private void fire(String name, Channel from) throws IOException, InterruptedException {
+    private void fire(String name, Channel from) throws Exception {
         final Security218 a = new Security218(name);
         from.call(new CallableBase<Void, IOException>() {
             @Override
