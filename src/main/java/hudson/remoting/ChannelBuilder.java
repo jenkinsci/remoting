@@ -271,6 +271,9 @@ public class ChannelBuilder {
 
     /**
      * Replaces the {@link ClassFilter} used by the channel.
+     * By default, {@link ClassFilter#DEFAULT} is installed.
+     *
+     * @since 2.53
      */
     public ChannelBuilder withClassFilter(ClassFilter filter) {
         if (filter==null)   filter = ClassFilter.NONE;
@@ -278,6 +281,9 @@ public class ChannelBuilder {
         return this;
     }
 
+    /**
+     * @since 2.53
+     */
     public ClassFilter getClassFilter() {
         return this.filter;
     }
