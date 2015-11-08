@@ -92,12 +92,12 @@ class MultiClassLoaderSerializer {
                 return null;
 
             case TAG_LOCAL_CLASSLOADER:
-                cl = channel.classFilter.decorate(((RemoteClassLoader.ClassLoaderProxy)channel.getExportedObject(readInt())).cl);
+                cl = ((RemoteClassLoader.ClassLoaderProxy)channel.getExportedObject(readInt())).cl;
                 classLoaders.add(cl);
                 return cl;
 
             case TAG_EXPORTED_CLASSLOADER:
-                cl = channel.classFilter.decorate(channel.importedClassLoaders.get(readInt()));
+                cl = channel.importedClassLoaders.get(readInt());
                 classLoaders.add(cl);
                 return cl;
             default:
@@ -108,9 +108,11 @@ class MultiClassLoaderSerializer {
         @Override
         protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
             String name = desc.getName();
+            channel.classFilter.check(name);
             try {
                 ClassLoader cl = readClassLoader();
                 Class<?> c = Class.forName(name, false, cl);
+                channel.classFilter.check(c);
                 return c;
             } catch (ClassNotFoundException ex) {
                 return super.resolveClass(desc);

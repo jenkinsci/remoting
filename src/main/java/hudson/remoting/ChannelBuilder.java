@@ -410,7 +410,7 @@ public class ChannelBuilder {
             oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
 
             return new ClassicCommandTransport(
-                    new ObjectInputStreamEx(mode.wrap(fis),getClassFilter().decorate(getBaseLoader())),
+                    new ObjectInputStreamEx(mode.wrap(fis),getBaseLoader(),getClassFilter()),
                     oos,fis,os,cap);
         }
     }

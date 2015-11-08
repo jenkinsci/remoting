@@ -34,7 +34,6 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
-import java.util.Arrays;
 
 /**
  * {@link Request} that can take {@link Callable} whose actual implementation
@@ -180,7 +179,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
             // this code is coupled with the ObjectOutputStream subtype above
             ois = new MultiClassLoaderSerializer.Input(channel, in);
         } else {
-            ois = new ObjectInputStreamEx(in, channel.classFilter.decorate(defaultClassLoader));
+            ois = new ObjectInputStreamEx(in, defaultClassLoader, channel.classFilter);
         }
         return ois.readObject();
     }
