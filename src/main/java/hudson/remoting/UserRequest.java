@@ -180,7 +180,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
             // this code is coupled with the ObjectOutputStream subtype above
             ois = new MultiClassLoaderSerializer.Input(channel, in);
         } else {
-            ois = new ObjectInputStreamEx(in, defaultClassLoader);
+            ois = new ObjectInputStreamEx(in, channel.classFilter.decorate(defaultClassLoader));
         }
         return ois.readObject();
     }

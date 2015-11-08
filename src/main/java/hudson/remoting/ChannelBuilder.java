@@ -43,6 +43,7 @@ public class ChannelBuilder {
     private boolean arbitraryCallableAllowed = true;
     private boolean remoteClassLoadingAllowed = true;
     private final Hashtable<Object,Object> properties = new Hashtable<Object,Object>();
+    private ClassFilter filter = ClassFilter.DEFAULT;
 
     /**
      * Specify the minimum mandatory parameters.
@@ -269,6 +270,25 @@ public class ChannelBuilder {
     }
 
     /**
+     * Replaces the {@link ClassFilter} used by the channel.
+     * By default, {@link ClassFilter#DEFAULT} is installed.
+     *
+     * @since 2.53
+     */
+    public ChannelBuilder withClassFilter(ClassFilter filter) {
+        if (filter==null)   throw new IllegalArgumentException();
+        this.filter = filter;
+        return this;
+    }
+
+    /**
+     * @since 2.53
+     */
+    public ClassFilter getClassFilter() {
+        return this.filter;
+    }
+
+    /**
      * Performs a handshake over the communication channel and builds a {@link Channel}.
      *
      * @param is
@@ -390,7 +410,7 @@ public class ChannelBuilder {
             oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
 
             return new ClassicCommandTransport(
-                    new ObjectInputStreamEx(mode.wrap(fis),getBaseLoader()),
+                    new ObjectInputStreamEx(mode.wrap(fis),getClassFilter().decorate(getBaseLoader())),
                     oos,fis,os,cap);
         }
     }

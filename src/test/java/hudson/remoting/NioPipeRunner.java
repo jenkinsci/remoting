@@ -3,8 +3,9 @@ package hudson.remoting;
 import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 
-import java.io.IOException;
 import java.nio.channels.Pipe;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -19,6 +20,8 @@ import java.util.logging.Logger;
  */
 public class NioPipeRunner extends AbstractNioChannelRunner {
     public Channel start() throws Exception {
+        final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<Channel>();
+
         final java.nio.channels.Pipe n2s = Pipe.open();
         final java.nio.channels.Pipe s2n = Pipe.open();
 
@@ -38,14 +41,12 @@ public class NioPipeRunner extends AbstractNioChannelRunner {
         executor.submit(new Runnable() {
             public void run() {
                 try {
-                    south = nio.newChannelBuilder("south",executor).withMode(Mode.NEGOTIATE)
+                    Channel south = nio.newChannelBuilder("south",executor).withMode(Mode.NEGOTIATE)
                             .build(n2s.source(), s2n.sink());
+                    southHandoff.put(south);
                     south.join();
                     System.out.println("south completed");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    failure = e;
-                } catch (InterruptedException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     failure = e;
                 }
@@ -53,8 +54,10 @@ public class NioPipeRunner extends AbstractNioChannelRunner {
         });
 
         // create a client channel that connects to the same hub
-        return nio.newChannelBuilder("north",executor).withMode(Mode.BINARY)
+        Channel north = nio.newChannelBuilder("north", executor).withMode(Mode.BINARY)
                 .build(s2n.source(), n2s.sink());
+        south = southHandoff.poll(10, TimeUnit.SECONDS);
+        return north;
     }
 
     public String getName() {

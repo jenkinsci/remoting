@@ -2,21 +2,23 @@ package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
 
-import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Runs a channel in the same JVM.
  *
  * This is the simplest test moe.
  */
-public class InProcessRunner implements ChannelRunner {
+public class InProcessRunner implements DualSideChannelRunner {
     private ExecutorService executor;
     /**
      * failure occurred in the other {@link Channel}.
      */
     private Exception failure;
+    private Channel south;
 
     public Channel start() throws Exception {
         final FastPipedInputStream in1 = new FastPipedInputStream();
@@ -25,18 +27,18 @@ public class InProcessRunner implements ChannelRunner {
         final FastPipedInputStream in2 = new FastPipedInputStream();
         final FastPipedOutputStream out2 = new FastPipedOutputStream(in2);
 
+        final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<Channel>();
+
         executor = Executors.newCachedThreadPool();
 
         Thread t = new Thread("south bridge runner") {
             public void run() {
                 try {
-                    Channel s = new Channel("south", executor, Mode.BINARY, in2, out1, null, false, null, createCapability());
-                    s.join();
+                    Channel south = configureSouth().build(in2,out1);
+                    southHandoff.put(south);
+                    south.join();
                     System.out.println("south completed");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    failure = e;
-                } catch (InterruptedException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                     failure = e;
                 }
@@ -44,7 +46,21 @@ public class InProcessRunner implements ChannelRunner {
         };
         t.start();
 
-        return new Channel("north", executor, Mode.BINARY, in1, out2, null, false, null, createCapability());
+        Channel north = configureNorth().build(in1, out2);
+        south = southHandoff.poll(10, TimeUnit.SECONDS);
+        return north;
+    }
+
+    protected ChannelBuilder configureNorth() {
+        return new ChannelBuilder("north", executor)
+                .withMode(Mode.BINARY)
+                .withCapability(createCapability());
+    }
+
+    protected ChannelBuilder configureSouth() {
+        return new ChannelBuilder("south", executor)
+                .withMode(Mode.BINARY)
+                .withCapability(createCapability());
     }
 
     public void stop(Channel channel) throws Exception {
@@ -61,6 +77,11 @@ public class InProcessRunner implements ChannelRunner {
 
     public String getName() {
         return "local";
+    }
+
+    @Override
+    public Channel getOtherSide() {
+        return south;
     }
 
     protected Capability createCapability() {

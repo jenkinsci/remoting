@@ -92,12 +92,12 @@ class MultiClassLoaderSerializer {
                 return null;
 
             case TAG_LOCAL_CLASSLOADER:
-                cl = ((RemoteClassLoader.ClassLoaderProxy)channel.getExportedObject(readInt())).cl;
+                cl = channel.classFilter.decorate(((RemoteClassLoader.ClassLoaderProxy)channel.getExportedObject(readInt())).cl);
                 classLoaders.add(cl);
                 return cl;
 
             case TAG_EXPORTED_CLASSLOADER:
-                cl = channel.importedClassLoaders.get(readInt());
+                cl = channel.classFilter.decorate(channel.importedClassLoaders.get(readInt()));
                 classLoaders.add(cl);
                 return cl;
             default:

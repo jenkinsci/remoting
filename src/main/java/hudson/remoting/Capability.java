@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
 
+import java.io.ObjectStreamClass;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.io.ObjectOutputStream;
@@ -121,7 +122,20 @@ public final class Capability implements Serializable {
      */
     public static Capability read(InputStream is) throws IOException {
         try {
-            ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is));
+            ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
+                // during deserialization, only accept Capability to protect ourselves
+                // from malicious payload. Allow java.lang.String so that
+                // future versions of Capability can send more complex data structure.
+                // If we decide to do so in the future, the payload will contain those instances
+                // even though our version of Capability class will discard them after deserialization.
+                @Override
+                protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+                    String n = desc.getName();
+                    if (n.equals("java.lang.String") || n.equals("[Ljava.lang.String;") || n.equals(Capability.class.getName()))
+                        return super.resolveClass(desc);
+                    throw new SecurityException("Rejected: "+n);
+                }
+            };
             return (Capability)ois.readObject();
         } catch (ClassNotFoundException e) {
             throw (Error)new NoClassDefFoundError(e.getMessage()).initCause(e);

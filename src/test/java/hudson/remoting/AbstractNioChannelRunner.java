@@ -10,7 +10,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * @author Kohsuke Kawaguchi
  */
-public abstract class AbstractNioChannelRunner implements ChannelRunner {
+public abstract class AbstractNioChannelRunner implements DualSideChannelRunner {
     protected ExecutorService executor = Executors.newCachedThreadPool();
     protected NioChannelHub nio;
     /**
@@ -36,5 +36,10 @@ public abstract class AbstractNioChannelRunner implements ChannelRunner {
 
         if(failure!=null)
             throw new AssertionError(failure);  // report a failure in the south side
+    }
+
+    @Override
+    public Channel getOtherSide() {
+        return south;
     }
 }

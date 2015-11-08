@@ -299,6 +299,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     short maximumBytecodeLevel = Short.MAX_VALUE;
 
+    /*package*/ @Nonnull final ClassFilter classFilter;
+
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
      * 
@@ -473,6 +475,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.jarCache = settings.getJarCache();
 
         this.baseClassLoader = settings.getBaseLoader();
+        this.classFilter = settings.getClassFilter();
 
         if(internalExport(IChannel.class, this, false)!=1)
             throw new AssertionError(); // export number 1 is reserved for the channel itself
