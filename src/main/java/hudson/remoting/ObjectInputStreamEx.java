@@ -35,17 +35,26 @@ import java.lang.reflect.Proxy;
  */
 public class ObjectInputStreamEx extends ObjectInputStream {
     private final ClassLoader cl;
+    private final ClassFilter filter;
 
+    /**
+     * @deprecated as of 2.53
+     */
     public ObjectInputStreamEx(InputStream in, ClassLoader cl) throws IOException {
+        this(in,cl,ClassFilter.DEFAULT);
+    }
+
+    public ObjectInputStreamEx(InputStream in, ClassLoader cl, ClassFilter filter) throws IOException {
         super(in);
         this.cl = cl;
+        this.filter = filter;
     }
 
     @Override
     protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
         String name = desc.getName();
         try {
-            return Class.forName(name, false, cl);
+            return filter.check(Class.forName(filter.check(name), false, cl));
         } catch (ClassNotFoundException ex) {
             return super.resolveClass(desc);
         }

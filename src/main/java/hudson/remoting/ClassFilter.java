@@ -1,7 +1,5 @@
 package hudson.remoting;
 
-import javax.annotation.Nullable;
-
 /**
  * Restricts what classes can be received through remoting.
  *
@@ -17,21 +15,17 @@ public abstract class ClassFilter {
         return false;
     }
 
-    /**
-     * Wraps a given {@link ClassLoader} into one that does filtering.
-     */
-    public ClassLoader decorate(final @Nullable ClassLoader actual) {
-        return new ClassLoader(actual) {// see MaskingClassLoader in Jenkins for inspiration
-            @Override
-            public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-                if (isBlacklisted(name)) throw new SecurityException("Rejected: " +name);
-                Class<?> c = super.loadClass(name,resolve);
-                if (isBlacklisted(c)) throw new SecurityException("Rejected: "+ name);
-                return c;
-            }
-        };
-    }
+	public final String check(String name) {
+		if (isBlacklisted(name))
+			throw new SecurityException("Rejected: " +name);
+		return name;
+	}
 
+	public final Class check(Class c) {
+		if (isBlacklisted(c))
+			throw new SecurityException("Rejected: " +c.getName());
+		return c;
+	}
 
     /**
      * A set of sensible default filtering rules to apply,
