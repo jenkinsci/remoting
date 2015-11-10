@@ -91,7 +91,8 @@ THE SOFTWARE.
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-core</artifactId>
       <version>1.3</version>
-    </dependency>
+      <scope>test</scope>
+    <dependency>
     <dependency>
       <groupId>org.apache.ant</groupId>
       <artifactId>ant</artifactId>
