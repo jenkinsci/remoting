@@ -49,8 +49,7 @@ public abstract class ClassFilter {
 		return c;
 	}
 
-	// only non private-final for unit testing.
-	/* package */ static volatile ClassFilter DEFAULT;
+	private static volatile ClassFilter DEFAULT;
 
     /**
      * No filtering whatsoever.

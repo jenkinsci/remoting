@@ -43,7 +43,7 @@ public class ChannelBuilder {
     private boolean arbitraryCallableAllowed = true;
     private boolean remoteClassLoadingAllowed = true;
     private final Hashtable<Object,Object> properties = new Hashtable<Object,Object>();
-    private ClassFilter filter = ClassFilter.DEFAULT;
+    private ClassFilter filter = ClassFilter.getDefaultFilter();
 
     /**
      * Specify the minimum mandatory parameters.
