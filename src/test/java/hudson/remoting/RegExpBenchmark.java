@@ -41,7 +41,8 @@ public class RegExpBenchmark {
     final Pattern p2 = Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*");
     final Pattern p3 = Pattern.compile("^.*org\\.apache\\.xalan\\..*");
     
-    final Pattern p4 = Pattern.compile("(?:^org\\.(?:codehaus\\.groovy\\.runtime\\.)|(?:apache\\.commons\\.collections\\.functors\\.))|(?:^(?:::alnum::+\\.)*org\\.apache\\.xalan\\.)");
+    final Pattern p4 = Pattern.compile("^(?:(?:org\\.(?:codehaus\\.groovy\\.runtime|apache\\.commons\\.collections\\.functors))|.*?org\\.apache\\.xalan)\\..*");
+
 
     final String s1 = "org.codehaus.groovy.runtime.";
     final String s2 = "org.apache.commons.collections.functors.";
@@ -51,22 +52,32 @@ public class RegExpBenchmark {
     public void repeatedBenchMark() throws Exception {
         for (int i=0; i < 10; i++) {
             benchmark();
+            System.gc();System.gc();System.gc();
         }
     }
     
+    @Test
     public void benchmark() throws Exception {
+        System.out.println("there are " + getAllRTClasses().size());
+        
         List<String> classes = getAllRTClasses();
-        System.out.println("there are " + classes.size());
-        
-        
         final long startRegExp = System.nanoTime();
         final List<String> matchesRegExp = checkClassesRegExp(classes);
         final long durationRegexpNanos = System.nanoTime() - startRegExp;
+        classes=null;
         
+        System.gc();System.gc();System.gc();
+        
+        // make sure we use new Strings each time so that hotpsot does not do funky caching (after all the strings we will be testing will come from the stream and be new).
+        classes = getAllRTClasses();
         final long startSingleRegExp = System.nanoTime();
-        final List<String> matchesSingleRegExp = checkClassesRegExp(classes);
-        final long durationSingleRegexpNanos = System.nanoTime() - startRegExp;
+        final List<String> matchesSingleRegExp = checkClassesSingleRegExp(classes);
+        final long durationSingleRegexpNanos = System.nanoTime() - startSingleRegExp;
+        classes=null;
+        System.gc();System.gc();System.gc();
         
+        // make sure we use new Strings each time so that hotpsot does not do funky caching (after all the strings we will be testing will come from the stream and be new).
+        classes = getAllRTClasses();
         final long startString = System.nanoTime();
         final List<String> matchesString = checkClassesString(classes);
         final long durationStringNanos = System.nanoTime() - startString;
@@ -126,6 +137,10 @@ public class RegExpBenchmark {
             }
         }
         jf.close();
+        // add in a couple from xalan and commons just for testing...
+        classes.add(new String("org.apache.commons.collections.functors.EvilClass"));
+        classes.add(new String("org.codehaus.groovy.runtime.IWIllHackYou"));
+        classes.add(new String("org.apache.xalan.YouAreOwned"));
         return classes;
     }
 }
