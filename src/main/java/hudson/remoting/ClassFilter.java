@@ -49,7 +49,7 @@ public abstract class ClassFilter {
 		return c;
 	}
 
-	private static volatile ClassFilter DEFAULT;
+    private static /*almost final */ ClassFilter DEFAULT;
 
     /**
      * No filtering whatsoever.
