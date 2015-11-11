@@ -12,6 +12,8 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+
 /**
  * Restricts what classes can be received through remoting.
  *
@@ -87,7 +89,7 @@ public abstract class ClassFilter {
         return NONE;
     }
 
-
+    @CheckForNull
     private static final List<Pattern> loadPatternOverride() {
         String prop = System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY);
         if (prop != null) {
