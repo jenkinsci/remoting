@@ -112,7 +112,7 @@ public abstract class ClassFilter {
                     return patterns;
                 } catch (IOException ex) {
                     LOGGER.log(Level.WARNING,
-                               "Could not load load user provided overrides for ClassFiltering from as file does not exist or is not readable.",
+                               "Could not load user provided overrides for ClassFiltering from as file does not exist or is not readable.",
                                ex);
                 } finally {
                     if (br != null) {
@@ -125,7 +125,7 @@ public abstract class ClassFilter {
                 }
             } else {
                 LOGGER.log(Level.WARNING,
-                           "Could not load load user provided overrides for ClassFiltering from as file does not exist or is not readable.");
+                           "Could not load user provided overrides for ClassFiltering from as file does not exist or is not readable.");
             }
         }
         return null;
