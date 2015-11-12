@@ -333,7 +333,7 @@ public class FifoBuffer implements Closeable {
 
             synchronized (lock) {
                 while ((chunk = Math.min(len,writable()))==0)
-                    lock.wait();
+                    lock.wait(100);
 
                 w.write(buf, start, chunk);
 
