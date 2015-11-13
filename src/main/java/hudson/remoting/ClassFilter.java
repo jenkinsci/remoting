@@ -40,6 +40,8 @@ public abstract class ClassFilter {
                 return true;    // ConvertedClosure is named in exploit
             if (name.startsWith("org.apache.commons.collections.functors."))
                 return true;    // InvokerTransformer, InstantiateFactory, InstantiateTransformer are particularly scary
+            if (name.startsWith("org.apache.commons.fileupload.disk."))
+                return true;    // DiskFileItem can allow arbitrary file write
 
             // this package can appear in ordinary xalan.jar or com.sun.org.apache.xalan
             // the target is trax.TemplatesImpl
