@@ -26,12 +26,13 @@ package org.jenkinsci.remoting.engine;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.EngineListener;
-
-import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
+import javax.annotation.Nullable;
 
 /**
  * Handshake protocol used by JNLP slave when initiating a connection to
@@ -74,7 +75,7 @@ public abstract class JnlpProtocol {
         DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
         BufferedInputStream inputStream = new BufferedInputStream(socket.getInputStream());
         if(performHandshake(outputStream, inputStream)) {
-            return buildChannel(socket, channelBuilder);
+            return buildChannel(socket, channelBuilder, inputStream);
         }
 
         return null;
@@ -96,9 +97,12 @@ public abstract class JnlpProtocol {
      *
      * @param socket The established {@link Socket} connection to the master.
      * @param channelBuilder The {@link ChannelBuilder} to use.
+     * @param inputStream The {@link BufferedInputStream} of {@link Socket#getInputStream()} or {@code null} if there
+     *                    is none (TODO remove the null possibility).
      * @return The constructed channel
      */
-    abstract Channel buildChannel(Socket socket, ChannelBuilder channelBuilder) throws IOException;
+    abstract Channel buildChannel(Socket socket, ChannelBuilder channelBuilder,
+                                  BufferedInputStream inputStream) throws IOException;
 
     // The expected response from the master on successful completion of the
     // handshake.

@@ -89,10 +89,8 @@ class JnlpProtocol2 extends JnlpProtocol {
     }
 
     @Override
-    Channel buildChannel(Socket socket, ChannelBuilder channelBuilder) throws IOException {
-        return channelBuilder.build(
-                new BufferedInputStream(socket.getInputStream()),
-                new BufferedOutputStream(socket.getOutputStream()));
+    Channel buildChannel(Socket socket, ChannelBuilder channelBuilder, BufferedInputStream inputStream) throws IOException {
+        return channelBuilder.build(inputStream, new BufferedOutputStream(socket.getOutputStream()));
     }
 
     private void initiateHandshake(DataOutputStream outputStream) throws IOException {

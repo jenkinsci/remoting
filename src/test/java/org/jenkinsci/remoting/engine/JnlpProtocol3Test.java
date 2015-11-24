@@ -282,11 +282,11 @@ public class JnlpProtocol3Test {
                 .withArguments(mockOutputStream, protocol.getChannelCiphers().getEncryptCipher())
                 .thenReturn(mockCipherOutputStream);
         whenNew(CipherInputStream.class)
-                .withArguments(mockInputStream, protocol.getChannelCiphers().getDecryptCipher())
+                .withArguments(mockBufferedInputStream, protocol.getChannelCiphers().getDecryptCipher())
                 .thenReturn(mockCipherInputStream);
         when(mockChannelBuilder.build(mockCipherInputStream, mockCipherOutputStream))
                 .thenReturn(mockChannel);
 
-        assertSame(mockChannel, protocol.buildChannel(mockSocket, mockChannelBuilder));
+        assertSame(mockChannel, protocol.buildChannel(mockSocket, mockChannelBuilder, mockBufferedInputStream));
     }
 }
