@@ -157,9 +157,11 @@ class JnlpProtocol3 extends JnlpProtocol {
     }
 
     @Override
-    Channel buildChannel(Socket socket, ChannelBuilder channelBuilder) throws IOException {
+    Channel buildChannel(Socket socket, ChannelBuilder channelBuilder, BufferedInputStream inputStream) throws IOException {
         return channelBuilder.build(
-                new CipherInputStream(socket.getInputStream(), channelCiphers.getDecryptCipher()),
+                new CipherInputStream(
+                        inputStream == null ? socket.getInputStream() : inputStream, // TODO drop null
+                        channelCiphers.getDecryptCipher()),
                 new CipherOutputStream(socket.getOutputStream(), channelCiphers.getEncryptCipher())
         );
     }

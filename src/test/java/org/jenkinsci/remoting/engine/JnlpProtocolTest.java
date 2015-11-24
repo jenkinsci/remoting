@@ -80,7 +80,7 @@ public class JnlpProtocolTest {
     @Test
     public void testHandshakeSucceeds() throws Exception {
         when(mockProtocol.performHandshake(mockDataOutputStream, mockBufferedInputStream)).thenReturn(true);
-        when(mockProtocol.buildChannel(mockSocket, mockChannelBuilder)).thenReturn(mockChannel);
+        when(mockProtocol.buildChannel(mockSocket, mockChannelBuilder, null)).thenReturn(mockChannel);
 
         assertSame(mockChannel, mockProtocol.establishChannel(mockSocket, mockChannelBuilder));
     }
