@@ -1,15 +1,14 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
-
-import java.io.ObjectStreamClass;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
+import java.io.OutputStream;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 
 /**
  * Represents additional features implemented on {@link Channel}.
@@ -213,6 +212,69 @@ public final class Capability implements Serializable {
     static final byte[] PREAMBLE;
 
     public static final Capability NONE = new Capability(0);
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("Capability{");
+        boolean first = true;
+        if ((mask & MASK_MULTI_CLASSLOADER) != 0) {
+            first = false;
+            sb.append("Multi-ClassLoader RPC");
+        }
+        if ((mask & MASK_PIPE_THROTTLING) != 0) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append("Pipe throttling");
+        }
+        if ((mask & MASK_MIMIC_EXCEPTION) != 0) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append("Mimic Exception");
+        }
+        if ((mask & MASK_PREFETCH) != 0) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append("Prefetch");
+        }
+        if ((mask & GREEDY_REMOTE_INPUTSTREAM) != 0) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append("Greedy RemoteInputStream");
+        }
+        if ((mask & MASK_PROXY_WRITER_2_35) != 0) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append("Proxy writer 2.35");
+        }
+        if ((mask & MASK_CHUNKED_ENCODING) != 0) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append("Chunked encoding");
+        }
+        sb.append('}');
+        return sb.toString();
+    }
 
     static {
         try {

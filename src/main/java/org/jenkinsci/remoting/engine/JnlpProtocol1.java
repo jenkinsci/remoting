@@ -75,9 +75,9 @@ class JnlpProtocol1 extends JnlpProtocol {
     }
 
     @Override
-    Channel buildChannel(Socket socket, ChannelBuilder channelBuilder) throws IOException {
+    Channel buildChannel(Socket socket, ChannelBuilder channelBuilder, BufferedInputStream inputStream) throws IOException {
         return channelBuilder.build(
-                new BufferedInputStream(socket.getInputStream()),
+                inputStream == null ? new BufferedInputStream(socket.getInputStream()) : inputStream, // TODO drop null
                 new BufferedOutputStream(socket.getOutputStream()));
     }
 

@@ -287,6 +287,6 @@ public class JnlpProtocol3Test {
         when(mockChannelBuilder.build(mockCipherInputStream, mockCipherOutputStream))
                 .thenReturn(mockChannel);
 
-        assertSame(mockChannel, protocol.buildChannel(mockSocket, mockChannelBuilder));
+        assertSame(mockChannel, protocol.buildChannel(mockSocket, mockChannelBuilder, null));
     }
 }

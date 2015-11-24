@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.jenkinsci.remoting.CallableDecorator;
 import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.Role;
@@ -32,6 +34,12 @@ import java.util.concurrent.ExecutorService;
  * @author Kohsuke Kawaguchi
  */
 public class ChannelBuilder {
+
+    /**
+     * Our logger.
+     */
+    private static final Logger LOGGER = Logger.getLogger(ChannelBuilder.class.getName());
+
     private final String name;
     private final ExecutorService executors;
     private ClassLoader base = this.getClass().getClassLoader();
@@ -332,13 +340,17 @@ public class ChannelBuilder {
         //
         // so use magic preamble and discard all the data up to that to improve robustness.
 
+        LOGGER.log(Level.FINER, "Sending capability preamble: {0}", capability);
         capability.writePreamble(os);
 
         Mode mode = this.getMode();
 
         if(mode!= Mode.NEGOTIATE) {
+            LOGGER.log(Level.FINER, "Sending mode preamble: {0}", mode);
             os.write(mode.preamble);
             os.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
+        } else {
+            LOGGER.log(Level.FINER, "Awaiting mode preamble...");
         }
 
         {// read the input until we hit preamble
@@ -359,20 +371,25 @@ public class ChannelBuilder {
                             switch (i) {
                             case 0:
                             case 1:
+                                LOGGER.log(Level.FINER, "Received mode preamble: {0}", modes[i]);
                                 // transmission mode negotiation
                                 if(mode==Mode.NEGOTIATE) {
                                     // now we know what the other side wants, so send the consistent preamble
                                     mode = modes[i];
+                                    LOGGER.log(Level.FINER, "Sending agreed mode preamble: {0}", mode);
                                     os.write(mode.preamble);
                                     os.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
                                 } else {
                                     if(modes[i]!=mode)
                                         throw new IOException("Protocol negotiation failure");
                                 }
+                                LOGGER.log(Level.FINE, "Channel name {0} negotiated mode {1} with capability {2}",
+                                        new Object[]{name, mode, cap});
 
                                 return makeTransport(is, os, mode, cap);
                             case 2:
                                 cap = Capability.read(is);
+                                LOGGER.log(Level.FINER, "Received capability preamble: {0}", cap);
                                 break;
                             }
                             ptr[i]=0; // reset
@@ -396,7 +413,8 @@ public class ChannelBuilder {
      *      The negotiated input stream that hides
      * @param os
      *      {@linkplain CommandTransport#getUnderlyingStream() the underlying stream}.
-     *      @param
+     * @param mode
+     *      The mode to create the transport in.
      * @param cap
      *      Capabilities of the other side, as determined during the handshaking.
      */

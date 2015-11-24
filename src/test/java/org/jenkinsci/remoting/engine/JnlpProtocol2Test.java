@@ -181,6 +181,6 @@ public class JnlpProtocol2Test {
         whenNew(BufferedInputStream.class).withArguments(mockInputStream).thenReturn(mockBufferedInputStream);
         when(mockChannelBuilder.build(mockBufferedInputStream, mockBufferedOutputStream)).thenReturn(mockChannel);
 
-        assertSame(mockChannel, protocol.buildChannel(mockSocket, mockChannelBuilder));
+        assertSame(mockChannel, protocol.buildChannel(mockSocket, mockChannelBuilder, null));
     }
 }
