@@ -69,10 +69,10 @@ public abstract class ClassFilter {
     static {
         List<Pattern> patternOverride = loadPatternOverride();
         if (patternOverride != null) {
-            LOGGER.log(Level.INFO, "Using user specified overrides for class blacklisting");
+            LOGGER.log(Level.FINE, "Using user specified overrides for class blacklisting");
             DEFAULT = new RegExpClassFilter(patternOverride);
         } else {
-            LOGGER.log(Level.INFO, "Using default in built class blacklisting");
+            LOGGER.log(Level.FINE, "Using default in built class blacklisting");
             DEFAULT = new RegExpClassFilter(Arrays.asList(Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*"),
                                                           Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*"),
                                                           Pattern.compile(".*org\\.apache\\.xalan.*")
@@ -84,7 +84,7 @@ public abstract class ClassFilter {
     private static List<Pattern> loadPatternOverride() {
         String prop = System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY);
         if (prop != null) {
-            LOGGER.log(Level.INFO, "Attempting to load user provided overrides for ClassFiltering from ''{0}''.", prop);
+            LOGGER.log(Level.FINE, "Attempting to load user provided overrides for ClassFiltering from ''{0}''.", prop);
             File f = new File(prop);
             if (f.exists() && f.canRead()) {
                 BufferedReader br = null;
@@ -143,6 +143,15 @@ public abstract class ClassFilter {
                 }
             }
             return false;
+        }
+
+        /**
+         * Report the patterns that it's using to help users verify the use of custom filtering rule
+         * and inspect its content at runtime if necessary.
+         */
+        @Override
+        public String toString() {
+            return blacklistPatterns.toString();
         }
     }
 }
