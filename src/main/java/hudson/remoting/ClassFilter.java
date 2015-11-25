@@ -83,38 +83,39 @@ public abstract class ClassFilter {
     @CheckForNull
     private static List<Pattern> loadPatternOverride() {
         String prop = System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY);
-        if (prop != null) {
-            LOGGER.log(Level.FINE, "Attempting to load user provided overrides for ClassFiltering from ''{0}''.", prop);
-            File f = new File(prop);
-            if (f.exists() && f.canRead()) {
-                BufferedReader br = null;
+        if (prop==null) {
+            return null;
+        }
+
+        LOGGER.log(Level.FINE, "Attempting to load user provided overrides for ClassFiltering from ''{0}''.", prop);
+        File f = new File(prop);
+        if (!f.exists() || !f.canRead()) {
+            throw new Error("Could not load user provided overrides for ClassFiltering from as " + prop + " does not exist or is not readable.");
+        }
+
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new FileReader(prop));
+            ArrayList<Pattern> patterns = new ArrayList<Pattern>();
+            for (String line = br.readLine(); line != null; line = br.readLine()) {
                 try {
-                    br = new BufferedReader(new FileReader(prop));
-                    ArrayList<Pattern> patterns = new ArrayList<Pattern>();
-                    for (String line = br.readLine(); line != null; line = br.readLine()) {
-                        try {
-                            patterns.add(Pattern.compile(line));
-                        } catch (PatternSyntaxException pex) {
-                            throw new Error("Error compiling blacklist expressions - '" + line + "' is not a valid regular expression.", pex);
-                        }
-                    }
-                    return patterns;
-                } catch (IOException ex) {
-                    throw new Error("Could not load user provided overrides for ClassFiltering from as "+prop+" does not exist or is not readable.",ex);
-                } finally {
-                    if (br != null) {
-                        try {
-                            br.close();
-                        } catch (IOException ioEx) {
-                            LOGGER.log(Level.WARNING, "Failed to cleanly close input stream", ioEx);
-                        }
-                    }
+                    patterns.add(Pattern.compile(line));
+                } catch (PatternSyntaxException pex) {
+                    throw new Error("Error compiling blacklist expressions - '" + line + "' is not a valid regular expression.", pex);
                 }
-            } else {
-                throw new Error("Could not load user provided overrides for ClassFiltering from as "+prop+" does not exist or is not readable.");
+            }
+            return patterns;
+        } catch (IOException ex) {
+            throw new Error("Could not load user provided overrides for ClassFiltering from as "+prop+" does not exist or is not readable.",ex);
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException ioEx) {
+                    LOGGER.log(Level.WARNING, "Failed to cleanly close input stream", ioEx);
+                }
             }
         }
-        return null;
     }
 
     /**
