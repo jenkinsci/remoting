@@ -21,12 +21,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
  * @since 2.53
  */
 public abstract class ClassFilter {
-
-    static {
-        // for backwards compatibility for people that use ClassFilter.DEFAULT
-        getDefaultFilter();
-    }
-    /** 
+    /**
      * Property to set to <b>override<b> the blacklist used by {{@link #DEFAULT} with a different set.
      * The location should point to a a file containing regular expressions (one per line) of classes to blacklist.
      * If this property is set but the file can not be read the default blacklist will be used. 
@@ -55,50 +50,38 @@ public abstract class ClassFilter {
 		return c;
 	}
 
-	/**
-	 * @deprecated use {@link #getDefaultFilter()}
-	 */
-	@Deprecated
-	public static /*almost final */ ClassFilter DEFAULT;
+    /**
+     * A set of sensible default filtering rules to apply,
+     * unless the context guarantees the trust between two channels.
+     */
+    public static final ClassFilter DEFAULT;
 
     /**
      * No filtering whatsoever.
      */
-    private static final ClassFilter NONE = new ClassFilter() {
+    public static final ClassFilter NONE = new ClassFilter() {
     };
 
     /**
      * The default filtering rules to apply, unless the context guarantees the trust between two channels. The defaults
      * values provide for user specified overrides - see {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
      */
-    public static synchronized final ClassFilter getDefaultFilter() {
-        if (DEFAULT == null) {
-            List<Pattern> patternOverride = loadPatternOverride();
-            if (patternOverride != null) {
-                LOGGER.log(Level.INFO, "Using user specified overrides for class blacklisting");
-                DEFAULT = new RegExpClassFilter(patternOverride);
-            }
-            else {
-                LOGGER.log(Level.INFO, "Using default in built class blacklisting");
-                DEFAULT = new RegExpClassFilter(Arrays.asList(Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*"), 
-                                                              Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*"),
-                                                              Pattern.compile(".*org\\.apache\\.xalan.*")
-                                                ));
-            }
+    static {
+        List<Pattern> patternOverride = loadPatternOverride();
+        if (patternOverride != null) {
+            LOGGER.log(Level.INFO, "Using user specified overrides for class blacklisting");
+            DEFAULT = new RegExpClassFilter(patternOverride);
+        } else {
+            LOGGER.log(Level.INFO, "Using default in built class blacklisting");
+            DEFAULT = new RegExpClassFilter(Arrays.asList(Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*"),
+                                                          Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*"),
+                                                          Pattern.compile(".*org\\.apache\\.xalan.*")
+                                            ));
         }
-        return DEFAULT;
-    }
-
-
-    /**
-     * No filtering whatsoever.
-     */
-    public static final ClassFilter getNOOPFilter() {
-        return NONE;
     }
 
     @CheckForNull
-    private static final List<Pattern> loadPatternOverride() {
+    private static List<Pattern> loadPatternOverride() {
         String prop = System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY);
         if (prop != null) {
             LOGGER.log(Level.INFO, "Attempting to load user provided overrides for ClassFiltering from ''{0}''.", prop);

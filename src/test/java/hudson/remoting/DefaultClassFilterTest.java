@@ -157,7 +157,7 @@ public class DefaultClassFilterTest {
 
         public boolean matches(Object item) {
             try {
-                ClassFilter.getDefaultFilter().check(item.toString());
+                ClassFilter.DEFAULT.check(item.toString());
                 return Boolean.FALSE;
             } catch (SecurityException sex) {
                 return Boolean.TRUE;
