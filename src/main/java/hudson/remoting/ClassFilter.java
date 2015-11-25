@@ -22,6 +22,10 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
  */
 public abstract class ClassFilter {
 
+    static {
+        // for backwards compatibility for people that use ClassFilter.DEFAULT
+        getDefaultFilter();
+    }
     /** 
      * Property to set to <b>override<b> the blacklist used by {{@link #DEFAULT} with a different set.
      * The location should point to a a file containing regular expressions (one per line) of classes to blacklist.
@@ -51,7 +55,11 @@ public abstract class ClassFilter {
 		return c;
 	}
 
-    private static /*almost final */ ClassFilter DEFAULT;
+	/**
+	 * @deprecated use {@link #getDefaultFilter()}
+	 */
+	@Deprecated
+	public static /*almost final */ ClassFilter DEFAULT;
 
     /**
      * No filtering whatsoever.
