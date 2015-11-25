@@ -2,8 +2,11 @@ package hudson.remoting;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,7 +27,7 @@ public abstract class ClassFilter {
     /**
      * Property to set to <b>override<b> the blacklist used by {{@link #DEFAULT} with a different set.
      * The location should point to a a file containing regular expressions (one per line) of classes to blacklist.
-     * If this property is set but the file can not be read the default blacklist will be used. 
+     * If this property is set but the file can not be read the default blacklist will be used.
      */
     public static final String FILE_OVERRIDE_LOCATION_PROPERTY = "hudson.remoting.ClassFilter.DEFAULTS_OVERRIDE_LOCATION";
 
@@ -95,7 +98,7 @@ public abstract class ClassFilter {
 
         BufferedReader br = null;
         try {
-            br = new BufferedReader(new FileReader(prop));
+            br = new BufferedReader(new InputStreamReader(new FileInputStream(prop), Charset.defaultCharset()));
             ArrayList<Pattern> patterns = new ArrayList<Pattern>();
             for (String line = br.readLine(); line != null; line = br.readLine()) {
                 try {
