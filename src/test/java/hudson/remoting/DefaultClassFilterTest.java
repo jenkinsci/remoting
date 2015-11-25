@@ -31,7 +31,6 @@ import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;
 
@@ -98,7 +97,7 @@ public class DefaultClassFilterTest {
     /**
      * Checks that if given an invalid pattern in the overrides then the defaults are used.
      */
-    @Test
+    @Test(expected=Error.class)
     public void testDefaultsAreUsedIfOverridesAreGarbage() throws Exception {
         List<String> badClasses = Arrays.asList("Z{100,0}" /* min > max for repetition */);
         File f = folder.newFile("overrides.txt");
@@ -112,22 +111,18 @@ public class DefaultClassFilterTest {
             fos.close();
         }
         setOverrideProperty(f.getAbsolutePath());
-        assertThat("Default blacklist should be used", defaultBadClasses, everyItem(is(blacklisted())));
-        assertThat("Default blacklist should be used but is not allowing some classes", defaultOKClasses,
-                                        everyItem(is(not(blacklisted()))));
+
+        ClassFilter.createDefaultInstance();
     }
 
     /**
      * Checks that the defaults are loaded when the override property is provided and the file does not exist.
      */
-    @Test
+    @Test(expected=Error.class)
     public void testDefaultsRemainWhenOverrideDoesExists() throws Exception {
         setOverrideProperty(folder.getRoot().toString()
-                                        + "/DO_NOT_CREATE_THIS_FILE_OR_ELSE_BAD_THINGS_WILL_HAPPEN_TO_YOU");
-        assertThat("Default blacklist should block the classes when override does not exist", defaultBadClasses,
-                                        everyItem(is(blacklisted())));
-        assertThat("Default blacklist should allow he classes when the override does not exist", defaultOKClasses,
-                                        everyItem(is(not(blacklisted()))));
+                + "/DO_NOT_CREATE_THIS_FILE_OR_ELSE_BAD_THINGS_WILL_HAPPEN_TO_YOU");
+        ClassFilter.createDefaultInstance();
     }
 
     public static void setOverrideProperty(String value) throws Exception {
@@ -136,12 +131,6 @@ public class DefaultClassFilterTest {
         } else {
             System.setProperty(hudson.remoting.ClassFilter.FILE_OVERRIDE_LOCATION_PROPERTY, value);
         }
-        // reset the default classfilter using reflection as there are users of DEFAULT in the codebase that needed to
-        // be removed and prevented.
-        Class<ClassFilter> c = ClassFilter.class;
-        Field f = c.getDeclaredField("DEFAULT");
-        f.setAccessible(true);
-        f.set(null, null);
     }
 
     /** Simple hamcrest matcher that checks if the provided className is blacklisted. */
@@ -157,7 +146,7 @@ public class DefaultClassFilterTest {
 
         public boolean matches(Object item) {
             try {
-                ClassFilter.DEFAULT.check(item.toString());
+                ClassFilter.createDefaultInstance().check(item.toString());
                 return Boolean.FALSE;
             } catch (SecurityException sex) {
                 return Boolean.TRUE;

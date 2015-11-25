@@ -54,7 +54,7 @@ public abstract class ClassFilter {
      * A set of sensible default filtering rules to apply,
      * unless the context guarantees the trust between two channels.
      */
-    public static final ClassFilter DEFAULT;
+    public static final ClassFilter DEFAULT = createDefaultInstance();
 
     /**
      * No filtering whatsoever.
@@ -66,14 +66,14 @@ public abstract class ClassFilter {
      * The default filtering rules to apply, unless the context guarantees the trust between two channels. The defaults
      * values provide for user specified overrides - see {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
      */
-    static {
+    /*package*/ static ClassFilter createDefaultInstance() {
         List<Pattern> patternOverride = loadPatternOverride();
         if (patternOverride != null) {
             LOGGER.log(Level.FINE, "Using user specified overrides for class blacklisting");
-            DEFAULT = new RegExpClassFilter(patternOverride);
+            return new RegExpClassFilter(patternOverride);
         } else {
             LOGGER.log(Level.FINE, "Using default in built class blacklisting");
-            DEFAULT = new RegExpClassFilter(Arrays.asList(Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*"),
+            return new RegExpClassFilter(Arrays.asList(Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*"),
                                                           Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*"),
                                                           Pattern.compile(".*org\\.apache\\.xalan.*")
                                             ));
