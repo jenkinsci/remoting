@@ -1,5 +1,22 @@
 package hudson.remoting;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+
 /**
  * Restricts what classes can be received through remoting.
  *
@@ -7,6 +24,15 @@ package hudson.remoting;
  * @since 2.53
  */
 public abstract class ClassFilter {
+    /**
+     * Property to set to <b>override<b> the blacklist used by {{@link #DEFAULT} with a different set.
+     * The location should point to a a file containing regular expressions (one per line) of classes to blacklist.
+     * If this property is set but the file can not be read the default blacklist will be used.
+     */
+    public static final String FILE_OVERRIDE_LOCATION_PROPERTY = "hudson.remoting.ClassFilter.DEFAULTS_OVERRIDE_LOCATION";
+
+    private static final Logger LOGGER = Logger.getLogger(ClassFilter.class.getName());
+
     protected boolean isBlacklisted(String name) {
         return false;
     }
@@ -31,29 +57,100 @@ public abstract class ClassFilter {
      * A set of sensible default filtering rules to apply,
      * unless the context guarantees the trust between two channels.
      */
-    public static final ClassFilter DEFAULT = new ClassFilter() {
-        @Override
-        protected boolean isBlacklisted(String name) {
-            // these are coming from libraries, so protecting it by name is better as
-            // some plugins might be bundling them and choosing to mask ones from core.
-            if (name.startsWith("org.codehaus.groovy.runtime."))
-                return true;    // ConvertedClosure is named in exploit
-            if (name.startsWith("org.apache.commons.collections.functors."))
-                return true;    // InvokerTransformer, InstantiateFactory, InstantiateTransformer are particularly scary
-
-            // this package can appear in ordinary xalan.jar or com.sun.org.apache.xalan
-            // the target is trax.TemplatesImpl
-            if (name.contains("org.apache.xalan"))
-                return true;
-            return false;
-        }
-    };
+    public static final ClassFilter DEFAULT = createDefaultInstance();
 
     /**
      * No filtering whatsoever.
      */
     public static final ClassFilter NONE = new ClassFilter() {
     };
+
+    /**
+     * The default filtering rules to apply, unless the context guarantees the trust between two channels. The defaults
+     * values provide for user specified overrides - see {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
+     */
+    /*package*/ static ClassFilter createDefaultInstance() {
+        List<Pattern> patternOverride = loadPatternOverride();
+        if (patternOverride != null) {
+            LOGGER.log(Level.FINE, "Using user specified overrides for class blacklisting");
+            return new RegExpClassFilter(patternOverride);
+        } else {
+            LOGGER.log(Level.FINE, "Using default in built class blacklisting");
+            return new RegExpClassFilter(Arrays.asList(Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*"),
+                                                          Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*"),
+                                                          Pattern.compile(".*org\\.apache\\.xalan.*")
+                                            ));
+        }
+    }
+
+    @CheckForNull
+    private static List<Pattern> loadPatternOverride() {
+        String prop = System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY);
+        if (prop==null) {
+            return null;
+        }
+
+        LOGGER.log(Level.FINE, "Attempting to load user provided overrides for ClassFiltering from ''{0}''.", prop);
+        File f = new File(prop);
+        if (!f.exists() || !f.canRead()) {
+            throw new Error("Could not load user provided overrides for ClassFiltering from as " + prop + " does not exist or is not readable.");
+        }
+
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new InputStreamReader(new FileInputStream(prop), Charset.defaultCharset()));
+            ArrayList<Pattern> patterns = new ArrayList<Pattern>();
+            for (String line = br.readLine(); line != null; line = br.readLine()) {
+                try {
+                    patterns.add(Pattern.compile(line));
+                } catch (PatternSyntaxException pex) {
+                    throw new Error("Error compiling blacklist expressions - '" + line + "' is not a valid regular expression.", pex);
+                }
+            }
+            return patterns;
+        } catch (IOException ex) {
+            throw new Error("Could not load user provided overrides for ClassFiltering from as "+prop+" does not exist or is not readable.",ex);
+        } finally {
+            if (br != null) {
+                try {
+                    br.close();
+                } catch (IOException ioEx) {
+                    LOGGER.log(Level.WARNING, "Failed to cleanly close input stream", ioEx);
+                }
+            }
+        }
+    }
+
+    /**
+     * A class that uses a given set of regular expression patterns to determine if the class is blacklisted.
+     */
+    private static final class RegExpClassFilter extends ClassFilter {
+
+        private final List<Pattern> blacklistPatterns;
+
+        public RegExpClassFilter(List<Pattern> blacklistPatterns) {
+            this.blacklistPatterns = blacklistPatterns;
+        }
+
+        @Override
+        protected boolean isBlacklisted(String name) {
+            for (Pattern p : blacklistPatterns) {
+                if (p.matcher(name).matches()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Report the patterns that it's using to help users verify the use of custom filtering rule
+         * and inspect its content at runtime if necessary.
+         */
+        @Override
+        public String toString() {
+            return blacklistPatterns.toString();
+        }
+    }
 }
 
 /*
