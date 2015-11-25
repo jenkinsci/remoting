@@ -95,18 +95,12 @@ public abstract class ClassFilter {
                         try {
                             patterns.add(Pattern.compile(line));
                         } catch (PatternSyntaxException pex) {
-                            LOGGER.log(Level.WARNING, "Error compiling blacklist expressions - '" + line
-                                                            + "' is not a valid regular expression.", pex);
-                            // we could continue the rest of the of the lines - but it is better to be all or nothing
-                            // not a halfway house.
-                            return null;
+                            throw new Error("Error compiling blacklist expressions - '" + line + "' is not a valid regular expression.", pex);
                         }
                     }
                     return patterns;
                 } catch (IOException ex) {
-                    LOGGER.log(Level.WARNING,
-                               "Could not load user provided overrides for ClassFiltering from as file does not exist or is not readable.",
-                               ex);
+                    throw new Error("Could not load user provided overrides for ClassFiltering from as "+prop+" does not exist or is not readable.",ex);
                 } finally {
                     if (br != null) {
                         try {
@@ -117,8 +111,7 @@ public abstract class ClassFilter {
                     }
                 }
             } else {
-                LOGGER.log(Level.WARNING,
-                           "Could not load user provided overrides for ClassFiltering from as file does not exist or is not readable.");
+                throw new Error("Could not load user provided overrides for ClassFiltering from as "+prop+" does not exist or is not readable.");
             }
         }
         return null;
