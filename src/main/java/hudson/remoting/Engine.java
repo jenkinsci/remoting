@@ -182,7 +182,7 @@ public class Engine extends Thread {
                     // find out the TCP port
                     HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL);
                     if (credentials != null) {
-                        // TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
+                        // Pass credentials to support running Jenkins behind a (reverse) proxy requiring authorization
                         String encoding = Base64.encode(credentials.getBytes("UTF-8"));
                         con.setRequestProperty("Authorization", "Basic " + encoding);
                     }
@@ -372,7 +372,17 @@ public class Engine extends Thread {
                     retries++;
                     t.setName(oldName+": trying "+url+" for "+retries+" times");
 
-                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
+                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(url);
+                    if (credentials != null) {
+                        // Pass credentials to support running Jenkins behind a (reverse) proxy requiring authorization
+                        String encoding = Base64.encode(credentials.getBytes("UTF-8"));
+                        con.setRequestProperty("Authorization", "Basic " + encoding);
+                    }
+
+                    if (proxyCredentials != null) {
+                        String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
+                        con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+                    }
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
