@@ -180,17 +180,7 @@ public class Engine extends Thread {
                     URL salURL = new URL(s+"tcpSlaveAgentListener/");
 
                     // find out the TCP port
-                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL);
-                    if (credentials != null) {
-                        // Pass credentials to support running Jenkins behind a (reverse) proxy requiring authorization
-                        String encoding = Base64.encode(credentials.getBytes("UTF-8"));
-                        con.setRequestProperty("Authorization", "Basic " + encoding);
-                    }
-
-                    if (proxyCredentials != null) {
-                        String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
-                        con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
-                    }
+                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL, credentials, proxyCredentials);
                     try {
                         try {
                             con.setConnectTimeout(30000);
@@ -372,17 +362,7 @@ public class Engine extends Thread {
                     retries++;
                     t.setName(oldName+": trying "+url+" for "+retries+" times");
 
-                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(url);
-                    if (credentials != null) {
-                        // Pass credentials to support running Jenkins behind a (reverse) proxy requiring authorization
-                        String encoding = Base64.encode(credentials.getBytes("UTF-8"));
-                        con.setRequestProperty("Authorization", "Basic " + encoding);
-                    }
-
-                    if (proxyCredentials != null) {
-                        String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
-                        con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
-                    }
+                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(url, credentials, proxyCredentials);
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
