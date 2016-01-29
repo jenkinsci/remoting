@@ -8,9 +8,11 @@ import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Map.Entry;
@@ -25,7 +27,7 @@ import java.util.logging.Logger;
  * @author Kohsuke Kawaguchi
  * @since 1.561
  */
-public class JnlpSlaveHandshake {
+public class JnlpServerHandshake {
     /**
      * Useful for creating a {@link Channel} with NIO as the underlying transport.
      */
@@ -57,12 +59,12 @@ public class JnlpSlaveHandshake {
 
     private final ExecutorService threadPool;
 
-    protected JnlpSlaveHandshake(NioChannelHub hub, ExecutorService threadPool, Socket socket, DataInputStream in, PrintWriter out) {
+    protected JnlpServerHandshake(NioChannelHub hub, ExecutorService threadPool, Socket socket) throws IOException {
         this.hub = hub;
         this.threadPool = threadPool;
         this.socket = socket;
-        this.in = in;
-        this.out = out;
+        this.in = new DataInputStream(socket.getInputStream());
+        this.out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF-8")),true);
     }
 
     public NioChannelHub getHub() {
@@ -119,5 +121,5 @@ public class JnlpSlaveHandshake {
     }
 
 
-    static final Logger LOGGER = Logger.getLogger(JnlpSlaveHandshake.class.getName());
+    static final Logger LOGGER = Logger.getLogger(JnlpServerHandshake.class.getName());
 }

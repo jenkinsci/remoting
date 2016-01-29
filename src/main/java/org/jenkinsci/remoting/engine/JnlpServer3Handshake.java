@@ -8,9 +8,7 @@ import org.jenkinsci.remoting.nio.NioChannelHub;
 import javax.annotation.Nonnull;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
-import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
@@ -20,23 +18,17 @@ import java.util.concurrent.ExecutorService;
 /**
  * @author Akshay Dayal
  */
-public class Jnlp3Handshake extends JnlpHandshake {
+public class JnlpServer3Handshake extends JnlpServerHandshake {
     /**
      * If the client sends a connection cookie, that value is stored here.
      */
     protected String cookie;
 
-    protected final String nodeName;
-    protected final String nodeSecret;
-
     private final HandshakeCiphers handshakeCiphers;
 
-    public Jnlp3Handshake(NioChannelHub hub, ExecutorService threadPool,
-                          Socket socket, DataInputStream in, PrintWriter out,
-                          String nodeName, String nodeSecret) {
-        super(hub, threadPool, socket, in, out);
-        this.nodeName = nodeName;
-        this.nodeSecret = nodeSecret;
+    public JnlpServer3Handshake(NioChannelHub hub, ExecutorService threadPool, Socket socket,
+                                String nodeName, String nodeSecret) throws IOException {
+        super(hub,threadPool,socket);
         this.handshakeCiphers = HandshakeCiphers.create(nodeName, nodeSecret);
     }
 
