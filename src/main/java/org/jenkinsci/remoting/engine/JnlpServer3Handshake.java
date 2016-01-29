@@ -8,6 +8,7 @@ import org.jenkinsci.remoting.nio.NioChannelHub;
 import javax.annotation.Nonnull;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.Charset;
@@ -18,41 +19,41 @@ import java.util.concurrent.ExecutorService;
 /**
  * @author Akshay Dayal
  */
-public class JnlpServer3Handshake extends JnlpServerHandshake {
+public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
     /**
      * If the client sends a connection cookie, that value is stored here.
      */
     protected String cookie;
 
-    private final HandshakeCiphers handshakeCiphers;
+    private HandshakeCiphers handshakeCiphers;
 
-    public JnlpServer3Handshake(NioChannelHub hub, ExecutorService threadPool, Socket socket,
-                                String nodeName, String nodeSecret) throws IOException {
+    public JnlpServer3Handshake(NioChannelHub hub, ExecutorService threadPool, Socket socket) throws IOException {
         super(hub,threadPool,socket);
-        this.handshakeCiphers = HandshakeCiphers.create(nodeName, nodeSecret);
     }
 
     /**
      * Performs the handshake and establishes a channel.
      */
     public Channel connect(ChannelBuilder cb) throws IOException, InterruptedException {
+        try {
+            // Get initiation information from slave.
+            request.load(new ByteArrayInputStream(in.readUTF().getBytes(Charset.forName("UTF-8"))));
+            String nodeName = request.getProperty(JnlpProtocol3.SLAVE_NAME_KEY);
 
-        // Authenticate to the slave.
-        if (!authenticateToSlave()) {
+            this.handshakeCiphers = HandshakeCiphers.create(nodeName, getNodeSecret(nodeName));
+
+            authenticateToSlave();
+
+            // If there is a cookie decrypt it.
+            if (getRequestProperty(JnlpProtocol3.COOKIE_KEY) != null) {
+                cookie = handshakeCiphers.decrypt(getRequestProperty(JnlpProtocol3.COOKIE_KEY));
+            }
+
+            validateSlave();
+        } catch (Failure f) {
+            error(f.getMessage());
             return null;
         }
-
-        // If there is a cookie decrypt it.
-        if (getRequestProperty(JnlpProtocol3.COOKIE_KEY) != null) {
-            cookie = handshakeCiphers.decrypt(getRequestProperty(JnlpProtocol3.COOKIE_KEY));
-        }
-
-        // Validate the slave.
-        if (!validateSlave()) {
-            return null;
-        }
-
-        // TODO: this is where the check for existing slave happens
 
         // Send greeting and new cookie.
         out.println(JnlpProtocol.GREETING_SUCCESS);
@@ -77,7 +78,9 @@ public class JnlpServer3Handshake extends JnlpServerHandshake {
         return channel;
     }
 
-    private boolean authenticateToSlave() throws IOException {
+    protected abstract String getNodeSecret(String nodeName) throws Failure;
+
+    private void authenticateToSlave() throws IOException, Failure {
         String challenge = handshakeCiphers.decrypt(
                 request.getProperty(JnlpProtocol3.CHALLENGE_KEY));
 
@@ -91,14 +94,11 @@ public class JnlpServer3Handshake extends JnlpServerHandshake {
         // If the slave accepted our challenge response send our challenge.
         String challengeVerificationMessage = in.readUTF();
         if (!challengeVerificationMessage.equals(JnlpProtocol.GREETING_SUCCESS)) {
-            error("Slave did not accept our challenge response");
-            return false;
+            throw new Failure("Slave did not accept our challenge response");
         }
-
-        return true;
     }
 
-    private boolean validateSlave() throws IOException {
+    protected void validateSlave() throws IOException, Failure {
         String masterChallenge = Jnlp3Util.generateChallenge();
         String encryptedMasterChallenge = handshakeCiphers.encrypt(masterChallenge);
         out.println(encryptedMasterChallenge.getBytes(Charset.forName("UTF-8")).length);
@@ -110,11 +110,8 @@ public class JnlpServer3Handshake extends JnlpServerHandshake {
         String masterChallengeResponse = handshakeCiphers.decrypt(
                 encryptedMasterChallengeResponse);
         if (!Jnlp3Util.validateChallengeResponse(masterChallenge, masterChallengeResponse)) {
-            error("Incorrect master challenge response from slave");
-            return false;
+            throw new Failure("Incorrect master challenge response from slave");
         }
-
-        return true;
     }
 
     private String generateCookie() {
@@ -132,6 +129,17 @@ public class JnlpServer3Handshake extends JnlpServerHandshake {
             buf.append(Integer.toHexString(b));
         }
         return buf.toString();
+    }
+
+    /**
+     * Indicates a graceful handshake failure.
+     *
+     * This exception can be thrown during the handshake to refuse the inbound client.
+     */
+    protected class Failure extends Exception {
+        public Failure(String msg) {
+            super(msg);
+        }
     }
 
     static final String COOKIE_NAME = JnlpProtocol3.class.getName() + ".cookie";
