@@ -1,9 +1,5 @@
 package org.jenkinsci.remoting.engine;
 
-/**
- * @author Kohsuke Kawaguchi
- */
-
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import org.jenkinsci.remoting.nio.NioChannelHub;
