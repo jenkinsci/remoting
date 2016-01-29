@@ -124,7 +124,7 @@ public class JnlpServer3Handshake extends JnlpServerHandshake {
     }
 
     @Nonnull
-    public static String toHexString(@Nonnull byte[] bytes) {
+    private String toHexString(@Nonnull byte[] bytes) {
         StringBuilder buf = new StringBuilder();
         for (byte bb : bytes) {
             int b = bb & 0xFF;
