@@ -99,10 +99,8 @@ class HandshakeCiphers {
      *
      * @param slaveName The slave for which the handshake is taking place.
      * @param slaveSecret The slave secret.
-     * @throws IOException If there is a problem creating the ciphers.
      */
-    public static HandshakeCiphers create(
-            String slaveName, String slaveSecret) throws IOException {
+    public static HandshakeCiphers create(String slaveName, String slaveSecret) {
         try {
             byte[] specKey = Jnlp3Util.generate128BitKey(slaveName + slaveSecret);
             IvParameterSpec spec = new IvParameterSpec(specKey);
@@ -115,7 +113,7 @@ class HandshakeCiphers {
 
             return new HandshakeCiphers(secretKey, spec, encryptCipher, decryptCipher);
         } catch (GeneralSecurityException e) {
-            throw new IOException("Failed to create handshake ciphers", e);
+            throw new AssertionError("Failed to create handshake ciphers", e);
         }
     }
 
