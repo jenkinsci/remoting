@@ -35,7 +35,7 @@ import java.security.GeneralSecurityException;
 import java.security.spec.KeySpec;
 
 /**
- * {@link javax.crypto.Cipher}s that will be used to during the handshake
+ * {@link Cipher}s that will be used to during the handshake
  * process for JNLP3 protocol.
  *
  * @author Akshay Dayal
@@ -90,7 +90,7 @@ class HandshakeCiphers {
     }
 
     /**
-     * Create a pair of AES symmetric key {@link javax.crypto.Cipher}s that
+     * Create a pair of AES symmetric key {@link Cipher}s that
      * will be used during the handshake process.
      *
      * <p>The slave name and slave secret are used to create a
