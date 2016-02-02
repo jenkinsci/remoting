@@ -29,8 +29,17 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
 
     private HandshakeCiphers handshakeCiphers;
 
+    private String nodeName;
+
     public JnlpServer3Handshake(NioChannelHub hub, ExecutorService threadPool, Socket socket) throws IOException {
         super(hub,threadPool,socket);
+    }
+
+    /**
+     * Gets the node name reported from the other side.
+     */
+    public String getNodeName() {
+        return nodeName;
     }
 
     /**
@@ -40,7 +49,7 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
         try {
             // Get initiation information from slave.
             request.load(new ByteArrayInputStream(in.readUTF().getBytes(Charset.forName("UTF-8"))));
-            String nodeName = request.getProperty(JnlpProtocol3.SLAVE_NAME_KEY);
+            nodeName = request.getProperty(JnlpProtocol3.SLAVE_NAME_KEY);
 
             this.handshakeCiphers = HandshakeCiphers.create(nodeName, getNodeSecret(nodeName));
 
