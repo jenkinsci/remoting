@@ -103,6 +103,7 @@ import static org.jenkinsci.remoting.engine.Jnlp3Util.*;
  * 256bit sizes are supported.
  *
  * @author Akshay Dayal
+ * @see JnlpServer3Handshake
  */
 class JnlpProtocol3 extends JnlpProtocol {
 

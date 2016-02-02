@@ -17,6 +17,8 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 
 /**
+ * Server-side handshaking logic for {@link JnlpProtocol3}.
+ *
  * @author Akshay Dayal
  */
 public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
@@ -78,6 +80,14 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
         return channel;
     }
 
+    /**
+     * Given the node name declared by the client, determine the secret
+     * used for authentication.
+     *
+     * @throws Failure
+     *      if a fatal problem is found in determining the secret, to abort
+     *      the handshake gracefully.
+     */
     protected abstract String getNodeSecret(String nodeName) throws Failure;
 
     private void authenticateToSlave() throws IOException, Failure {
