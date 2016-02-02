@@ -63,6 +63,17 @@ public class JnlpServerHandshake {
         this.out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(),"UTF-8")),true);
     }
 
+    /**
+     * Copy constructor
+     */
+    protected JnlpServerHandshake(JnlpServerHandshake rhs) {
+        this.hub        = rhs.hub;
+        this.threadPool = rhs.threadPool;
+        this.socket     = rhs.socket;
+        this.in         = rhs.in;
+        this.out        = rhs.out;
+    }
+
     public NioChannelHub getHub() {
         return hub;
     }
