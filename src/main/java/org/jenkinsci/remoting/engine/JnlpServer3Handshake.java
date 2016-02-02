@@ -1,7 +1,6 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
-import hudson.remoting.ChannelBuilder;
 import hudson.remoting.SocketChannelStream;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 
@@ -45,7 +44,7 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
     /**
      * Performs the handshake and establishes a channel.
      */
-    public Channel connect(ChannelBuilder cb) throws IOException, InterruptedException {
+    public Channel connect() throws IOException, InterruptedException {
         try {
             // Get initiation information from slave.
             request.load(new ByteArrayInputStream(in.readUTF().getBytes(Charset.forName("UTF-8"))));
@@ -78,7 +77,7 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
                 Jnlp3Util.keyFromString(aesKeyString),
                 Jnlp3Util.keyFromString(specKeyString));
 
-        Channel channel = cb.build(
+        Channel channel = createChannelBuilder(nodeName).build(
                 new CipherInputStream(SocketChannelStream.in(socket),
                         channelCiphers.getDecryptCipher()),
                 new CipherOutputStream(SocketChannelStream.out(socket),
