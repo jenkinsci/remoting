@@ -25,7 +25,7 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
-import hudson.remoting.EngineListenerSplitter;
+import hudson.remoting.EngineListener;
 
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
@@ -37,7 +37,7 @@ import java.net.Socket;
 import java.util.Properties;
 
 import static org.jenkinsci.remoting.engine.EngineUtil.*;
-import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
+import static org.jenkinsci.remoting.engine.Jnlp3Util.*;
 
 /**
  * Implementation of the JNLP3-connect protocol.
@@ -103,6 +103,7 @@ import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
  * 256bit sizes are supported.
  *
  * @author Akshay Dayal
+ * @see JnlpServer3Handshake
  */
 class JnlpProtocol3 extends JnlpProtocol {
 
@@ -114,7 +115,7 @@ class JnlpProtocol3 extends JnlpProtocol {
     private String cookie;
     private ChannelCiphers channelCiphers;
 
-    JnlpProtocol3(String slaveName, String slaveSecret, EngineListenerSplitter events) {
+    JnlpProtocol3(String slaveName, String slaveSecret, EngineListener events) {
         super(slaveName, slaveSecret, events);
     }
 
