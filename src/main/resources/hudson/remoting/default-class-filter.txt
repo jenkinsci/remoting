@@ -1,6 +1,0 @@
-^org[.]codehaus[.]groovy[.]runtime[.].*
-^org[.]apache[.]commons[.]collections[.]functors[.].*
-.*org[.]apache[.]xalan.*
-^com[.]sun[.]jndi[.]rmi[.].*
-^sun[.].*
-^java[.]rmi[.].*
