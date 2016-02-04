@@ -1,14 +1,11 @@
 package hudson.remoting;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,6 +13,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import java.io.InputStream;
 
 /**
  * Restricts what classes can be received through remoting.
@@ -76,13 +74,11 @@ public abstract class ClassFilter {
             return new RegExpClassFilter(patternOverride);
         } else {
             LOGGER.log(Level.FINE, "Using default in built class blacklisting");
-            return new RegExpClassFilter(Arrays.asList(Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*"),
-                                                          Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*"),
-                                                          Pattern.compile(".*org\\.apache\\.xalan.*"),
-                                                          Pattern.compile("^com\\.sun\\.jndi\\.rmi\\..*"),
-                                                          Pattern.compile("^sun\\..*"),
-                                                          Pattern.compile("^java\\.rmi\\..*")
-                                            ));
+            try {
+                return new RegExpClassFilter(loadPatterns(ClassFilter.class.getResourceAsStream("default-class-filter.txt")));
+            } catch (IOException x) {
+                throw new Error("could not load default blacklist", x);
+            }
         }
     }
 
@@ -94,34 +90,29 @@ public abstract class ClassFilter {
         }
 
         LOGGER.log(Level.FINE, "Attempting to load user provided overrides for ClassFiltering from ''{0}''.", prop);
-        File f = new File(prop);
-        if (!f.exists() || !f.canRead()) {
-            throw new Error("Could not load user provided overrides for ClassFiltering from as " + prop + " does not exist or is not readable.");
-        }
-
-        BufferedReader br = null;
         try {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(prop), Charset.defaultCharset()));
-            ArrayList<Pattern> patterns = new ArrayList<Pattern>();
-            for (String line = br.readLine(); line != null; line = br.readLine()) {
-                try {
-                    patterns.add(Pattern.compile(line));
-                } catch (PatternSyntaxException pex) {
-                    throw new Error("Error compiling blacklist expressions - '" + line + "' is not a valid regular expression.", pex);
-                }
+            InputStream is = new FileInputStream(prop);
+            try {
+                return loadPatterns(is);
+            } finally {
+                is.close();
             }
-            return patterns;
-        } catch (IOException ex) {
-            throw new Error("Could not load user provided overrides for ClassFiltering from as "+prop+" does not exist or is not readable.",ex);
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException ioEx) {
-                    LOGGER.log(Level.WARNING, "Failed to cleanly close input stream", ioEx);
-                }
+        } catch (IOException x) {
+            throw new Error("Could not load user-provided overrides for class filtering from " + prop, x);
+        }
+    }
+
+    private static List<Pattern> loadPatterns(InputStream is) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(is, Charset.defaultCharset()));
+        ArrayList<Pattern> patterns = new ArrayList<Pattern>();
+        for (String line = br.readLine(); line != null; line = br.readLine()) {
+            try {
+                patterns.add(Pattern.compile(line));
+            } catch (PatternSyntaxException pex) {
+                throw new IOException("Error compiling blacklist expressions - '" + line + "' is not a valid regular expression.", pex);
             }
         }
+        return patterns;
     }
 
     /**
