@@ -52,11 +52,15 @@ public abstract class ClassFilter {
 	}
 
     private static final String[] DEFAULT_PATTERNS = {
+        "^com[.]google[.]inject[.].*",
         "^com[.]sun[.]jndi[.]rmi[.].*",
         "^java[.]rmi[.].*",
+        "^org[.]apache[.]commons[.]beanutils[.].*",
         "^org[.]apache[.]commons[.]collections[.]functors[.].*",
         ".*org[.]apache[.]xalan.*",
         "^org[.]codehaus[.]groovy[.]runtime[.].*",
+        "^org[.]hibernate[.].*",
+        "^org[.]springframework[.].*",
         "^sun[.].*",
     };
 
