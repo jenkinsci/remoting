@@ -1,10 +1,6 @@
-^com[.]google[.]inject[.].*
-^com[.]sun[.]jndi[.]rmi[.].*
-^java[.]rmi[.].*
-^org[.]apache[.]commons[.]beanutils[.].*
+^org[.]codehaus[.]groovy[.]runtime[.].*
 ^org[.]apache[.]commons[.]collections[.]functors[.].*
 .*org[.]apache[.]xalan.*
-^org[.]codehaus[.]groovy[.]runtime[.].*
-^org[.]hibernate[.].*
-^org[.]springframework[.].*
+^com[.]sun[.]jndi[.]rmi[.].*
 ^sun[.].*
+^java[.]rmi[.].*
