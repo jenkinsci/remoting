@@ -332,8 +332,12 @@ public class FifoBuffer implements Closeable {
             int chunk;
 
             synchronized (lock) {
-                while ((chunk = Math.min(len,writable()))==0)
+                while ((chunk = Math.min(len,writable()))==0) {
+                    if (closed)
+                        throw new IOException("closed during write operation");
+
                     lock.wait(100);
+                }
 
                 w.write(buf, start, chunk);
 
