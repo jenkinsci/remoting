@@ -61,7 +61,7 @@ public abstract class ClassFilter {
         "^org[.]codehaus[.]groovy[.]runtime[.].*",
         "^org[.]hibernate[.].*",
         "^org[.]springframework[.].*",
-        "^sun[.](?!nio[.]cs[.]).*", // sun.nio.cs.Unicode subclasses are Charset impls and XStream will save it
+        "^sun[.]rmi[.].*",
     };
 
     /**
