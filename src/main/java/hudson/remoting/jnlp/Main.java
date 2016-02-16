@@ -24,6 +24,13 @@
 package hudson.remoting.jnlp;
 
 import hudson.remoting.FileSystemJarCache;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Argument;
@@ -76,6 +83,12 @@ public class Main {
     @Option(name="-noreconnect",
             usage="If the connection ends, don't retry and just exit.")
     public boolean noReconnect = false;
+
+    @Option(name = "-cert",
+            usage = "Specify additional X.509 encoded PEM certificates to trust when connecting to Jenkins " +
+                    "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
+                    "certificate file to read.")
+    public List<String> candidateCertificates;
 
     /**
      * @since 2.24
@@ -159,6 +172,68 @@ public class Main {
         if(jarCache!=null)
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
+        if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+            CertificateFactory factory;
+            try {
+                factory = CertificateFactory.getInstance("X.509");
+            } catch (CertificateException e) {
+                throw new IllegalStateException("Java platform specification mandates support for X.509", e);
+            }
+            List<X509Certificate> certificates = new ArrayList<X509Certificate>(candidateCertificates.size());
+            for (String certOrAtFilename : candidateCertificates) {
+                certOrAtFilename = certOrAtFilename.trim();
+                byte[] cert;
+                if (certOrAtFilename.startsWith("@")) {
+                    File file = new File(certOrAtFilename.substring(1));
+                    long length;
+                    if (file.isFile()
+                            && (length = file.length()) < 65536
+                            && length > "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----".length()) {
+                        FileInputStream fis = null;
+                        try {
+                            // we do basic size validation, if there are x509 certificates that have a PEM encoding
+                            // larger
+                            // than 64kb we can revisit the upper bound.
+                            cert = new byte[(int) length];
+                            fis = new FileInputStream(file);
+                            int read = fis.read(cert);
+                            if (cert.length == read) {
+                                LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
+                                        new Object[]{read, file, cert.length});
+                                // skip it
+                                continue;
+                            }
+                        } catch (IOException e) {
+                            LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
+                            continue;
+                        }
+                    } else {
+                        if (file.isFile()) {
+                            LOGGER.log(Level.WARNING, "Could not read certificate from {0}. File size is not within " +
+                                    "the expected range for a PEM encoded X.509 certificate", file.getAbsolutePath());
+                        } else {
+                            LOGGER.log(Level.WARNING, "Could not read certificate from {0}. File not found",
+                                    file.getAbsolutePath());
+                        }
+                        continue;
+                    }
+                } else {
+                    try {
+                        cert = certOrAtFilename.getBytes("US-ASCII");
+                    } catch (UnsupportedEncodingException e) {
+                        LOGGER.log(Level.WARNING, "Could not parse certificate " + certOrAtFilename, e);
+                        continue;
+                    }
+                }
+                try {
+                    certificates.add((X509Certificate) factory.generateCertificate(new ByteArrayInputStream(cert)));
+                } catch (ClassCastException e) {
+                    LOGGER.log(Level.WARNING, "Expected X.509 certificate from " + certOrAtFilename, e);
+                } catch (CertificateException e) {
+                    LOGGER.log(Level.WARNING, "Could not parse X.509 certificate from " + certOrAtFilename, e);
+                }
+            }
+        }
         return engine;
     }
 
