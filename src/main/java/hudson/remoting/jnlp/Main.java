@@ -197,7 +197,7 @@ public class Main {
                             cert = new byte[(int) length];
                             fis = new FileInputStream(file);
                             int read = fis.read(cert);
-                            if (cert.length == read) {
+                            if (cert.length != read) {
                                 LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
                                         new Object[]{read, file, cert.length});
                                 // skip it

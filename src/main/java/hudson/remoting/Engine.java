@@ -40,6 +40,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import javax.annotation.CheckForNull;
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -69,6 +71,7 @@ import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
  *
  * @author Kohsuke Kawaguchi
  */
+@NotThreadSafe // the fields in this class should not be modified by multiple threads concurrently
 public class Engine extends Thread {
     /**
      * Thread pool that sets {@link #CURRENT}.
@@ -546,6 +549,7 @@ public class Engine extends Thread {
         return keystore;
     }
 
+    @CheckForNull
     private static FileInputStream getFileInputStream(final File file) throws PrivilegedActionException {
         return AccessController.doPrivileged(new PrivilegedExceptionAction<FileInputStream>() {
             public FileInputStream run() throws Exception {
