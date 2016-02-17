@@ -238,7 +238,10 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                             if (isCancelled()) {
                                 throw new CancellationException();
                             }
-                            Request.this.wait(); // wait until the response arrives
+                            if (channel.isInClosed()) {
+                                throw new ExecutionException(new RequestAbortedException(null));
+                            }
+                            Request.this.wait(30*1000); // wait until the response arrives
                         }
                     } catch (InterruptedException e) {
                         try {
@@ -266,7 +269,10 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                         if (isCancelled()) {
                             throw new CancellationException();
                         }
-                        Request.this.wait(Math.max(1, TimeUnit.NANOSECONDS.toMillis(end - now)));
+                        if (channel.isInClosed()) {
+                            throw new ExecutionException(new RequestAbortedException(null));
+                        }
+                        Request.this.wait(Math.min(30*1000,Math.max(1, TimeUnit.NANOSECONDS.toMillis(end - now))));
                         now = System.nanoTime();
                     }
                     if (response == null)
