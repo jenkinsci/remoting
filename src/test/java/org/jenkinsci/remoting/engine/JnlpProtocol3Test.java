@@ -25,7 +25,7 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
-import hudson.remoting.EngineListenerSplitter;
+import hudson.remoting.EngineListener;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -79,7 +79,7 @@ public class JnlpProtocol3Test {
     @Mock private InputStream mockInputStream;
     @Mock private DataOutputStream mockDataOutputStream;
     @Mock private BufferedInputStream mockBufferedInputStream;
-    @Mock private EngineListenerSplitter mockEvents;
+    @Mock private EngineListener mockEvents;
     @Mock private CipherOutputStream mockCipherOutputStream;
     @Mock private CipherInputStream mockCipherInputStream;
     private JnlpProtocol3 protocol;

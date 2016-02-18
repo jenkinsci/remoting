@@ -35,7 +35,7 @@ import java.security.GeneralSecurityException;
 import java.security.spec.KeySpec;
 
 /**
- * {@link javax.crypto.Cipher}s that will be used to during the handshake
+ * {@link Cipher}s that will be used to during the handshake
  * process for JNLP3 protocol.
  *
  * @author Akshay Dayal
@@ -90,24 +90,22 @@ class HandshakeCiphers {
     }
 
     /**
-     * Create a pair of AES symmetric key {@link javax.crypto.Cipher}s that
+     * Create a pair of AES symmetric key {@link Cipher}s that
      * will be used during the handshake process.
      *
      * <p>The slave name and slave secret are used to create a
      * {@link PBEKeySpec} and an {@link IvParameterSpec}which is then used to
      * create the ciphers.
      *
-     * @param slaveName The slave for which the handshake is taking place.
-     * @param slaveSecret The slave secret.
-     * @throws IOException If there is a problem creating the ciphers.
+     * @param salt The slave for which the handshake is taking place.
+     * @param secret The slave secret.
      */
-    public static HandshakeCiphers create(
-            String slaveName, String slaveSecret) throws IOException {
+    public static HandshakeCiphers create(String salt, String secret) {
         try {
-            byte[] specKey = Jnlp3Util.generate128BitKey(slaveName + slaveSecret);
+            byte[] specKey = Jnlp3Util.generate128BitKey(salt + secret);
             IvParameterSpec spec = new IvParameterSpec(specKey);
 
-            SecretKey secretKey = generateSecretKey(slaveName, slaveSecret);
+            SecretKey secretKey = generateSecretKey(salt, secret);
             Cipher encryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
             Cipher decryptCipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
@@ -115,7 +113,7 @@ class HandshakeCiphers {
 
             return new HandshakeCiphers(secretKey, spec, encryptCipher, decryptCipher);
         } catch (GeneralSecurityException e) {
-            throw new IOException("Failed to create handshake ciphers", e);
+            throw (AssertionError)new AssertionError("Failed to create handshake ciphers").initCause(e);
         }
     }
 

@@ -51,6 +51,7 @@ public class JnlpProtocolFactory {
      */
     public static List<JnlpProtocol> createProtocols(String slaveSecret, String slaveName, EngineListener events) {
         return Arrays.asList(
+            new JnlpProtocol3(slaveName, slaveSecret, events),
             new JnlpProtocol2(slaveName, slaveSecret, events),
             new JnlpProtocol1(slaveName, slaveSecret, events)
         );
