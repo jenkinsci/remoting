@@ -29,6 +29,7 @@ import java.io.FileNotFoundException;
 import java.security.AccessController;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
@@ -42,7 +43,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.CheckForNull;
 import javax.annotation.concurrent.NotThreadSafe;
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -214,25 +214,7 @@ public class Engine extends Thread {
                 Throwable firstError=null;
                 String host=null;
                 String port=null;
-                SSLSocketFactory sslSocketFactory = null;
-                if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
-                    KeyStore keyStore = getCacertsKeyStore();
-                    // load the keystore
-                    keyStore.load(null, null);
-                    int i = 0;
-                    for (X509Certificate c : candidateCertificates) {
-                        keyStore.setCertificateEntry(String.format("alias-%d", i++), c);
-                    }
-                    // prepare the trust manager
-                    TrustManagerFactory trustManagerFactory =
-                            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                    trustManagerFactory.init(keyStore);
-                    // prepare the SSL context
-                    SSLContext ctx = SSLContext.getInstance("TLS");
-                    ctx.init(null, trustManagerFactory.getTrustManagers(), null);
-                    // now we have our custom socket factory
-                    sslSocketFactory = ctx.getSocketFactory();
-                }
+                SSLSocketFactory sslSocketFactory = getSSLSocketFactory();
 
                 for (URL url : candidateUrls) {
                     String s = url.toExternalForm();
@@ -240,10 +222,7 @@ public class Engine extends Thread {
                     URL salURL = new URL(s+"tcpSlaveAgentListener/");
 
                     // find out the TCP port
-                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL, credentials, proxyCredentials);
-                    if (con instanceof HttpsURLConnection && sslSocketFactory != null) {
-                        ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
-                    }
+                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory);
                     try {
                         try {
                             con.setConnectTimeout(30000);
@@ -414,6 +393,12 @@ public class Engine extends Thread {
     private void waitForServerToBack() throws InterruptedException {
         Thread t = Thread.currentThread();
         String oldName = t.getName();
+        SSLSocketFactory sslSocketFactory = null;
+        try {
+            sslSocketFactory = getSSLSocketFactory();
+        } catch (Throwable e) {
+            events.error(e);
+        }
         try {
             int retries=0;
             while(true) {
@@ -425,7 +410,7 @@ public class Engine extends Thread {
                     retries++;
                     t.setName(oldName+": trying "+url+" for "+retries+" times");
 
-                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(url, credentials, proxyCredentials);
+                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(url, credentials, proxyCredentials, sslSocketFactory);
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
@@ -550,6 +535,31 @@ public class Engine extends Thread {
                 }
             }
         });
+    }
+
+    private SSLSocketFactory getSSLSocketFactory()
+            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
+            NoSuchAlgorithmException, IOException, KeyManagementException {
+        SSLSocketFactory sslSocketFactory = null;
+        if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+            KeyStore keyStore = getCacertsKeyStore();
+            // load the keystore
+            keyStore.load(null, null);
+            int i = 0;
+            for (X509Certificate c : candidateCertificates) {
+                keyStore.setCertificateEntry(String.format("alias-%d", i++), c);
+            }
+            // prepare the trust manager
+            TrustManagerFactory trustManagerFactory =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(keyStore);
+            // prepare the SSL context
+            SSLContext ctx = SSLContext.getInstance("TLS");
+            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
+            // now we have our custom socket factory
+            sslSocketFactory = ctx.getSocketFactory();
+        }
+        return sslSocketFactory;
     }
 
     /**
