@@ -24,6 +24,28 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.security.AccessController;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Level;
+import javax.annotation.CheckForNull;
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 import org.jenkinsci.remoting.engine.JnlpProtocol;
 import org.jenkinsci.remoting.engine.JnlpProtocolFactory;
 
@@ -49,6 +71,7 @@ import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
  *
  * @author Kohsuke Kawaguchi
  */
+@NotThreadSafe // the fields in this class should not be modified by multiple threads concurrently
 public class Engine extends Thread {
     /**
      * Thread pool that sets {@link #CURRENT}.
@@ -83,6 +106,11 @@ public class Engine extends Thread {
      * "http://foo.bar/jenkins/".
      */
     private List<URL> candidateUrls;
+    /**
+     * The list of {@link X509Certificate} instances to trust when connecting to any of the {@link #candidateUrls}
+     * or {@code null} to use the JVM default trust store.
+     */
+    private List<X509Certificate> candidateCertificates;
 
     /**
      * URL that points to Jenkins's tcp slave agent listener, like <tt>http://myhost/hudson/</tt>
@@ -145,6 +173,19 @@ public class Engine extends Thread {
         this.noReconnect = noReconnect;
     }
 
+    public void setCandidateCertificates(List<X509Certificate> candidateCertificates) {
+        this.candidateCertificates = candidateCertificates == null
+                ? null
+                : new ArrayList<X509Certificate>(candidateCertificates);
+    }
+
+    public void addCandidateCertificate(X509Certificate certificate) {
+        if (candidateCertificates == null) {
+            candidateCertificates = new ArrayList<X509Certificate>();
+        }
+        candidateCertificates.add(certificate);
+    }
+
     public void addListener(EngineListener el) {
         events.add(el);
     }
@@ -173,6 +214,25 @@ public class Engine extends Thread {
                 Throwable firstError=null;
                 String host=null;
                 String port=null;
+                SSLSocketFactory sslSocketFactory = null;
+                if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+                    KeyStore keyStore = getCacertsKeyStore();
+                    // load the keystore
+                    keyStore.load(null, null);
+                    int i = 0;
+                    for (X509Certificate c : candidateCertificates) {
+                        keyStore.setCertificateEntry(String.format("alias-%d", i++), c);
+                    }
+                    // prepare the trust manager
+                    TrustManagerFactory trustManagerFactory =
+                            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    trustManagerFactory.init(keyStore);
+                    // prepare the SSL context
+                    SSLContext ctx = SSLContext.getInstance("TLS");
+                    ctx.init(null, trustManagerFactory.getTrustManagers(), null);
+                    // now we have our custom socket factory
+                    sslSocketFactory = ctx.getSocketFactory();
+                }
 
                 for (URL url : candidateUrls) {
                     String s = url.toExternalForm();
@@ -181,6 +241,9 @@ public class Engine extends Thread {
 
                     // find out the TCP port
                     HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL);
+                    if (con instanceof HttpsURLConnection && sslSocketFactory != null) {
+                        ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
+                    }
                     if (credentials != null) {
                         // TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
                         String encoding = Base64.encode(credentials.getBytes("UTF-8"));
@@ -402,6 +465,102 @@ public class Engine extends Thread {
     private static final ThreadLocal<Engine> CURRENT = new ThreadLocal<Engine>();
 
     private static final Logger LOGGER = Logger.getLogger(Engine.class.getName());
+
+    private static KeyStore getCacertsKeyStore()
+            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
+            NoSuchAlgorithmException, IOException {
+        Map<String, String> properties = AccessController.doPrivileged(
+                new PrivilegedExceptionAction<Map<String, String>>() {
+                    public Map<String, String> run() throws Exception {
+                        Map<String, String> result = new HashMap<String, String>();
+                        result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
+                        result.put("javaHome", System.getProperty("java.home"));
+                        result.put("trustStoreType",
+                                System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
+                        result.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
+                        result.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
+                        return result;
+                    }
+                });
+        KeyStore keystore = null;
+
+        FileInputStream trustStoreStream = null;
+        try {
+            String trustStore = properties.get("trustStore");
+            if (!"NONE".equals(trustStore)) {
+                File trustStoreFile;
+                if (trustStore != null) {
+                    trustStoreFile = new File(trustStore);
+                    trustStoreStream = getFileInputStream(trustStoreFile);
+                } else {
+                    String javaHome = properties.get("javaHome");
+                    trustStoreFile = new File(
+                            javaHome + File.separator + "lib" + File.separator + "security" + File.separator
+                                    + "jssecacerts");
+                    if ((trustStoreStream = getFileInputStream(trustStoreFile)) == null) {
+                        trustStoreFile = new File(
+                                javaHome + File.separator + "lib" + File.separator + "security" + File.separator
+                                        + "cacerts");
+                        trustStoreStream = getFileInputStream(trustStoreFile);
+                    }
+                }
+
+                if (trustStoreStream != null) {
+                    trustStore = trustStoreFile.getPath();
+                } else {
+                    trustStore = "No File Available, using empty keystore.";
+                }
+            }
+
+            String trustStoreType = properties.get("trustStoreType");
+            String trustStoreProvider = properties.get("trustStoreProvider");
+            LOGGER.log(Level.FINE, "trustStore is: {0}", trustStore);
+            LOGGER.log(Level.FINE, "trustStore type is: {0}", trustStoreType);
+            LOGGER.log(Level.FINE, "trustStore provider is: {0}", trustStoreProvider);
+
+            if (trustStoreType.length() != 0) {
+                LOGGER.log(Level.FINE, "init truststore");
+
+                if (trustStoreProvider.length() == 0) {
+                    keystore = KeyStore.getInstance(trustStoreType);
+                } else {
+                    keystore = KeyStore.getInstance(trustStoreType, trustStoreProvider);
+                }
+
+                char[] trustStorePasswdChars = null;
+                String trustStorePasswd = properties.get("trustStorePasswd");
+                if (trustStorePasswd.length() != 0) {
+                    trustStorePasswdChars = trustStorePasswd.toCharArray();
+                }
+
+                keystore.load(trustStoreStream, trustStorePasswdChars);
+                if (trustStorePasswdChars != null) {
+                    for (int i = 0; i < trustStorePasswdChars.length; ++i) {
+                        trustStorePasswdChars[i] = 0;
+                    }
+                }
+            }
+        } finally {
+            if (trustStoreStream != null) {
+                trustStoreStream.close();
+            }
+        }
+
+        return keystore;
+    }
+
+    @CheckForNull
+    private static FileInputStream getFileInputStream(final File file) throws PrivilegedActionException {
+        return AccessController.doPrivileged(new PrivilegedExceptionAction<FileInputStream>() {
+            public FileInputStream run() throws Exception {
+                try {
+                    return file.exists() ? new FileInputStream(file) : null;
+                } catch (FileNotFoundException e) {
+                    return null;
+                }
+            }
+        });
+    }
 
     /**
      * @deprecated Use {@link JnlpProtocol#GREETING_SUCCESS}.
