@@ -12,4 +12,9 @@ public class ForkEBCDICRunner extends ForkRunner {
         r.add(0,"-Dfile.encoding=CP037");
         return r;
     }
+
+    @Override
+    public String getName() {
+        return "forkEBCDIC";
+    }
 }
