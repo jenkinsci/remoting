@@ -516,16 +516,31 @@ public class Launcher {
         if (os instanceof StandardOutputStream)
             cb.withProperty(StandardOutputStream.class,os);
 
-        Channel channel = cb.build(is, os);
+        final Channel channel = cb.build(is, os);
         System.err.println("channel started");
         long timeout = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),
              interval = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingIntervalSec", "600"));
+
+        boolean pingFailureAnalyzer = Boolean.parseBoolean(System.getProperty("hudson.remoting.Launcher.pingFailureAnalyzer", "false"));
+
         if (performPing && timeout > 0 && interval > 0) {
-            new PingThread(channel, timeout, interval) {
+            new PingThread(channel, timeout, interval, pingFailureAnalyzer) {
+                @Deprecated
                 @Override
                 protected void onDead() {
+                    System.err.println("Ping failed. Terminating");
+                    System.exit(-1);
+                }
+
+                @Override
+                protected void onDead(Throwable diagnosis) {
+                    if (this.isPingFailureAnalyzer()) {
+                        PingFailureAnalyzer pingFailureAnalyzer = new PingFailureAnalyzer(channel, diagnosis);
+                        pingFailureAnalyzer.saveStackTrace(diagnosis);
+                        pingFailureAnalyzer.takeThreadDump();
+                    }
                     System.err.println("Ping failed. Terminating");
                     System.exit(-1);
                 }
