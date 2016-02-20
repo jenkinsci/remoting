@@ -78,7 +78,8 @@ public abstract class ClassFilter {
             LOGGER.log(Level.FINE, "Using default in built class blacklisting");
             return new RegExpClassFilter(Arrays.asList(Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*"),
                                                           Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*"),
-                                                          Pattern.compile(".*org\\.apache\\.xalan.*")
+                                                          Pattern.compile(".*org\\.apache\\.xalan.*"),
+                                                          Pattern.compile(".*org\\.apache\\.commons\\.fileupload\\.disk\\..*")
                                             ));
         }
     }
