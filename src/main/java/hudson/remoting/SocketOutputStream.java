@@ -65,8 +65,14 @@ public class SocketOutputStream extends FilterOutputStream {
 
     @Override
     public void close() throws IOException {
-        socket.shutdownOutput();
-        if (socket.isInputShutdown())
+        if (socket.isClosed()) {
+            return;
+        }
+        if (!socket.isOutputShutdown()) {
+            socket.shutdownOutput();
+        }
+        if (socket.isInputShutdown()) {
             socket.close();
+        }
     }
 }
