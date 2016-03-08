@@ -133,6 +133,7 @@ public class JnlpProtocol3Test {
 
         when(Jnlp3Util.generateChallenge()).thenReturn("challenge");
         when(EngineUtil.readLine(mockBufferedInputStream))
+                .thenReturn(JnlpProtocol3.NEGOTIATE_LINE)
                 .thenReturn("10")
                 .thenReturn("15")
                 .thenReturn("error");
@@ -162,6 +163,7 @@ public class JnlpProtocol3Test {
 
         when(Jnlp3Util.generateChallenge()).thenReturn("challenge");
         when(EngineUtil.readLine(mockBufferedInputStream))
+                .thenReturn(JnlpProtocol3.NEGOTIATE_LINE)
                 .thenReturn("10")
                 .thenReturn("15")
                 .thenReturn(JnlpProtocol.GREETING_SUCCESS)
@@ -209,10 +211,12 @@ public class JnlpProtocol3Test {
                 .thenReturn("challenge1")
                 .thenReturn("challenge2");
         when(EngineUtil.readLine(mockBufferedInputStream))
+                .thenReturn(JnlpProtocol3.NEGOTIATE_LINE)
                 .thenReturn("10")
                 .thenReturn("15")
                 .thenReturn(JnlpProtocol.GREETING_SUCCESS)
                 .thenReturn(handshakeCiphers.encrypt(COOKIE))
+                .thenReturn(JnlpProtocol3.NEGOTIATE_LINE)
                 .thenReturn("20")
                 .thenReturn("25")
                 .thenReturn(JnlpProtocol.GREETING_SUCCESS)
@@ -259,6 +263,7 @@ public class JnlpProtocol3Test {
     public void testBuildChannel() throws Exception {
         when(Jnlp3Util.generateChallenge()).thenReturn("challenge");
         when(EngineUtil.readLine(mockBufferedInputStream))
+                .thenReturn(JnlpProtocol3.NEGOTIATE_LINE)
                 .thenReturn("10")
                 .thenReturn("15")
                 .thenReturn(JnlpProtocol.GREETING_SUCCESS)
