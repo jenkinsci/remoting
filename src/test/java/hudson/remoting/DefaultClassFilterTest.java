@@ -48,10 +48,11 @@ public class DefaultClassFilterTest {
     /** Some classes that should be matched by the default class filter */
     private static final List<String> defaultBadClasses = Arrays.asList("org.codehaus.groovy.runtime.Bob",
                                     "org.apache.commons.collections.functors.Wibble", "org.apache.xalan.Bogus",
-                                    "com.sun.org.apache.xalan.bogus");
+                                    "com.sun.org.apache.xalan.bogus", "org.springframework.core.SomeClass", 
+                                    "org.springframework.SomeClass");
     /** Some classes that should not be matched by the default class filter */
     private static final List<String> defaultOKClasses = Arrays.asList("java.lang.String", "java.lang.Object",
-                                    "java.util.ArrayList");
+                                    "java.util.ArrayList", "org.springframework.core.NestedRuntimeException");
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();

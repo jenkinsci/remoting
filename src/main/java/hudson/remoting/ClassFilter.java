@@ -60,7 +60,7 @@ public abstract class ClassFilter {
         ".*org[.]apache[.]xalan.*",
         "^org[.]codehaus[.]groovy[.]runtime[.].*",
         "^org[.]hibernate[.].*",
-        "^org[.]springframework[.].*",
+        "^org[.]springframework[.](?!core[.]NestedRuntimeException$).*",
         "^sun[.]rmi[.].*",
     };
 
