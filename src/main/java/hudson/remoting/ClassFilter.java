@@ -82,12 +82,19 @@ public abstract class ClassFilter {
      */
     /*package*/ static ClassFilter createDefaultInstance() {
         List<Pattern> patternOverride = loadPatternOverride();
-        if (patternOverride != null) {
-            LOGGER.log(Level.FINE, "Using user specified overrides for class blacklisting");
-            return new RegExpClassFilter(patternOverride);
-        } else {
-            LOGGER.log(Level.FINE, "Using default in built class blacklisting");
-            return new RegExpClassFilter(DEFAULT_PATTERNS);
+        try {
+            if (patternOverride != null) {
+                LOGGER.log(Level.FINE, "Using user specified overrides for class blacklisting");
+                return new RegExpClassFilter(patternOverride);
+            } else {
+                LOGGER.log(Level.FINE, "Using default in built class blacklisting");
+                return new RegExpClassFilter(DEFAULT_PATTERNS);
+            }
+        }
+        catch (Error e) {
+            // when being used by something like XStream the actual cause gets swallowed
+            LOGGER.log(Level.SEVERE, "Failed to initialize the default class filter", e);
+            throw e;
         }
     }
 
