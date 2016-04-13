@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import java.lang.ref.WeakReference;
 import org.jenkinsci.remoting.RoleChecker;
 
 import javax.annotation.CheckForNull;
@@ -342,7 +343,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                                     ReferenceQueue<? super RemoteInvocationHandler> referenceQueue) {
             super(referent, referenceQueue);
             this.oid = referent.oid;
-            this.origin = referent.origin;
+            this.origin = Unexporter.retainOrigin ? referent.origin : null;
             this.channel = referent.channel;
         }
 
@@ -373,6 +374,13 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     private static class Unexporter implements Runnable {
 
+        /**
+         * If you have a high throughput of remoting requests and you do not need the call-site tracability
+         * you can reduce GC pressure by discarding the origin call-site stack traces and setting this system
+         * property.
+         */
+        private static final boolean retainOrigin =
+                Boolean.parseBoolean(System.getProperty(Unexporter.class.getName() + ".retainOrigin", "true"));
         /**
          * Our executor service, we use at most one thread for all {@link Channel} instances in the current classloader.
          */
@@ -410,31 +418,40 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             inQueue.set(false); // we have started execution and running is true, so queued can be reset
             try {
                 long nextSweep = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
+                int count = 0;
                 while (!referenceLists.isEmpty()) {
                     try {
-                        Reference<?> ref = queue.remove(100);
-                        if (ref instanceof PhantomReferenceImpl) {
-                            PhantomReferenceImpl r = (PhantomReferenceImpl) ref;
-                            final Channel.Ref channelRef = r.channel;
-                            try {
-                                r.cleanup();
-                            } catch (IOException e) {
-                                logger.log(Level.WARNING,
-                                        String.format("Couldn't clean up oid=%d from %s", r.oid, r.origin), e);
-                            } catch (Error e) {
-                                logger.log(Level.SEVERE,
-                                        String.format("Couldn't clean up oid=%d from %s", r.oid, r.origin), e);
-                                throw e; // pass on as there is nothing we can do with an error
-                            } catch (Throwable e) {
-                                logger.log(Level.WARNING,
-                                        String.format("Couldn't clean up oid=%d from %s", r.oid, r.origin), e);
-                            } finally {
-                                if (channelRef != null) {
-                                    final List<PhantomReferenceImpl> referenceList = referenceLists.get(channelRef);
-                                    if (referenceList != null) {
-                                        referenceList.remove(r);
-                                        if (channelRef.channel() == null) {
-                                            cleanList(referenceList);
+                        long drainUntil = System.currentTimeMillis() + 200;
+                        long remaining;
+                        while ((remaining = drainUntil - System.currentTimeMillis()) > 0) {
+                            Reference<?> ref = queue.remove(remaining);
+                            if (ref == null) {
+                                break;
+                            }
+                            if (ref instanceof PhantomReferenceImpl) {
+                                count++;
+                                PhantomReferenceImpl r = (PhantomReferenceImpl) ref;
+                                final Channel.Ref channelRef = r.channel;
+                                try {
+                                    r.cleanup();
+                                } catch (IOException e) {
+                                    logger.log(Level.WARNING,
+                                            String.format("Couldn't clean up oid=%d from %s", r.oid, r.origin), e);
+                                } catch (Error e) {
+                                    logger.log(Level.SEVERE,
+                                            String.format("Couldn't clean up oid=%d from %s", r.oid, r.origin), e);
+                                    throw e; // pass on as there is nothing we can do with an error
+                                } catch (Throwable e) {
+                                    logger.log(Level.WARNING,
+                                            String.format("Couldn't clean up oid=%d from %s", r.oid, r.origin), e);
+                                } finally {
+                                    if (channelRef != null) {
+                                        final List<PhantomReferenceImpl> referenceList = referenceLists.get(channelRef);
+                                        if (referenceList != null) {
+                                            referenceList.remove(r);
+                                            if (channelRef.channel() == null) {
+                                                cleanList(referenceList);
+                                            }
                                         }
                                     }
                                 }
@@ -443,7 +460,37 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                     } catch (InterruptedException e) {
                         logger.log(Level.FINE, "Interrupted", e);
                     }
-                    if (System.nanoTime() > nextSweep) {
+                    if (System.nanoTime() - nextSweep > 0) {
+                        // these limits are just guesses, but if there is a lot of references being drained
+                        // per sweep then likely these references are causing GC pressure
+                        if (count > 2000) {
+                            if (retainOrigin) {
+                                logger.log(Level.INFO,
+                                        "Unexported {0} references since last sweep, if this is frequent consider "
+                                                + "setting system property hudson.remoting.RemoteInvocationHandler"
+                                                + ".Unexporter.retainOrigin=false to reduce memory pressure",
+                                        count
+                                );
+                            } else {
+                                logger.log(Level.INFO, "Unexported {0} references since last sweep", count);
+                            }
+                        } else if (count > 500) {
+                            if (retainOrigin) {
+                                logger.log(Level.FINE,
+                                        "Unexported {0} references since last sweep, if this is frequent consider "
+                                                + "setting system property hudson.remoting.RemoteInvocationHandler"
+                                                + ".Unexporter.retainOrigin=false to reduce memory pressure",
+                                        count
+                                );
+                            } else {
+                                logger.log(Level.FINE, "Unexported {0} references since last sweep", count);
+                            }
+                        } else if (count > 100) {
+                            logger.log(Level.FINER, "Unexported {0} references since last sweep", count);
+                        } else if (count > 1) {
+                            logger.log(Level.FINEST, "Unexported {0} references since last sweep", count);
+                        }
+                        count = 0;
                         nextSweep = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(200);
                         // purge any dead channels, it does not matter if we spend a long time here as we are
                         // removing future potential work for us from ever entering the queue and freeing garbage
