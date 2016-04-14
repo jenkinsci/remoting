@@ -86,9 +86,31 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
         return result;
     }
 
+    static boolean workaroundDone = false;
     protected UserResponse<RSP,EXC> perform(Channel channel) throws EXC {
         try {
             ClassLoader cl = channel.importedClassLoaders.get(classLoaderProxy);
+
+            // Allow forcibly load of a class, allows to workaround:
+            // @See        https://issues.jenkins-ci.org/browse/JENKINS-19445
+            // @Related    https://issues.tmatesoft.com/issue/SGT-451
+            final String clazz = System.getProperty(RemoteClassLoader.class.getName() + ".force", null);
+            if ( clazz != null && !workaroundDone) {
+                // java.lang classes can only be instantiated by the bootstrap Classloader.
+                // Guarantees that *all* threads with whatever Classloader in use, have the
+                // same mutex instance:    an intance of java.lang.Class<java.lang.Object>
+                synchronized(java.lang.Object.class)
+                {
+                    workaroundDone = true;
+                    try {
+                        final Class<?> loaded = Class.forName( clazz, true, cl );
+                        System.err.println("Loaded class: '" + clazz + "' using classloader: " + cl);
+                    } catch (final ClassNotFoundException cnfe) {
+                        // not big deal, print and swallow exception
+                        System.err.println("Error finding class '" + clazz + "' using classloader: " + cl);
+                    }
+                }
+            }
 
             RSP r = null;
             Channel oldc = Channel.setCurrent(channel);
