@@ -574,6 +574,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                                 final Channel.Ref channelRef = batch[index].channel;
                                 try {
                                     batch[index].cleanup();
+                                } catch (ChannelClosedException e) {
+                                    // ignore, the cleanup is a no-op
                                 } catch (IOException e) {
                                     logger.log(Level.WARNING, String.format("Couldn't clean up oid=%d from %s",
                                             batch[index].oid, batch[index].origin), e);
