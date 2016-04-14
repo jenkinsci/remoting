@@ -682,7 +682,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                     logger.log(Level.SEVERE,
                             retainOrigin ?
                                     "The all time average rate is {0,number,0.0}±{1,number,0.0}/sec. "
-                                    + "The 15 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                                    + "The 15 minute average rate is {2,number,0.0}±{3,number,0.0}/sec. "
                                             + "At the 95% confidence level both are above 100.0/sec. "
                                             + "If this message is repeated often in the logs then PLEASE "
                                             + "seriously consider setting system property ''hudson.remoting"
