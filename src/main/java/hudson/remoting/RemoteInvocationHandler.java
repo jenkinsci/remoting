@@ -631,6 +631,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             nextMeasure = countStart + measureInterval;
             count = 0;
             if (tCount == 0) {
+                m1Avg = m5Avg = m15Avg = tAvg = instantRate;
+                tCount = 1;
+            } else {
                 // compute the exponentially weighted moving average and variance
                 // see http://www-uxsup.csx.cam.ac.uk/~fanf2/hermes/doc/antiforgery/stats.pdf
                 double diff = instantRate - m1Avg;
@@ -648,9 +651,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 diff = instantRate - tAvg;
                 tAvg = (tAvg * tCount + instantRate) / (++tCount);
                 tVarTimesCount = tVarTimesCount + diff * (instantRate - tAvg);
-            } else {
-                m1Avg = m5Avg = m15Avg = tAvg = instantRate;
-                tCount = 1;
             }
         }
 
