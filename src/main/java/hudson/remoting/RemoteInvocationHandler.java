@@ -414,7 +414,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * even if this means that the sweep gets delayed. This constant allows for tuning of the batch size,
          * if the current recommendation proves insufficient in real world scenarios.
          */
-        private static final int batchSize = Math.max(10000, Math.min(10, Integer.getInteger(
+        private static final int batchSize = Math.max(10, Math.min(10000, Integer.getInteger(
                         Unexporter.class.getName() + ".batchSize", 256)));
         /**
          * The decay factor for a rolling average that expects to be updated every {@link #measureInterval} and
