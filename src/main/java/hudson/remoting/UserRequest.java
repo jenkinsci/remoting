@@ -34,6 +34,8 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link Request} that can take {@link Callable} whose actual implementation
@@ -86,7 +88,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
         return result;
     }
 
-    static boolean workaroundDone = false;
+    private static boolean workaroundDone = false;
     protected UserResponse<RSP,EXC> perform(Channel channel) throws EXC {
         try {
             ClassLoader cl = channel.importedClassLoaders.get(classLoaderProxy);
@@ -96,6 +98,9 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
             // @Related    https://issues.tmatesoft.com/issue/SGT-451
             final String clazz = System.getProperty(RemoteClassLoader.class.getName() + ".force", null);
             if ( clazz != null && !workaroundDone) {
+                // Optimistic logging set.
+                String eventMsg = "Loaded";
+                Level logLevel = Level.INFO;
                 // java.lang classes can only be instantiated by the bootstrap Classloader.
                 // Guarantees that *all* threads with whatever Classloader in use, have the
                 // same mutex instance:    an intance of java.lang.Class<java.lang.Object>
@@ -104,11 +109,16 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
                     workaroundDone = true;
                     try {
                         final Class<?> loaded = Class.forName( clazz, true, cl );
-                        System.err.println("Loaded class: '" + clazz + "' using classloader: " + cl);
                     } catch (final ClassNotFoundException cnfe) {
-                        // not big deal, print and swallow exception
-                        System.err.println("Error finding class '" + clazz + "' using classloader: " + cl);
+                        // not big deal, elevate log to warning and swallow exception
+                        eventMsg = "Couldn't find";
+                        logLevel = Level.WARNING;
                     }
+                }
+                final Logger logger = Logger.getLogger(RemoteClassLoader.class.getName());
+                if( logger.isLoggable(logLevel) )
+                {
+                    logger.log(logLevel, "%s class '%s' using classloader: %s", eventMsg, clazz, cl.toString());
                 }
             }
 
