@@ -15,19 +15,19 @@ import java.util.logging.Logger;
  * Useful to record incidents as files without bankrupting
  *
  */
-public class PingThreadFileListCap {
+public class AgentFailuresFileListCap {
 
-    private static final Logger LOGGER = Logger.getLogger(PingThreadFileListCap.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AgentFailuresFileListCap.class.getName());
 
     private final File folder;
     private final LinkedHashSet<File> files = new LinkedHashSet<File>();
     private int size;
 
-    public PingThreadFileListCap(File folder, int size) {
+    public AgentFailuresFileListCap(File folder, int size) {
         this(folder,null,size);
     }
 
-    public PingThreadFileListCap(File folder, FilenameFilter filter, int size) {
+    public AgentFailuresFileListCap(File folder, FilenameFilter filter, int size) {
         this.folder = folder;
         this.size = size;
 

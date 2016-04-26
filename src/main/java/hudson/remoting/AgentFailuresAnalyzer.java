@@ -18,11 +18,11 @@ import java.util.Date;
  * Generates diagnosis information (threaddump + stacktrace) when the pingThread fails
  *
  * <p>
- * Useful to troubleshoot the slave disconnection failures on the agent side.
+ * Useful to troubleshoot agent disconnection failures
  *
  * @since 2.55
  */
-public class PingFailureAnalyzer {
+public class AgentFailuresAnalyzer {
 
     /**
      * Channel we are going to study
@@ -36,7 +36,7 @@ public class PingFailureAnalyzer {
 
 
     /**
-     * Maximum of files to store inside pingFailureAnalyzer/thread-dumps and pingFailureAnalyzer/stacktraces.
+     * Maximum of files to store inside agentFailuresAnalyzer/thread-dumps and pingFailureAnalyzer/stacktraces.
      * When the limit is reached out it starts overriding.
      */
     private final static int MAX_DIAGNOSIS_FILES = 5;
@@ -44,40 +44,43 @@ public class PingFailureAnalyzer {
     /**
      * Folder to store the thread dumps. Maintains most recent N files in a directory in cooperation with the writer.
      */
-    private final PingThreadFileListCap threadDumps = new PingThreadFileListCap(new File("pingFailureAnalyzer/thread-dumps"), MAX_DIAGNOSIS_FILES);
+    private final AgentFailuresFileListCap threadDumps = new AgentFailuresFileListCap(new File("agentFailuresAnalyzer/thread-dumps"), MAX_DIAGNOSIS_FILES);
 
     /**
      * Folder to store the stacktraces. Maintains most recent N files in a directory in cooperation with the writer.
      */
-    private final PingThreadFileListCap stacktraces = new PingThreadFileListCap(new File("pingFailureAnalyzer/stacktraces"), MAX_DIAGNOSIS_FILES);
+    private final AgentFailuresFileListCap stacktraces = new AgentFailuresFileListCap(new File("agentFailuresAnalyzer/stacktraces"), MAX_DIAGNOSIS_FILES);
 
-    public PingFailureAnalyzer(Channel c, Throwable cause) {
+    public AgentFailuresAnalyzer(Channel c, Throwable cause) {
         this.c = c;
         this.cause = cause;
     }
 
 
     /**
-     * Save the stacktrace which produces the ping failure into pingFailureAnalyzer/stacktraces
+     * Save the stacktrace which produces the ping failure into agentFailuresAnalyzer/stacktraces
      *
      * @param cause
      *      The Throwable
      */
-    public void saveStackTrace(Throwable cause) {
+    public void saveStackTrace(Throwable cause) throws FileNotFoundException, UnsupportedEncodingException {
         long iota = System.currentTimeMillis();
         final SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS");
-        File file = stacktraces.file(format.format(new Date(iota++)) + ".txt");
+        File file = stacktraces.file("stacktrace-" + format.format(new Date(iota)) + ".txt");
         stacktraces.add(file);
         PrintWriter writer = null;
         try {
             writer = new PrintWriter(file, "UTF-8");
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            throw e;
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            throw e;
+        } finally {
+            writer.close();
         }
-        cause.printStackTrace(writer);
-        writer.close();
+        if (cause != null) {
+            cause.printStackTrace(writer);
+        }
     }
 
     /**
@@ -89,19 +92,19 @@ public class PingFailureAnalyzer {
             value = {"VA_FORMAT_STRING_USES_NEWLINE"},
             justification = "We don't want platform specific"
     )
-    public void takeThreadDump() {
+    public void takeThreadDump() throws FileNotFoundException, UnsupportedEncodingException {
         long iota = System.currentTimeMillis();
         final SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd-HHmmss.SSS");
-        File file = threadDumps.file(format.format(new Date(iota++)) + ".txt");
+        File file = threadDumps.file(format.format("threadDump-" + new Date(iota)) + ".txt");
         threadDumps.add(file);
 
-        PrintWriter writer = null;
+        PrintWriter writer;
         try {
             writer = new PrintWriter(file, "UTF-8");
         } catch (FileNotFoundException e) {
-            e.printStackTrace();
+            throw e;
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            throw e;
         }
 
         ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
@@ -135,9 +138,9 @@ public class PingFailureAnalyzer {
                 }
             }
         }
-
         writer.println();
         writer.flush();
+        writer.close();
     }
 
     /**
@@ -152,21 +155,11 @@ public class PingFailureAnalyzer {
             justification = "We don't want platform specific"
     )
     public static void printThreadInfo(PrintWriter writer, ThreadInfo t, ThreadMXBean mbean) {
-        long cpuPercentage;
-        try {
-            long cpuTime = mbean.getThreadCpuTime(t.getThreadId());
-            long threadUserTime = mbean.getThreadUserTime(t.getThreadId());
-            cpuPercentage = (cpuTime == 0) ? 0: 100 * threadUserTime / cpuTime;
-        } catch (UnsupportedOperationException x) {
-            x.printStackTrace(writer);
-            cpuPercentage = 0;
-        }
-        writer.printf("\"%s\" id=%d (0x%x) state=%s cpu=%d%%",
+        writer.printf("\"%s\" id=%d (0x%x) state=%s",
                 t.getThreadName(),
                 t.getThreadId(),
                 t.getThreadId(),
-                t.getThreadState(),
-                cpuPercentage);
+                t.getThreadState());
         final LockInfo lock = t.getLockInfo();
         if (lock != null && t.getThreadState() != Thread.State.BLOCKED) {
             writer.printf("\n    - waiting on <0x%08x> (a %s)",
