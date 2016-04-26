@@ -525,10 +525,10 @@ public class Launcher {
              interval = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingIntervalSec", "600"));
 
-        boolean pingFailureAnalyzer = Boolean.getBoolean("hudson.remoting.Launcher.pingFailureAnalyzer");
+        final boolean agentFailureAnalyzer = Boolean.getBoolean("hudson.remoting.Launcher.agentFailureAnalyzer");
 
         if (performPing && timeout > 0 && interval > 0) {
-            new PingThread(channel, timeout, interval, pingFailureAnalyzer) {
+            new PingThread(channel, timeout, interval) {
                 @Deprecated
                 @Override
                 protected void onDead() {
@@ -538,7 +538,7 @@ public class Launcher {
 
                 @Override
                 protected void onDead(Throwable diagnosis) {
-                    if (this.isPingFailureAnalyzer()) {
+                    if (agentFailureAnalyzer) {
                         AgentFailuresAnalyzer agentFailuresAnalyzer = new AgentFailuresAnalyzer(channel, diagnosis);
                         try {
                             agentFailuresAnalyzer.saveStackTrace(diagnosis);

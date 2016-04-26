@@ -59,22 +59,12 @@ public abstract class PingThread extends Thread {
      */
     private final long interval;
 
-    /**
-     * Specifis if troubleshooting information should be catched in case of pingFailure
-     */
-    private final boolean pingFailureAnalyzer;
-
-    public PingThread(Channel channel, long timeout, long interval, boolean pingFailureAnalyzer) {
+    public PingThread(Channel channel, long timeout, long interval) {
         super("Ping thread for channel "+channel);
         this.channel = channel;
         this.timeout = timeout;
         this.interval = interval;
-        this.pingFailureAnalyzer = pingFailureAnalyzer;
         setDaemon(true);
-    }
-
-    public PingThread(Channel channel, long timeout, long interval) {
-        this(channel, 4*60*1000/*4 mins*/, interval, false);
     }
 
     public PingThread(Channel channel, long interval) {
@@ -83,11 +73,6 @@ public abstract class PingThread extends Thread {
 
     public PingThread(Channel channel) {
         this(channel,10*60*1000/*10 mins*/);
-    }
-
-
-    public boolean isPingFailureAnalyzer() {
-        return pingFailureAnalyzer;
     }
 
     public void run() {

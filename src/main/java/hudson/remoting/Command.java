@@ -23,10 +23,12 @@
  */
 package hudson.remoting;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 
 /**
  * One-way command to be sent over to the remote system and executed there.
@@ -45,6 +47,10 @@ abstract class Command implements Serializable {
      */
     public final Exception createdAt;
 
+    /**
+     * Specify if troubleshooting information should be catched in case of read failure on channel
+     */
+    final static boolean agentFailureAnalyzer = Boolean.getBoolean("hudson.remoting.Launcher.agentFailureAnalyzer");
 
     protected Command() {
         this(true);
@@ -90,6 +96,22 @@ abstract class Command implements Serializable {
         Channel old = Channel.setCurrent(channel);
         try {
             return (Command)ois.readObject();
+        } catch (IOException e) {
+            if (agentFailureAnalyzer) {
+                AgentFailuresAnalyzer agentFailuresAnalyzer = new AgentFailuresAnalyzer(channel, e);
+                try {
+                    agentFailuresAnalyzer.saveStackTrace(e);
+                    agentFailuresAnalyzer.takeThreadDump();
+                } catch (FileNotFoundException ex) {
+                    ex.printStackTrace();
+                } catch (UnsupportedEncodingException ex) {
+                    ex.printStackTrace();
+                } finally {
+                    throw e;
+                }
+            } else {
+                throw e;
+            }
         } finally {
             Channel.setCurrent(old);
         }
