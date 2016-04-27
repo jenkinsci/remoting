@@ -76,7 +76,9 @@ public class AgentFailuresAnalyzer {
         } catch (UnsupportedEncodingException e) {
             throw e;
         } finally {
-            writer.close();
+            if (writer != null) {
+                writer.close();
+            }
         }
         if (cause != null) {
             cause.printStackTrace(writer);
