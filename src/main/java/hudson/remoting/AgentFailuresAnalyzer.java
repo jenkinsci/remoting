@@ -27,12 +27,12 @@ public class AgentFailuresAnalyzer {
     /**
      * Channel we are going to study
      */
-    private Channel c;
+    private final Channel c;
 
     /**
      * The cause of the ping failure
      */
-    private Throwable cause;
+    private final Throwable cause;
 
 
     /**
@@ -71,6 +71,9 @@ public class AgentFailuresAnalyzer {
         PrintWriter writer = null;
         try {
             writer = new PrintWriter(file, "UTF-8");
+            if (cause != null) {
+                cause.printStackTrace(writer);
+            }
         } catch (FileNotFoundException e) {
             throw e;
         } catch (UnsupportedEncodingException e) {
@@ -79,9 +82,6 @@ public class AgentFailuresAnalyzer {
             if (writer != null) {
                 writer.close();
             }
-        }
-        if (cause != null) {
-            cause.printStackTrace(writer);
         }
     }
 
@@ -101,13 +101,7 @@ public class AgentFailuresAnalyzer {
         threadDumps.add(file);
 
         PrintWriter writer;
-        try {
-            writer = new PrintWriter(file, "UTF-8");
-        } catch (FileNotFoundException e) {
-            throw e;
-        } catch (UnsupportedEncodingException e) {
-            throw e;
-        }
+        writer = new PrintWriter(file, "UTF-8");
 
         ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
         ThreadInfo[] threads;
@@ -126,23 +120,23 @@ public class AgentFailuresAnalyzer {
         long[] deadLocks;
         try {
             deadLocks = mbean.findDeadlockedThreads();
-        } catch (UnsupportedOperationException x) {
-            x.printStackTrace(writer);
-            deadLocks = null;
-        }
-        if (deadLocks != null && deadLocks.length != 0) {
-            writer.println(" Deadlock Found ");
-            ThreadInfo[] deadLockThreads = mbean.getThreadInfo(deadLocks);
-            for (ThreadInfo threadInfo : deadLockThreads) {
-                StackTraceElement[] elements = threadInfo.getStackTrace();
-                for (StackTraceElement element : elements) {
-                    writer.println(element.toString());
+            if (deadLocks != null && deadLocks.length != 0) {
+                writer.println(" Deadlock Found ");
+                ThreadInfo[] deadLockThreads = mbean.getThreadInfo(deadLocks);
+                for (ThreadInfo threadInfo : deadLockThreads) {
+                    StackTraceElement[] elements = threadInfo.getStackTrace();
+                    for (StackTraceElement element : elements) {
+                        writer.println(element.toString());
+                    }
                 }
             }
+        } catch (UnsupportedOperationException e) {
+            e.printStackTrace(writer);
+        } finally {
+            writer.println();
+            writer.flush();
+            writer.close();
         }
-        writer.println();
-        writer.flush();
-        writer.close();
     }
 
     /**

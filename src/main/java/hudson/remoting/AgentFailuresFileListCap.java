@@ -31,8 +31,9 @@ public class AgentFailuresFileListCap {
         this.folder = folder;
         this.size = size;
 
-        if (!folder.exists() && !folder.mkdirs())
-            throw new Error("Failed to create "+folder);
+        if (!folder.exists() && !folder.mkdirs()) {
+            throw new Error("Failed to create " + folder);
+        }
 
         File[] sortedFiles = folder.listFiles(filter);
         if (sortedFiles==null)  return;
@@ -50,10 +51,6 @@ public class AgentFailuresFileListCap {
         files.addAll(Arrays.asList(sortedFiles));
     }
 
-    public File getFolder() {
-        return folder;
-    }
-
     public synchronized void add(File f) {
         if (size <= files.size()) {
             Iterator<File> itr = files.iterator();
@@ -67,11 +64,6 @@ public class AgentFailuresFileListCap {
         }
 
         files.add(f);
-    }
-
-    public synchronized void touch(File f){
-        files.remove(f);
-        add(f);
     }
 
     /**
