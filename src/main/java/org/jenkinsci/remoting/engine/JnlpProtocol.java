@@ -58,6 +58,14 @@ public abstract class JnlpProtocol {
     }
 
     /**
+     * Whether this protocol is enabled for connecting.
+     * @return {@code true} if this protocol is enabled.
+     */
+    public boolean isEnabled() {
+        return !Boolean.getBoolean(getClass().getName()+".disabled");
+    }
+
+    /**
      * Get the name of the protocol.
      */
     public abstract String getName();
