@@ -302,12 +302,24 @@ public class Engine extends Thread {
                 Channel channel = null;
 
                 // Try available protocols.
+                boolean triedAtLeastOneProtocol = false;
                 for (JnlpProtocol protocol : protocols) {
+                    if (!protocol.isEnabled()) {
+                        events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
+                        continue;
+                    }
+                    triedAtLeastOneProtocol = true;
                     events.status("Trying protocol: " + protocol.getName());
                     try {
                         channel = protocol.establishChannel(jnlpSocket, channelBuilder);
                     } catch (IOException ioe) {
-                        events.status("Protocol failed to establish channel", ioe);
+                        events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
+                    } catch (RuntimeException e) {
+                        events.status("Protocol " + protocol.getName() + " encountered a runtime error", e);
+                    } catch (Error e) {
+                        events.status("Protocol " + protocol.getName() + " could not be completed due to an error", e);
+                    } catch (Throwable e) {
+                        events.status("Protocol " + protocol.getName() + " encountered an unexpected exception", e);
                     }
 
                     // On success do not try other protocols.
@@ -322,7 +334,12 @@ public class Engine extends Thread {
 
                 // If no protocol worked.
                 if (channel == null) {
-                    onConnectionRejected("None of the protocols were accepted");
+                    if (triedAtLeastOneProtocol) {
+                        onConnectionRejected("None of the protocols were accepted");
+                    } else {
+                        onConnectionRejected("None of the protocols are enabled");
+                        return; // exit
+                    }
                     continue;
                 }
 
