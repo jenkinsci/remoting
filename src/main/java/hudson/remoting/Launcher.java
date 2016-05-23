@@ -42,6 +42,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,6 +54,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileWriter;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -516,16 +518,37 @@ public class Launcher {
         if (os instanceof StandardOutputStream)
             cb.withProperty(StandardOutputStream.class,os);
 
-        Channel channel = cb.build(is, os);
+        final Channel channel = cb.build(is, os);
         System.err.println("channel started");
         long timeout = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),
              interval = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingIntervalSec", "600"));
+
+        final boolean agentFailureAnalyzer = Boolean.getBoolean("hudson.remoting.Launcher.agentFailureAnalyzer");
+
         if (performPing && timeout > 0 && interval > 0) {
             new PingThread(channel, timeout, interval) {
+                @Deprecated
                 @Override
                 protected void onDead() {
+                    System.err.println("Ping failed. Terminating");
+                    System.exit(-1);
+                }
+
+                @Override
+                protected void onDead(Throwable diagnosis) {
+                    if (agentFailureAnalyzer) {
+                        AgentFailuresAnalyzer agentFailuresAnalyzer = new AgentFailuresAnalyzer(channel, diagnosis);
+                        try {
+                            agentFailuresAnalyzer.saveStackTrace(diagnosis);
+                            agentFailuresAnalyzer.takeThreadDump();
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
+                    }
                     System.err.println("Ping failed. Terminating");
                     System.exit(-1);
                 }
