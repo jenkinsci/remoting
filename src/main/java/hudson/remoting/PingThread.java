@@ -32,6 +32,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import java.util.logging.Level;
 
 /**
  * Periodically perform a ping.
@@ -101,6 +102,7 @@ public abstract class PingThread extends Thread {
     }
 
     private void ping() throws IOException, InterruptedException {
+        LOGGER.log(Level.FINE, "pinging {0}", channel.getName());
         Future<?> f = channel.callAsync(new Ping());
         long start = System.currentTimeMillis();
 
@@ -108,8 +110,10 @@ public abstract class PingThread extends Thread {
         long remaining = end - System.nanoTime();
 
         do {
+            LOGGER.log(Level.FINE, "waiting {0}s on {1}", new Object[] {TimeUnit.NANOSECONDS.toSeconds(remaining), channel.getName()});
             try {
                 f.get(Math.max(1,remaining),TimeUnit.NANOSECONDS);
+                LOGGER.log(Level.FINE, "ping succeeded on {0}", channel.getName());
                 return;
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof RequestAbortedException)
