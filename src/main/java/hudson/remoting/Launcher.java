@@ -76,6 +76,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.KeyManagementException;
 import java.security.SecureRandom;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -521,12 +523,20 @@ public class Launcher {
         long timeout = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),
              interval = 1000 * Long.parseLong(
-                System.getProperty("hudson.remoting.Launcher.pingIntervalSec", "600"));
+                System.getProperty("hudson.remoting.Launcher.pingIntervalSec", /* was "600" but this duplicates ChannelPinger */ "0"));
+        Logger.getLogger(PingThread.class.getName()).log(Level.FINE, "performPing={0} timeout={1} interval={2}", new Object[] {performPing, timeout, interval});
         if (performPing && timeout > 0 && interval > 0) {
             new PingThread(channel, timeout, interval) {
+                @Deprecated
                 @Override
                 protected void onDead() {
                     System.err.println("Ping failed. Terminating");
+                    System.exit(-1);
+                }
+                @Override
+                protected void onDead(Throwable cause) {
+                    System.err.println("Ping failed. Terminating");
+                    cause.printStackTrace();
                     System.exit(-1);
                 }
             }.start();
