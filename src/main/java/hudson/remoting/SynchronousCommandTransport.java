@@ -18,7 +18,8 @@ import java.util.logging.Logger;
 public abstract class SynchronousCommandTransport extends CommandTransport {
     protected Channel channel;
 
-    private static final String RDR_SOCKET_TIMEOUT_PROPERTY_NAME=SynchronousCommandTransport.class.getName() + ".failOnSocketTimeoutInReader";
+    private static final String RDR_SOCKET_TIMEOUT_PROPERTY_NAME = 
+            SynchronousCommandTransport.class.getName() + ".failOnSocketTimeoutInReader";
     
     /**
      * Enables the original aggressive behavior, when the channel reader gets 
