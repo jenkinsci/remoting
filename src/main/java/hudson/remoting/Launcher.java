@@ -51,6 +51,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.FileWriter;
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -379,9 +380,12 @@ public class Launcher {
 
         // write a port file to report the port number
         FileWriter w = new FileWriter(tcpPortFile);
-        w.write(String.valueOf(ss.getLocalPort()));
-        w.close();
-
+        try {
+            w.write(String.valueOf(ss.getLocalPort()));
+        } finally {
+            w.close();
+        }
+        
         // accept just one connection and that's it.
         // when we are done, remove the port file to avoid stale port file
         Socket s;
@@ -389,7 +393,10 @@ public class Launcher {
             s = ss.accept();
             ss.close();
         } finally {
-            tcpPortFile.delete();
+            boolean deleted = tcpPortFile.delete();
+            if (!deleted) {
+                LOGGER.log(Level.WARNING, "Cannot delete the temporary TCP port file {0}", tcpPortFile);
+            }
         }
 
         runOnSocket(s);
@@ -566,18 +573,38 @@ public class Launcher {
 
     private static String computeVersion() {
         Properties props = new Properties();
+        InputStream is = Launcher.class.getResourceAsStream(JENKINS_VERSION_PROP_FILE);
+        if (is == null) {
+            LOGGER.log(Level.FINE, "Cannot locate the {0} resource file. Hudson/Jenkins version is unknown",
+                    JENKINS_VERSION_PROP_FILE);
+            return UNKNOWN_JENKINS_VERSION_STR;
+        }
+      
         try {
-            InputStream is = Launcher.class.getResourceAsStream("hudson-version.properties");
-            if(is!=null)
-                props.load(is);
+            props.load(is);
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            closeWithLogOnly(is, JENKINS_VERSION_PROP_FILE);
         }
-        return props.getProperty("version", "?");
+        return props.getProperty("version", UNKNOWN_JENKINS_VERSION_STR);
+    }
+    
+    private static void closeWithLogOnly(Closeable stream, String name) {
+        try {
+            stream.close();
+        } catch (IOException ex) {
+            LOGGER.log(Level.WARNING, "Cannot close the resource file " + name, ex);
+        }
     }
 
     /**
      * Version number of Hudson this slave.jar is from.
      */
     public static final String VERSION = computeVersion();
+    
+    private static final String JENKINS_VERSION_PROP_FILE = "hudson-version.properties";
+    private static final String UNKNOWN_JENKINS_VERSION_STR = "?";
+    
+    private static final Logger LOGGER = Logger.getLogger(Launcher.class.getName());
 }
