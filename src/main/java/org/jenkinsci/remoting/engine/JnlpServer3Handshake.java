@@ -46,6 +46,8 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
      */
     public Channel connect() throws IOException, InterruptedException {
         try {
+            out.println(JnlpProtocol3.NEGOTIATE_LINE);
+
             // Get initiation information from slave.
             request.load(new ByteArrayInputStream(in.readUTF().getBytes(Charset.forName("UTF-8"))));
             nodeName = request.getProperty(JnlpProtocol3.SLAVE_NAME_KEY);

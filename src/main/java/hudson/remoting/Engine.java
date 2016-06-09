@@ -271,12 +271,24 @@ public class Engine extends Thread {
                 Channel channel = null;
 
                 // Try available protocols.
+                boolean triedAtLeastOneProtocol = false;
                 for (JnlpProtocol protocol : protocols) {
+                    if (!protocol.isEnabled()) {
+                        events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
+                        continue;
+                    }
+                    triedAtLeastOneProtocol = true;
                     events.status("Trying protocol: " + protocol.getName());
                     try {
                         channel = protocol.establishChannel(jnlpSocket, channelBuilder);
                     } catch (IOException ioe) {
-                        events.status("Protocol failed to establish channel", ioe);
+                        events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
+                    } catch (RuntimeException e) {
+                        events.status("Protocol " + protocol.getName() + " encountered a runtime error", e);
+                    } catch (Error e) {
+                        events.status("Protocol " + protocol.getName() + " could not be completed due to an error", e);
+                    } catch (Throwable e) {
+                        events.status("Protocol " + protocol.getName() + " encountered an unexpected exception", e);
                     }
 
                     // On success do not try other protocols.
@@ -291,7 +303,12 @@ public class Engine extends Thread {
 
                 // If no protocol worked.
                 if (channel == null) {
-                    onConnectionRejected("None of the protocols were accepted");
+                    if (triedAtLeastOneProtocol) {
+                        onConnectionRejected("None of the protocols were accepted");
+                    } else {
+                        onConnectionRejected("None of the protocols are enabled");
+                        return; // exit
+                    }
                     continue;
                 }
 
@@ -357,7 +374,7 @@ public class Engine extends Thread {
                 // to interfere with normal operation. the main purpose of this is that when the other peer dies
                 // abruptly, we shouldn't hang forever, and at some point we should notice that the connection
                 // is gone.
-                s.setSoTimeout(30*60*1000); // 30 mins. See PingThread for the ping interval
+                s.setSoTimeout(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
 
                 if (isHttpProxy) {
                     String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
@@ -561,7 +578,8 @@ public class Engine extends Thread {
         }
         return sslSocketFactory;
     }
-
+    //a read() call on the SocketInputStream associated with underlying Socket will block for only this amount of time
+    static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName()+".socketTimeout",30*60*1000);
     /**
      * @deprecated Use {@link JnlpProtocol#GREETING_SUCCESS}.
      */

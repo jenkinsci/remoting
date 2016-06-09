@@ -58,6 +58,14 @@ public abstract class JnlpProtocol {
     }
 
     /**
+     * Whether this protocol is enabled for connecting.
+     * @return {@code true} if this protocol is enabled.
+     */
+    public boolean isEnabled() {
+        return !Boolean.getBoolean(getClass().getName()+".disabled");
+    }
+
+    /**
      * Get the name of the protocol.
      */
     public abstract String getName();
@@ -85,7 +93,11 @@ public abstract class JnlpProtocol {
      * Performs a handshake with the master.
      *
      * @param outputStream The stream to write into to initiate the handshake.
-     * @param inputStream The stream to read responses from the master.
+     * @param inputStream
+     *      The stream to read responses from the master.
+     *      If the server doesn't understand the protocol, the first line it sends to the client is
+     *      an error message in one line, so a protocol should send a known success message
+     *      (like {@link #GREETING_SUCCESS}) to help differentiate here.
      * @return true iff handshake was successful.
      * @throws IOException
      */

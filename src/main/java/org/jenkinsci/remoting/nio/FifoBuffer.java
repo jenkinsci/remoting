@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
@@ -250,16 +251,19 @@ public class FifoBuffer implements Closeable {
                     }
                     return 0;   // no data to read
                 }
+                try {
+                    int sent = r.send(ch, chunk);  // bytes actually written
 
-                int sent = r.send(ch, chunk);  // bytes actually written
+                    read += sent;
+                    sz -= sent;
 
-                read += sent;
-                sz -= sent;
+                    lock.notifyAll();
 
-                lock.notifyAll();
-
-                if (sent==0)    // channel filled up
-                    return read;
+                    if (sent == 0)    // channel filled up
+                        return read;
+                } catch (ClosedChannelException e) {
+                    return -1; // propagate EOF
+                }
             }
         }
     }
@@ -302,17 +306,21 @@ public class FifoBuffer implements Closeable {
                 int chunk = writable();
                 if (chunk==0)
                     return written; // no more space to write
+                try {
+                    int received = w.receive(ch, chunk);
+                    if (received==0)
+                        return written; // channel is fully drained
+                    if (received==-1) {
+                        if (written==0)     return -1; // propagate EOF
+                        return written;
+                    }
 
-                int received = w.receive(ch, chunk);
-                if (received==0)
-                    return written; // channel is fully drained
-                if (received==-1) {
-                    if (written==0)     return -1; // propagate EOF
+                    sz += received;
+                    written += received;
+                } catch (ClosedChannelException e) {
+                    if (written == 0) return -1; // propagate EOF
                     return written;
                 }
-
-                sz += received;
-                written += received;
 
                 lock.notifyAll();
 

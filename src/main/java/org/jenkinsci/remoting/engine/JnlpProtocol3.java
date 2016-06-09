@@ -181,6 +181,12 @@ class JnlpProtocol3 extends JnlpProtocol {
         outputStream.writeUTF(PROTOCOL_PREFIX + NAME);
         outputStream.writeUTF(o.toString("UTF-8"));
 
+        String protocolUnderstoodResponse = readLine(inputStream);
+        if (!protocolUnderstoodResponse.equals(NEGOTIATE_LINE)) {
+            events.status("Server didn't accept the handshake: " + protocolUnderstoodResponse);
+            return false;   // the server didn't understand the protocol
+        }
+
         // Validate challenge response.
         Integer challengeResponseLength = Integer.parseInt(readLine(inputStream));
         String encryptedChallengeResponse = readChars(inputStream, challengeResponseLength);
@@ -218,4 +224,11 @@ class JnlpProtocol3 extends JnlpProtocol {
     public static final String COOKIE_KEY = "Cookie";
     public static final String NAME = "JNLP3-connect";
     public static final String SLAVE_NAME_KEY = "Node-Name";
+
+    /**
+     * If we talk to the server who doesn't understand this protocol, it sends out
+     * an error message line, so to distinguish those we need another line that
+     * indicates the protocol is understood by the server.
+     */
+    /*package*/ static final String NEGOTIATE_LINE = "Negotiate";
 }

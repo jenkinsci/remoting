@@ -3,12 +3,10 @@ package hudson.remoting;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,6 +51,19 @@ public abstract class ClassFilter {
 		return c;
 	}
 
+    private static final String[] DEFAULT_PATTERNS = {
+        "^com[.]google[.]inject[.].*",
+        "^com[.]sun[.]jndi[.]rmi[.].*",
+        "^java[.]rmi[.].*",
+        "^org[.]apache[.]commons[.]beanutils[.].*",
+        "^org[.]apache[.]commons[.]collections[.]functors[.].*",
+        ".*org[.]apache[.]xalan.*",
+        "^org[.]codehaus[.]groovy[.]runtime[.].*",
+        "^org[.]hibernate[.].*",
+        "^org[.]springframework[.](?!(\\p{Alnum}+[.])*\\p{Alnum}*Exception$).*",
+        "^sun[.]rmi[.].*",
+    };
+
     /**
      * A set of sensible default filtering rules to apply,
      * unless the context guarantees the trust between two channels.
@@ -76,10 +87,7 @@ public abstract class ClassFilter {
             return new RegExpClassFilter(patternOverride);
         } else {
             LOGGER.log(Level.FINE, "Using default in built class blacklisting");
-            return new RegExpClassFilter(Arrays.asList(Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*"),
-                                                          Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*"),
-                                                          Pattern.compile(".*org\\.apache\\.xalan.*")
-                                            ));
+            return new RegExpClassFilter(DEFAULT_PATTERNS);
         }
     }
 
@@ -130,6 +138,13 @@ public abstract class ClassFilter {
 
         public RegExpClassFilter(List<Pattern> blacklistPatterns) {
             this.blacklistPatterns = blacklistPatterns;
+        }
+
+        RegExpClassFilter(String[] patterns) {
+            blacklistPatterns = new ArrayList<Pattern>(patterns.length);
+            for (String pattern : patterns) {
+                blacklistPatterns.add(Pattern.compile(pattern));
+            }
         }
 
         @Override

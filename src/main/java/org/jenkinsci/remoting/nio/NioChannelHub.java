@@ -588,12 +588,13 @@ public class NioChannelHub implements Runnable, Closeable {
                                             r_ptr+=chunk;
                                         } while (!last);
                                         assert packetSize==0;
-
-                                        t.swimLane.submit(new Runnable() {
-                                            public void run() {
-                                                t.receiver.handle(packet);
-                                            }
-                                        });
+                                        if (packet.length > 0) {
+                                            t.swimLane.submit(new Runnable() {
+                                                public void run() {
+                                                    t.receiver.handle(packet);
+                                                }
+                                            });
+                                        }
                                         pos=0;
                                     }
                                 }
