@@ -29,7 +29,6 @@ import java.io.FileNotFoundException;
 import java.security.AccessController;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
@@ -43,6 +42,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.CheckForNull;
 import javax.annotation.concurrent.NotThreadSafe;
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -214,7 +214,25 @@ public class Engine extends Thread {
                 Throwable firstError=null;
                 String host=null;
                 String port=null;
-                SSLSocketFactory sslSocketFactory = getSSLSocketFactory();
+                SSLSocketFactory sslSocketFactory = null;
+                if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+                    KeyStore keyStore = getCacertsKeyStore();
+                    // load the keystore
+                    keyStore.load(null, null);
+                    int i = 0;
+                    for (X509Certificate c : candidateCertificates) {
+                        keyStore.setCertificateEntry(String.format("alias-%d", i++), c);
+                    }
+                    // prepare the trust manager
+                    TrustManagerFactory trustManagerFactory =
+                            TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+                    trustManagerFactory.init(keyStore);
+                    // prepare the SSL context
+                    SSLContext ctx = SSLContext.getInstance("TLS");
+                    ctx.init(null, trustManagerFactory.getTrustManagers(), null);
+                    // now we have our custom socket factory
+                    sslSocketFactory = ctx.getSocketFactory();
+                }
 
                 for (URL url : candidateUrls) {
                     String s = url.toExternalForm();
@@ -222,7 +240,20 @@ public class Engine extends Thread {
                     URL salURL = new URL(s+"tcpSlaveAgentListener/");
 
                     // find out the TCP port
-                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory);
+                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL);
+                    if (con instanceof HttpsURLConnection && sslSocketFactory != null) {
+                        ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
+                    }
+                    if (credentials != null) {
+                        // TODO /tcpSlaveAgentListener is unprotected so why do we need to pass any credentials?
+                        String encoding = Base64.encode(credentials.getBytes("UTF-8"));
+                        con.setRequestProperty("Authorization", "Basic " + encoding);
+                    }
+
+                    if (proxyCredentials != null) {
+                        String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
+                        con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+                    }
                     try {
                         try {
                             con.setConnectTimeout(30000);
@@ -410,12 +441,6 @@ public class Engine extends Thread {
     private void waitForServerToBack() throws InterruptedException {
         Thread t = Thread.currentThread();
         String oldName = t.getName();
-        SSLSocketFactory sslSocketFactory = null;
-        try {
-            sslSocketFactory = getSSLSocketFactory();
-        } catch (Throwable e) {
-            events.error(e);
-        }
         try {
             int retries=0;
             while(true) {
@@ -427,7 +452,7 @@ public class Engine extends Thread {
                     retries++;
                     t.setName(oldName+": trying "+url+" for "+retries+" times");
 
-                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(url, credentials, proxyCredentials, sslSocketFactory);
+                    HttpURLConnection con = (HttpURLConnection) url.openConnection();
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
@@ -552,31 +577,6 @@ public class Engine extends Thread {
                 }
             }
         });
-    }
-
-    private SSLSocketFactory getSSLSocketFactory()
-            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-            NoSuchAlgorithmException, IOException, KeyManagementException {
-        SSLSocketFactory sslSocketFactory = null;
-        if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
-            KeyStore keyStore = getCacertsKeyStore();
-            // load the keystore
-            keyStore.load(null, null);
-            int i = 0;
-            for (X509Certificate c : candidateCertificates) {
-                keyStore.setCertificateEntry(String.format("alias-%d", i++), c);
-            }
-            // prepare the trust manager
-            TrustManagerFactory trustManagerFactory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            trustManagerFactory.init(keyStore);
-            // prepare the SSL context
-            SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
-            // now we have our custom socket factory
-            sslSocketFactory = ctx.getSocketFactory();
-        }
-        return sslSocketFactory;
     }
     //a read() call on the SocketInputStream associated with underlying Socket will block for only this amount of time
     static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName()+".socketTimeout",30*60*1000);

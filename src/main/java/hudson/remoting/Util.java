@@ -14,8 +14,6 @@ import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.SocketAddress;
 import java.net.URL;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
 import java.util.Iterator;
 
 /**
@@ -161,9 +159,8 @@ class Util {
     /**
      * Gets URL connection.
      * If http_proxy environment variable exists,  the connection uses the proxy.
-     * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      */
-    static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials, SSLSocketFactory sslSocketFactory) throws IOException {
+    static URLConnection openURLConnection(URL url) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
         if (System.getProperty("http.proxyHost") == null) {
@@ -183,35 +180,7 @@ class Util {
         } else {
             con = url.openConnection();
         }
-        if (credentials != null) {
-            String encoding = Base64.encode(credentials.getBytes("UTF-8"));
-            con.setRequestProperty("Authorization", "Basic " + encoding);
-        }
-        if (proxyCredentials != null) {
-            String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
-            con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
-        }
-        if (con instanceof HttpsURLConnection && sslSocketFactory != null) {
-            ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
-        }
         return con;
-    }
-
-    /**
-     * Gets URL connection.
-     * If http_proxy environment variable exists,  the connection uses the proxy.
-     * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
-     */
-    static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials) throws IOException {
-        return openURLConnection(url, credentials, proxyCredentials, null);
-    }
-
-    /**
-     * Gets URL connection.
-     * If http_proxy environment variable exists,  the connection uses the proxy.
-     */
-    static URLConnection openURLConnection(URL url) throws IOException {
-        return openURLConnection(url, null, null, null);
     }
 
     static InetSocketAddress getResolvedHttpProxyAddress(String host, int port) throws IOException {
