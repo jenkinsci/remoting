@@ -6,7 +6,9 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
-##### 2.60 (Coming Soon)
+##### 2.60
+
+Release date: (Coming Soon)
 
 Fixed issues:
 * [JENKINS-22722](https://issues.jenkins-ci.org/browse/JENKINS-22722) - 
@@ -29,14 +31,18 @@ Enhancements:
 * Ensure a message is logged if remoting fails to override the default <code>ClassFilter</code>. 
 (https://github.com/jenkinsci/remoting/pull/80)
 
-##### 2.59 (May 13, 2016) => Jenkins 2.4
+##### 2.59
+
+Release date: (May 13, 2016) => Jenkins 2.4
 
 Enhancements:
 * [JENKINS-34819](https://issues.jenkins-ci.org/browse/JENKINS-34819) - 
 Allow disabling the remoting protocols individually. Works around issues like [JENKINS-34121](https://issues.jenkins-ci.org/browse/JENKINS-34121) 
 (https://github.com/jenkinsci/remoting/pull/83)
 
-##### 2.58 (May 11, 2016) => Jenkins 2.4
+##### 2.58
+
+Release date: (May 11, 2016) => Jenkins 2.4
 
 Fixes issues:
 * [JENKINS-34213](https://issues.jenkins-ci.org/browse/JENKINS-34213) - 
