@@ -3,6 +3,7 @@ package hudson.remoting;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InterruptedIOException;
+import java.net.SocketTimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -17,6 +18,16 @@ import java.util.logging.Logger;
 public abstract class SynchronousCommandTransport extends CommandTransport {
     protected Channel channel;
 
+    private static final String RDR_SOCKET_TIMEOUT_PROPERTY_NAME = 
+            SynchronousCommandTransport.class.getName() + ".failOnSocketTimeoutInReader";
+    
+    /**
+     * Enables the original aggressive behavior, when the channel reader gets 
+     * interrupted on any {@link SocketTimeoutException}.
+     * @since TODO
+     */
+    private static boolean RDR_FAIL_ON_SOCKET_TIMEOUT = Boolean.getBoolean(RDR_SOCKET_TIMEOUT_PROPERTY_NAME);
+    
     /**
      * Called by {@link Channel} to read the next command to arrive from the stream.
      */
@@ -46,6 +57,18 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
                     Command cmd = null;
                     try {
                         cmd = read();
+                    } catch (SocketTimeoutException ex) {
+                        if (RDR_FAIL_ON_SOCKET_TIMEOUT) {
+                            LOGGER.log(Level.SEVERE, "Socket timeout in the Synchronous channel reader."
+                                    + " The channel will be interrupted, because " + RDR_SOCKET_TIMEOUT_PROPERTY_NAME 
+                                    + " is set", ex);
+                            throw ex;
+                        }
+                        // Timeout happened during the read operation.
+                        // It is not always fatal, because it may be caused by a long-running command
+                        // If channel is not closed, it's OK to continue reading the channel
+                        LOGGER.log(Level.WARNING, "Socket timeout in the Synchronous channel reader", ex);
+                        continue;
                     } catch (EOFException e) {
                         IOException ioe = new IOException("Unexpected termination of the channel");
                         ioe.initCause(e);
