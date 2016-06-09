@@ -81,8 +81,8 @@ public abstract class ClassFilter {
      * values provide for user specified overrides - see {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
      */
     /*package*/ static ClassFilter createDefaultInstance() {
-        List<Pattern> patternOverride = loadPatternOverride();
         try {
+            List<Pattern> patternOverride = loadPatternOverride();
             if (patternOverride != null) {
                 LOGGER.log(Level.FINE, "Using user specified overrides for class blacklisting");
                 return new RegExpClassFilter(patternOverride);
