@@ -21,6 +21,9 @@ Do not invoke PingFailureAnalyzer for agent=>master ping failures.
 * [JENKINS-31256](https://issues.jenkins-ci.org/browse/JENKINS-31256) - 
  <code>hudson.Remoting.Engine#waitForServerToBack</code> now uses credentials for connection. 
 (https://github.com/jenkinsci/remoting/pull/87)
+* [JENKINS-35494](https://issues.jenkins-ci.org/browse/JENKINS-35494) - 
+Fix issues in file management in <code>hudson.remoting.Launcher</code> (main executable class). 
+(https://github.com/jenkinsci/remoting/pull/88)
 
 Enhancements:
 * Ensure a message is logged if remoting fails to override the default <code>ClassFilter</code>. 
