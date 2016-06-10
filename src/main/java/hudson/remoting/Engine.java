@@ -578,7 +578,12 @@ public class Engine extends Thread {
         }
         return sslSocketFactory;
     }
-    //a read() call on the SocketInputStream associated with underlying Socket will block for only this amount of time
+    
+    /**
+     * Socket read timeout.
+     * A {@link SocketInputStream#read()} call associated with underlying Socket will block for only this amount of time
+     * @since 2.4
+     */
     static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName()+".socketTimeout",30*60*1000);
     /**
      * @deprecated Use {@link JnlpProtocol#GREETING_SUCCESS}.
