@@ -11,7 +11,7 @@ These properties require independent configuration on both sides of the channel.
     <tr>
       <td>System property</td>
       <td>Default value</td>
-      <td><a href="CHANGELOG.md">Since</a></td>
+      <td><a href="../CHANGELOG.md">Since</a></td>
       <td><a href="https://jenkins.io/changelog/">Jenkins version(s)</a></td>
       <td>Related issues</td>
       <td>Description</td>
