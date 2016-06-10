@@ -24,7 +24,7 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
     /**
      * Enables the original aggressive behavior, when the channel reader gets 
      * interrupted on any {@link SocketTimeoutException}.
-     * @since TODO
+     * @since 2.60
      */
     private static boolean RDR_FAIL_ON_SOCKET_TIMEOUT = Boolean.getBoolean(RDR_SOCKET_TIMEOUT_PROPERTY_NAME);
     

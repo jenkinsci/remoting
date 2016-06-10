@@ -527,6 +527,8 @@ public class Launcher {
 
         Channel channel = cb.build(is, os);
         System.err.println("channel started");
+        
+        // Both settings are available since remoting-2.0
         long timeout = 1000 * Long.parseLong(
                 System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),
              interval = 1000 * Long.parseLong(

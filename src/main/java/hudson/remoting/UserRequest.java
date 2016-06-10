@@ -96,6 +96,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
             // Allow forcibly load of a class, allows to workaround:
             // @See        https://issues.jenkins-ci.org/browse/JENKINS-19445
             // @Related    https://issues.tmatesoft.com/issue/SGT-451
+            // @Since 2.4
             final String clazz = System.getProperty(RemoteClassLoader.class.getName() + ".force", null);
             if ( clazz != null && !workaroundDone) {
                 // Optimistic logging set.

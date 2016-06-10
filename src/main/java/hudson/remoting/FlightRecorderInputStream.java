@@ -14,6 +14,10 @@ import java.util.Arrays;
  */
 class FlightRecorderInputStream extends InputStream {
 
+    /**
+     * Size (in bytes) of the flight recorder ring buffer used for debugging remoting issues.
+     * @since 2.41
+     */
     static final int BUFFER_SIZE = Integer.getInteger("hudson.remoting.FlightRecorderInputStream.BUFFER_SIZE", 1024 * 1024);
 
     private final InputStream source;
