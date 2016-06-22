@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 2.60
 
-Release date: (Coming Soon)
+Release date: (June 10, 2016) => Jenkins 2.9
 
 Fixed issues:
 * [JENKINS-22722](https://issues.jenkins-ci.org/browse/JENKINS-22722) - 
