@@ -303,10 +303,12 @@ public class Engine extends Thread {
 
                 // If no protocol worked.
                 if (channel == null) {
+                    final String rejected = "The server rejected the connection: ";
                     if (triedAtLeastOneProtocol) {
-                        onConnectionRejected("None of the protocols were accepted");
+                        events.status(rejected + "None of the protocols were accepted");
+                        Thread.sleep(10 * 1000);
                     } else {
-                        onConnectionRejected("None of the protocols are enabled");
+                        events.error(new Exception(rejected + "None of the protocols were enabled"));
                         return; // exit
                     }
                     continue;
