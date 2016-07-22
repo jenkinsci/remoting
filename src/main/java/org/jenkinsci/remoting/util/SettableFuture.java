@@ -305,6 +305,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      *
      * @param o the object that should be non-null.
      */
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings
     private static void verifyNonnull(@Nullable Object o) {
         if (o == null) {
             throw new NullPointerException();
