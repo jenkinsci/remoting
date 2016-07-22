@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.util;
 
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -166,6 +167,18 @@ public class ByteBufferQueue {
     }
 
     /**
+     * This method appends a single byte onto this buffer queue.
+     *
+     * @param b the byte.
+     */
+    public void put(byte b) {
+        while (!buffers[writeIndex].hasRemaining()) {
+            addWriteBuffer();
+        }
+        buffers[writeIndex].put(b);
+    }
+
+    /**
      * Tells whether there are any bytes between the current read index and
      * the write index.
      *
@@ -197,6 +210,57 @@ public class ByteBufferQueue {
             }
         }
         return false;
+    }
+
+    /**
+     * Returns how much data is remaining between the current read index and the write index.
+     *
+     * @return the total number of bytes remaining in this buffer queue.
+     */
+    public long remaining() {
+        long total = 0;
+        for (int i = readIndex; i <= writeIndex; i++) {
+            total += buffers[i].position();
+        }
+        return total;
+    }
+
+    /**
+     * Discards up to the specified number of bytes from the read index.
+     * @param bytes the total number of bytes to discard.
+     * @return the number of bytes actually discarded.
+     */
+    public long skip(long bytes) {
+        long skipped = 0;
+        while (bytes > 0) {
+            if (readIndex >= writeIndex && buffers[readIndex].position() == 0) {
+                if (writeIndex > 0) {
+                    // this is a cheap compact
+                    buffers[0] = buffers[writeIndex];
+                    buffers[writeIndex] = null;
+                    readIndex = writeIndex = 0;
+                }
+                break;
+            }
+            buffers[readIndex].flip();
+            int remaining = buffers[readIndex].remaining();
+            if (remaining > bytes) {
+                buffers[readIndex].position((int)bytes);
+                buffers[readIndex].compact();
+                skipped += bytes;
+                break;
+            } else {
+                skipped += remaining;
+                bytes -= remaining;
+                if (readIndex < writeIndex) {
+                    buffers[readIndex++] = null;
+                } else {
+                    assert readIndex == writeIndex;
+                    buffers[readIndex].clear();
+                }
+            }
+        }
+        return skipped;
     }
 
     public void peek(ByteBuffer dst) {
@@ -264,6 +328,25 @@ public class ByteBufferQueue {
     }
 
     /**
+     * Reads the next byte from this queue.
+     *
+     * @return The byte at the read index.
+     * @throws BufferUnderflowException If there are no remaining bytes to be read.
+     */
+    public byte get() {
+        while (readIndex < writeIndex && buffers[readIndex].position() == 0) {
+            buffers[readIndex++] = null;
+        }
+        if (buffers[readIndex].position() > 0) {
+            buffers[readIndex].flip();
+            byte result = buffers[readIndex].get();
+            buffers[readIndex].compact();
+            return result;
+        }
+        throw new BufferUnderflowException();
+    }
+
+    /**
      * This method transfers the bytes remaining in the given source buffer inserted at the head of this buffer queue.
      *
      * @param src The source buffer from which bytes are to be read.
@@ -326,6 +409,7 @@ public class ByteBufferQueue {
     /**
      * Transfers all the bytes in the {@link ByteBufferQueue} from the read position to the write position into a new
      * {@code byte[]}.
+     *
      * @return the {@code byte[]}
      */
     public byte[] toByteArray() {
@@ -351,7 +435,7 @@ public class ByteBufferQueue {
             int count = buffers[index].remaining();
             buffers[index].get(result, pos, count);
             buffers[index].clear();
-            pos+=count;
+            pos += count;
         }
         readIndex = writeIndex = 0;
         return result;

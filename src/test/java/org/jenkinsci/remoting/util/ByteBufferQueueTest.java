@@ -56,6 +56,58 @@ public class ByteBufferQueueTest {
     }
 
     @Test
+    public void putGetByteAndHasRemaining() {
+        ByteBufferQueue queue = new ByteBufferQueue(100);
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
+            byte b = (byte)i;
+            queue.put(b);
+            assertThat(queue.hasRemaining(), is(true));
+            assertThat(queue.get(), is(b));
+            assertThat(queue.hasRemaining(), is(false));
+        }
+    }
+
+    @Test
+    public void putOneByteGetSequences() {
+        ByteBufferQueue queue = new ByteBufferQueue(100);
+        ByteBuffer src = ByteBuffer.allocate(1);
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
+            byte b = (byte)i;
+            src.clear();
+            src.put(b);
+            src.flip();
+            queue.put(src);
+            assertThat(queue.hasRemaining(), is(true));
+        }
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
+            byte b = (byte) i;
+            assertThat(queue.hasRemaining(), is(true));
+            assertThat(queue.get(), is(b));
+        }
+        assertThat(queue.hasRemaining(), is(false));
+    }
+
+    @Test
+    public void putGetOneByteSequences() {
+        ByteBufferQueue queue = new ByteBufferQueue(100);
+        ByteBuffer src = ByteBuffer.allocate(1);
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
+            byte b = (byte)i;
+            queue.put(b);
+            assertThat(queue.hasRemaining(), is(true));
+        }
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
+            byte b = (byte) i;
+            assertThat(queue.hasRemaining(), is(true));
+            src.clear();
+            queue.get(src);
+            src.flip();
+            assertThat(src.get(), is(b));
+        }
+        assertThat(queue.hasRemaining(), is(false));
+    }
+
+    @Test
     public void putGetDrainsQueue() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(1);
