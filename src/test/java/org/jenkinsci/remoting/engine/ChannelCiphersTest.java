@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Test;
 
 import java.nio.charset.Charset;
@@ -41,9 +42,9 @@ public class ChannelCiphersTest {
         ChannelCiphers ciphers = ChannelCiphers.create();
 
         byte[] encrypted = ciphers.getEncryptCipher().doFinal(
-                "string 1".getBytes(Charset.forName("UTF-8")));
+                "string 1".getBytes(Charsets.UTF_8));
         String decrypted = new String(
-                ciphers.getDecryptCipher().doFinal(encrypted), Charset.forName("UTF-8"));
+                ciphers.getDecryptCipher().doFinal(encrypted), Charsets.UTF_8);
         assertEquals("string 1", decrypted);
     }
 
@@ -54,9 +55,9 @@ public class ChannelCiphersTest {
                 ciphers1.getAesKey(), ciphers1.getSpecKey());
 
         byte[] encrypted = ciphers1.getEncryptCipher().doFinal(
-                "string 1".getBytes(Charset.forName("UTF-8")));
+                "string 1".getBytes(Charsets.UTF_8));
         String decrypted = new String(
-                ciphers2.getDecryptCipher().doFinal(encrypted), Charset.forName("UTF-8"));
+                ciphers2.getDecryptCipher().doFinal(encrypted), Charsets.UTF_8);
         assertEquals("string 1", decrypted);
         assertEquals(16, ciphers1.getAesKey().length);
         assertEquals(16, ciphers1.getSpecKey().length);

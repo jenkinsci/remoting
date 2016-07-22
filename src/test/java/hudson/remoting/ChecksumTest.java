@@ -3,6 +3,7 @@ package hudson.remoting;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
+import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -57,7 +58,7 @@ public class ChecksumTest {
 
     private File createTmpFile(String name, String contents) throws Exception {
         File tmpFile = tmp.newFile(name);
-        Files.append(contents, tmpFile, Charset.forName("UTF-8"));
+        Files.append(contents, tmpFile, Charsets.UTF_8);
         return tmpFile;
     }
 

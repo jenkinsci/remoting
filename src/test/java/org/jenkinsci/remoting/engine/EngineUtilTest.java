@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Test;
 
 import java.io.BufferedInputStream;
@@ -77,6 +78,6 @@ public class EngineUtilTest {
     }
 
     private BufferedInputStream stringToStream(String str) {
-        return new BufferedInputStream(new ByteArrayInputStream(str.getBytes(Charset.forName("UTF-8"))));
+        return new BufferedInputStream(new ByteArrayInputStream(str.getBytes(Charsets.UTF_8)));
     }
 }

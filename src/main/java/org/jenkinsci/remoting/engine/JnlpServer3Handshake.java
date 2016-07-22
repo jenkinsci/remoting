@@ -14,6 +14,7 @@ import java.nio.charset.Charset;
 import java.security.SecureRandom;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
+import org.jenkinsci.remoting.util.Charsets;
 
 /**
  * Server-side handshaking logic for {@link JnlpProtocol3}.
@@ -49,7 +50,7 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
             out.println(JnlpProtocol3.NEGOTIATE_LINE);
 
             // Get initiation information from slave.
-            request.load(new ByteArrayInputStream(in.readUTF().getBytes(Charset.forName("UTF-8"))));
+            request.load(new ByteArrayInputStream(in.readUTF().getBytes(Charsets.UTF_8)));
             nodeName = request.getProperty(JnlpProtocol3.SLAVE_NAME_KEY);
 
             this.handshakeCiphers = HandshakeCiphers.create(nodeName, getNodeSecret(nodeName));
@@ -107,7 +108,7 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
         // Send slave challenge response.
         String challengeResponse = Jnlp3Util.createChallengeResponse(challenge);
         String encryptedChallengeResponse = handshakeCiphers.encrypt(challengeResponse);
-        out.println(encryptedChallengeResponse.getBytes(Charset.forName("UTF-8")).length);
+        out.println(encryptedChallengeResponse.getBytes(Charsets.UTF_8).length);
         out.print(encryptedChallengeResponse);
         out.flush();
 
@@ -121,7 +122,7 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
     protected void validateSlave() throws IOException, Failure {
         String masterChallenge = Jnlp3Util.generateChallenge();
         String encryptedMasterChallenge = handshakeCiphers.encrypt(masterChallenge);
-        out.println(encryptedMasterChallenge.getBytes(Charset.forName("UTF-8")).length);
+        out.println(encryptedMasterChallenge.getBytes(Charsets.UTF_8).length);
         out.print(encryptedMasterChallenge);
         out.flush();
 

@@ -29,6 +29,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import org.jenkinsci.remoting.util.Charsets;
 
 /**
  * Utility methods for JNLP3.
@@ -52,7 +53,7 @@ class Jnlp3Util {
     public static byte[] generate128BitKey(String str) {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            messageDigest.update(str.getBytes(Charset.forName("UTF-8")));
+            messageDigest.update(str.getBytes(Charsets.UTF_8));
             return Arrays.copyOf(messageDigest.digest(), 16);
         } catch (NoSuchAlgorithmException nsae) {
             // This should never happen.
@@ -64,14 +65,14 @@ class Jnlp3Util {
      * Convert the given key to a string.
      */
     public static String keyToString(byte[] key) {
-        return new String(key, Charset.forName("ISO-8859-1"));
+        return new String(key, Charsets.ISO_8859_1);
     }
 
     /**
      * Get back the original key from the given string.
      */
     public static byte[] keyFromString(String keyString) {
-        return keyString.getBytes(Charset.forName("ISO-8859-1"));
+        return keyString.getBytes(Charsets.ISO_8859_1);
     }
 
     /**
@@ -89,8 +90,8 @@ class Jnlp3Util {
     public static String createChallengeResponse(String challenge) {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            messageDigest.update(challenge.getBytes(Charset.forName("UTF-8")));
-            return new String(messageDigest.digest(), Charset.forName("UTF-8"));
+            messageDigest.update(challenge.getBytes(Charsets.UTF_8));
+            return new String(messageDigest.digest(), Charsets.UTF_8);
         } catch (NoSuchAlgorithmException nsae) {
             // This should never happen.
             throw new AssertionError(nsae);

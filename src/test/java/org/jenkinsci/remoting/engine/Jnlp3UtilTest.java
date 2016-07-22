@@ -25,6 +25,7 @@ package org.jenkinsci.remoting.engine;
 
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNot;
+import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Test;
 
 import java.nio.charset.Charset;
@@ -65,15 +66,15 @@ public class Jnlp3UtilTest {
 
     @Test
     public void testKeyToString() throws Exception {
-        byte[] key = "This is a string".getBytes(Charset.forName("UTF-8"));
-        assertEquals(new String(key, Charset.forName("ISO-8859-1")), Jnlp3Util.keyToString(key));
+        byte[] key = "This is a string".getBytes(Charsets.UTF_8);
+        assertEquals(new String(key, Charsets.ISO_8859_1), Jnlp3Util.keyToString(key));
     }
 
     @Test
     public void testKeyFromString() throws Exception {
-        byte[] key = "This is a string".getBytes(Charset.forName("UTF-8"));
+        byte[] key = "This is a string".getBytes(Charsets.UTF_8);
         assertArrayEquals(key,
-                Jnlp3Util.keyFromString(new String(key, Charset.forName("ISO-8859-1"))));
+                Jnlp3Util.keyFromString(new String(key, Charsets.ISO_8859_1)));
     }
 
     @Test
@@ -87,8 +88,8 @@ public class Jnlp3UtilTest {
     public void testCreateChallengeResponse() throws Exception {
         String challenge = "This is a challenge string";
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-        messageDigest.update(challenge.getBytes(Charset.forName("UTF-8")));
-        String expectedResponse = new String(messageDigest.digest(), Charset.forName("UTF-8"));
+        messageDigest.update(challenge.getBytes(Charsets.UTF_8));
+        String expectedResponse = new String(messageDigest.digest(), Charsets.UTF_8);
         assertEquals(expectedResponse, Jnlp3Util.createChallengeResponse(challenge));
     }
 
@@ -96,8 +97,8 @@ public class Jnlp3UtilTest {
     public void testValidateChallengeResponse() throws Exception {
         String challenge = "This is a challenge string";
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-        messageDigest.update(challenge.getBytes(Charset.forName("UTF-8")));
-        String challengeResponse = new String(messageDigest.digest(), Charset.forName("UTF-8"));
+        messageDigest.update(challenge.getBytes(Charsets.UTF_8));
+        String challengeResponse = new String(messageDigest.digest(), Charsets.UTF_8);
 
         assertTrue(Jnlp3Util.validateChallengeResponse(challenge, challengeResponse));
         assertFalse(Jnlp3Util.validateChallengeResponse(challenge, "some string"));
