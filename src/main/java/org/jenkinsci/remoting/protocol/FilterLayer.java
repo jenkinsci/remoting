@@ -62,6 +62,16 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
     private ProtocolStack<?>.Ptr ptr;
 
     /**
+     * Bitfiled that tracks completion of the filter.
+     * The {@code 1}'s bit flags calls to {@link #completed()}.
+     * The {@code 2}'s bit flags calls to {@link #onSendRemoved()}.
+     * The {@code 4}'s bit flags calls to {@link #onRecvRemoved()}.
+     * Only when all three bits are set is it safe to set {@link #ptr} to {@code null}.
+     */
+    @GuardedBy("this")
+    private int completionState;
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -92,11 +102,39 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
             LOGGER.log(Level.FINEST, "[{0}] Completed", stack().name());
         }
         synchronized (this) {
-            if (this.ptr == null) {
+            if (completionState != 0) {
                 throw new IllegalStateException("Filter has already been completed");
             }
+            completionState |= 1;
             this.ptr.remove();
-            this.ptr = null;
+        }
+    }
+
+    /**
+     * Callback to notify that no more data will be handled by {@link #doSend(ByteBuffer)} as the send side has been
+     * unhooked from the stack.
+     */
+    /*package*/ final void onSendRemoved() {
+        synchronized (this) {
+            completionState |= 2;
+            if (completionState == 7) {
+                // ok fully removed, we can clear out the reference
+                this.ptr = null;
+            }
+        }
+    }
+
+    /**
+     * Callback to notify that no more data will be handled by {@link #onRecv(ByteBuffer)} as the receive side has been
+     * unhooked from the stack.
+     */
+    /*package*/ final void onRecvRemoved() {
+        synchronized (this) {
+            completionState |= 4;
+            if (completionState == 7) {
+                // ok fully removed, we can clear out the reference
+                this.ptr = null;
+            }
         }
     }
 

@@ -864,6 +864,10 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
                 // we only need to unwind ourselves eventually, if we cannot do it now ok to do it later
                 try {
                     while (this.nextSend != nextSend && this.nextSend != null && this.nextSend.removed) {
+                        assert this.nextSend.layer instanceof FilterLayer
+                                : "this is the layer before and there is a layer after nextSend thus nextSend "
+                                + "*must* be a FilterLayer";
+                        ((FilterLayer)this.nextSend.layer).onSendRemoved();
                         // remove this.nextSend from the stack as it has set it's removed flag
                         Ptr tmp = this.nextSend.nextSend;
                         this.nextSend.nextSend = null;
@@ -912,6 +916,10 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
                 // we only need to unwind ourselves eventually, if we cannot do it now ok to do it later
                 try {
                     while (this.nextRecv != nextRecv && this.nextRecv != null && this.nextRecv.removed) {
+                        assert this.nextRecv.layer instanceof FilterLayer
+                                : "this is the layer before and there is a layer after nextRecv thus nextRecv "
+                                + "*must* be a FilterLayer";
+                        ((FilterLayer)this.nextRecv.layer).onRecvRemoved();
                         // remove this.nextRecv from the stack as it has set it's removed flag
                         Ptr tmp = this.nextRecv.nextRecv;
                         this.nextRecv.nextRecv = null;
