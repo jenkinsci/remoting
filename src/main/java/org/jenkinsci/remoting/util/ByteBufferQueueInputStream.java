@@ -41,6 +41,8 @@ public class ByteBufferQueueInputStream extends InputStream {
      * The backing queue.
      */
     private final ByteBufferQueue queue;
+    private int length;
+    private int pos;
     /**
      * Any mark if a mark has been defined.
      */
@@ -53,6 +55,18 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     public ByteBufferQueueInputStream(ByteBufferQueue queue) {
         this.queue = queue;
+        this.length = -1;
+    }
+
+    /**
+     * Constructs a new instance.
+     *
+     * @param queue  the backing {@link ByteBufferQueue}.
+     * @param length the limit of bytes to take from the backing queue.
+     */
+    public ByteBufferQueueInputStream(ByteBufferQueue queue, int length) {
+        this.queue = queue;
+        this.length = length;
     }
 
     /**
@@ -60,8 +74,12 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public int read() throws IOException {
+        if (length != -1 && pos > length) {
+            return -1;
+        }
         try {
             byte b = queue.get();
+            pos++;
             if (mark != null) {
                 if (mark.hasRemaining()) {
                     mark.put(b);
@@ -81,8 +99,18 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public int read(byte[] b) throws IOException {
+        if (length != -1 && pos > length) {
+            return -1;
+        }
         ByteBuffer buffer = ByteBuffer.wrap(b);
+        if (length != -1 && buffer.limit() > length - pos) {
+            buffer.limit(length - pos + 1);
+        }
         queue.get(buffer);
+        if (buffer.position() == 0) {
+            return -1;
+        }
+        pos += buffer.position();
         if (mark != null) {
             if (mark.remaining() > buffer.position()) {
                 buffer.flip();
@@ -100,8 +128,18 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
+        if (length != -1 && pos >= length) {
+            return -1;
+        }
         ByteBuffer buffer = ByteBuffer.wrap(b, off, len);
+        if (length != -1 && buffer.limit() > length - pos) {
+            buffer.limit(length - pos + 1);
+        }
         queue.get(buffer);
+        if (buffer.position() == 0) {
+            return -1;
+        }
+        pos += buffer.position();
         if (mark != null) {
             if (mark.remaining() > buffer.position()) {
                 buffer.flip();
@@ -119,7 +157,17 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public long skip(long n) throws IOException {
-        return queue.skip(n);
+        if (length != -1) {
+            if (pos >= length) {
+                return -1;
+            }
+            if (pos + n > length) {
+                n = length - pos;
+            }
+        }
+        long skipped = queue.skip(n);
+        pos += skipped;
+        return skipped;
     }
 
     /**
@@ -127,8 +175,12 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public int available() throws IOException {
-        long remaining = queue.remaining();
-        return remaining > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) remaining;
+        if (length == -1) {
+            long remaining = queue.remaining();
+            return remaining > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) remaining;
+        } else {
+            return pos >= length ? -1 : length - pos;
+        }
     }
 
     /**
@@ -155,6 +207,7 @@ public class ByteBufferQueueInputStream extends InputStream {
             throw new IOException();
         }
         mark.flip();
+        pos -= mark.remaining();
         queue.unget(mark);
         mark.position(0);
     }

@@ -48,6 +48,9 @@ public class ByteBufferQueue {
      * we will shrink the backing array.
      */
     private static final int SHRINK_THRESHOLD = 8;
+    /**
+     * An empty byte array constant.
+     */
     private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
     /**
      * The array of buffers.
@@ -221,6 +224,24 @@ public class ByteBufferQueue {
         long total = 0;
         for (int i = readIndex; i <= writeIndex; i++) {
             total += buffers[i].position();
+        }
+        return total;
+    }
+
+    /**
+     * Returns how much data is remaining between the current read index and the write index.
+     *
+     * @param limit the maximum number of remaining bytes at which to short-circuit.
+     * @return the total number of bytes remaining in this buffer queue or the supplied maximum if there is at least
+     * the supplied limit remaining.
+     */
+    public int remaining(int limit) {
+        int total = 0;
+        for (int i = readIndex; i <= writeIndex; i++) {
+            total += buffers[i].position();
+            if (total >= limit) {
+                return limit;
+            }
         }
         return total;
     }

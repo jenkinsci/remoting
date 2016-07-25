@@ -46,6 +46,17 @@ public class ByteBufferQueueInputStreamTest {
     }
 
     @Test
+    public void readLimit() throws Exception {
+        String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
+
+        ByteBufferQueue queue = new ByteBufferQueue(10);
+        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue, 10);
+
+        assertThat(read(instance, 10), is("AbCdEfGhIj"));
+    }
+
+    @Test
     public void readSome() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
