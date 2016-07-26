@@ -36,7 +36,6 @@ public class FileSystemJarCache extends JarCacheSupport {
         this.touch = touch;
         if (rootDir==null)
             throw new IllegalArgumentException();
-        rootDir.mkdirs();
     }
 
     @Override
@@ -64,8 +63,8 @@ public class FileSystemJarCache extends JarCacheSupport {
             return target.toURI().toURL();
         }
 
-        parent.mkdirs();
         try {
+            Util.mkdirs(parent);
             File tmp = File.createTempFile(target.getName(), "tmp", parent);
             try {
                 RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
