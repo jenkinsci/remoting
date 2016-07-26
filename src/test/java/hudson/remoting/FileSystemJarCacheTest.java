@@ -8,12 +8,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,23 +19,20 @@ import java.net.URL;
 import java.nio.charset.Charset;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.spy;
 
 /**
  * Tests for {@link FileSystemJarCache}.
  *
  * @author Akshay Dayal
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({FileSystemJarCache.class, File.class})
 public class FileSystemJarCacheTest {
 
     private static final String CONTENTS = "These are the contents";
@@ -52,6 +47,7 @@ public class FileSystemJarCacheTest {
 
     @Before
     public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
         fileSystemJarCache = new FileSystemJarCache(tmp.getRoot(), true);
 
         expectedChecksum = ChecksumTest.createdExpectedChecksum(
@@ -144,10 +140,10 @@ public class FileSystemJarCacheTest {
     @Test
     public void testRenameFailsAndBadPreviousTarget() throws Exception {
         final File expectedFile = fileSystemJarCache.map(expectedChecksum.sum1, expectedChecksum.sum2);
-        File spy = spy(tmp.newFile());
-        mockStatic(File.class);
-        when(File.createTempFile(expectedFile.getName(), "tmp", expectedFile.getParentFile()))
-                .thenReturn(spy);
+        File fileSpy = spy(tmp.newFile());
+        FileSystemJarCache jarCache = spy(fileSystemJarCache);
+        doReturn(fileSpy).when(jarCache).createTempJar(any(File.class));
+
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
         doAnswer(new Answer<Void>() {
             @Override
@@ -168,7 +164,7 @@ public class FileSystemJarCacheTest {
                 Files.append("Some other contents", expectedFile, Charset.forName("UTF-8"));
                 return false;
             }
-        }).when(spy).renameTo(expectedFile);
+        }).when(fileSpy).renameTo(expectedFile);
 
         expectedEx.expect(IOException.class);
         expectedEx.expectCause(hasMessage(StringContains.containsString(
