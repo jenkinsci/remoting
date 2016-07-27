@@ -19,6 +19,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Matchers.any;
@@ -107,14 +108,13 @@ public class FileSystemJarCacheTest {
                 mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
     }
 
-/*  for whatever reason I just can't seem to make this one test work. HELP!
     @Test
     public void testRenameFailsAndNoTarget() throws Exception {
         File expectedFile = fileSystemJarCache.map(expectedChecksum.sum1, expectedChecksum.sum2);
         File spy = spy(tmp.newFile());
-        mockStatic(File.class);
-        when(File.createTempFile(expectedFile.getName(), "tmp", expectedFile.getParentFile()))
-                .thenReturn(spy);
+        FileSystemJarCache jarCache = spy(fileSystemJarCache);
+        doReturn(spy).when(jarCache).createTempJar(any(File.class));
+
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
         doAnswer(new Answer<Void>() {
             @Override
@@ -127,15 +127,15 @@ public class FileSystemJarCacheTest {
                 eq(expectedChecksum.sum1),
                 eq(expectedChecksum.sum2),
                 any(RemoteOutputStream.class));
+
         when(spy.renameTo(expectedFile)).thenReturn(false);
         assertFalse(expectedFile.exists());
 
         expectedEx.expect(IOException.class);
         expectedEx.expectCause(hasMessage(StringContains.containsString("Unable to create")));
-        fileSystemJarCache.retrieve(
-                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+
+        jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
     }
-*/
 
     @Test
     public void testRenameFailsAndBadPreviousTarget() throws Exception {
@@ -169,7 +169,7 @@ public class FileSystemJarCacheTest {
         expectedEx.expect(IOException.class);
         expectedEx.expectCause(hasMessage(StringContains.containsString(
                 "Incorrect checksum of previous jar")));
-        fileSystemJarCache.retrieve(
-                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+
+        jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
     }
 }
