@@ -257,13 +257,18 @@ class Util {
         try {
             Class.forName("java.nio.file.Files");
             Files.createDirectories(file.toPath());
+            return;
         } catch (ClassNotFoundException e) {
             // JDK6 fallback
-            if (file.isDirectory()) return;
-            if (!file.mkdirs()) {
-                if (!file.isDirectory()) {
-                    throw new IOException("Directory not created");
-                }
+        } catch (ExceptionInInitializerError e) {
+            // JDK7 on multibyte encoding (http://bugs.java.com/bugdatabase/view_bug.do?bug_id=7050570)
+        }
+
+        // Fallback
+        if (file.isDirectory()) return;
+        if (!file.mkdirs()) {
+            if (!file.isDirectory()) {
+                throw new IOException("Directory not created");
             }
         }
     }
