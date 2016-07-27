@@ -254,18 +254,19 @@ class Util {
 
     @IgnoreJRERequirement @SuppressWarnings("Since15")
     static void mkdirs(@Nonnull File file) throws IOException {
+        if (file.isDirectory()) return;
+
         try {
             Class.forName("java.nio.file.Files");
             Files.createDirectories(file.toPath());
             return;
         } catch (ClassNotFoundException e) {
-            // JDK6 fallback
+            // JDK6
         } catch (ExceptionInInitializerError e) {
             // JDK7 on multibyte encoding (http://bugs.java.com/bugdatabase/view_bug.do?bug_id=7050570)
         }
 
         // Fallback
-        if (file.isDirectory()) return;
         if (!file.mkdirs()) {
             if (!file.isDirectory()) {
                 throw new IOException("Directory not created");
