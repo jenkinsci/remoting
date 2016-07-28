@@ -39,7 +39,9 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.CheckForNull;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -214,6 +216,7 @@ public class Engine extends Thread {
                 Throwable firstError=null;
                 String host=null;
                 String port=null;
+                Set<String> agentProtocolNames = null;
                 SSLSocketFactory sslSocketFactory = getSSLSocketFactory();
 
                 for (URL url : candidateUrls) {
@@ -247,6 +250,16 @@ public class Engine extends Thread {
                         }
                         host = con.getHeaderField("X-Jenkins-JNLP-Host"); // controlled by hudson.TcpSlaveAgentListener.hostName
                         if (host == null) host=url.getHost();
+                        String names = con.getHeaderField("X-Jenkins-Agent-Protocols");
+                        agentProtocolNames = new HashSet<String>();
+                        if (names != null) {
+                            for (String name: names.split(",")) {
+                                name = name.trim();
+                                if (!name.isEmpty()) {
+                                    agentProtocolNames.add(name);
+                                }
+                            }
+                        }
                     } finally {
                         con.disconnect();
                     }
@@ -275,6 +288,10 @@ public class Engine extends Thread {
                 for (JnlpProtocol protocol : protocols) {
                     if (!protocol.isEnabled()) {
                         events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
+                        continue;
+                    }
+                    if (agentProtocolNames != null && !agentProtocolNames.contains(protocol.getName())) {
+                        events.status("Server reports protocol " + protocol.getName() + " not supported, skipping");
                         continue;
                     }
                     triedAtLeastOneProtocol = true;
