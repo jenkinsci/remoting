@@ -29,9 +29,10 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.EmptyVisitor;
 
 import java.io.IOException;
-import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Test class image forwarding.
@@ -94,7 +95,7 @@ public class ClassRemotingTest extends RmiTestBase {
         assertEquals(child2, c2.getClass().getClassLoader());
         assertEquals(parent, c2.getClass().getSuperclass().getClassLoader());
         ExecutorService svc = Executors.newFixedThreadPool(2);
-        RemoteClassLoader.TESTING = true;
+        RemoteClassLoader.TESTING_CLASS_LOAD = new SleepForASec();
         try {
             java.util.concurrent.Future<Object> f1 = svc.submit(new java.util.concurrent.Callable<Object>() {
                 public Object call() throws Exception {
@@ -109,49 +110,91 @@ public class ClassRemotingTest extends RmiTestBase {
             f1.get();
             f2.get();
         } finally {
-            RemoteClassLoader.TESTING = false;
+            RemoteClassLoader.TESTING_CLASS_LOAD = null;
+        }
+    }
+
+    private static final class SleepForASec implements Runnable {
+        @Override
+        public void run() {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // Nothing
+            }
         }
     }
 
     @Bug(19453)
-    public void testInterruption() throws Exception {
+    public void testInterruptionOfClassCreation() throws Exception {
         DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
         final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> c = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, c.getClass().getClassLoader());
-        RemoteClassLoader.TESTING = true;
+        RemoteClassLoader.TESTING_CLASS_LOAD = new Interrupt3thInvocation();
         try {
-            ExecutorService svc = Executors.newSingleThreadExecutor();
-            java.util.concurrent.Future<Object> f1 = svc.submit(new java.util.concurrent.Callable<Object>() {
-                public Object call() throws Exception {
-                    try {
-                        return channel.call(c);
-                    } catch (Throwable t) {
-                        throw new Exception(t);
-                    }
-                }
-            });
+            java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(c);
 
-            // This is so that the first two class loads succeed but the third fails.
-            // A better test would use semaphores rather than timing (cf. the test before this one).
-            Thread.sleep(2500);
-
-            f1.cancel(true);
             try {
-                Object o = f1.get();
-                assertEquals(String.class, o.getClass());
-                /* TODO we really want to fail here, but this method gets run 4×, and the last 3× it gets to this point:
-                fail(o.toString());
-                */
-            } catch (CancellationException x) {
-                // good
+                f1.get();
+            } catch (ExecutionException ex) {
+                // Expected
             }
 
             // verify that classes that we tried to load aren't irrevocably damaged and it's still available
-            assertNotNull(channel.call(c));
+            assertEquals(String.class, channel.call(c).getClass());
         } finally {
-            RemoteClassLoader.TESTING = false;
+            RemoteClassLoader.TESTING_CLASS_LOAD = null;
+        }
+    }
+
+    @Bug(36991)
+    public void testInterruptionOfClassReferenceCreation() throws Exception {
+        DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
+        final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
+        final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
+        final Callable<Object, Exception> c = (Callable) child2.load(TestLinkage.class);
+        assertEquals(child2, c.getClass().getClassLoader());
+        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new Interrupt3thInvocation();
+
+        try {
+            Future<Object> f1 = scheduleCallableLoad(c);
+
+            try {
+                f1.get();
+            } catch (ExecutionException ex) {
+                // Expected
+            }
+
+            // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+            assertEquals(String.class, channel.call(c).getClass());
+        } finally {
+            RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = null;
+        }
+    }
+
+    private Future<Object> scheduleCallableLoad(final Callable<Object, Exception> c) {
+        ExecutorService svc = Executors.newSingleThreadExecutor();
+        return svc.submit(new java.util.concurrent.Callable<Object>() {
+            public Object call() throws Exception {
+                try {
+                    return channel.call(c);
+                } catch (Throwable t) {
+                    throw new Exception(t);
+                }
+            }
+        });
+    }
+
+    private static class Interrupt3thInvocation implements Runnable {
+        private int invocationCount = 0;
+        @Override
+        public void run() {
+            invocationCount++;
+            if (invocationCount == 3) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
