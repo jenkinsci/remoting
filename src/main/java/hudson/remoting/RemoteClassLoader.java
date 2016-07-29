@@ -234,6 +234,7 @@ final class RemoteClassLoader extends URLClassLoader {
                                         interrupted = true;
                                         continue;   // JENKINS-19453: retry
                                     }
+                                    throw x;
                                 }
 
                                 // no code is allowed to reach here
@@ -343,7 +344,7 @@ final class RemoteClassLoader extends URLClassLoader {
         return rcl;
     }
     /**
-     * Induce a large delay in {@link RemoteClassLoader#findClass(String)} to allow unittests to be written.
+     * Intercept {@link RemoteClassLoader#findClass(String)} to allow unittests to be written.
      *
      * See JENKINS-6604 and similar issues
      */
