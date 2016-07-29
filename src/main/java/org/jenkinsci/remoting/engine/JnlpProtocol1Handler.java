@@ -113,7 +113,7 @@ public class JnlpProtocol1Handler extends LegacyJnlpProtocolHandler<LegacyJnlpCo
         properties.put(JnlpConnectionState.CLIENT_NAME_KEY, clientName);
         state.fireAfterProperties(properties);
         PrintWriter out = state.getPrintWriter();
-        out.println(Engine.GREETING_SUCCESS);
+        out.println(GREETING_SUCCESS);
         out.flush();
     }
 

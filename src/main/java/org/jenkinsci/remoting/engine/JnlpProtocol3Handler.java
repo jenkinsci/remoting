@@ -198,7 +198,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         HandshakeCiphers handshakeCiphers = HandshakeCiphers.create(clientName, secretKey);
 
         String challenge = handshakeCiphers.decrypt(
-                request.getProperty(JnlpProtocol3.CHALLENGE_KEY));
+                request.getProperty(CHALLENGE_KEY));
 
         // Send agent challenge response.
         String challengeResponse = Jnlp3Util.createChallengeResponse(challenge);
