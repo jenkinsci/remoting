@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel.Mode;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -34,7 +35,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -46,6 +46,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
+import org.jenkinsci.remoting.engine.JnlpConnectionState;
+import org.jenkinsci.remoting.engine.JnlpConnectionStateListener;
 import org.jenkinsci.remoting.engine.JnlpProtocol;
 import org.jenkinsci.remoting.engine.JnlpProtocolFactory;
 
@@ -62,6 +64,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.engine.JnlpProtocolHandler;
+import org.jenkinsci.remoting.engine.JnlpProtocolHandlerFactory;
+import org.jenkinsci.remoting.protocol.IOHub;
 
 import static java.util.logging.Level.INFO;
 import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
@@ -194,11 +199,43 @@ public class Engine extends Thread {
         events.remove(el);
     }
 
-    @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     @Override
     public void run() {
+        try {
+            IOHub hub = IOHub.create(executor);
+            try {
+                SSLContext context;
+                // prepare our SSLContext
+                try {
+                    context = SSLContext.getInstance("TLS");
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Java runtime specification requires support for TLS algorithm", e);
+                }
+                try {
+                    context.init(null, null, null);
+                } catch (KeyManagementException e) {
+                    events.error(e);
+                    return;
+                }
+                innerRun(hub, context, executor);
+            } finally {
+                hub.close();
+            }
+        } catch (IOException e) {
+            events.error(e);
+        }
+    }
+
+    @SuppressWarnings({"ThrowableInstanceNeverThrown"})
+    private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
         // Create the protocols that will be attempted to connect to the master.
-        List<JnlpProtocol> protocols = JnlpProtocolFactory.createProtocols(secretKey, slaveName, events);
+        List<JnlpProtocolHandler> protocols = new JnlpProtocolHandlerFactory(service)
+                .withIOHub(hub)
+                .withSSLContext(context)
+                .handlers();
+        Map<String,String> headers = new HashMap<String,String>();
+        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, slaveName);
+        headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
 
         try {
             boolean first = true;
@@ -265,14 +302,11 @@ public class Engine extends Thread {
 
                 events.status("Handshaking");
                 Socket jnlpSocket = connect(host,port);
-                ChannelBuilder channelBuilder = new ChannelBuilder("channel", executor)
-                        .withJarCache(jarCache)
-                        .withMode(Mode.BINARY);
                 Channel channel = null;
 
                 // Try available protocols.
                 boolean triedAtLeastOneProtocol = false;
-                for (JnlpProtocol protocol : protocols) {
+                for (JnlpProtocolHandler<?>  protocol : protocols) {
                     if (!protocol.isEnabled()) {
                         events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
                         continue;
@@ -280,7 +314,22 @@ public class Engine extends Thread {
                     triedAtLeastOneProtocol = true;
                     events.status("Trying protocol: " + protocol.getName());
                     try {
-                        channel = protocol.establishChannel(jnlpSocket, channelBuilder);
+                        channel = protocol.connect(jnlpSocket, headers, new JnlpConnectionStateListener(){
+                            @Override
+                            public void afterProperties(@NonNull JnlpConnectionState event) {
+                                event.approve();
+                            }
+
+                            @Override
+                            public void beforeChannel(@NonNull JnlpConnectionState event) {
+                                event.getChannelBuilder().withJarCache(jarCache).withMode(Mode.BINARY);
+                            }
+
+                            @Override
+                            public void afterChannel(@NonNull JnlpConnectionState event) {
+
+                            }
+                        }).get();
                     } catch (IOException ioe) {
                         events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
                     } catch (RuntimeException e) {

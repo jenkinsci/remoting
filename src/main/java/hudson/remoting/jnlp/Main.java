@@ -233,6 +233,7 @@ public class Main {
                     LOGGER.log(Level.WARNING, "Could not parse X.509 certificate from " + certOrAtFilename, e);
                 }
             }
+            engine.setCandidateCertificates(certificates);
         }
         return engine;
     }

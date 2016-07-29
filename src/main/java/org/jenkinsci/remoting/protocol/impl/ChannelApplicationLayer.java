@@ -39,6 +39,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import javax.annotation.Nullable;
 import org.jenkinsci.remoting.protocol.ApplicationLayer;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
 import org.jenkinsci.remoting.util.SettableFuture;
@@ -63,7 +64,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
     /**
      * The transport used by the {@link Channel} or {@code null} if we have not completed {@link Capability} exchange.
      */
-    @CheckForNull
+    @Nullable
     private AbstractByteBufferCommandTransport transport;
     /**
      * The {@link Channel} or {@code null} if we have not completed {@link Capability} exchange.
