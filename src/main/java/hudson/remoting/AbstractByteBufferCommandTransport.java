@@ -141,7 +141,6 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         while (data.hasRemaining() || readState == READ_STATE_COMMAND_READY) {
             switch (readState) {
                 case READ_STATE_NEED_HEADER:
-                    readCommandSizes[readCommandIndex] = 0;
                     if (data.remaining() >= 2) {
                         // jump straight to state 2
                         readFrameHeader = ChunkHeader.read(data);
