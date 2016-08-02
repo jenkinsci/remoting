@@ -68,6 +68,44 @@ public class ByteBufferQueueInputStreamTest {
     }
 
     @Test
+    public void readBytes() throws Exception {
+        String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
+
+        ByteBufferQueue queue = new ByteBufferQueue(10);
+        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue);
+
+        byte[] bytes = new byte[10];
+        assertThat(instance.read(bytes), is(10));
+        assertThat(new String(bytes, Charsets.UTF_8), is("AbCdEfGhIj"));
+        assertThat(instance.read(bytes), is(10));
+        assertThat(new String(bytes, Charsets.UTF_8), is("KlMnOpQrSt"));
+        assertThat(instance.read(bytes), is(6));
+        assertThat(new String(bytes, Charsets.UTF_8), is("UvWxYzQrSt"));
+    }
+
+    @Test
+    public void readBytesOffset() throws Exception {
+        String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
+
+        ByteBufferQueue queue = new ByteBufferQueue(10);
+        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue);
+
+        byte[] bytes = new byte[10];
+        assertThat(instance.read(bytes,5,3), is(3));
+        assertThat(new String(bytes, Charsets.UTF_8), is("\u0000\u0000\u0000\u0000\u0000AbC\u0000\u0000"));
+        assertThat(instance.read(bytes, 0, 2), is(2));
+        assertThat(new String(bytes, Charsets.UTF_8), is("dE\u0000\u0000\u0000AbC\u0000\u0000"));
+        assertThat(instance.read(bytes, 2, 8), is(8));
+        assertThat(new String(bytes, Charsets.UTF_8), is("dEfGhIjKlM"));
+        assertThat(instance.read(bytes, 2, 8), is(8));
+        assertThat(new String(bytes, Charsets.UTF_8), is("dEnOpQrStU"));
+        assertThat(instance.read(bytes, 2, 8), is(5));
+        assertThat(new String(bytes, Charsets.UTF_8), is("dEvWxYzStU"));
+    }
+
+    @Test
     public void skipRead() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 

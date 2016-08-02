@@ -74,7 +74,7 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public int read() throws IOException {
-        if (length != -1 && pos > length) {
+        if (length != -1 && pos >= length) {
             return -1;
         }
         try {
@@ -88,7 +88,7 @@ public class ByteBufferQueueInputStream extends InputStream {
                     mark = null;
                 }
             }
-            return b;
+            return b & 0xff;
         } catch (BufferUnderflowException e) {
             return -1;
         }
@@ -99,28 +99,38 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public int read(byte[] b) throws IOException {
-        if (length != -1 && pos > length) {
-            return -1;
-        }
-        ByteBuffer buffer = ByteBuffer.wrap(b);
-        if (length != -1 && buffer.limit() > length - pos) {
-            buffer.limit(length - pos + 1);
+        ByteBuffer buffer;
+        if (length != -1 && pos >= length) {
+            int rem = length - pos;
+            if (rem <= 0) {
+                return -1;
+            } else if (b.length > rem) {
+                buffer = ByteBuffer.wrap(b, 0, rem);
+            } else {
+                buffer = ByteBuffer.wrap(b);
+            }
+        } else {
+            buffer = ByteBuffer.wrap(b);
         }
         queue.get(buffer);
-        if (buffer.position() == 0) {
+        int read = buffer.position();
+        if (read <= 0) {
             return -1;
         }
-        pos += buffer.position();
+        pos += read;
         if (mark != null) {
-            if (mark.remaining() > buffer.position()) {
-                buffer.flip();
+            if (mark.remaining() > read) {
+                int oldLimit = buffer.limit();
+                buffer.limit(buffer.position());
+                buffer.position(0);
                 mark.put(buffer);
+                buffer.limit(oldLimit);
             } else {
                 // mark was invalidated as there was more data than reserved
                 mark = null;
             }
         }
-        return buffer.position();
+        return read;
     }
 
     /**
@@ -128,28 +138,34 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-        if (length != -1 && pos >= length) {
-            return -1;
+        if (length != -1) {
+            int rem = length - pos;
+            if (rem <= 0) {
+                return -1;
+            } else if (len > rem) {
+                len = rem;
+            }
         }
         ByteBuffer buffer = ByteBuffer.wrap(b, off, len);
-        if (length != -1 && buffer.limit() > length - pos) {
-            buffer.limit(length - pos + 1);
-        }
         queue.get(buffer);
-        if (buffer.position() == 0) {
+        int read = buffer.position() - off;
+        if (read <= 0) {
             return -1;
         }
-        pos += buffer.position();
+        pos += read;
         if (mark != null) {
-            if (mark.remaining() > buffer.position()) {
-                buffer.flip();
+            if (mark.remaining() > read) {
+                int oldLimit = buffer.limit();
+                buffer.limit(buffer.position());
+                buffer.position(off);
                 mark.put(buffer);
+                buffer.limit(oldLimit);
             } else {
                 // mark was invalidated as there was more data than reserved
                 mark = null;
             }
         }
-        return buffer.position();
+        return read;
     }
 
     /**
@@ -161,7 +177,7 @@ public class ByteBufferQueueInputStream extends InputStream {
             if (pos >= length) {
                 return -1;
             }
-            if (pos + n > length) {
+            if (pos + n >= length) {
                 n = length - pos;
             }
         }
@@ -209,7 +225,7 @@ public class ByteBufferQueueInputStream extends InputStream {
         mark.flip();
         pos -= mark.remaining();
         queue.unget(mark);
-        mark.position(0);
+        mark.clear();
     }
 
     /**
