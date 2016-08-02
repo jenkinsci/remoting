@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 2.60
 
-Release date: (June 10, 2016) => Jenkins 2.9
+Release date: (June 10, 2016) => Jenkins 2.9, 2.7.2
 
 Fixed issues:
 * [JENKINS-22722](https://issues.jenkins-ci.org/browse/JENKINS-22722) - 
@@ -33,7 +33,7 @@ Enhancements:
 
 ##### 2.59
 
-Release date: (May 13, 2016) => Jenkins 2.4
+Release date: (May 13, 2016) => Jenkins 2.4, 2.7.1
 
 Enhancements:
 * [JENKINS-34819](https://issues.jenkins-ci.org/browse/JENKINS-34819) - 
@@ -42,7 +42,7 @@ Allow disabling the remoting protocols individually. Works around issues like [J
 
 ##### 2.58
 
-Release date: (May 11, 2016) => Jenkins 2.4
+Release date: (May 11, 2016) => Jenkins 2.4, 2.7.1
 
 Fixes issues:
 * [JENKINS-34213](https://issues.jenkins-ci.org/browse/JENKINS-34213) - 
