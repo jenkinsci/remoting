@@ -328,6 +328,11 @@ public class SSLEngineFilterLayer extends FilterLayer {
                 case NOT_HANDSHAKING: // $FALL-THROUGH$
                 case FINISHED:
                     appBuffer.clear();
+                    if (!tempBuffer.hasRemaining() && handshakeStatus != SSLEngineResult.HandshakeStatus.NEED_UNWRAP) {
+                        /* we need more data */
+                        done = true;
+                        break;
+                    }
                     result = sslEngine.unwrap(tempBuffer, appBuffer);
                     processResult(handshakeStatus, result);
 
