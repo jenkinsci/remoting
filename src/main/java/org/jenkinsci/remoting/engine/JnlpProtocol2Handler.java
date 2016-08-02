@@ -44,16 +44,17 @@ import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 
 /**
- * Implementation of the JNLP-connect protocol.
+ * Implementation of the JNLP2-connect protocol.
  *
- * The slave sends the master the slave name it wants to register as and the
- * computed HMAC of the slave name. If accepted the master will reply with a
- * confirmation response.
+ * This is an extension of the JNLP1-connect protocol. On successful
+ * connection to the master the slave will receive a cookie from the master,
+ * which the slave stores.
  *
- * This was the first protocol supported by Jenkins. JNLP slaves will use this
- * as a last resort when connecting to old versions of Jenkins masters.
+ * If the slave needs to reconnect it will send the same cookie as part of
+ * the new connection request. The master can use the cookie to determine if
+ * the incoming request is an initial connection request or a reconnection
+ * and take appropriate action.
  *
- * @author Akshay Dayal
  */
 @Deprecated
 public class JnlpProtocol2Handler extends LegacyJnlpProtocolHandler<LegacyJnlpConnectionState> {

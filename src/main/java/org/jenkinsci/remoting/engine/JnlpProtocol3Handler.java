@@ -25,7 +25,6 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
-import hudson.remoting.SocketChannelStream;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -54,16 +53,67 @@ import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
 import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
 
 /**
- * Implementation of the JNLP-connect protocol.
+ * Implementation of the JNLP3-connect protocol.
  *
- * The slave sends the master the slave name it wants to register as and the
- * computed HMAC of the slave name. If accepted the master will reply with a
- * confirmation response.
+ * <p>This protocol aims to provide a basic level of security for JNLP based
+ * slaves. Both the master and the slave securely authenticate each other and
+ * then setup an encrypted {@link Channel}.
  *
- * This was the first protocol supported by Jenkins. JNLP slaves will use this
- * as a last resort when connecting to old versions of Jenkins masters.
+ * <p>The slave secret is never exchanged, but instead used as a shared secret
+ * to generate matching symmetric key {@link javax.crypto.Cipher}s by both
+ * sides which are used to perform a secure handshake. During the handshake
+ * both the slave and the master send each other challenge phrases which can
+ * only be decrypted with the matching cipher created with the slave secret.
+ * Once decrypted the SHA-256 hash of the challenge is computed and sent back
+ * to authenticate.
  *
- * @author Akshay Dayal
+ * <p>Once the handshake is successful another pair of symmetric key ciphers
+ * are created by the slave using random keys. These are then shared with the
+ * master. These ciphers are used to create an encrypted channel by both sides.
+ *
+ * <p>The following goes over the handshake in more detail:
+ * <pre>
+ * Client                                                                Master
+ *           handshake ciphers = createFrom(slave name, slave secret)
+ *
+ *   |                                                                     |
+ *   |      initiate(slave name, encrypt(challenge), encrypt(cookie))      |
+ *   |  -------------------------------------------------------------->>>  |
+ *   |                                                                     |
+ *   |                       encrypt(hash(challenge))                      |
+ *   |  <<<--------------------------------------------------------------  |
+ *   |                                                                     |
+ *   |                          GREETING_SUCCESS                           |
+ *   |  -------------------------------------------------------------->>>  |
+ *   |                                                                     |
+ *   |                         encrypt(challenge)                          |
+ *   |  <<<--------------------------------------------------------------  |
+ *   |                                                                     |
+ *   |                       encrypt(hash(challenge))                      |
+ *   |  -------------------------------------------------------------->>>  |
+ *   |                                                                     |
+ *   |                          GREETING_SUCCESS                           |
+ *   |  <<<--------------------------------------------------------------  |
+ *   |                                                                     |
+ *   |                          encrypt(cookie)                            |
+ *   |  <<<--------------------------------------------------------------  |
+ *   |                                                                     |
+ *   |                  encrypt(AES key) + encrypt(IvSpec)                 |
+ *   |  -------------------------------------------------------------->>>  |
+ *   |                                                                     |
+ *
+ *              channel ciphers = createFrom(AES key, IvSpec)
+ *           channel = channelBuilder.createWith(channel ciphers)
+ * </pre>
+ *
+ * <p>The entire process assumes the slave secret has not been leaked
+ * beforehand and the slave obtains it in a secure manner.
+ *
+ * <p>The key sizes are only 128bit since it cannot be assumed everyone has
+ * the <a href="http://www.oracle.com/technetwork/java/javase/downloads/jce-6-download-429243.html">
+ * Java Cryptography Extension</a> available. In the future maybe the key
+ * size could be made a parameter or the implementation can check to see if
+ * 256bit sizes are supported.
  */
 @Deprecated
 public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3ConnectionState> {
@@ -88,17 +138,26 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         this.secretDatabase = secretDatabase;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
         return NAME;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Jnlp3ConnectionState createConnectionState(Socket socket, List<JnlpConnectionStateListener> listeners)
             throws IOException {
         return new Jnlp3ConnectionState(socket, listeners);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     void sendHandshake(Jnlp3ConnectionState state, Map<String, String> headers)
             throws IOException {
@@ -176,11 +235,14 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         state.setChannelCiphers(channelCiphers);
 
         cookie = handshakeCiphers.decrypt(readLine(inputStream));
-        Map<String,String> properties = new HashMap<String,String>();
+        Map<String, String> properties = new HashMap<String, String>();
         properties.put(JnlpConnectionState.COOKIE_KEY, cookie);
         state.fireAfterProperties(properties);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     void receiveHandshake(Jnlp3ConnectionState state, Map<String, String> headers) throws IOException {
         PrintWriter out = state.getPrintWriter();
@@ -217,7 +279,8 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         Map<String, String> properties = new HashMap<String, String>();
         properties.putAll((Map) request);
         if (properties.get(JnlpConnectionState.COOKIE_KEY) != null) {
-            properties.put(JnlpConnectionState.COOKIE_KEY, handshakeCiphers.decrypt(properties.get(JnlpConnectionState.COOKIE_KEY)));
+            properties.put(JnlpConnectionState.COOKIE_KEY,
+                    handshakeCiphers.decrypt(properties.get(JnlpConnectionState.COOKIE_KEY)));
         }
 
         // now validate the client
@@ -261,7 +324,9 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         StringBuilder buf = new StringBuilder();
         for (byte bb : bytes) {
             int b = bb & 0xFF;
-            if (b < 16) buf.append('0');
+            if (b < 16) {
+                buf.append('0');
+            }
             buf.append(Integer.toHexString(b));
         }
         return buf.toString();
@@ -276,7 +341,8 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         }
         return channelBuilder.build(
                 new CipherInputStream(state.getBufferedInputStream(), state.getChannelCiphers().getDecryptCipher()),
-                new CipherOutputStream(state.getSocket().getOutputStream(), state.getChannelCiphers().getEncryptCipher())
+                new CipherOutputStream(state.getSocket().getOutputStream(),
+                        state.getChannelCiphers().getEncryptCipher())
         );
     }
 
