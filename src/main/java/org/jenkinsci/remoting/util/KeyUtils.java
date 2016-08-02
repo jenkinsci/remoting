@@ -108,11 +108,8 @@ public final class KeyUtils {
                 if (i > 0) {
                     result.append(':');
                 }
-                int b = bytes[i] & 0xFF;
-                if (b < 16) {
-                    result.append('0');
-                }
-                result.append(Integer.toHexString(b));
+                result.append(Character.forDigit((bytes[i] >> 4) & 0x0f, 16));
+                result.append(Character.forDigit(bytes[i] & 0x0f, 16));
             }
             return result.toString();
         } catch (NoSuchAlgorithmException e) {
