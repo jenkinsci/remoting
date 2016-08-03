@@ -379,7 +379,7 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.2</version>
+        <version>3.0.4</version>
         <configuration>
           <xmlOutput>true</xmlOutput>
           <excludeFilterFile>${basedir}/src/findbugs-filter.xml</excludeFilterFile>
