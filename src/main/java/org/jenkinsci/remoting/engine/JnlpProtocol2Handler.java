@@ -24,20 +24,20 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
-import hudson.remoting.Engine;
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.jenkinsci.remoting.nio.NioChannelHub;
@@ -54,30 +54,51 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
  * the new connection request. The master can use the cookie to determine if
  * the incoming request is an initial connection request or a reconnection
  * and take appropriate action.
- *
  */
 @Deprecated
 public class JnlpProtocol2Handler extends LegacyJnlpProtocolHandler<LegacyJnlpConnectionState> {
 
-    static final String NAME = "JNLP2-connect";
+    /**
+     * Our logger.
+     */
+    private static final Logger LOGGER = Logger.getLogger(JnlpProtocol2Handler.class.getName());
 
-    public JnlpProtocol2Handler(@Nonnull ExecutorService threadPool, @Nullable NioChannelHub hub) {
-        super(threadPool, hub);
+    /**
+     * Constructor.
+     *
+     * @param clientDatabase the client database to use or {@code null} if client connections will not be required.
+     * @param threadPool     the {@link ExecutorService} to run tasks on.
+     * @param hub            the {@link NioChannelHub} to use or {@code null} to use blocking I/O.
+     */
+    public JnlpProtocol2Handler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
+                                @Nullable NioChannelHub hub) {
+        super(clientDatabase, threadPool, hub);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
-        return NAME;
+        return "JNLP2-connect";
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Nonnull
     @Override
-    public LegacyJnlpConnectionState createConnectionState(Socket socket, List<JnlpConnectionStateListener> listeners)
+    public LegacyJnlpConnectionState createConnectionState(@Nonnull Socket socket,
+                                                           @Nonnull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException {
         return new LegacyJnlpConnectionState(socket, listeners);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    void sendHandshake(LegacyJnlpConnectionState state, Map<String, String> headers) throws IOException {
+    void sendHandshake(@Nonnull LegacyJnlpConnectionState state, @Nonnull Map<String, String> headers) throws IOException {
         String secretKey = headers.get(JnlpConnectionState.SECRET_KEY);
         if (secretKey == null) {
             throw new ConnectionRefusalException("Client headers missing " + JnlpConnectionState.SECRET_KEY);
@@ -92,19 +113,20 @@ public class JnlpProtocol2Handler extends LegacyJnlpProtocolHandler<LegacyJnlpCo
         props.put(JnlpConnectionState.CLIENT_NAME_KEY, clientName);
 
         // If there is a cookie send that as well.
-        if (cookie != null)
+        if (cookie != null) {
             props.put(JnlpConnectionState.COOKIE_KEY, cookie);
+        }
         ByteArrayOutputStream o = new ByteArrayOutputStream();
         props.store(o, null);
 
         state.fireBeforeProperties();
         // Initiate the handshake.
         DataOutputStream outputStream = state.getDataOutputStream();
-        outputStream.writeUTF(PROTOCOL_PREFIX + NAME);
+        outputStream.writeUTF(PROTOCOL_PREFIX + getName());
         outputStream.writeUTF(o.toString("UTF-8"));
         outputStream.flush();
 
-        BufferedInputStream inputStream = state.getBufferedInputStream();
+        DataInputStream inputStream = state.getDataInputStream();
         // Check if the server accepted.
         String response = EngineUtil.readLine(inputStream);
         if (!response.equals(GREETING_SUCCESS)) {
@@ -116,14 +138,32 @@ public class JnlpProtocol2Handler extends LegacyJnlpProtocolHandler<LegacyJnlpCo
         state.fireAfterProperties(properties);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    void receiveHandshake(LegacyJnlpConnectionState state, Map<String, String> headers)
+    void receiveHandshake(@Nonnull LegacyJnlpConnectionState state, @Nonnull Map<String, String> headers)
             throws IOException {
         state.fireBeforeProperties();
         Properties request = new Properties();
         request.load(new ByteArrayInputStream(state.getDataInputStream().readUTF().getBytes("UTF-8")));
         Map<String, String> properties = new HashMap<String, String>();
-        properties.putAll((Map)request);
+        properties.putAll((Map) request);
+        String clientName = properties.get(JnlpConnectionState.CLIENT_NAME_KEY);
+        String secret = properties.remove(JnlpConnectionState.SECRET_KEY);
+        JnlpClientDatabase clientDatabase = getClientDatabase();
+        if (clientDatabase == null || !clientDatabase.exists(clientName)) {
+            throw new ConnectionRefusalException("Unknown client name: " + clientName);
+        }
+        String secretKey = clientDatabase.getSecretOf(clientName);
+        if (secretKey == null) {
+            throw new ConnectionRefusalException("Unknown client name: " + clientName);
+        }
+        if (!secretKey.equals(secret)) {
+            LOGGER.log(Level.WARNING, "An attempt was made to connect as {0} from {1} with an incorrect secret",
+                    new Object[]{clientName, state.getSocket().getRemoteSocketAddress()});
+            throw new ConnectionRefusalException("Authorization failure");
+        }
         state.fireAfterProperties(properties);
         PrintWriter out = state.getPrintWriter();
         out.println(GREETING_SUCCESS);
@@ -134,9 +174,13 @@ public class JnlpProtocol2Handler extends LegacyJnlpProtocolHandler<LegacyJnlpCo
         out.flush();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Nonnull
     @Override
-    Channel buildChannel(LegacyJnlpConnectionState state) throws IOException {
-        return state.getChannelBuilder().build(state.getBufferedInputStream(), state.getBufferedOutputStream());
+    Channel buildChannel(@Nonnull LegacyJnlpConnectionState state) throws IOException {
+        return state.getChannelBuilder().build(state.getSocket());
     }
 
 }

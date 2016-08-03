@@ -1,16 +1,20 @@
 package org.jenkinsci.remoting.engine;
 
+import hudson.remoting.SocketChannelStream;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.nio.charset.Charset;
 import java.util.List;
+import org.jenkinsci.remoting.util.Charsets;
 
 /**
  * @author Stephen Connolly
@@ -19,12 +23,13 @@ public class LegacyJnlpConnectionState extends JnlpConnectionState {
     /**
      * Wrapping Socket input stream.
      */
-    private final BufferedInputStream bufferedInputStream;
     private final BufferedOutputStream bufferedOutputStream;
     /**
      * Wrapping Socket input stream.
      */
-    private DataInputStream dataInputStream;
+    private final DataInputStream dataInputStream;
+    private final OutputStream socketOutputStream;
+    private final InputStream socketInputStream;
     private DataOutputStream dataOutputStream;
 
     /**
@@ -36,29 +41,31 @@ public class LegacyJnlpConnectionState extends JnlpConnectionState {
      */
     private PrintWriter printWriter;
 
-    public LegacyJnlpConnectionState(Socket socket, List<JnlpConnectionStateListener> listeners) throws IOException {
+    public LegacyJnlpConnectionState(Socket socket, List<? extends JnlpConnectionStateListener> listeners) throws IOException {
         super(socket, listeners);
-        this.bufferedInputStream = new BufferedInputStream(socket.getInputStream());
-        this.bufferedOutputStream = new BufferedOutputStream(socket.getOutputStream());
-        this.dataInputStream = new DataInputStream(bufferedInputStream);
+        socketOutputStream = SocketChannelStream.out(socket);
+        this.bufferedOutputStream = new BufferedOutputStream(socketOutputStream);
+        socketInputStream = SocketChannelStream.in(socket);
+        this.dataInputStream = new DataInputStream(socketInputStream);
         this.printWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8")), true);
     }
 
-    public BufferedInputStream getBufferedInputStream() {
-        return bufferedInputStream;
+    public OutputStream getSocketOutputStream() {
+        return socketOutputStream;
+    }
+
+    public InputStream getSocketInputStream() {
+        return socketInputStream;
     }
 
     public DataInputStream getDataInputStream() {
-        if (dataInputStream == null) {
-            dataInputStream = new DataInputStream(bufferedInputStream);
-        }
         return dataInputStream;
     }
 
     @Deprecated
     public PrintWriter getPrintWriter() {
         if (printWriter == null) {
-            printWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(bufferedOutputStream, Charset.forName("UTF-8"))), true);
+            printWriter = new PrintWriter(new OutputStreamWriter(bufferedOutputStream, Charsets.UTF_8), true);
         }
         return printWriter;
     }

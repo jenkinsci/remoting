@@ -11,7 +11,7 @@ public class Jnlp4ConnectionState extends JnlpConnectionState {
     private X509Certificate certificate;
 
     protected Jnlp4ConnectionState(@Nonnull Socket socket,
-                                   List<JnlpConnectionStateListener> listeners) {
+                                   List<? extends JnlpConnectionStateListener> listeners) {
         super(socket, listeners);
     }
 

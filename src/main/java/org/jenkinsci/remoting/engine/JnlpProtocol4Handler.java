@@ -14,7 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -32,6 +36,7 @@ import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
 import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 
 public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionState> {
+    private static final Logger LOGGER = Logger.getLogger(JnlpProtocol4Handler.class.getName());
     @Nonnull
     private final ExecutorService threadPool;
     @Nonnull
@@ -39,7 +44,9 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
     @Nonnull
     private final SSLContext context;
 
-    public JnlpProtocol4Handler(@Nonnull ExecutorService threadPool, @Nonnull IOHub ioHub, @Nonnull SSLContext context) {
+    public JnlpProtocol4Handler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
+                                @Nonnull IOHub ioHub, @Nonnull SSLContext context) {
+        super(clientDatabase);
         this.threadPool = threadPool;
         this.ioHub = ioHub;
         this.context = context;
@@ -53,8 +60,10 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         return "JNLP4-connect";
     }
 
+    @Nonnull
     @Override
-    public Jnlp4ConnectionState createConnectionState(Socket socket, List<JnlpConnectionStateListener> listeners) {
+    public Jnlp4ConnectionState createConnectionState(@Nonnull Socket socket,
+                                                      @Nonnull List<? extends JnlpConnectionStateListener> listeners) {
         return new Jnlp4ConnectionState(socket, listeners);
     }
 
@@ -65,14 +74,17 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
      * @param headers   the headers to send to the client.
      * @param listeners the listeners to process the connection.
      */
+    @Nonnull
     @Override
-    public Future<Channel> handle(Socket socket, Map<String, String> headers, List<JnlpConnectionStateListener> listeners)
+    public Future<Channel> handle(@Nonnull Socket socket, @Nonnull Map<String, String> headers,
+                                  @Nonnull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException {
         NetworkLayer networkLayer = createNetworkLayer(socket);
         SSLEngine engine = createSSLEngine(socket);
-        engine.setNeedClientAuth(true);
+        engine.setWantClientAuth(true);
+        engine.setNeedClientAuth(false);
         engine.setUseClientMode(false);
-        Handler handler = new Handler(createConnectionState(socket, listeners));
+        Handler handler = new Handler(createConnectionState(socket, listeners), getClientDatabase());
         return ProtocolStack.on(networkLayer)
                 .filter(new AckFilterLayer())
                 .filter(new SSLEngineFilterLayer(engine, handler))
@@ -85,12 +97,15 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
 
     /**
      * Handles an outgoing connection to the server on the supplied socket.
-     *  @param socket  the socket.
-     * @param headers the headers to send to the server.
+     *
+     * @param socket    the socket.
+     * @param headers   the headers to send to the server.
      * @param listeners the listeners to process the connection.
      */
+    @Nonnull
     @Override
-    public Future<Channel> connect(Socket socket, Map<String, String> headers, List<JnlpConnectionStateListener> listeners) throws IOException {
+    public Future<Channel> connect(@Nonnull Socket socket, @Nonnull Map<String, String> headers,
+                                   @Nonnull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
         NetworkLayer networkLayer = createNetworkLayer(socket);
         SSLEngine sslEngine = createSSLEngine(socket);
         sslEngine.setUseClientMode(true);
@@ -138,7 +153,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
     /**
      * Handles the state transitions for a connection.
      */
-    private static class Handler extends Channel.Listener implements SSLEngineFilterLayer.Listener,
+    private class Handler extends Channel.Listener implements SSLEngineFilterLayer.Listener,
             ConnectionHeadersFilterLayer.Listener, ChannelApplicationLayer.Listener, ProtocolStack.Listener,
             ChannelApplicationLayer.ChannelDecorator {
         /**
@@ -149,7 +164,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         /**
          * The remote {@link X509Certificate}.
          */
-        @edu.umd.cs.findbugs.annotations.Nullable
+        @CheckForNull
         private X509Certificate remoteCertificate;
         /**
          * The remote conection headers.
@@ -158,12 +173,36 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         private Map<String, String> remoteHeaders;
 
         /**
-         * Internal constructor.
+         * The client database used when {@link JnlpProtocol4Handler#handle(Socket, Map, List)} is handling a client.
+         */
+        private JnlpClientDatabase clientDatabase;
+
+        /**
+         * {@code true} when invoked from {@link JnlpProtocol4Handler#connect(Socket, Map, List)}, {@code false} when
+         * invoked from {@link JnlpProtocol4Handler#handle(Socket, Map, List)}.
+         */
+        private boolean client;
+
+        /**
+         * Internal constructor for {@link JnlpProtocol4Handler#connect(Socket, Map, List)}.
          *
          * @param event the event.
          */
         Handler(Jnlp4ConnectionState event) {
             this.event = event;
+            this.client = true;
+        }
+
+        /**
+         * Internal constructor for {@link JnlpProtocol4Handler#handle(Socket, Map, List)}.
+         *
+         * @param event          the event.
+         * @param clientDatabase the client database.
+         */
+        Handler(@NonNull Jnlp4ConnectionState event, JnlpClientDatabase clientDatabase) {
+            this.event = event;
+            this.clientDatabase = clientDatabase;
+            this.client = false;
         }
 
         /**
@@ -178,9 +217,8 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                 throw new ConnectionRefusalException("Unsupported server certificate type", e);
             } catch (SSLPeerUnverifiedException e) {
                 // shouldn't happen as handshake is completed, but just in case
-                throw new ConnectionRefusalException("Server certificate unverified", e);
+                remoteCertificate = null;
             }
-            assert remoteCertificate != null;
             event.fireBeforeProperties(remoteCertificate);
         }
 
@@ -189,7 +227,21 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          */
         @Override
         public void onReceiveHeaders(Map<String, String> headers) throws ConnectionRefusalException {
-            assert remoteCertificate != null;
+            if (!client) {
+                String clientName = headers.get(JnlpConnectionState.CLIENT_NAME_KEY);
+                if (clientDatabase == null || !clientDatabase.exists(clientName)) {
+                    throw new ConnectionRefusalException("Unknown client name: " + clientName);
+                }
+                String secretKey = clientDatabase.getSecretOf(clientName);
+                if (secretKey == null) {
+                    throw new ConnectionRefusalException("Unknown client name: " + clientName);
+                }
+                if (!secretKey.equals(headers.get(JnlpConnectionState.SECRET_KEY))) {
+                    LOGGER.log(Level.WARNING, "An attempt was made to connect as {0} from {1} with an incorrect secret",
+                            new Object[]{clientName, event.getSocket().getRemoteSocketAddress()});
+                    throw new ConnectionRefusalException("Authorization failure");
+                }
+            }
             event.fireAfterProperties(headers);
         }
 
@@ -197,11 +249,17 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@inheritDoc}
          */
         @Override
-        public void onChannel(@NonNull Channel channel) {
-            assert remoteCertificate != null;
+        public void onChannel(@NonNull final Channel channel) {
             assert remoteHeaders != null;
             channel.addListener(this);
-            event.fireAfterChannel(channel);
+            threadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    if (!channel.isClosingOrClosed()) {
+                        event.fireAfterChannel(channel);
+                    }
+                }
+            });
         }
 
         /**
@@ -210,7 +268,6 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         @Override
         @NonNull
         public ChannelBuilder decorate(@NonNull ChannelBuilder builder) {
-            assert remoteCertificate != null;
             assert remoteHeaders != null;
             event.fireBeforeChannel(builder);
             return event.getChannelBuilder();
@@ -221,9 +278,13 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          */
         @Override
         public void onClosed(Channel channel, IOException cause) {
-            assert remoteCertificate != null;
             assert remoteHeaders != null;
             event.fireChannelClosed(cause);
+            try {
+                event.getSocket().close();
+            } catch (IOException e) {
+                // ignore
+            }
         }
 
         /**
@@ -235,6 +296,11 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                 event.fireAfterDisconnect();
             } finally {
                 stack.removeListener(this);
+                try {
+                    event.getSocket().close();
+                } catch (IOException e) {
+                    // ignore
+                }
             }
         }
     }

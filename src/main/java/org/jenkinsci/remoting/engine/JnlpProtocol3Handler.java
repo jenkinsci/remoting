@@ -25,21 +25,27 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
-import java.io.BufferedInputStream;
+import hudson.remoting.SocketChannelStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.crypto.CipherInputStream;
@@ -118,6 +124,10 @@ import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
 @Deprecated
 public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3ConnectionState> {
 
+    /**
+     * Our logger.
+     */
+    private static final Logger LOGGER = Logger.getLogger(JnlpProtocol3Handler.class.getName());
     private static final Random RANDOM = new SecureRandom();
     static final String COOKIE_NAME = "org.jenkinsci.remoting.engine.JnlpProtocol3.cookie";
     public static final String CHALLENGE_KEY = "Challenge";
@@ -130,12 +140,10 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
     /*package*/ static final String NEGOTIATE_LINE = "Negotiate";
     static final String NAME = "JNLP3-connect";
 
-    private final SecretDatabase secretDatabase;
 
-    public JnlpProtocol3Handler(@Nonnull ExecutorService threadPool, @Nullable NioChannelHub hub,
-                                @Nullable SecretDatabase secretDatabase) {
-        super(threadPool, hub);
-        this.secretDatabase = secretDatabase;
+    public JnlpProtocol3Handler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
+                                @Nullable NioChannelHub hub) {
+        super(clientDatabase, threadPool, hub);
     }
 
     /**
@@ -149,8 +157,10 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
-    public Jnlp3ConnectionState createConnectionState(Socket socket, List<JnlpConnectionStateListener> listeners)
+    public Jnlp3ConnectionState createConnectionState(@Nonnull Socket socket,
+                                                      @Nonnull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException {
         return new Jnlp3ConnectionState(socket, listeners);
     }
@@ -159,7 +169,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
      * {@inheritDoc}
      */
     @Override
-    void sendHandshake(Jnlp3ConnectionState state, Map<String, String> headers)
+    void sendHandshake(@Nonnull Jnlp3ConnectionState state, @Nonnull Map<String, String> headers)
             throws IOException {
         String secretKey = headers.get(JnlpConnectionState.SECRET_KEY);
         if (secretKey == null) {
@@ -190,14 +200,19 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         outputStream.writeUTF(o.toString("UTF-8"));
         outputStream.flush();
 
-        BufferedInputStream inputStream = state.getBufferedInputStream();
+        InputStream inputStream = state.getSocketInputStream();
         String protocolUnderstoodResponse = readLine(inputStream);
         if (!protocolUnderstoodResponse.equals(NEGOTIATE_LINE)) {
             throw new ConnectionRefusalException("Server didn't accept the handshake: " + protocolUnderstoodResponse);
         }
 
         // Validate challenge response.
-        Integer challengeResponseLength = Integer.parseInt(readLine(inputStream));
+        int challengeResponseLength;
+        try {
+            challengeResponseLength = Integer.parseInt(readLine(inputStream));
+        } catch (NumberFormatException e) {
+            throw new ConnectionRefusalException(NAME + ": Incorrect challenge response from master");
+        }
         String encryptedChallengeResponse = readChars(inputStream, challengeResponseLength);
         String challengeResponse = handshakeCiphers.decrypt(encryptedChallengeResponse);
         if (!Jnlp3Util.validateChallengeResponse(challenge, challengeResponse)) {
@@ -244,16 +259,22 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
      * {@inheritDoc}
      */
     @Override
-    void receiveHandshake(Jnlp3ConnectionState state, Map<String, String> headers) throws IOException {
-        PrintWriter out = state.getPrintWriter();
-        out.println(NEGOTIATE_LINE);
+    void receiveHandshake(@Nonnull Jnlp3ConnectionState state, @Nonnull Map<String, String> headers) throws IOException {
+        OutputStream bytesOut = state.getSocketOutputStream();
+        bytesOut.write(NEGOTIATE_LINE.getBytes(Charsets.UTF_8));
+        bytesOut.write('\n');
+        bytesOut.flush();
 
         // Get initiation information from slave.
         Properties request = new Properties();
         DataInputStream in = state.getDataInputStream();
         request.load(new ByteArrayInputStream(in.readUTF().getBytes(Charsets.UTF_8)));
         String clientName = request.getProperty(JnlpConnectionState.CLIENT_NAME_KEY);
-        String secretKey = secretDatabase == null ? null : secretDatabase.lookup(clientName);
+        JnlpClientDatabase clientDatabase = getClientDatabase();
+        if (clientDatabase == null || !clientDatabase.exists(clientName)) {
+            throw new ConnectionRefusalException("Unknown client name: " + clientName);
+        }
+        String secretKey = clientDatabase.getSecretOf(clientName);
         if (secretKey == null) {
             throw new ConnectionRefusalException("Unknown client name: " + clientName);
         }
@@ -265,15 +286,24 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         // Send agent challenge response.
         String challengeResponse = Jnlp3Util.createChallengeResponse(challenge);
         String encryptedChallengeResponse = handshakeCiphers.encrypt(challengeResponse);
-        out.println(encryptedChallengeResponse.getBytes(Charsets.UTF_8).length);
-        out.print(encryptedChallengeResponse);
-        out.flush();
+        byte[] bytes = encryptedChallengeResponse.getBytes(Charsets.UTF_8);
+        bytesOut.write(Integer.toString(bytes.length).getBytes(Charsets.UTF_8));
+        bytesOut.write('\n');
+        bytesOut.write(bytes);
+        bytesOut.flush();
 
         // If the slave accepted our challenge response send our challenge.
-        String challengeVerificationMessage = in.readUTF();
+        String challengeVerificationMessage = null;
+        try {
+            challengeVerificationMessage = in.readUTF();
+        } catch (EOFException e) {
+            throw new ConnectionRefusalException("Agent did not accept our challenge response");
+        }
         if (!challengeVerificationMessage.equals(GREETING_SUCCESS)) {
             throw new ConnectionRefusalException("Agent did not accept our challenge response");
         }
+
+        state.fireBeforeProperties();
 
         // If there is a cookie decrypt it.
         Map<String, String> properties = new HashMap<String, String>();
@@ -286,24 +316,46 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         // now validate the client
         String masterChallenge = Jnlp3Util.generateChallenge();
         String encryptedMasterChallenge = handshakeCiphers.encrypt(masterChallenge);
-        out.println(encryptedMasterChallenge.getBytes(Charsets.UTF_8).length);
-        out.print(encryptedMasterChallenge);
-        out.flush();
+        bytes = encryptedMasterChallenge.getBytes(Charsets.UTF_8);
+        bytesOut.write(Integer.toString(bytes.length).getBytes(Charsets.UTF_8));
+        bytesOut.write('\n');
+        bytesOut.write(bytes);
+        bytesOut.flush();
 
         // Verify the challenge response from the agent.
         String encryptedMasterChallengeResponse = in.readUTF();
         String masterChallengeResponse = handshakeCiphers.decrypt(
                 encryptedMasterChallengeResponse);
         if (!Jnlp3Util.validateChallengeResponse(masterChallenge, masterChallengeResponse)) {
+            LOGGER.log(Level.WARNING, "An attempt was made to connect as {0} from {1} with an incorrect secret",
+                    new Object[]{clientName, state.getSocket().getRemoteSocketAddress()});
             throw new ConnectionRefusalException("Incorrect master challenge response from agent");
         }
         state.fireAfterProperties(properties);
         // Send greeting and new cookie.
-        out.println(GREETING_SUCCESS);
-        String newCookie = generateCookie();
-        state.setNewCookie(newCookie);
-        out.println(handshakeCiphers.encrypt(newCookie));
-        out.flush();
+        bytesOut.write(GREETING_SUCCESS.getBytes(Charsets.UTF_8));
+        bytesOut.write('\n');
+        // JENKINS-37140 the protocol cannot handle encrypted cookies that contain a '\n', i.e. approx 22% of them
+        // we loop up to 100 times
+        outer: for (int loopCount = 0; loopCount < 110; loopCount++) {
+            if (loopCount >= 100) {
+                // ok so a 0.22^100 chance happened... we'd be really unlucky if we ever get here again in the
+                // age of the universe
+                throw new IOException("JENKINS-37140 got really unlucky with the random number generator");
+            }
+            String newCookie = generateCookie();
+            bytes = handshakeCiphers.encrypt(newCookie).getBytes(Charsets.UTF_8);
+            for (byte b : bytes) {
+                if (b == '\n') {
+                    continue outer;
+                }
+            }
+            state.setNewCookie(newCookie);
+            break;
+        }
+        bytesOut.write(bytes);
+        bytesOut.write('\n');
+        bytesOut.flush();
 
         // Now get the channel cipher information.
         String aesKeyString = handshakeCiphers.decrypt(in.readUTF());
@@ -320,33 +372,30 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
     }
 
     @Nonnull
-    private String toHexString(@Nonnull byte[] bytes) {
+    private static String toHexString(@Nonnull byte[] bytes) {
         StringBuilder buf = new StringBuilder();
         for (byte bb : bytes) {
-            int b = bb & 0xFF;
-            if (b < 16) {
-                buf.append('0');
-            }
-            buf.append(Integer.toHexString(b));
+            buf.append(Character.forDigit((bb >> 4) & 0x0f, 16));
+            buf.append(Character.forDigit(bb & 0x0f, 16));
         }
         return buf.toString();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Nonnull
     @Override
-    Channel buildChannel(Jnlp3ConnectionState state) throws IOException {
+    Channel buildChannel(@Nonnull Jnlp3ConnectionState state) throws IOException {
         ChannelBuilder channelBuilder = state.getChannelBuilder();
         String newCookie = state.getNewCookie();
         if (newCookie != null) {
             channelBuilder.withProperty(COOKIE_NAME, newCookie);
         }
         return channelBuilder.build(
-                new CipherInputStream(state.getBufferedInputStream(), state.getChannelCiphers().getDecryptCipher()),
-                new CipherOutputStream(state.getSocket().getOutputStream(),
-                        state.getChannelCiphers().getEncryptCipher())
+                new CipherInputStream(state.getSocketInputStream(), state.getChannelCiphers().getDecryptCipher()),
+                new CipherOutputStream(state.getSocketOutputStream(), state.getChannelCiphers().getEncryptCipher())
         );
     }
 
-    public interface SecretDatabase {
-        String lookup(String clientName);
-    }
 }

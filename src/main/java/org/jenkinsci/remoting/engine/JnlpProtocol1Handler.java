@@ -24,10 +24,7 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
-import hudson.remoting.ChannelBuilder;
-import hudson.remoting.Engine;
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -36,6 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.jenkinsci.remoting.nio.NioChannelHub;
@@ -51,31 +50,52 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
  * This was the first protocol supported by Jenkins. JNLP slaves will use this
  * as a last resort when connecting to old versions of Jenkins masters.
  *
- * @author Akshay Dayal
+ * @since FIXME
  */
 @Deprecated
 public class JnlpProtocol1Handler extends LegacyJnlpProtocolHandler<LegacyJnlpConnectionState> {
 
-    static final String NAME = "JNLP-connect";
+    /**
+     * Our logger.
+     */
+    private static final Logger LOGGER = Logger.getLogger(JnlpProtocol1Handler.class.getName());
 
-    public JnlpProtocol1Handler(@Nonnull ExecutorService threadPool,
+    /**
+     * Constructor.
+     *
+     * @param clientDatabase the client database to use or {@code null} if client connections will not be required.
+     * @param threadPool     the {@link ExecutorService} to run tasks on.
+     * @param hub            the {@link NioChannelHub} to use or {@code null} to use blocking I/O.
+     */
+    public JnlpProtocol1Handler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
                                 @Nullable NioChannelHub hub) {
-        super(threadPool, hub);
+        super(clientDatabase, threadPool, hub);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
-        return NAME;
+        return "JNLP-connect";
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Nonnull
     @Override
-    public LegacyJnlpConnectionState createConnectionState(Socket socket, List<JnlpConnectionStateListener> listeners)
+    public LegacyJnlpConnectionState createConnectionState(@Nonnull Socket socket,
+                                                           @Nonnull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException {
         return new LegacyJnlpConnectionState(socket, listeners);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    void sendHandshake(LegacyJnlpConnectionState state, Map<String, String> headers)
+    void sendHandshake(@Nonnull LegacyJnlpConnectionState state, @Nonnull Map<String, String> headers)
             throws IOException, ConnectionRefusalException {
         String secretKey = headers.get(JnlpConnectionState.SECRET_KEY);
         if (secretKey == null) {
@@ -88,38 +108,57 @@ public class JnlpProtocol1Handler extends LegacyJnlpProtocolHandler<LegacyJnlpCo
         // Initiate the handshake.
         state.fireBeforeProperties();
         DataOutputStream outputStream = state.getDataOutputStream();
-        outputStream.writeUTF(PROTOCOL_PREFIX + NAME);
+        outputStream.writeUTF(PROTOCOL_PREFIX + getName());
         outputStream.writeUTF(secretKey);
         outputStream.writeUTF(clientName);
         outputStream.flush();
 
-        BufferedInputStream inputStream = state.getBufferedInputStream();
+        DataInputStream inputStream = state.getDataInputStream();
         // Check if the server accepted.
         String response = EngineUtil.readLine(inputStream);
         if (!response.equals(GREETING_SUCCESS)) {
             throw new ConnectionRefusalException("Server didn't accept the handshake: " + response);
         }
         // we don't get any headers from the server in JNLP-connect
-        state.fireAfterProperties(new HashMap<String,String>());
+        state.fireAfterProperties(new HashMap<String, String>());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    void receiveHandshake(LegacyJnlpConnectionState state, Map<String,String> headers) throws IOException {
+    void receiveHandshake(@Nonnull LegacyJnlpConnectionState state, @Nonnull Map<String, String> headers) throws IOException {
         state.fireBeforeProperties();
         final String secret = state.getDataInputStream().readUTF();
         final String clientName = state.getDataInputStream().readUTF();
         Map<String, String> properties = new HashMap<String, String>();
-        properties.put(JnlpConnectionState.SECRET_KEY, secret);
         properties.put(JnlpConnectionState.CLIENT_NAME_KEY, clientName);
+        JnlpClientDatabase clientDatabase = getClientDatabase();
+        if (clientDatabase == null || !clientDatabase.exists(clientName)) {
+            throw new ConnectionRefusalException("Unknown client name: " + clientName);
+        }
+        String secretKey = clientDatabase.getSecretOf(clientName);
+        if (secretKey == null) {
+            throw new ConnectionRefusalException("Unknown client name: " + clientName);
+        }
+        if (!secretKey.equals(secret)) {
+            LOGGER.log(Level.WARNING, "An attempt was made to connect as {0} from {1} with an incorrect secret",
+                    new Object[]{clientName, state.getSocket().getRemoteSocketAddress()});
+            throw new ConnectionRefusalException("Authorization failure");
+        }
         state.fireAfterProperties(properties);
         PrintWriter out = state.getPrintWriter();
         out.println(GREETING_SUCCESS);
         out.flush();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Nonnull
     @Override
-    Channel buildChannel(LegacyJnlpConnectionState state) throws IOException {
-        return state.getChannelBuilder().build(state.getBufferedInputStream(), state.getBufferedOutputStream());
+    Channel buildChannel(@Nonnull LegacyJnlpConnectionState state) throws IOException {
+        return state.getChannelBuilder().build(state.getSocket());
     }
 
 }

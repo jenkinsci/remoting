@@ -14,7 +14,7 @@ public class Jnlp3ConnectionState extends LegacyJnlpConnectionState {
     private String newCookie;
 
     protected Jnlp3ConnectionState(@Nonnull Socket socket,
-                                   List<JnlpConnectionStateListener> listeners) throws IOException {
+                                   List<? extends JnlpConnectionStateListener> listeners) throws IOException {
         super(socket, listeners);
     }
 

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -74,8 +75,14 @@ public class JnlpConnectionState {
      * The current state in the event lifecycle.
      */
     private State lifecycle = State.INITIALIZED;
+    /**
+     * Any connection specific state that the listener that has {@link #approve()} for the connection wants to
+     * track between callbacks.
+     */
+    @CheckForNull
+    private ListenerState stash;
 
-    protected JnlpConnectionState(@Nonnull Socket socket, List<JnlpConnectionStateListener> listeners) {
+    protected JnlpConnectionState(@Nonnull Socket socket, List<? extends JnlpConnectionStateListener> listeners) {
         this.socket = socket;
         this.listeners = new ArrayList<JnlpConnectionStateListener>(listeners);
     }
@@ -220,6 +227,20 @@ public class JnlpConnectionState {
         rejection = reason;
     }
 
+    public <S extends ListenerState> S stash() {
+        if (lifecycle.compareTo(State.APPROVED) < 0) {
+            throw new IllegalStateException("The connection has not been approved yet");
+        }
+        return (S) stash;
+    }
+
+    public <S extends ListenerState> void stash(S stash) {
+        if (lifecycle.compareTo(State.APPROVED) < 0) {
+            throw new IllegalStateException("The connection has not been approved yet");
+        }
+        this.stash = stash;
+    }
+
     /**
      * Encapsulates the common event dispatch logic.
      *
@@ -283,6 +304,7 @@ public class JnlpConnectionState {
         if (lifecycle != State.BEFORE_PROPERTIES) {
             throw new IllegalStateException("fireAfterProperties cannot be invoked at lifecycle " + lifecycle);
         }
+        this.properties = new HashMap<String, String>(properties);
         lifecycle = State.AFTER_PROPERTIES;
         // TODO fire(JnlpConnectionStateListener::afterProperties);
         fire(new EventHandler() {
@@ -350,7 +372,7 @@ public class JnlpConnectionState {
      * @param cause
      */
     /*package*/ void fireChannelClosed(IOException cause) {
-        if (lifecycle != State.AFTER_CHANNEL) {
+        if (lifecycle.compareTo(State.BEFORE_CHANNEL) < 0) {
             throw new IllegalStateException("fireChannelClosed cannot be invoked at lifecycle " + lifecycle);
         }
         closeCause = cause;
@@ -438,5 +460,9 @@ public class JnlpConnectionState {
          * The socket has been closed.
          */
         DISCONNECTED
+    }
+
+    public interface ListenerState {
+
     }
 }

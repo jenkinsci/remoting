@@ -29,12 +29,27 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
      * Prefix when sending protocol name.
      */
     /*package*/ static final String PROTOCOL_PREFIX = "Protocol:";
+    /**
+     * The thread pool we can use for executing tasks.
+     */
     @Nonnull
     private final ExecutorService threadPool;
+    /**
+     * The {@link NioChannelHub} to use for I/O, if {@code null} then we will have to use blocking I/O.
+     */
     @Nullable // if we don't have a hub we will use blocking I/O
     private final NioChannelHub hub;
 
-    public LegacyJnlpProtocolHandler(@Nonnull ExecutorService threadPool, @Nullable NioChannelHub hub) {
+    /**
+     * Constructor.
+     *
+     * @param clientDatabase the client database to use or {@code null} if client connections will not be required.
+     * @param threadPool     the {@link ExecutorService} to run tasks on.
+     * @param hub            the {@link NioChannelHub} to use or {@code null} to use blocking I/O.
+     */
+    public LegacyJnlpProtocolHandler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
+                                     @Nullable NioChannelHub hub) {
+        super(clientDatabase);
         this.threadPool = threadPool;
         this.hub = hub;
     }
@@ -42,9 +57,10 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
-    public Future<Channel> handle(final Socket socket, final Map<String, String> headers,
-                                  List<JnlpConnectionStateListener> listeners)
+    public Future<Channel> handle(@Nonnull final Socket socket, @Nonnull final Map<String, String> headers,
+                                  @Nonnull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException {
         final STATE state = createConnectionState(socket, listeners);
         return threadPool.submit(new Callable<Channel>() {
@@ -78,6 +94,14 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
                     }
                     state.fireAfterDisconnect();
                     throw e;
+                } catch (IllegalStateException e) {
+                    try {
+                        socket.close();
+                    } catch (IOException e1) {
+                        ThrowableUtils.addSuppressed(e, e1);
+                    }
+                    state.fireAfterDisconnect();
+                    throw new IOException(e);
                 }
             }
         });
@@ -86,9 +110,10 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
     /**
      * {@inheritDoc}
      */
+    @Nonnull
     @Override
-    public Future<Channel> connect(final Socket socket, final Map<String, String> headers,
-                                   List<JnlpConnectionStateListener> listeners) throws IOException {
+    public Future<Channel> connect(@Nonnull final Socket socket, @Nonnull final Map<String, String> headers,
+                                   @Nonnull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
         final STATE state = createConnectionState(socket, listeners);
         return threadPool.submit(new Callable<Channel>() {
             @Override
@@ -121,6 +146,14 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
                     }
                     state.fireAfterDisconnect();
                     throw e;
+                } catch (IllegalStateException e) {
+                    try {
+                        socket.close();
+                    } catch (IOException e1) {
+                        ThrowableUtils.addSuppressed(e, e1);
+                    }
+                    state.fireAfterDisconnect();
+                    throw new IOException(e);
                 }
             }
         });
@@ -132,22 +165,20 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
      *
      * @param state   the state.
      * @param headers to send.
-     * @return the headers received from the server.
      * @throws IOException                if things go wrong.
      * @throws ConnectionRefusalException if the connection was refused.
      */
-    abstract void sendHandshake(STATE state, Map<String, String> headers) throws IOException;
+    abstract void sendHandshake(@Nonnull STATE state, @Nonnull Map<String, String> headers) throws IOException;
 
     /**
      * Performs a handshake with the client. This method is responsible for calling
      * {@link JnlpConnectionState#fireBeforeProperties()} and {@link JnlpConnectionState#fireAfterProperties(Map)}.
      *
      * @param state the state.
-     * @return the headers received from the client.
      * @throws IOException                if things go wrong.
      * @throws ConnectionRefusalException if the connection was refused.
      */
-    abstract void receiveHandshake(STATE state, Map<String, String> headers) throws IOException;
+    abstract void receiveHandshake(@Nonnull STATE state, @Nonnull Map<String, String> headers) throws IOException;
 
     /**
      * Builds a {@link Channel} which will be used for communication.
@@ -155,13 +186,20 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
      * @param state the state
      * @return The constructed channel
      */
-    abstract Channel buildChannel(STATE state) throws IOException;
+    @Nonnull
+    abstract Channel buildChannel(@Nonnull STATE state) throws IOException;
 
-    private ChannelBuilder createChannelBuilder(String nodeName) {
+    /**
+     * Creates the {@link ChannelBuilder} to use.
+     * @param clientName the client name to create the builder for.
+     * @return the {@link ChannelBuilder}
+     */
+    @Nonnull
+    private ChannelBuilder createChannelBuilder(String clientName) {
         if (hub == null) {
-            return new ChannelBuilder(nodeName, threadPool);
+            return new ChannelBuilder(clientName, threadPool);
         } else {
-            return hub.newChannelBuilder(nodeName, threadPool);
+            return hub.newChannelBuilder(clientName, threadPool);
         }
     }
 }
