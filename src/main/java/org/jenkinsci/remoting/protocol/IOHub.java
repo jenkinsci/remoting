@@ -689,12 +689,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             final Thread workerThread = Thread.currentThread();
             final String oldName = workerThread.getName();
             try {
-                workerThread.setName(
-                        String.format("IOHub#%d: Worker[channel:%s] / %s",
-                                _id,
-                                key.channel(),
-                                oldName)
-                );
+                workerThread.setName("IOHub#" + _id + ": Worker[channel:" + key.channel() + "] / " + oldName);
                 listener.ready((ops & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT,
                         (ops & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT,
                         (ops & SelectionKey.OP_READ) == SelectionKey.OP_READ,
