@@ -60,15 +60,7 @@ public class ByteBufferQueueOutputStream extends OutputStream {
      * {@inheritDoc}
      */
     @Override
-    public void write(byte[] b) throws IOException {
-        queue.put(ByteBuffer.wrap(b));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public void write(byte[] b, int off, int len) throws IOException {
-        queue.put(ByteBuffer.wrap(b, off, len));
+        queue.put(b, off, len);
     }
 }

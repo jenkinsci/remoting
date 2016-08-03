@@ -170,6 +170,30 @@ public class ByteBufferQueue {
     }
 
     /**
+     * This method appends bytes from the byte array onto this buffer queue.
+     *
+     * @param src    the source byte array.
+     * @param offset the offset from which to start taking bytes.
+     * @param len    the number of bytes to transfer.
+     */
+    public void put(byte[] src, int offset, int len) {
+        while (len > 0) {
+            while (!buffers[writeIndex].hasRemaining()) {
+                addWriteBuffer();
+            }
+            int remaining = buffers[writeIndex].remaining();
+            if (len > remaining) {
+                buffers[writeIndex].put(src, offset, remaining);
+                offset += remaining;
+                len -= remaining;
+            } else {
+                buffers[writeIndex].put(src, offset, len);
+                return;
+            }
+        }
+    }
+
+    /**
      * This method appends a single byte onto this buffer queue.
      *
      * @param b the byte.
@@ -373,11 +397,9 @@ public class ByteBufferQueue {
             int count = buffers[readIndex].remaining();
             if (count > len) {
                 buffers[readIndex].get(dst, offset, len);
-                offset += len;
                 read += len;
-                len = 0;
                 buffers[readIndex].compact();
-                break;
+                return read;
             } else {
                 buffers[readIndex].get(dst, offset, count);
                 offset += count;
