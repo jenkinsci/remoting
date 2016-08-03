@@ -30,6 +30,7 @@ import hudson.remoting.BinarySafeStream;
 import hudson.remoting.Capability;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
+import hudson.remoting.ChannelClosedException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -288,10 +289,14 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
         @Override
         protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
             if (isWriteOpen()) {
-                ChannelApplicationLayer.this.write(header);
-                ChannelApplicationLayer.this.write(data);
+                try {
+                    ChannelApplicationLayer.this.write(header);
+                    ChannelApplicationLayer.this.write(data);
+                } catch (ClosedChannelException e) {
+                    throw new ChannelClosedException(e);
+                }
             } else {
-                throw new ClosedChannelException();
+                throw new ChannelClosedException(new ClosedChannelException());
             }
         }
 
