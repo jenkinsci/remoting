@@ -262,10 +262,8 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
      */
     @Override
     void receiveHandshake(@Nonnull Jnlp3ConnectionState state, @Nonnull Map<String, String> headers) throws IOException {
-        OutputStream bytesOut = state.getSocketOutputStream();
-        bytesOut.write(NEGOTIATE_LINE.getBytes(Charsets.UTF_8));
-        bytesOut.write('\n');
-        bytesOut.flush();
+        PrintWriter out = state.getPrintWriter();
+        out.println(NEGOTIATE_LINE);
 
         // Get initiation information from slave.
         Properties request = new Properties();
@@ -288,11 +286,9 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         // Send agent challenge response.
         String challengeResponse = Jnlp3Util.createChallengeResponse(challenge);
         String encryptedChallengeResponse = handshakeCiphers.encrypt(challengeResponse);
-        byte[] bytes = encryptedChallengeResponse.getBytes(Charsets.UTF_8);
-        bytesOut.write(Integer.toString(bytes.length).getBytes(Charsets.UTF_8));
-        bytesOut.write('\n');
-        bytesOut.write(bytes);
-        bytesOut.flush();
+        out.println(encryptedChallengeResponse.getBytes(Charsets.UTF_8).length);
+        out.print(encryptedChallengeResponse);
+        out.flush();
 
         // If the slave accepted our challenge response send our challenge.
         String challengeVerificationMessage = null;
@@ -318,11 +314,9 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         // now validate the client
         String masterChallenge = Jnlp3Util.generateChallenge();
         String encryptedMasterChallenge = handshakeCiphers.encrypt(masterChallenge);
-        bytes = encryptedMasterChallenge.getBytes(Charsets.UTF_8);
-        bytesOut.write(Integer.toString(bytes.length).getBytes(Charsets.UTF_8));
-        bytesOut.write('\n');
-        bytesOut.write(bytes);
-        bytesOut.flush();
+        out.println(encryptedMasterChallenge.getBytes(Charsets.UTF_8).length);
+        out.print(encryptedMasterChallenge);
+        out.flush();
 
         // Verify the challenge response from the agent.
         String encryptedMasterChallengeResponse = in.readUTF();
@@ -335,29 +329,26 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         }
         state.fireAfterProperties(properties);
         // Send greeting and new cookie.
-        bytesOut.write(GREETING_SUCCESS.getBytes(Charsets.UTF_8));
-        bytesOut.write('\n');
+        out.println(GREETING_SUCCESS);
+        String newCookie = null;
+        String encryptedCookie = null;
         // JENKINS-37140 the protocol cannot handle encrypted cookies that contain a '\n', i.e. approx 22% of them
         // we loop up to 100 times
-        outer: for (int loopCount = 0; loopCount < 110; loopCount++) {
+        for (int loopCount = 0; loopCount < 110; loopCount++) {
             if (loopCount >= 100) {
                 // ok so a 0.22^100 chance happened... we'd be really unlucky if we ever get here again in the
                 // age of the universe
                 throw new IOException("JENKINS-37140 got really unlucky with the random number generator");
             }
-            String newCookie = generateCookie();
-            bytes = handshakeCiphers.encrypt(newCookie).getBytes(Charsets.UTF_8);
-            for (byte b : bytes) {
-                if (b == '\n') {
-                    continue outer;
-                }
+            newCookie = generateCookie();
+            encryptedCookie = handshakeCiphers.encrypt(newCookie);
+            if (encryptedCookie.indexOf('\n') == -1) {
+                break;
             }
-            state.setNewCookie(newCookie);
-            break;
         }
-        bytesOut.write(bytes);
-        bytesOut.write('\n');
-        bytesOut.flush();
+        state.setNewCookie(newCookie);
+        out.println(encryptedCookie);
+        out.flush();
 
         // Now get the channel cipher information.
         String aesKeyString = handshakeCiphers.decrypt(in.readUTF());
