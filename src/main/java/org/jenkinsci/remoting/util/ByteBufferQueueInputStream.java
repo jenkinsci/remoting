@@ -98,45 +98,6 @@ public class ByteBufferQueueInputStream extends InputStream {
      * {@inheritDoc}
      */
     @Override
-    public int read(byte[] b) throws IOException {
-        ByteBuffer buffer;
-        if (length != -1 && pos >= length) {
-            int rem = length - pos;
-            if (rem <= 0) {
-                return -1;
-            } else if (b.length > rem) {
-                buffer = ByteBuffer.wrap(b, 0, rem);
-            } else {
-                buffer = ByteBuffer.wrap(b);
-            }
-        } else {
-            buffer = ByteBuffer.wrap(b);
-        }
-        queue.get(buffer);
-        int read = buffer.position();
-        if (read <= 0) {
-            return -1;
-        }
-        pos += read;
-        if (mark != null) {
-            if (mark.remaining() > read) {
-                int oldLimit = buffer.limit();
-                buffer.limit(buffer.position());
-                buffer.position(0);
-                mark.put(buffer);
-                buffer.limit(oldLimit);
-            } else {
-                // mark was invalidated as there was more data than reserved
-                mark = null;
-            }
-        }
-        return read;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public int read(byte[] b, int off, int len) throws IOException {
         if (length != -1) {
             int rem = length - pos;
@@ -146,20 +107,14 @@ public class ByteBufferQueueInputStream extends InputStream {
                 len = rem;
             }
         }
-        ByteBuffer buffer = ByteBuffer.wrap(b, off, len);
-        queue.get(buffer);
-        int read = buffer.position() - off;
+        int read = queue.get(b, off, len);
         if (read <= 0) {
             return -1;
         }
         pos += read;
         if (mark != null) {
             if (mark.remaining() > read) {
-                int oldLimit = buffer.limit();
-                buffer.limit(buffer.position());
-                buffer.position(off);
-                mark.put(buffer);
-                buffer.limit(oldLimit);
+                mark.put(b, off, read);
             } else {
                 // mark was invalidated as there was more data than reserved
                 mark = null;

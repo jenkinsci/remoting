@@ -349,6 +349,52 @@ public class ByteBufferQueue {
     }
 
     /**
+     * This method transfers bytes from the head of this buffer queue into the given destination {@link byte[]}.
+     * The number of bytes transferred will be the smaller of the number of requested bytes and the remaining capacity
+     * of the destination buffer.
+     * @param dst the destination byte array into which the bytes are to be written.
+     * @param offset the offset in the byte array at which to write the bytes.
+     * @param len the number of bytes to transfer.
+     * @return the actual number of bytes transferred.
+     */
+    public int get(byte[] dst, int offset, int len) {
+        int read = 0;
+        while (len > 0) {
+            if (readIndex >= writeIndex && buffers[readIndex].position() == 0) {
+                if (writeIndex > 0) {
+                    // this is a cheap compact
+                    buffers[0] = buffers[writeIndex];
+                    buffers[writeIndex] = null;
+                    readIndex = writeIndex = 0;
+                }
+                break;
+            }
+            buffers[readIndex].flip();
+            int count = buffers[readIndex].remaining();
+            if (count > len) {
+                buffers[readIndex].get(dst, offset, len);
+                offset += len;
+                read += len;
+                len = 0;
+                buffers[readIndex].compact();
+                break;
+            } else {
+                buffers[readIndex].get(dst, offset, count);
+                offset += count;
+                read += count;
+                len -= count;
+                if (readIndex < writeIndex) {
+                    buffers[readIndex++] = null;
+                } else {
+                    assert readIndex == writeIndex;
+                    buffers[readIndex].clear();
+                }
+            }
+        }
+        return read;
+    }
+
+    /**
      * Reads the next byte from this queue.
      *
      * @return The byte at the read index.
