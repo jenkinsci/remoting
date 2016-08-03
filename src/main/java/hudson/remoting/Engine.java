@@ -35,6 +35,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -43,13 +44,13 @@ import java.util.Map;
 import java.util.logging.Level;
 import javax.annotation.CheckForNull;
 import javax.annotation.concurrent.NotThreadSafe;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.engine.JnlpConnectionStateListener;
-import org.jenkinsci.remoting.engine.JnlpProtocol;
-import org.jenkinsci.remoting.engine.JnlpProtocolFactory;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -67,6 +68,7 @@ import java.util.logging.Logger;
 import org.jenkinsci.remoting.engine.JnlpProtocolHandler;
 import org.jenkinsci.remoting.engine.JnlpProtocolHandlerFactory;
 import org.jenkinsci.remoting.protocol.IOHub;
+import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
 
 import static java.util.logging.Level.INFO;
 import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
@@ -211,8 +213,37 @@ public class Engine extends Thread {
                 } catch (NoSuchAlgorithmException e) {
                     throw new IllegalStateException("Java runtime specification requires support for TLS algorithm", e);
                 }
+                char[] password = "password".toCharArray();
+                KeyStore store;
                 try {
-                    context.init(null, null, null);
+                    store = KeyStore.getInstance("JKS");
+                } catch (KeyStoreException e) {
+                    throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
+                }
+                try {
+                    store.load(null, password);
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
+                } catch (CertificateException e) {
+                    throw new IllegalStateException("Empty keystore", e);
+                }
+                KeyManagerFactory kmf;
+                try {
+                    kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Java runtime specification requires support for default key manager", e);
+                }
+                try {
+                    kmf.init(store, password);
+                } catch (KeyStoreException e) {
+                    throw new IllegalStateException(e);
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IllegalStateException(e);
+                } catch (UnrecoverableKeyException e) {
+                    throw new IllegalStateException(e);
+                }
+                try {
+                    context.init(kmf.getKeyManagers(), new TrustManager[]{new BlindTrustX509ExtendedTrustManager()}, null);
                 } catch (KeyManagementException e) {
                     events.error(e);
                     return;
@@ -301,70 +332,83 @@ public class Engine extends Thread {
                 }
 
                 events.status("Handshaking");
-                Socket jnlpSocket = connect(host,port);
+                Socket jnlpSocket = connect(host, port);
                 Channel channel = null;
 
-                // Try available protocols.
-                boolean triedAtLeastOneProtocol = false;
-                for (JnlpProtocolHandler<?>  protocol : protocols) {
-                    if (!protocol.isEnabled()) {
-                        events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
+                try {
+                    // Try available protocols.
+                    boolean triedAtLeastOneProtocol = false;
+                    for (JnlpProtocolHandler<?> protocol : protocols) {
+                        if (!protocol.isEnabled()) {
+                            events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
+                            continue;
+                        }
+                        if (jnlpSocket == null) {
+                            jnlpSocket = connect(host, port);
+                        }
+                        triedAtLeastOneProtocol = true;
+                        events.status("Trying protocol: " + protocol.getName());
+                        try {
+                            channel = protocol.connect(jnlpSocket, headers, new JnlpConnectionStateListener() {
+                                @Override
+                                public void afterProperties(@NonNull JnlpConnectionState event) {
+                                    event.approve();
+                                }
+
+                                @Override
+                                public void beforeChannel(@NonNull JnlpConnectionState event) {
+                                    event.getChannelBuilder().withJarCache(jarCache).withMode(Mode.BINARY);
+                                }
+
+                                @Override
+                                public void afterChannel(@NonNull JnlpConnectionState event) {
+
+                                }
+                            }).get();
+                        } catch (IOException ioe) {
+                            events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
+                        } catch (RuntimeException e) {
+                            events.status("Protocol " + protocol.getName() + " encountered a runtime error", e);
+                        } catch (Error e) {
+                            events.status("Protocol " + protocol.getName() + " could not be completed due to an error",
+                                    e);
+                        } catch (Throwable e) {
+                            events.status("Protocol " + protocol.getName() + " encountered an unexpected exception", e);
+                        }
+
+                        // On success do not try other protocols.
+                        if (channel != null) {
+                            break;
+                        }
+
+                        // On failure form a new connection.
+                        jnlpSocket.close();
+                        jnlpSocket = null;
+                    }
+
+                    // If no protocol worked.
+                    if (channel == null) {
+                        if (triedAtLeastOneProtocol) {
+                            onConnectionRejected("None of the protocols were accepted");
+                        } else {
+                            onConnectionRejected("None of the protocols are enabled");
+                            return; // exit
+                        }
                         continue;
                     }
-                    triedAtLeastOneProtocol = true;
-                    events.status("Trying protocol: " + protocol.getName());
-                    try {
-                        channel = protocol.connect(jnlpSocket, headers, new JnlpConnectionStateListener(){
-                            @Override
-                            public void afterProperties(@NonNull JnlpConnectionState event) {
-                                event.approve();
-                            }
 
-                            @Override
-                            public void beforeChannel(@NonNull JnlpConnectionState event) {
-                                event.getChannelBuilder().withJarCache(jarCache).withMode(Mode.BINARY);
-                            }
-
-                            @Override
-                            public void afterChannel(@NonNull JnlpConnectionState event) {
-
-                            }
-                        }).get();
-                    } catch (IOException ioe) {
-                        events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
-                    } catch (RuntimeException e) {
-                        events.status("Protocol " + protocol.getName() + " encountered a runtime error", e);
-                    } catch (Error e) {
-                        events.status("Protocol " + protocol.getName() + " could not be completed due to an error", e);
-                    } catch (Throwable e) {
-                        events.status("Protocol " + protocol.getName() + " encountered an unexpected exception", e);
+                    events.status("Connected");
+                    channel.join();
+                    events.status("Terminated");
+                } finally {
+                    if (jnlpSocket != null) {
+                        try {
+                            jnlpSocket.close();
+                        } catch (IOException e) {
+                            events.status("Failed to close socket", e);
+                        }
                     }
-
-                    // On success do not try other protocols.
-                    if (channel != null) {
-                        break;
-                    }
-
-                    // On failure form a new connection.
-                    jnlpSocket.close();
-                    jnlpSocket = connect(host,port);
                 }
-
-                // If no protocol worked.
-                if (channel == null) {
-                    if (triedAtLeastOneProtocol) {
-                        onConnectionRejected("None of the protocols were accepted");
-                    } else {
-                        onConnectionRejected("None of the protocols are enabled");
-                        return; // exit
-                    }
-                    continue;
-                }
-
-                events.status("Connected");
-                channel.join();
-                events.status("Terminated");
-
                 if(noReconnect)
                     return; // exit
 
@@ -634,9 +678,4 @@ public class Engine extends Thread {
      * @since 2.4
      */
     static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName()+".socketTimeout",30*60*1000);
-    /**
-     * @deprecated Use {@link JnlpProtocol#GREETING_SUCCESS}.
-     */
-    @Deprecated
-    public static final String GREETING_SUCCESS = JnlpProtocol.GREETING_SUCCESS;
 }
