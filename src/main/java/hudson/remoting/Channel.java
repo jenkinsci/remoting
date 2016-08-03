@@ -1154,6 +1154,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         try {
             send(new CloseCommand(this, diagnosis));
+        } catch (ChannelClosedException e) {
+            logger.log(Level.FINEST, "Channel is already closed", e);
+            terminate(e);
+            return;
         } catch (IOException e) {
             // send should only ever - worst case - throw an IOException so we'll just catch that and not Throwable
             logger.log(Level.WARNING, "Having to terminate early", e);
