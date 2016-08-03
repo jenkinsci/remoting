@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -81,7 +80,7 @@ public class EngineUtil {
      * @return The set of headers stored in a {@link Properties}.
      * @throws IOException
      */
-    protected static Properties readResponseHeaders(BufferedInputStream inputStream) throws IOException {
+    protected static Properties readResponseHeaders(InputStream inputStream) throws IOException {
         Properties response = new Properties();
         while (true) {
             String line = EngineUtil.readLine(inputStream);
