@@ -3,7 +3,6 @@ package org.jenkinsci.remoting.engine;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
 import hudson.remoting.TestCallable;
-import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -15,6 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.nio.NioChannelHub;
@@ -164,7 +164,7 @@ public class JnlpProtocolHandlerTest {
             }
 
             @Override
-            public String getSecretOf(String clientName) {
+            public String getSecretOf(@Nonnull String clientName) {
                 return "SuperSecret-" + clientName;
             }
         }, executorService, selector, hub, serverCtx.context());
@@ -238,7 +238,7 @@ public class JnlpProtocolHandlerTest {
             }
 
             @Override
-            public String getSecretOf(String clientName) {
+            public String getSecretOf(@Nonnull String clientName) {
                 return "SuperSecret-" + clientName;
             }
         }, executorService, selector, hub, serverCtx.context());
@@ -317,7 +317,7 @@ public class JnlpProtocolHandlerTest {
             }
 
             @Override
-            public String getSecretOf(String clientName) {
+            public String getSecretOf(@Nonnull String clientName) {
                 return "SuperSecret-" + clientName;
             }
         }, executorService, selector, hub, serverCtx.context());
@@ -395,7 +395,7 @@ public class JnlpProtocolHandlerTest {
             }
 
             @Override
-            public String getSecretOf(String clientName) {
+            public String getSecretOf(@Nonnull String clientName) {
                 return "SuperSecret-" + clientName;
             }
         }, executorService, selector, hub, serverCtx.context());
@@ -474,7 +474,7 @@ public class JnlpProtocolHandlerTest {
             }
 
             @Override
-            public String getSecretOf(String clientName) {
+            public String getSecretOf(@Nonnull String clientName) {
                 return "SuperSecret-" + clientName;
             }
         }, executorService, selector, hub, serverCtx.context());
@@ -549,7 +549,7 @@ public class JnlpProtocolHandlerTest {
             }
 
             @Override
-            public String getSecretOf(String clientName) {
+            public String getSecretOf(@Nonnull String clientName) {
                 return "SuperSecret-" + clientName;
             }
         }, executorService, selector, hub, serverCtx.context());
@@ -624,7 +624,7 @@ public class JnlpProtocolHandlerTest {
             }
 
             @Override
-            public String getSecretOf(String clientName) {
+            public String getSecretOf(@Nonnull String clientName) {
                 return "SuperSecret-" + clientName;
             }
         }, executorService, selector, hub, serverCtx.context());
@@ -745,7 +745,7 @@ public class JnlpProtocolHandlerTest {
                                                                                      ExecutorService svc,
                                                                                      IOHub selector, NioChannelHub hub,
                                                                                      SSLContext ctx) {
-                        return new JnlpProtocol4Handler(db, svc, selector, ctx);
+                        return new JnlpProtocol4Handler(db, svc, selector, ctx, false);
 
                     }
 

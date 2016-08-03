@@ -1,3 +1,26 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2016, CloudBees, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package org.jenkinsci.remoting.engine;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -23,6 +46,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
+import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.NetworkLayer;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
@@ -35,21 +59,55 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
 import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 
+/**
+ * Implements the JNLP4-connect protocol. This protocol uses {@link SSLEngine} to perform a TLS upgrade of the plaintext
+ * connection before any connection secrets are exchanged. The subsequent connection is then secured using TLS. The
+ * implementation uses the {@link IOHub} for non-blocking I/O wherever possible which removes the bottleneck of
+ * the selector thread being used for linearization and I/O that creates a throughput limit with {@link NioChannelHub}.
+ *
+ * @since FIXME
+ */
 public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionState> {
+    /**
+     * Our logger.
+     */
     private static final Logger LOGGER = Logger.getLogger(JnlpProtocol4Handler.class.getName());
+    /**
+     * The thread pool we can use for executing tasks.
+     */
     @Nonnull
     private final ExecutorService threadPool;
+    /**
+     * The {@link IOHub}.
+     */
     @Nonnull
     private final IOHub ioHub;
+    /**
+     * The {@link SSLContext}
+     */
     @Nonnull
     private final SSLContext context;
+    /**
+     * Flag to indicate whether client authentication is reported as required or optional by the server.
+     */
+    private final boolean needClientAuth;
 
+    /**
+     * Constructor.
+     *
+     * @param clientDatabase the client database.
+     * @param threadPool     the thread pool.
+     * @param ioHub          the {@link IOHub}.
+     * @param context        the {@link SSLContext}.
+     * @param needClientAuth {@code} to force all clients to have a client certificate in order to connect.
+     */
     public JnlpProtocol4Handler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
-                                @Nonnull IOHub ioHub, @Nonnull SSLContext context) {
+                                @Nonnull IOHub ioHub, @Nonnull SSLContext context, boolean needClientAuth) {
         super(clientDatabase);
         this.threadPool = threadPool;
         this.ioHub = ioHub;
         this.context = context;
+        this.needClientAuth = needClientAuth;
     }
 
     /**
@@ -82,7 +140,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         NetworkLayer networkLayer = createNetworkLayer(socket);
         SSLEngine engine = createSSLEngine(socket);
         engine.setWantClientAuth(true);
-        engine.setNeedClientAuth(false);
+        engine.setNeedClientAuth(needClientAuth);
         engine.setUseClientMode(false);
         Handler handler = new Handler(createConnectionState(socket, listeners), getClientDatabase());
         return ProtocolStack.on(networkLayer)
@@ -121,6 +179,13 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                 .get();
     }
 
+    /**
+     * Creates the best network layer for the provided {@link Socket}.
+     *
+     * @param socket the {@link Socket}.
+     * @return the best {@link NetworkLayer} for the provided {@link Socket}.
+     * @throws IOException if the socket is closed already.
+     */
     private NetworkLayer createNetworkLayer(Socket socket) throws IOException {
         NetworkLayer networkLayer;
         SocketChannel socketChannel = socket.getChannel();
@@ -216,7 +281,9 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                 // shouldn't happen as handshake is completed, but just in case
                 throw new ConnectionRefusalException("Unsupported server certificate type", e);
             } catch (SSLPeerUnverifiedException e) {
-                // shouldn't happen as handshake is completed, but just in case
+                if (needClientAuth) {
+                    throw new ConnectionRefusalException("Client must provide authentication", e);
+                }
                 remoteCertificate = null;
             }
             event.fireBeforeProperties(remoteCertificate);
@@ -232,14 +299,31 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                 if (clientDatabase == null || !clientDatabase.exists(clientName)) {
                     throw new ConnectionRefusalException("Unknown client name: " + clientName);
                 }
-                String secretKey = clientDatabase.getSecretOf(clientName);
-                if (secretKey == null) {
-                    throw new ConnectionRefusalException("Unknown client name: " + clientName);
-                }
-                if (!secretKey.equals(headers.get(JnlpConnectionState.SECRET_KEY))) {
-                    LOGGER.log(Level.WARNING, "An attempt was made to connect as {0} from {1} with an incorrect secret",
-                            new Object[]{clientName, event.getSocket().getRemoteSocketAddress()});
-                    throw new ConnectionRefusalException("Authorization failure");
+                JnlpClientDatabase.ValidationResult validation = remoteCertificate == null
+                        ? JnlpClientDatabase.ValidationResult.UNCHECKED
+                        : clientDatabase.validateCertificate(clientName, remoteCertificate);
+                switch (validation) {
+                    case IDENTITY_PROVED:
+                        // no-op, we trust the certificate as being from the client
+                        break;
+                    case INVALID:
+                        LOGGER.log(Level.WARNING,
+                                "An attempt was made to connect as {0} from {1} with an invalid client certificate",
+                                new Object[]{clientName, event.getSocket().getRemoteSocketAddress()});
+                        throw new ConnectionRefusalException("Authentication failure");
+                    default:
+                        String secretKey = clientDatabase.getSecretOf(clientName);
+                        if (secretKey == null) {
+                            // should never get hear unless there is a race condition in removing an entry from the DB
+                            throw new ConnectionRefusalException("Unknown client name: " + clientName);
+                        }
+                        if (!secretKey.equals(headers.get(JnlpConnectionState.SECRET_KEY))) {
+                            LOGGER.log(Level.WARNING,
+                                    "An attempt was made to connect as {0} from {1} with an incorrect secret",
+                                    new Object[]{clientName, event.getSocket().getRemoteSocketAddress()});
+                            throw new ConnectionRefusalException("Authorization failure");
+                        }
+                        break;
                 }
             }
             event.fireAfterProperties(headers);

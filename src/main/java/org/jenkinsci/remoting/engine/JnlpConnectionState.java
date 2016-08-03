@@ -1,3 +1,26 @@
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2016, CloudBees, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
@@ -30,8 +53,17 @@ public class JnlpConnectionState {
     private static final ThreadLocal<Iterator<JnlpConnectionStateListener>> fireIterator
             = new ThreadLocal<Iterator<JnlpConnectionStateListener>>();
 
+    /**
+     * The property name for the secret key.
+     */
     public static final String SECRET_KEY = "Secret-Key";
+    /**
+     * The property name for the client name key.
+     */
     public static final String CLIENT_NAME_KEY = "Node-Name";
+    /**
+     * The proprty name for the cookie name key.
+     */
     public static final String COOKIE_KEY = "Cookie";
 
     /**
@@ -82,6 +114,12 @@ public class JnlpConnectionState {
     @CheckForNull
     private ListenerState stash;
 
+    /**
+     * Constructor.
+     *
+     * @param socket    the {@link Socket}.
+     * @param listeners the {@link JnlpConnectionStateListener} instances.
+     */
     protected JnlpConnectionState(@Nonnull Socket socket, List<? extends JnlpConnectionStateListener> listeners) {
         this.socket = socket;
         this.listeners = new ArrayList<JnlpConnectionStateListener>(listeners);
@@ -161,6 +199,7 @@ public class JnlpConnectionState {
 
     /**
      * Gets the reason for the channel being closed if available.
+     *
      * @return the reason or {@code null} if termination was normal.
      * @throws IllegalStateException if invoked before
      *                               {@link JnlpConnectionStateListener#channelClosed(JnlpConnectionState)}
@@ -227,14 +266,31 @@ public class JnlpConnectionState {
         rejection = reason;
     }
 
-    public <S extends ListenerState> S stash() {
+    /**
+     * Retrieves the previously stashed state.
+     * @param clazz the expected class of the stashed state.
+     * @param <S> the expected class of the stashed state.
+     * @return the stashed state.
+     * @throws IllegalStateException if invoked before {@link #approve()}
+     * @see #setStash(ListenerState)
+     */
+    @CheckForNull
+    public <S extends ListenerState> S getStash(Class<S> clazz) {
         if (lifecycle.compareTo(State.APPROVED) < 0) {
             throw new IllegalStateException("The connection has not been approved yet");
         }
-        return (S) stash;
+        return clazz.cast(stash);
     }
 
-    public <S extends ListenerState> void stash(S stash) {
+    /**
+     * Stores some listener specific state for later retrieval.
+     *
+     * @param stash the state to stash.
+     * @param <S>   the expected class of the stashed state.
+     * @throws IllegalStateException if invoked before {@link #approve()}
+     * @see #getStash(Class)
+     */
+    public <S extends ListenerState> void setStash(@CheckForNull S stash) {
         if (lifecycle.compareTo(State.APPROVED) < 0) {
             throw new IllegalStateException("The connection has not been approved yet");
         }
@@ -369,6 +425,7 @@ public class JnlpConnectionState {
 
     /**
      * Advances the connection state to indicate that the channel has been closed.
+     *
      * @param cause
      */
     /*package*/ void fireChannelClosed(IOException cause) {
@@ -462,6 +519,12 @@ public class JnlpConnectionState {
         DISCONNECTED
     }
 
+    /**
+     * Marker base class for all stashed state data.
+     *
+     * @see JnlpConnectionState#setStash(ListenerState)
+     * @see JnlpConnectionState#getStash(Class)
+     */
     public interface ListenerState {
 
     }
