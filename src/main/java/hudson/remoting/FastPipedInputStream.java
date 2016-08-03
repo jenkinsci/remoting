@@ -32,7 +32,7 @@ import java.lang.ref.WeakReference;
  * synchronization with its counterpart {@link FastPipedOutputStream}.
  *
  * @author WD
- * @link http://developer.java.sun.com/developer/bugParade/bugs/4404700.html
+ * @see <a href="http://developer.java.sun.com/developer/bugParade/bugs/4404700.html">4404700</a>
  * @see FastPipedOutputStream
  */
 public class FastPipedInputStream extends InputStream {

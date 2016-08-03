@@ -113,7 +113,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * Completes the future with the supplied value.
      *
      * @param value the value (may be {@code null}.
-     * @return {@code true} if the future is now completed, {@false} if the future has already been completed.
+     * @return {@code true} if the future is now completed, {@code false} if the future has already been completed.
      */
     public boolean set(@Nullable V value) {
         boolean result;
@@ -137,7 +137,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * Completes the future with the supplied exception.
      *
      * @param throwable the exception.
-     * @return {@code true} if the future is now completed, {@false} if the future has already been completed.
+     * @return {@code true} if the future is now completed, {@code false} if the future has already been completed.
      */
     public boolean setException(@Nonnull Throwable throwable) {
         verifyNonnull(throwable);
@@ -165,7 +165,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * Completes the future by cancellation.
      *
      * @param mayInterruptIfRunning ignored.
-     * @return {@code true} if the future is now cancelled, {@false} if the future has already been completed.
+     * @return {@code true} if the future is now cancelled, {@code false} if the future has already been completed.
      */
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
@@ -229,7 +229,8 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * {@inheritDoc}
      */
     @Override
-    public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public V get(long timeout, @Nonnull TimeUnit unit)
+            throws InterruptedException, ExecutionException, TimeoutException {
         long timeoutNanos = unit.toNanos(timeout);
         long start = System.nanoTime();
         synchronized (lock) {

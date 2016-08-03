@@ -31,7 +31,7 @@ import static java.lang.annotation.RetentionPolicy.*;
  * // this method actually gets executed. For example, if you invoke two async
  * // calls, they may execute in the reverse order.
  * foo.zot();
- *
+ * </pre>
  *
  * @see Channel#callAsync(Callable)
  * @author Kohsuke Kawaguchi

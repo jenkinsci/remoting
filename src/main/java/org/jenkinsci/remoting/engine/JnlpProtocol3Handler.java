@@ -79,6 +79,7 @@ import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
  *
  * <p>The following goes over the handshake in more detail:
  * <pre>
+ * {@code
  * Client                                                                Master
  *           handshake ciphers = createFrom(slave name, slave secret)
  *
@@ -110,7 +111,8 @@ import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
  *
  *              channel ciphers = createFrom(AES key, IvSpec)
  *           channel = channelBuilder.createWith(channel ciphers)
- * </pre>
+ * }
+ *  </pre>
  *
  * <p>The entire process assumes the slave secret has not been leaked
  * beforehand and the slave obtains it in a secure manner.
