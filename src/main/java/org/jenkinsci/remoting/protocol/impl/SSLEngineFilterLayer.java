@@ -19,6 +19,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
@@ -135,6 +136,16 @@ public class SSLEngineFilterLayer extends FilterLayer {
                 LOGGER.log(Level.SEVERE, "[" + stack().name() + "] ", e);
             }
             abort(e);
+        } catch (ClosedChannelException e) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "[" + stack().name() + "] ", e);
+            }
+            return;
+        } catch (ConnectionRefusalException e) {
+            if (LOGGER.isLoggable(Level.FINE)) {
+                LOGGER.log(Level.FINE, "[" + stack().name() + "] ", e);
+            }
+            return;
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.log(Level.WARNING, "[" + stack().name() + "] ", e);
