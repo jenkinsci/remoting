@@ -750,8 +750,11 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             if (referenceList == null) {
                 return;
             }
-            for (PhantomReferenceImpl phantom: referenceList) {
-                phantom.clear();
+            for (int i = 0; i < referenceList.size(); i++) {
+                PhantomReferenceImpl phantom = referenceList.get(i);
+                if (phantom != null) {
+                    phantom.clear();
+                }
             }
             // simplify life for the Garbage collector by reducing reference counts
             referenceList.clear();
