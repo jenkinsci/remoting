@@ -3,6 +3,16 @@
   <Match>
     <Package name="~org\.kohsuke\.args4j.*"/>
   </Match>
+  
+  
+  <Match>
+    <Or>
+      <!--We do not want do break API by converting potentially usefull classes-->
+      <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
+    </Or>
+  </Match>
+  
+  
 
   <!-- ignore all low-level (priority=2,3) issues except serialization problems -->
   <!--<Match>
