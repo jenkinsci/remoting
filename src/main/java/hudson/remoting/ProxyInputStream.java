@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link InputStream} that reads bits from an exported
@@ -38,9 +40,12 @@ import java.io.Serializable;
  * @author Kohsuke Kawaguchi
  */
 final class ProxyInputStream extends InputStream {
+    
+    private static final Logger LOGGER = Logger.getLogger(ProxyInputStream.class.getName());
+    
     private Channel channel;
     private int oid;
-
+    
     /**
      * Creates an already connected {@link ProxyOutputStream}.
      *
@@ -151,10 +156,15 @@ final class ProxyInputStream extends InputStream {
             this.oid = oid;
         }
 
-
         protected void execute(Channel channel) {
-            InputStream in = (InputStream) channel.getExportedObject(oid);
+            // EOF may be late to the party if we interrupt request, hence we do not fail for this command
+            InputStream in = (InputStream) channel.getExportedObjectOrNull(oid);
+            if (in == null) { // Input stream has not been closed yet
+                LOGGER.log(Level.FINE, "InputStream with oid=%s has been already unexported", oid);
+                return;
+            }
             channel.unexport(oid,createdAt);
+            
             try {
                 in.close();
             } catch (IOException e) {

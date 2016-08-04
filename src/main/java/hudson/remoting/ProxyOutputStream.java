@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.util.concurrent.ExecutionException;
@@ -369,7 +370,12 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
 
         protected void execute(final Channel channel) {
-            final OutputStream os = (OutputStream) channel.getExportedObject(oid);
+            final OutputStream os = (OutputStream) channel.getExportedObjectOrNull(oid);
+            // EOF may be late to the party if we interrupt request, hence we do not fail for this command
+            if (os == null) { // Input stream has not been closed yet
+                LOGGER.log(Level.FINE, "InputStream with oid=%s has been already unexported", oid);
+                return;
+            }
             markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
                     channel.unexport(oid,createdAt);
