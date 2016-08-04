@@ -69,8 +69,23 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
 
         // Send greeting and new cookie.
         out.println(JnlpProtocol.GREETING_SUCCESS);
-        String newCookie = generateCookie();
-        out.println(handshakeCiphers.encrypt(newCookie));
+        String newCookie = null;
+        String encryptedCookie = null;
+        // JENKINS-37140 the protocol cannot handle encrypted cookies that contain a '\n', i.e. approx 22% of them
+        // we loop up to 100 times
+        for (int loopCount = 0; loopCount < 110; loopCount++) {
+            if (loopCount >= 100) {
+                // ok so a 0.22^100 chance happened... we'd be really unlucky if we ever get here again in the
+                // age of the universe
+                throw new IOException("JENKINS-37140 got really unlucky with the random number generator");
+            }
+            newCookie = generateCookie();
+            encryptedCookie = handshakeCiphers.encrypt(newCookie);
+            if (encryptedCookie.indexOf('\n') == -1) {
+                break;
+            }
+        }
+        out.println(encryptedCookie);
 
         // Now get the channel cipher information.
         String aesKeyString = handshakeCiphers.decrypt(in.readUTF());
