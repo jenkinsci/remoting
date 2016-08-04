@@ -107,7 +107,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * thread).We could process these using a {@link Runnable} on {@link #selectorTasks} but we want to optimize
      * detecting when to call {@link Selector#selectNow()}.
      */
-    private final Queue<AbstractInterestOps> interestOps = new ConcurrentLinkedQueue<AbstractInterestOps>();
+    private final Queue<InterestOps> interestOps = new ConcurrentLinkedQueue<InterestOps>();
     /**
      * Counts the # of select loops. Ocassionally useful for diagnosing whether the selector
      * thread is spending too much CPU time.
@@ -252,7 +252,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void addInterestAccept(SelectionKey key) {
-        interestOps.add(new AddInterestOps(key, SelectionKey.OP_ACCEPT));
+        interestOps.add(new InterestOps(key, SelectionKey.OP_ACCEPT, 0));
         selector.wakeup();
     }
 
@@ -262,7 +262,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void removeInterestAccept(SelectionKey key) {
-        interestOps.add(new RemoveInterestOps(key, SelectionKey.OP_ACCEPT));
+        interestOps.add(new InterestOps(key, 0, SelectionKey.OP_ACCEPT));
         selector.wakeup();
     }
 
@@ -272,7 +272,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void addInterestConnect(SelectionKey key) {
-        interestOps.add(new AddInterestOps(key, SelectionKey.OP_CONNECT));
+        interestOps.add(new InterestOps(key, SelectionKey.OP_CONNECT, 0));
         selector.wakeup();
     }
 
@@ -282,7 +282,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void removeInterestConnect(SelectionKey key) {
-        interestOps.add(new RemoveInterestOps(key, SelectionKey.OP_CONNECT));
+        interestOps.add(new InterestOps(key, 0, SelectionKey.OP_CONNECT));
         selector.wakeup();
     }
 
@@ -292,7 +292,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void addInterestRead(SelectionKey key) {
-        interestOps.add(new AddInterestOps(key, SelectionKey.OP_READ));
+        interestOps.add(new InterestOps(key, SelectionKey.OP_READ, 0));
         selector.wakeup();
     }
 
@@ -302,7 +302,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void removeInterestRead(SelectionKey key) {
-        interestOps.add(new RemoveInterestOps(key, SelectionKey.OP_READ));
+        interestOps.add(new InterestOps(key, 0, SelectionKey.OP_READ));
         selector.wakeup();
     }
 
@@ -312,7 +312,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void addInterestWrite(SelectionKey key) {
-        interestOps.add(new AddInterestOps(key, SelectionKey.OP_WRITE));
+        interestOps.add(new InterestOps(key, SelectionKey.OP_WRITE, 0));
         selector.wakeup();
     }
 
@@ -322,7 +322,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void removeInterestWrite(SelectionKey key) {
-        interestOps.add(new RemoveInterestOps(key, SelectionKey.OP_WRITE));
+        interestOps.add(new InterestOps(key, 0, SelectionKey.OP_WRITE));
         selector.wakeup();
     }
 
@@ -528,7 +528,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      */
     private boolean processInterestOps() {
         boolean processedSomething = false;
-        for (AbstractInterestOps ops = interestOps.poll(); ops != null; ops = interestOps.poll()) {
+        for (InterestOps ops = interestOps.poll(); ops != null; ops = interestOps.poll()) {
             try {
                 if (ops.interestOps()) {
                     processedSomething = true;
@@ -703,19 +703,32 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     /**
      * Base class for {@link SelectionKey#interestOps()} modification requests.
      */
-    private static abstract class AbstractInterestOps {
+    private static final class InterestOps {
         /**
          * The {@link SelectionKey}.
          */
-        protected final SelectionKey key;
+        private final SelectionKey key;
+
+        /**
+         * The mask to AND against the ops with.
+         */
+        private final int opsAnd;
+        /**
+         * The mask to OR against the ops with.
+         */
+        private final int opsOr;
 
         /**
          * Constructor.
          *
-         * @param key the selection key.
+         * @param key    the selection key.
+         * @param add    the ops bits to add
+         * @param remove the ops bits to remove.
          */
-        protected AbstractInterestOps(SelectionKey key) {
+        private InterestOps(SelectionKey key, int add, int remove) {
             this.key = key;
+            this.opsAnd = ~remove;
+            this.opsOr = add;
         }
 
         /**
@@ -723,70 +736,9 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
          *
          * @return the desired {@link SelectionKey#interestOps()}.
          */
-        public abstract boolean interestOps();
-    }
-
-    /**
-     * Add operations to the {@link SelectionKey#interestOps()}.
-     */
-    private static class AddInterestOps extends AbstractInterestOps {
-        /**
-         * The operations to add to the {@link #key}.
-         */
-        private final int ops;
-
-        /**
-         * Constructor.
-         *
-         * @param key the selection key.
-         * @param ops the operations to add to the {@link #key}.
-         */
-        AddInterestOps(SelectionKey key, int ops) {
-            super(key);
-            this.ops = ops;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public boolean interestOps() {
-            if (key.isValid()) { // may not be valid by the time we run on selector thread
-                key.interestOps(key.interestOps() | this.ops);
-                return true;
-            }
-            return false;
-        }
-
-    }
-
-    /**
-     * Remove operations from the {@link SelectionKey#interestOps()}.
-     */
-    private static class RemoveInterestOps extends AbstractInterestOps {
-        /**
-         * The operations to remove from the {@link #key}.
-         */
-        private final int ops;
-
-        /**
-         * Constructor.
-         *
-         * @param key the selection key.
-         * @param ops the operations to remove from the {@link #key}.
-         */
-        RemoveInterestOps(SelectionKey key, int ops) {
-            super(key);
-            this.ops = ops;
-        }
-
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public boolean interestOps() {
-            if (key.isValid()) { // may not be valid by the time we run on selector thread
-                key.interestOps(key.interestOps() & ~this.ops);
+        private boolean interestOps() {
+            if (key.isValid()) {
+                key.interestOps((key.interestOps() & opsAnd) | opsOr);
                 return true;
             }
             return false;
