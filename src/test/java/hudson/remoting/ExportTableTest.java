@@ -19,7 +19,7 @@ public class ExportTableTest extends TestCase {
         try {
             e.get(i);
             fail();
-        } catch (IllegalStateException x) {
+        } catch (InvalidObjectIdException x) {
             StringWriter sw = new StringWriter();
             x.printStackTrace(new PrintWriter(sw));
             assertTrue(sw.toString().contains("Object was recently deallocated"));
