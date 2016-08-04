@@ -108,6 +108,40 @@ public class ByteBufferQueueTest {
     }
 
     @Test
+    public void putGetByteSequences() {
+        ByteBufferQueue queue = new ByteBufferQueue(100);
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
+            byte b = (byte)i;
+            queue.put(b);
+            assertThat(queue.hasRemaining(), is(true));
+        }
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
+            byte b = (byte) i;
+            assertThat(queue.hasRemaining(), is(true));
+            assertThat(queue.get(), is(b));
+        }
+        assertThat(queue.hasRemaining(), is(false));
+    }
+
+    @Test
+    public void putGetByteArraySequences() {
+        ByteBufferQueue queue = new ByteBufferQueue(100);
+        byte[] dst = new byte[1];
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
+            byte b = (byte)i;
+            queue.put(b);
+            assertThat(queue.hasRemaining(), is(true));
+        }
+        for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
+            byte b = (byte) i;
+            assertThat(queue.hasRemaining(), is(true));
+            assertThat(queue.get(dst, 0, 1), is(1));
+            assertThat(dst[0], is(b));
+        }
+        assertThat(queue.hasRemaining(), is(false));
+    }
+
+    @Test
     public void putGetDrainsQueue() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(1);
