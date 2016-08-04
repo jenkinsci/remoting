@@ -29,6 +29,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -210,7 +211,8 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
             this.oidPos = oidPos;
         }
 
-        protected void execute(final Channel channel) {
+        @Override
+        protected void execute(final Channel channel) throws ExecutionException {
             // ordering barrier not needed for this I/O call, so not giving I/O ID.
             channel.pipeWriter.submit(0,new Runnable() {
                 public void run() {
@@ -221,6 +223,8 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
                         ros.connect(channel, oidPos);
                     } catch (IOException e) {
                         logger.log(Level.SEVERE,"Failed to connect to pipe",e);
+                    } catch (InvalidObjectIdException ex) {
+                        throw new IllegalStateException(ex);
                     }
                 }
             });

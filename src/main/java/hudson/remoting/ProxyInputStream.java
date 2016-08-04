@@ -126,7 +126,12 @@ final class ProxyInputStream extends InputStream {
         }
 
         protected Buffer perform(Channel channel) throws IOException {
-            InputStream in = (InputStream) channel.getExportedObject(oid);
+            InputStream in;
+            try {
+                in = (InputStream) channel.getExportedObject(oid);
+            } catch (InvalidObjectIdException ex) {
+                throw new IOException(ex);
+            }
 
             Buffer buf = new Buffer(len);
             buf.read(in);

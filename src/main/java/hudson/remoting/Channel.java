@@ -629,11 +629,16 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return exportedObjects.export(clazz, instance, automaticUnexport);
     }
 
-    /*package*/ @Nonnull Object getExportedObject(int oid) {
+    /*package*/ @Nonnull Object getExportedObject(int oid) throws InvalidObjectIdException {
         return exportedObjects.get(oid);
     }
+    
+    @CheckForNull
+    /*package*/ Object getExportedObjectOrNull(int oid)  {
+        return exportedObjects.getOrNull(oid);
+    }
 
-    /*package*/ @Nonnull Class[] getExportedTypes(int oid) {
+    /*package*/ @Nonnull Class[] getExportedTypes(int oid) throws InvalidObjectIdException {
         return exportedObjects.type(oid);
     }
 

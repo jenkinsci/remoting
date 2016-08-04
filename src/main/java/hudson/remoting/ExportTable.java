@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
+import javax.annotation.CheckForNull;
 
 /**
  * Manages unique ID for exported objects, and allows look-up from IDs.
@@ -323,19 +324,33 @@ final class ExportTable {
     }
 
     synchronized @Nonnull
-    Object get(int id) {
+    Object get(int id) throws InvalidObjectIdException {
         Entry e = table.get(id);
         if(e!=null) return e.object;
 
-        throw diagnoseInvalidId(id);
+        throw diagnoseInvalidObjectId(id);
     }
 
+    /**
+     * Retrieves object by id.
+     * @param oid Object ID
+     * @return Object or {@code null} if the ID is missing in the {@link ExportTable}.
+     * @since TODO
+     */
+    @CheckForNull
+    synchronized Object getOrNull(int oid) {
+        Entry<?> e = table.get(oid);
+        if(e!=null) return e.object;
+
+        return null;
+    }
+    
     synchronized @Nonnull
-    Class[] type(int id) {
+    Class[] type(int id) throws InvalidObjectIdException {
         Entry e = table.get(id);
         if(e!=null) return e.getInterfaces();
 
-        throw diagnoseInvalidId(id);
+        throw diagnoseInvalidObjectId(id);
     }
 
     /**
@@ -370,7 +385,12 @@ final class ExportTable {
         }
     }
 
-    private synchronized IllegalStateException diagnoseInvalidId(int id) {
+    /**
+     * Creates a diagnostic exception for Invalid object id.
+     * @param id Object ID
+     * @return Exception to be thrown
+     */
+    private synchronized InvalidObjectIdException diagnoseInvalidObjectId(int id) {
         Exception cause=null;
 
         if (!unexportLog.isEmpty()) {
@@ -383,7 +403,7 @@ final class ExportTable {
                     new Date(unexportLog.get(0).releaseTrace.timestamp));
         }
 
-        return new IllegalStateException("Invalid object ID "+id+" iota="+iota, cause);
+        return new InvalidObjectIdException("Invalid object ID "+id+" iota="+iota, cause);
     }
 
     /**
@@ -406,7 +426,7 @@ final class ExportTable {
         if(oid==null)     return;
         Entry e = table.get(oid);
         if(e==null) {
-            LOGGER.log(SEVERE, "Trying to unexport an object that's already unexported", diagnoseInvalidId(oid));
+            LOGGER.log(SEVERE, "Trying to unexport an object that's already unexported", diagnoseInvalidObjectId(oid));
             if (callSite!=null)
                 LOGGER.log(SEVERE, "2nd unexport attempt is here", callSite);
             return;

@@ -27,6 +27,7 @@ import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.Writer;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -224,7 +225,8 @@ final class ProxyWriter extends Writer {
             }
         }
 
-        protected void execute(final Channel channel) {
+        @Override
+        protected void execute(final Channel channel) throws ExecutionException {
             final Writer os = (Writer) channel.getExportedObject(oid);
             channel.pipeWriter.submit(ioId, new Runnable() {
                 public void run() {
@@ -280,7 +282,7 @@ final class ProxyWriter extends Writer {
             this.oid = oid;
         }
 
-        protected void execute(Channel channel) {
+        protected void execute(Channel channel) throws ExecutionException {
             final Writer os = (Writer) channel.getExportedObject(oid);
             channel.pipeWriter.submit(ioId, new Runnable() {
                 public void run() {
