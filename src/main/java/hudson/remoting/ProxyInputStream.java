@@ -158,7 +158,7 @@ final class ProxyInputStream extends InputStream {
         }
 
         public String toString() {
-            return "EOF("+oid+")";
+            return "ProxyInputStream.EOF("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
