@@ -24,8 +24,6 @@
 package hudson.remoting;
 
 import java.util.concurrent.ExecutionException;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 /**
  * Exception for Invalid object processing in {@link ExportTable}
@@ -33,7 +31,7 @@ import javax.annotation.Nonnull;
  */
 public class InvalidObjectIdException extends ExecutionException {
 
-    InvalidObjectIdException(@Nonnull String message, @CheckForNull Exception cause) {
+    InvalidObjectIdException(String message, Exception cause) {
         super(message, cause);
     }
     
