@@ -378,7 +378,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             }
             markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid,createdAt);
+                    channel.unexport(oid,createdAt,false);
                     try {
                         if (error!=null && os instanceof ErrorPropagatingOutputStream)
                             ((ErrorPropagatingOutputStream) os).error(error);

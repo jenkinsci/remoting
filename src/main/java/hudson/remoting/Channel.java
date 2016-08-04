@@ -643,7 +643,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /*package*/ void unexport(int id, Throwable cause) {
-        exportedObjects.unexportByOid(id, cause);
+        unexport(id, cause, true);
+    }
+    
+    /**
+     * Unexports object.
+     * @param id Object ID
+     * @param cause Stacktrace pf the object creation call
+     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
+     * @since TODO
+     */
+    /*package*/ void unexport(int id, Throwable cause, boolean severeErrorIfMissing) {
+        exportedObjects.unexportByOid(id, cause, severeErrorIfMissing);
     }
 
     /**

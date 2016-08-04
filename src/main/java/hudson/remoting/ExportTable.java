@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
@@ -421,14 +422,27 @@ final class ExportTable {
 
     /**
      * Removes the exported object for the specified oid from the table.
+     * Logs error if the object has been already unexported.
      */
-    synchronized void unexportByOid(Integer oid, Throwable callSite) {
+    void unexportByOid(Integer oid, Throwable callSite) {
+        unexportByOid(oid, callSite, true);
+    }
+    
+    /**
+     * Removes the exported object for the specified oid from the table.
+     * @param oid Object ID
+     * @param callSite Unexport command caller
+     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
+     * @since TODO
+     */
+    synchronized void unexportByOid(Integer oid, Throwable callSite, boolean severeErrorIfMissing) {
         if(oid==null)     return;
         Entry e = table.get(oid);
         if(e==null) {
-            LOGGER.log(SEVERE, "Trying to unexport an object that's already unexported", diagnoseInvalidObjectId(oid));
+            Level loggingLevel = severeErrorIfMissing ? SEVERE : FINE;
+            LOGGER.log(loggingLevel, "Trying to unexport an object that's already unexported", diagnoseInvalidObjectId(oid));
             if (callSite!=null)
-                LOGGER.log(SEVERE, "2nd unexport attempt is here", callSite);
+                LOGGER.log(loggingLevel, "2nd unexport attempt is here", callSite);
             return;
         }
         e.release(callSite);

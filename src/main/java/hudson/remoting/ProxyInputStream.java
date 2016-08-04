@@ -157,13 +157,14 @@ final class ProxyInputStream extends InputStream {
         }
 
         protected void execute(Channel channel) {
-            // EOF may be late to the party if we interrupt request, hence we do not fail for this command
-            InputStream in = (InputStream) channel.getExportedObjectOrNull(oid);
+            final InputStream in = (InputStream) channel.getExportedObjectOrNull(oid);
+            // EOF may be late to the party if we interrupt request, hence we do not fail for this command         
             if (in == null) { // Input stream has not been closed yet
                 LOGGER.log(Level.FINE, "InputStream with oid=%s has been already unexported", oid);
                 return;
             }
-            channel.unexport(oid,createdAt);
+            
+            channel.unexport(oid,createdAt,false);
             
             try {
                 in.close();
