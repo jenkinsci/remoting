@@ -749,14 +749,14 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         public void remove() {
             stackLock.readLock().lock();
             try {
+                if (removed) {
+                    return;
+                }
                 if (nextSend == null) {
                     throw new UnsupportedOperationException("Network layer is not supposed to call remove");
                 }
                 if (nextRecv == null) {
                     throw new UnsupportedOperationException("Application layer is not supposed to call remove");
-                }
-                if (removed) {
-                    return;
                 }
                 // we just want to have a lock, we abuse the read lock here as the readers are eventually consistent
                 removed = true;

@@ -102,7 +102,7 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
             LOGGER.log(Level.FINEST, "[{0}] Completed", stack().name());
         }
         synchronized (this) {
-            if (completionState != 0) {
+            if (completionState == 7) {
                 throw new IllegalStateException("Filter has already been completed");
             }
             completionState |= 1;
