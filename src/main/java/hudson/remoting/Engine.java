@@ -263,8 +263,9 @@ public class Engine extends Thread {
         List<JnlpProtocolHandler> protocols = new JnlpProtocolHandlerFactory(service)
                 .withIOHub(hub)
                 .withSSLContext(context)
+                .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
                 .handlers();
-        Map<String,String> headers = new HashMap<String,String>();
+        final Map<String,String> headers = new HashMap<String,String>();
         headers.put(JnlpConnectionState.CLIENT_NAME_KEY, slaveName);
         headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
 
@@ -362,7 +363,13 @@ public class Engine extends Thread {
 
                                 @Override
                                 public void afterChannel(@NonNull JnlpConnectionState event) {
-
+                                    // store the new cookie for next connection attempt
+                                    String cookie = event.getProperty(JnlpConnectionState.COOKIE_KEY);
+                                    if (cookie == null) {
+                                        headers.remove(JnlpConnectionState.COOKIE_KEY);
+                                    } else {
+                                        headers.put(JnlpConnectionState.COOKIE_KEY, cookie);
+                                    }
                                 }
                             }).get();
                         } catch (IOException ioe) {
