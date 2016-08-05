@@ -218,7 +218,7 @@ public class JnlpProtocolHandlerTest {
                     public void afterChannel(@NonNull JnlpConnectionState event) {
                     }
                 });
-        eastRemoting = eastChan.get(1, TimeUnit.SECONDS);
+        eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
         assertThat(eastRemoting, notNullValue());
         eastRemoting.callAsync(new TestCallable());
         westRemoting = westChan.get(10, TimeUnit.SECONDS);
@@ -293,13 +293,13 @@ public class JnlpProtocolHandlerTest {
                     }
                 });
         try {
-            eastRemoting = eastChan.get(1, TimeUnit.SECONDS);
+            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(IOException.class));
         }
         try {
-            westRemoting = westChan.get(1, TimeUnit.SECONDS);
+            westRemoting = westChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
@@ -371,13 +371,13 @@ public class JnlpProtocolHandlerTest {
                     }
                 });
         try {
-            eastRemoting = eastChan.get(1, TimeUnit.SECONDS);
+            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(IOException.class));
         }
         try {
-            westRemoting = westChan.get(1, TimeUnit.SECONDS);
+            westRemoting = westChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
@@ -450,13 +450,13 @@ public class JnlpProtocolHandlerTest {
                     }
                 });
         try {
-            eastRemoting = eastChan.get(1, TimeUnit.SECONDS);
+            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(IOException.class));
         }
         try {
-            westRemoting = westChan.get(1, TimeUnit.SECONDS);
+            westRemoting = westChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
@@ -529,13 +529,13 @@ public class JnlpProtocolHandlerTest {
                     }
                 });
         try {
-            eastRemoting = eastChan.get(1, TimeUnit.SECONDS);
+            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(IOException.class));
         }
         try {
-            westRemoting = westChan.get(1, TimeUnit.SECONDS);
+            westRemoting = westChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
@@ -605,13 +605,13 @@ public class JnlpProtocolHandlerTest {
                     }
                 });
         try {
-            eastRemoting = eastChan.get(1, TimeUnit.SECONDS);
+            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
         }
         try {
-            westRemoting = westChan.get(1, TimeUnit.SECONDS);
+            westRemoting = westChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
@@ -680,13 +680,13 @@ public class JnlpProtocolHandlerTest {
                     }
                 });
         try {
-            eastRemoting = eastChan.get(1, TimeUnit.SECONDS);
+            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
         }
         try {
-            westRemoting = westChan.get(1, TimeUnit.SECONDS);
+            westRemoting = westChan.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
             assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
