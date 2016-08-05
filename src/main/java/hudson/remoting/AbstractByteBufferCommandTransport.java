@@ -31,9 +31,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
-import org.jenkinsci.remoting.util.ByteBufferQueueInputStream;
 import org.jenkinsci.remoting.util.ByteBufferQueueOutputStream;
-import org.jenkinsci.remoting.util.ByteBufferUtils;
+import org.jenkinsci.remoting.util.FastByteBufferQueueInputStream;
 import org.jenkinsci.remoting.util.IOUtils;
 
 /**
@@ -195,7 +194,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
 
     private void processCommand() throws IOException {
         try {
-            ByteBufferQueueInputStream is = new ByteBufferQueueInputStream(receiveQueue, readCommandSizes[0]);
+            FastByteBufferQueueInputStream is = new FastByteBufferQueueInputStream(receiveQueue, readCommandSizes[0]);
             try {
                 ObjectInputStreamEx ois = new ObjectInputStreamEx(is, channel.baseClassLoader, channel.classFilter);
                 receiver.handle(Command.readFrom(channel, ois));
