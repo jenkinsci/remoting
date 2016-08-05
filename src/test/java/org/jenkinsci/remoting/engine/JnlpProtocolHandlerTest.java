@@ -761,6 +761,22 @@ public class JnlpProtocolHandlerTest {
                     public String toString() {
                         return "JNLP4-connect";
                     }
+                },
+                new Factory() {
+                    @Override
+                    public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
+                                                                                     ExecutorService svc,
+                                                                                     IOHub selector, NioChannelHub hub,
+                                                                                     SSLContext ctx,
+                                                                                     boolean preferNio) {
+                        return new JnlpProtocol4PlainHandler(db, svc, selector, preferNio);
+
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "JNLP4-plaintext";
+                    }
                 }
         };
     }
