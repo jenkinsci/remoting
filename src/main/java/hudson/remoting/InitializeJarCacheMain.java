@@ -46,7 +46,7 @@ public class InitializeJarCacheMain {
             Checksum checksum = Checksum.forFile(jar);
             File newJarLocation = jarCache.map(checksum.sum1, checksum.sum2);
 
-            newJarLocation.getParentFile().mkdirs();
+            Util.mkdirs(newJarLocation.getParentFile());
             copyFile(jar, newJarLocation);
         }
     }

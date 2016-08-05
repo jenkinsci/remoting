@@ -8,12 +8,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,17 +25,15 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.powermock.api.mockito.PowerMockito.mockStatic;
-import static org.powermock.api.mockito.PowerMockito.spy;
 
 /**
  * Tests for {@link FileSystemJarCache}.
  *
  * @author Akshay Dayal
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({FileSystemJarCache.class, File.class})
 public class FileSystemJarCacheTest {
 
     private static final String CONTENTS = "These are the contents";
@@ -52,6 +48,7 @@ public class FileSystemJarCacheTest {
 
     @Before
     public void setUp() throws Exception {
+        MockitoAnnotations.initMocks(this);
         fileSystemJarCache = new FileSystemJarCache(tmp.getRoot(), true);
 
         expectedChecksum = ChecksumTest.createdExpectedChecksum(
@@ -111,14 +108,13 @@ public class FileSystemJarCacheTest {
                 mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
     }
 
-/*  for whatever reason I just can't seem to make this one test work. HELP!
     @Test
     public void testRenameFailsAndNoTarget() throws Exception {
         File expectedFile = fileSystemJarCache.map(expectedChecksum.sum1, expectedChecksum.sum2);
         File spy = spy(tmp.newFile());
-        mockStatic(File.class);
-        when(File.createTempFile(expectedFile.getName(), "tmp", expectedFile.getParentFile()))
-                .thenReturn(spy);
+        FileSystemJarCache jarCache = spy(fileSystemJarCache);
+        doReturn(spy).when(jarCache).createTempJar(any(File.class));
+
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
         doAnswer(new Answer<Void>() {
             @Override
@@ -131,23 +127,23 @@ public class FileSystemJarCacheTest {
                 eq(expectedChecksum.sum1),
                 eq(expectedChecksum.sum2),
                 any(RemoteOutputStream.class));
+
         when(spy.renameTo(expectedFile)).thenReturn(false);
         assertFalse(expectedFile.exists());
 
         expectedEx.expect(IOException.class);
         expectedEx.expectCause(hasMessage(StringContains.containsString("Unable to create")));
-        fileSystemJarCache.retrieve(
-                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+
+        jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
     }
-*/
 
     @Test
     public void testRenameFailsAndBadPreviousTarget() throws Exception {
         final File expectedFile = fileSystemJarCache.map(expectedChecksum.sum1, expectedChecksum.sum2);
-        File spy = spy(tmp.newFile());
-        mockStatic(File.class);
-        when(File.createTempFile(expectedFile.getName(), "tmp", expectedFile.getParentFile()))
-                .thenReturn(spy);
+        File fileSpy = spy(tmp.newFile());
+        FileSystemJarCache jarCache = spy(fileSystemJarCache);
+        doReturn(fileSpy).when(jarCache).createTempJar(any(File.class));
+
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
         doAnswer(new Answer<Void>() {
             @Override
@@ -168,12 +164,12 @@ public class FileSystemJarCacheTest {
                 Files.append("Some other contents", expectedFile, Charset.forName("UTF-8"));
                 return false;
             }
-        }).when(spy).renameTo(expectedFile);
+        }).when(fileSpy).renameTo(expectedFile);
 
         expectedEx.expect(IOException.class);
         expectedEx.expectCause(hasMessage(StringContains.containsString(
                 "Incorrect checksum of previous jar")));
-        fileSystemJarCache.retrieve(
-                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+
+        jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
     }
 }

@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -36,7 +37,12 @@ public class FileSystemJarCache extends JarCacheSupport {
         this.touch = touch;
         if (rootDir==null)
             throw new IllegalArgumentException();
-        rootDir.mkdirs();
+
+        try {
+            Util.mkdirs(rootDir);
+        } catch (IOException ex) {
+            throw new RuntimeException("Root directory not writable");
+        }
     }
 
     @Override
@@ -55,7 +61,6 @@ public class FileSystemJarCache extends JarCacheSupport {
     @Override
     protected URL retrieve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         File target = map(sum1, sum2);
-        File parent = target.getParentFile();
 
         if (target.exists()) {
             // Assume its already been fetched correctly before. ie. We are not going to validate
@@ -64,9 +69,8 @@ public class FileSystemJarCache extends JarCacheSupport {
             return target.toURI().toURL();
         }
 
-        parent.mkdirs();
         try {
-            File tmp = File.createTempFile(target.getName(), "tmp", parent);
+            File tmp = createTempJar(target);
             try {
                 RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
                 try {
@@ -111,6 +115,12 @@ public class FileSystemJarCache extends JarCacheSupport {
         } catch (IOException e) {
             throw (IOException)new IOException("Failed to write to "+target).initCause(e);
         }
+    }
+
+    /*package for testing*/ File createTempJar(@Nonnull File target) throws IOException {
+        File parent = target.getParentFile();
+        Util.mkdirs(parent);
+        return File.createTempFile(target.getName(), "tmp", parent);
     }
 
     /**

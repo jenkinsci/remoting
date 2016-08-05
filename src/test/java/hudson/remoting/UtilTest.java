@@ -26,12 +26,16 @@ package hudson.remoting;
 
 import junit.framework.TestCase;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * @author Etienne Bec
@@ -39,6 +43,8 @@ import org.powermock.modules.junit4.PowerMockRunner;
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(Util.class)
 public class UtilTest extends TestCase {
+
+    @Rule public TemporaryFolder temp = new TemporaryFolder();
 
     @Before
     public void mockSystem() {
@@ -130,5 +136,38 @@ public class UtilTest extends TestCase {
         assertEquals(false, Util.inNoProxyEnvVar("jenkins.org"));
         assertEquals(false, Util.inNoProxyEnvVar("sub.foobar.org"));
         assertEquals(false, Util.inNoProxyEnvVar("sub.jenkins.org"));
+    }
+
+    @Test
+    public void mkdirs() throws IOException {
+        File sandbox = temp.newFolder();
+        // Dir exists already
+        Util.mkdirs(sandbox);
+        assertTrue(sandbox.exists());
+
+        // Create nested subdir
+        File subdir = new File(sandbox, "sub/dir");
+        Util.mkdirs(subdir);
+        assertTrue(subdir.exists());
+
+        // Do not overwrite a file
+        File file = new File(sandbox, "regular.file");
+        file.createNewFile();
+        try {
+            Util.mkdirs(file);
+        } catch (IOException ex) {
+            // Expected
+        }
+        assertTrue(file.exists());
+        assertTrue(file.isFile());
+
+        // Fail to create aloud
+        try {
+            File forbidden = new File("/proc/nonono");
+            Util.mkdirs(forbidden);
+            fail();
+        } catch (IOException ex) {
+            // Expected
+        }
     }
 }
