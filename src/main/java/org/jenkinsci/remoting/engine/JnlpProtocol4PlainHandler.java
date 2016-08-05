@@ -229,6 +229,7 @@ public class JnlpProtocol4PlainHandler extends JnlpProtocolHandler<JnlpConnectio
         @Override
         public void onReceiveHeaders(Map<String, String> headers) throws ConnectionRefusalException {
             event.fireBeforeProperties();
+            remoteHeaders = headers;
             if (!client) {
                 String clientName = headers.get(JnlpConnectionState.CLIENT_NAME_KEY);
                 if (clientDatabase == null || !clientDatabase.exists(clientName)) {
