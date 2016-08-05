@@ -71,10 +71,11 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
      * @param clientDatabase the client database to use or {@code null} if client connections will not be required.
      * @param threadPool     the {@link ExecutorService} to run tasks on.
      * @param hub            the {@link NioChannelHub} to use or {@code null} to use blocking I/O.
+     * @param preferNio      {@code true} means that the protocol should attempt to use NIO if possible.
      */
     public LegacyJnlpProtocolHandler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
-                                     @Nullable NioChannelHub hub) {
-        super(clientDatabase);
+                                     @Nullable NioChannelHub hub, boolean preferNio) {
+        super(clientDatabase, preferNio);
         this.threadPool = threadPool;
         this.hub = hub;
     }
@@ -221,7 +222,7 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
      */
     @Nonnull
     private ChannelBuilder createChannelBuilder(String clientName) {
-        if (hub == null) {
+        if (hub == null || !isPreferNio()) {
             return new ChannelBuilder(clientName, threadPool);
         } else {
             return hub.newChannelBuilder(clientName, threadPool);

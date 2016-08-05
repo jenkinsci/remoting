@@ -25,7 +25,6 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
-import hudson.remoting.SocketChannelStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -33,11 +32,9 @@ import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.security.SecureRandom;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -144,8 +141,8 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
 
 
     public JnlpProtocol3Handler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
-                                @Nullable NioChannelHub hub) {
-        super(clientDatabase, threadPool, hub);
+                                @Nullable NioChannelHub hub, boolean preferNio) {
+        super(clientDatabase, threadPool, hub, preferNio);
     }
 
     /**

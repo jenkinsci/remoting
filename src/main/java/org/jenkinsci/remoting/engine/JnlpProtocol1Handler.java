@@ -66,10 +66,11 @@ public class JnlpProtocol1Handler extends LegacyJnlpProtocolHandler<LegacyJnlpCo
      * @param clientDatabase the client database to use or {@code null} if client connections will not be required.
      * @param threadPool     the {@link ExecutorService} to run tasks on.
      * @param hub            the {@link NioChannelHub} to use or {@code null} to use blocking I/O.
+     * @param preferNio      {@code true} means that the protocol should attempt to use NIO if possible
      */
     public JnlpProtocol1Handler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
-                                @Nullable NioChannelHub hub) {
-        super(clientDatabase, threadPool, hub);
+                                @Nullable NioChannelHub hub, boolean preferNio) {
+        super(clientDatabase, threadPool, hub, preferNio);
     }
 
     /**

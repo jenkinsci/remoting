@@ -47,12 +47,19 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
     private final JnlpClientDatabase clientDatabase;
 
     /**
+     * Flag to indicate that the protocol should make best effort to use Non-Blocking I/O.
+     */
+    private final boolean preferNio;
+
+    /**
      * Constructor.
      *
      * @param clientDatabase the {@link JnlpClientDatabase}.
+     * @param preferNio      {@code true} means that the protocol should attempt to use NIO if possible.
      */
-    /*package*/ JnlpProtocolHandler(@Nullable JnlpClientDatabase clientDatabase) {
+    /*package*/ JnlpProtocolHandler(@Nullable JnlpClientDatabase clientDatabase, boolean preferNio) {
         this.clientDatabase = clientDatabase;
+        this.preferNio = preferNio;
     }
 
     /**
@@ -63,6 +70,14 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
     @CheckForNull
     public JnlpClientDatabase getClientDatabase() {
         return clientDatabase;
+    }
+
+    /**
+     * Gets the preference for Non-Blocking I/O
+     * @return {@code true} means that the protocol should attempt to use NIO if possible.
+     */
+    public boolean isPreferNio() {
+        return preferNio;
     }
 
     /**

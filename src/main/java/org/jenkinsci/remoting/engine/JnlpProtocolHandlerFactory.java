@@ -71,6 +71,11 @@ public class JnlpProtocolHandlerFactory {
     private final ExecutorService threadPool;
 
     /**
+     * {@code true} means that the protocols should attempt to use NIO if possible.
+     */
+    private boolean preferNio = true;
+
+    /**
      * Constructor.
      *
      * @param threadPool the thread pool to use.
@@ -127,6 +132,18 @@ public class JnlpProtocolHandlerFactory {
     }
 
     /**
+     * Set the I/O blocking mode preferences
+     *
+     * @param preferNio {@code true} to prefer using Non-Blocking I/O techniques, {@code false} to prefer
+     *                              thread-per-connection Blocking I/O.
+     * @return {@code this} for method chaining.
+     */
+    public JnlpProtocolHandlerFactory withPreferNonBlockingIO(boolean preferNio) {
+        this.preferNio = preferNio;
+        return this;
+    }
+
+    /**
      * Add a {@link JnlpClientDatabase}.
      *
      * @param clientDatabase the {@link JnlpClientDatabase}.
@@ -146,11 +163,14 @@ public class JnlpProtocolHandlerFactory {
     public List<JnlpProtocolHandler> handlers() {
         List<JnlpProtocolHandler> result = new ArrayList<JnlpProtocolHandler>();
         if (ioHub != null && context != null) {
-            result.add(new JnlpProtocol4Handler(clientDatabase, threadPool, ioHub, context, needClientAuth));
+            result.add(new JnlpProtocol4Handler(clientDatabase, threadPool, ioHub, context, needClientAuth, preferNio));
         }
-        result.add(new JnlpProtocol3Handler(clientDatabase, threadPool, nioChannelHub));
-        result.add(new JnlpProtocol2Handler(clientDatabase, threadPool, nioChannelHub));
-        result.add(new JnlpProtocol1Handler(clientDatabase, threadPool, nioChannelHub));
+        if (ioHub != null) {
+            result.add(new JnlpProtocol4PlainHandler(clientDatabase, threadPool, ioHub, preferNio));
+        }
+        result.add(new JnlpProtocol3Handler(clientDatabase, threadPool, nioChannelHub, preferNio));
+        result.add(new JnlpProtocol2Handler(clientDatabase, threadPool, nioChannelHub, preferNio));
+        result.add(new JnlpProtocol1Handler(clientDatabase, threadPool, nioChannelHub, preferNio));
         return result;
     }
 }
