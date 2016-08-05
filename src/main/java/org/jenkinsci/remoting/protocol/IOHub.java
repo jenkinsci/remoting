@@ -404,20 +404,19 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         try {
             while (isOpen()) {
                 selectorThread.setName(
-                        String.format("IOHub#%d: Selector[keys:%d, gen:%d] / %s",
-                                _id,
-                                selector.keys().size(),
-                                gen,
-                                oldName)
+                        "IOHub#" + _id + ": Selector[keys:" + selector.keys().size() + ", gen:" + gen + "] / " + oldName
                 );
                 try {
                     processScheduledTasks();
-                    if (processRegistrations() || processInterestOps() || processSelectorTasks()) {
+                    boolean wantSelectNow = processRegistrations();
+                    wantSelectNow = processInterestOps() || wantSelectNow;
+                    wantSelectNow = processSelectorTasks() || wantSelectNow;
+                    if (wantSelectNow) {
                         // we did some work that is anticipated to either take some time or have likely resulted
                         // in an immediately ready selection key, hence we use the non-blocking form
                         selector.selectNow();
                     } else {
-                        selector.select(1000);
+                        selector.select(); // WINDOWS!!! Waiting the whole timeout anyway if timeout specified?!?
                     }
                     Set<SelectionKey> keys = selector.selectedKeys();
                     if (keys.isEmpty()) {
