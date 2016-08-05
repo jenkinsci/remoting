@@ -251,8 +251,8 @@ public class Engine extends Thread {
                         host = con.getHeaderField("X-Jenkins-JNLP-Host"); // controlled by hudson.TcpSlaveAgentListener.hostName
                         if (host == null) host=url.getHost();
                         String names = con.getHeaderField("X-Jenkins-Agent-Protocols");
-                        agentProtocolNames = new HashSet<String>();
                         if (names != null) {
+                            agentProtocolNames = new HashSet<String>();
                             for (String name: names.split(",")) {
                                 name = name.trim();
                                 if (!name.isEmpty()) {
