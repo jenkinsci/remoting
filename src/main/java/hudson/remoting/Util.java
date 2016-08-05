@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import org.jvnet.animal_sniffer.IgnoreJRERequirement;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -14,8 +16,10 @@ import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.SocketAddress;
 import java.net.URL;
+import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
+import java.nio.file.Files;
 import java.util.Iterator;
 
 /**
@@ -246,5 +250,27 @@ class Util {
             }
         }
         return targetAddress;
+    }
+
+    @IgnoreJRERequirement @SuppressWarnings("Since15")
+    static void mkdirs(@Nonnull File file) throws IOException {
+        if (file.isDirectory()) return;
+
+        try {
+            Class.forName("java.nio.file.Files");
+            Files.createDirectories(file.toPath());
+            return;
+        } catch (ClassNotFoundException e) {
+            // JDK6
+        } catch (ExceptionInInitializerError e) {
+            // JDK7 on multibyte encoding (http://bugs.java.com/bugdatabase/view_bug.do?bug_id=7050570)
+        }
+
+        // Fallback
+        if (!file.mkdirs()) {
+            if (!file.isDirectory()) {
+                throw new IOException("Directory not created");
+            }
+        }
     }
 }
