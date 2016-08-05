@@ -6,6 +6,22 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 2.61
+
+Release date: TBD
+
+Fixed issues:
+* [JENKINS-37140](https://issues.jenkins-ci.org/browse/JENKINS-37140) - 
+JNLP Slave connection issue with *JNLP3-connect* protocol when the generated encrypted cookie contains a newline symbols.
+(https://github.com/jenkinsci/remoting/pull/95)
+* [JENKINS-36991](https://issues.jenkins-ci.org/browse/JENKINS-36991) -
+Unable to load class when remote classloader gets interrupted.
+(https://github.com/jenkinsci/remoting/pull/94)
+
+Enhancements:
+* Improve diagnostics for Jar Cache write errors.
+(https://github.com/jenkinsci/remoting/pull/91)
+
 ##### 2.60
 
 Release date: (June 10, 2016) => Jenkins 2.9, 2.7.2
