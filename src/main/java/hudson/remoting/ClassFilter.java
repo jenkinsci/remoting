@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -197,7 +198,7 @@ public abstract class ClassFilter {
          */
         @Override
         public String toString() {
-            return blacklistPatterns.toString();
+            return Arrays.toString(blacklistPatterns);
         }
     }
 }
