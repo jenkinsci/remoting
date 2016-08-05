@@ -206,6 +206,12 @@ THE SOFTWARE.
       <resource>
         <directory>${basedir}/src/main/resources</directory>
       </resource>
+      <resource>
+        <directory>${basedir}</directory>
+        <includes>
+          <include>NOTICE</include>
+        </includes>
+      </resource>
     </resources>
     <plugins>
       <plugin>
@@ -238,6 +244,22 @@ THE SOFTWARE.
             </manifestEntries>
           </archive>
         </configuration>
+        <executions>
+          <execution>
+            <id>executable-tests</id>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+            <configuration>
+              <archive>
+                <manifest>
+                  <addClasspath>true</addClasspath>
+                  <mainClass>org.jenkinsci.remoting.engine.HandlerLoopbackLoadStress</mainClass>
+                </manifest>
+              </archive>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-jarsigner-plugin</artifactId>
@@ -314,6 +336,25 @@ THE SOFTWARE.
               <includeArtifactIds>constant-pool-scanner</includeArtifactIds>
               <includeGroupIds>org.jenkins-ci</includeGroupIds>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>2.6</version>
+        <configuration>
+          <descriptors>
+            <descriptor>src/assembly/agent-load-test.xml</descriptor>
+          </descriptors>
+          <attach>false</attach>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id> <!-- this is used for inheritance merges -->
+            <phase>package</phase> <!-- bind to the packaging phase -->
+            <goals>
+              <goal>single</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>

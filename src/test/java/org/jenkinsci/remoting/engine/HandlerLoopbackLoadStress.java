@@ -23,13 +23,15 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import com.google.common.util.concurrent.SettableFuture;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.SocketChannelStream;
 import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
@@ -47,6 +49,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
@@ -61,6 +64,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nonnull;
 import javax.net.ssl.KeyManagerFactory;
@@ -84,26 +89,29 @@ import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.IOHubReadyListener;
 import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
-import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
+import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
+import org.jenkinsci.remoting.util.Charsets;
+import org.jenkinsci.remoting.util.SettableFuture;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
+/**
+ * A stress-testing client
+ */
 public class HandlerLoopbackLoadStress {
 
     private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
+
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final Timer[] timer = createTimers();
-    private final JnlpConnectionStateListener serverListener = new MyJnlpConnectionStateListener(Channel.Mode.NEGOTIATE);
+    private final JnlpConnectionStateListener serverListener =
+            new MyJnlpConnectionStateListener(Channel.Mode.NEGOTIATE);
     private final JnlpConnectionStateListener clientListener = new MyJnlpConnectionStateListener(Channel.Mode.BINARY);
 
-    private Timer[] createTimers() {
-        Timer[] result = new Timer[Runtime.getRuntime().availableProcessors()];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = new Timer(true);
-        }
-        return result;
-    }
-
-    private final IOHub hub;
+    private final IOHub mainHub;
+    private final IOHub acceptorHub;
     private final NioChannelHub legacyHub;
 
     private final SSLContext context;
@@ -120,9 +128,16 @@ public class HandlerLoopbackLoadStress {
     private final SettableFuture<SocketAddress> addr = SettableFuture.create();
     private final Random entropy = new Random();
 
-    public HandlerLoopbackLoadStress(boolean nio, String name)
+    private final RuntimeMXBean runtimeMXBean;
+    private final OperatingSystemMXBean operatingSystemMXBean;
+    private final Method _getProcessCpuTime;
+    private final Config config;
+    private final Stats stats;
+
+    public HandlerLoopbackLoadStress(Config config)
             throws IOException, NoSuchAlgorithmException, CertificateException, KeyStoreException,
             UnrecoverableKeyException, KeyManagementException, OperatorCreationException {
+        this.config = config;
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048); // maximum supported by JVM with export restrictions
         keyPair = gen.generateKeyPair();
@@ -175,9 +190,11 @@ public class HandlerLoopbackLoadStress {
 
         context = SSLContext.getInstance("TLS");
         context.init(kmf.getKeyManagers(),
-                new TrustManager[]{new PublicKeyMatchingX509ExtendedTrustManager(keyPair.getPublic())}, null);
+                new TrustManager[]{new BlindTrustX509ExtendedTrustManager()}, null);
 
-        hub = IOHub.create(executorService);
+        mainHub = IOHub.create(executorService);
+        // on windows there is a bug whereby you cannot mix ServerSockets and Sockets on the same selector
+        acceptorHub = File.pathSeparatorChar == 59 ? IOHub.create(executorService) : mainHub;
         legacyHub = new NioChannelHub(executorService);
         executorService.submit(legacyHub);
         serverSocketChannel = ServerSocketChannel.open();
@@ -185,8 +202,9 @@ public class HandlerLoopbackLoadStress {
         JnlpProtocolHandler handler = null;
         for (JnlpProtocolHandler h : new JnlpProtocolHandlerFactory(executorService)
                 .withNioChannelHub(legacyHub)
-                .withIOHub(hub)
+                .withIOHub(mainHub)
                 .withSSLContext(context)
+                .withPreferNonBlockingIO(!config.bio)
                 .withClientDatabase(new JnlpClientDatabase() {
                     @Override
                     public boolean exists(String clientName) {
@@ -195,29 +213,291 @@ public class HandlerLoopbackLoadStress {
 
                     @Override
                     public String getSecretOf(@Nonnull String clientName) {
-                        return "SECRET" + clientName;
+                        return secretFor(clientName);
                     }
                 })
                 .withSSLClientAuthRequired(false)
                 .handlers()) {
-            if (name.equals(h.getName())) {
+            if (config.name.equals(h.getName())) {
                 handler = h;
                 break;
             }
         }
         if (handler == null) {
-            throw new RuntimeException("Unknown handler: " + name);
+            throw new RuntimeException("Unknown handler: " + config.name);
         }
         this.handler = handler;
 
-        acceptor = new Acceptor(serverSocketChannel, nio);
+        acceptor = new Acceptor(serverSocketChannel);
+        runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+        operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
+        _getProcessCpuTime = _getProcessCpuTime(operatingSystemMXBean);
+        stats = new Stats();
     }
 
-    private SocketAddress startServer() throws IOException, ExecutionException, InterruptedException {
-        serverSocketChannel.bind(new InetSocketAddress(0));
+    private static String secretFor(@Nonnull String clientName) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+            digest.reset();
+            byte[] bytes = digest.digest(
+                    (HandlerLoopbackLoadStress.class.getName() + clientName).getBytes(Charsets.UTF_8));
+            StringBuilder result = new StringBuilder(Math.max(0, bytes.length * 3 - 1));
+            for (int i = 0; i < bytes.length; i++) {
+                if (i > 0) {
+                    result.append(':');
+                }
+                result.append(Character.forDigit((bytes[i] >> 4) & 0x0f, 16));
+                result.append(Character.forDigit(bytes[i] & 0x0f, 16));
+            }
+            return result.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("JLS mandates MD5 support");
+        }
+    }
+
+    private static InetSocketAddress toSocketAddress(String hostPort) {
+        InetSocketAddress socketAddress;
+        if (hostPort == null || hostPort.trim().isEmpty()) {
+            socketAddress = new InetSocketAddress(0);
+        } else {
+            int index = hostPort.indexOf(':');
+            if (index == -1) {
+                socketAddress = new InetSocketAddress(hostPort, 0);
+            } else if (index > 0) {
+                int port = Integer.parseInt(hostPort.substring(index + 1));
+                socketAddress = new InetSocketAddress(hostPort.substring(0, index), port);
+            } else {
+                int port = Integer.parseInt(hostPort.substring(index + 1));
+                socketAddress = new InetSocketAddress(port);
+            }
+        }
+        return socketAddress;
+    }
+
+    public static void main(String[] args) throws Exception {
+        final Config config = new Config();
+        CmdLineParser p = new CmdLineParser(config);
+        try {
+            p.parseArgument(args);
+        } catch (CmdLineException e) {
+            System.err.println(e.getMessage());
+            p.printUsage(System.err);
+            System.exit(0);
+        }
+        if (config.help) {
+            p.printUsage(System.err);
+            System.exit(0);
+        }
+        System.out.printf("Starting stress test of %s with %d clients making calls (payload %d bytes) every %dms "
+                        + "(%.1f/sec) to give a total expected rate of %.1f/sec%n",
+                config.name, config.numClients, config.payload, config.clientIntervalMs,
+                1000.0 / config.clientIntervalMs, 1000.0 / config.clientIntervalMs * config.numClients);
+        System.out.println(!config.bio ? "Preferring NIO" : "Prefering BIO");
+        final HandlerLoopbackLoadStress stress = new HandlerLoopbackLoadStress(config);
+        stress.mainHub.execute(stress.stats);
+        SocketAddress serverAddress;
+        if (config.client == null) {
+            serverAddress = stress.startServer(config.listen);
+        } else {
+            serverAddress = toSocketAddress(config.client);
+        }
+        try {
+            if (!config.server) {
+                for (int i = 0; i < config.numClients; i++) {
+                    Thread.sleep(10);
+                    if (i % 10 == 0) {
+                        System.out.println("Starting client " + i);
+                    }
+                    stress.startClient(i, serverAddress, config.clientIntervalMs, config.payload);
+                }
+                System.out.println("All clients started");
+                stress.stats.clientsStarted();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    private static Method _getProcessCpuTime(OperatingSystemMXBean operatingSystemMXBean) {
+        Method getProcessCpuTime;
+        try {
+            getProcessCpuTime = operatingSystemMXBean.getClass().getMethod("getProcessCpuTime");
+            getProcessCpuTime.setAccessible(true);
+        } catch (ClassCastException e) {
+            getProcessCpuTime = null;
+        } catch (NoSuchMethodException e) {
+            getProcessCpuTime = null;
+        }
+        return getProcessCpuTime;
+    }
+
+    private Timer[] createTimers() {
+        Timer[] result = new Timer[Runtime.getRuntime().availableProcessors()];
+        for (int i = 0; i < result.length; i++) {
+            result[i] = new Timer(true);
+        }
+        return result;
+    }
+
+    private SocketAddress startServer(String listen)
+            throws IOException, ExecutionException, InterruptedException, TimeoutException {
+        serverSocketChannel.bind(toSocketAddress(listen));
         serverSocketChannel.configureBlocking(false);
-        hub.register(serverSocketChannel, acceptor, true, false, false, false, acceptor);
+        acceptorHub.register(serverSocketChannel, acceptor, true, false, false, false, acceptor);
+        acceptor.registered.get(10, TimeUnit.SECONDS);
         return addr.get();
+    }
+
+    private Long getProcessCpuTime() {
+        Object r = null;
+        try {
+            r = _getProcessCpuTime.invoke(operatingSystemMXBean);
+        } catch (IllegalAccessException e) {
+            r = null;
+        } catch (InvocationTargetException e) {
+            r = null;
+        }
+        if (r instanceof Number) {
+            long value = ((Number) r).longValue();
+            return (value >= 0) ? value : null;
+        }
+        return null;
+    }
+
+    private void startClient(int n, SocketAddress serverAddress, final int clientIntervalMs, final int payloadSize)
+            throws IOException, ExecutionException, InterruptedException, TimeoutException {
+        SocketChannel toServer = SocketChannel.open();
+        toServer.socket().setKeepAlive(true);
+        toServer.socket().setTcpNoDelay(true);
+        toServer.configureBlocking(true);
+        toServer.connect(serverAddress);
+        HashMap<String, String> headers = new HashMap<String, String>();
+        String clientName = runtimeMXBean.getName() + "-client-" + n;
+        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, clientName);
+        headers.put(JnlpConnectionState.SECRET_KEY, secretFor(clientName));
+        final Channel clientChannel = handler.connect(toServer.socket(), headers, clientListener)
+                .get(15, TimeUnit.SECONDS);
+        timer[n % timer.length].scheduleAtFixedRate(new TimerTask() {
+            long start = System.currentTimeMillis();
+            int index = 0;
+            int times = 0;
+            private NoOpCallable callable = new NoOpCallable(payloadSize == -1 ? null : new byte[payloadSize]);
+
+            @Override
+            public void run() {
+                try {
+                    long start = System.currentTimeMillis();
+                    clientChannel.call(callable);
+                    if (config.client != null) {
+                        NoOpCallable.noops.incrementAndGet();
+                    }
+                    times++;
+                    if (times % 1000 == 0) {
+                        System.out.println(String.format("  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s",
+                                clientChannel.getName(), times,
+                                times * 1000.0 / (System.currentTimeMillis() - this.start), 1000.0 / clientIntervalMs));
+                    }
+                    long duration = System.currentTimeMillis() - start;
+                    if (duration > 250L) {
+                        System.err.println(
+                                String.format("  %s took %dms to complete a callable", clientChannel.getName(),
+                                        duration));
+                    }
+                    if (callable.payload != null && callable.payload.length > 0) {
+                        // mutate the payload to prevent compression
+                        int count = callable.payload.length;
+                        if (count > 100) {
+                            count = 100;
+                        }
+                        for (int j = 0; j < count; j++) {
+                            callable.payload[index] = (byte) (callable.payload[index] * 31 + times);
+                            index = Math.abs(index + 1) % callable.payload.length;
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace(System.err);
+                    IOUtils.closeQuietly(clientChannel);
+                    cancel();
+                    System.exit(2);
+                }
+            }
+        }, entropy.nextInt(clientIntervalMs), clientIntervalMs);
+    }
+
+    public static class Config {
+        @Option(name = "--protocol", metaVar = "PROTOCOL", usage = "The protocol to run the load test with")
+        public String name = "JNLP4-connect";
+
+        @Option(name = "--clients", metaVar = "CLIENTS", usage = "The number of clients to simulate")
+        public int numClients = 100;
+
+        @Option(name = "--interval",
+                metaVar = "MILLISECONDS",
+                usage = "The number of milliseconds each client waits before sending a command")
+        public int clientIntervalMs = 100;
+
+        @Option(name = "--size", metaVar = "BYTES", usage = "The number of bytes to pad the command with")
+        public int payload = -1;
+
+        @Option(name = "--warmup",
+                metaVar = "SECONDS",
+                usage = "The number of seconds after all connections are established to warm up before resetting stats")
+        public int warmup = -1;
+
+        @Option(name = "--collect",
+                metaVar = "SECONDS",
+                usage = "The number of seconds after all connections are established to collect stats for before "
+                        + "stopping")
+        public int collect = -1;
+
+        @Option(name = "--stats", metaVar = "FILE", usage = "Filename to record stats to")
+        public String file;
+
+        @Option(name = "--bio")
+        public boolean bio;
+
+        @Option(name = "--listen", metaVar = "HOST:PORT", usage = "Specify the hostname and port to listen on")
+        public String listen;
+
+        @Option(name = "--server", usage = "Specify to run as a server only")
+        public boolean server;
+
+        @Option(name = "--client",
+                metaVar = "HOST:PORT",
+                usage = "Specify to run as a client only and connect to a server on the specified HOST:PORT")
+        public String client;
+
+
+        @Option(name = "--help", aliases = {"-h", "-?"})
+        public boolean help;
+    }
+
+    private static class MyJnlpConnectionStateListener extends JnlpConnectionStateListener {
+        private final Channel.Mode mode;
+
+        public MyJnlpConnectionStateListener(Channel.Mode mode) {
+            this.mode = mode;
+        }
+
+        @Override
+        public void afterProperties(@NonNull JnlpConnectionState event) {
+            event.approve();
+        }
+
+        @Override
+        public void beforeChannel(@NonNull JnlpConnectionState event) {
+            event.getChannelBuilder().withMode(mode);
+        }
+
+        @Override
+        public void afterChannel(@NonNull JnlpConnectionState event) {
+            String clientName = event.getProperty(JnlpConnectionState.CLIENT_NAME_KEY);
+            if (clientName != null) {
+                System.out.println("Accepted connection from client " + clientName + " on " + event.getSocket()
+                        .getRemoteSocketAddress());
+            }
+        }
     }
 
     private static class NoOpCallable implements Callable<Void, IOException> {
@@ -242,37 +522,170 @@ public class HandlerLoopbackLoadStress {
         }
     }
 
-    private static class MyJnlpConnectionStateListener extends JnlpConnectionStateListener {
-        private final Channel.Mode mode;
+    private class Stats implements Runnable {
 
-        public MyJnlpConnectionStateListener(Channel.Mode mode) {
-            this.mode = mode;
+        private boolean started;
+        private boolean warmed;
+        private Metrics start;
+
+        public synchronized void clearStats() {
+            start = new Metrics();
+            System.out.printf("%n%-7s   %-29s   %-20s   %6s%n",
+                    "", "          Calls rate", "JVM CPU utilization", "");
+            System.out.printf("%-7s   %9s %9s %9s   %6s %6s %6s   %6s%n",
+                    "Time", "cur", "all", "expect", "cur", "all",
+                    "expect", "Sys load");
+            System.out.printf("%7s   %9s %9s %9s   %6s %6s %6s   %6s%n",
+                    "=======", "=========", "=========", "=========", "======", "======",
+                    "======", "======");
+        }
+
+        private synchronized void clientsStarted() {
+            System.out.println("Resetting statistics after start...");
+            clearStats();
+            started = true;
         }
 
         @Override
-        public void afterProperties(@NonNull JnlpConnectionState event) {
-            event.approve();
+        public void run() {
+            clearStats();
+            Metrics last = start;
+            double expectedNoopsPerSecond = 1000.0 / config.clientIntervalMs * config.numClients;
+            while (true) {
+                long next = last.time + 1000;
+                long wait;
+                while ((wait = next - System.currentTimeMillis()) > 0) {
+                    try {
+                        Thread.sleep(wait);
+                    } catch (InterruptedException e) {
+                        return;
+                    }
+                }
+                Metrics start = this.start;
+                Metrics current = new Metrics();
+
+                double noopsPerSecond0 = current.noopsPerSecond(start);
+                double noopsPerSecond = current.noopsPerSecond(last);
+                double vmLoad0 = current.vmLoad(start);
+                double vmLoad = current.vmLoad(last);
+                System.out.printf("%-4.1fmin   %7.1f/s %7.1f/s %7.1f/s   %6.2f %6.2f %6.2f   %6.2f%n",
+                        (current.uptime - start.uptime) / 60000.0,
+                        noopsPerSecond,
+                        noopsPerSecond0,
+                        expectedNoopsPerSecond,
+                        vmLoad,
+                        vmLoad0,
+                        vmLoad0 * expectedNoopsPerSecond / noopsPerSecond0,
+                        operatingSystemMXBean.getSystemLoadAverage()
+                );
+                System.out.flush();
+                last = current;
+                if (started && !warmed && (config.warmup <= 0
+                        || current.uptime - start.uptime > config.collect * 1000L)) {
+                    System.out.println("Warmup completed");
+                    clearStats();
+                    warmed = true;
+                } else if (started && warmed && config.collect > 0
+                        && current.uptime - start.uptime > config.collect * 1000L) {
+                    if (config.file != null) {
+                        try {
+                            File f = new File(config.file);
+                            PrintWriter pw;
+                            if (!f.exists()) {
+                                pw = new PrintWriter(new FileWriter(f));
+                                pw.printf(
+                                        "\"protocol\",\"io\",\"clients\",\"interval\",\"payload\",\"observedRate\","
+                                                + "\"expectedRate\",\"vmLoad\",\"expectedVmLoad\",\"threads\"%n");
+                            } else {
+                                pw = new PrintWriter(new FileWriter(f, true));
+                            }
+                            try {
+                                pw.printf("\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d%n",
+                                        config.name,
+                                        config.bio ? "blocking" : "non-blocking",
+                                        config.numClients,
+                                        config.clientIntervalMs,
+                                        config.payload,
+                                        noopsPerSecond0,
+                                        expectedNoopsPerSecond,
+                                        vmLoad0,
+                                        vmLoad0 * expectedNoopsPerSecond / noopsPerSecond0,
+                                        Thread.activeCount());
+                            } finally {
+                                pw.close();
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    System.out.printf("%n\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d%n",
+                            config.name,
+                            config.bio ? "blocking" : "non-blocking",
+                            config.numClients,
+                            config.clientIntervalMs,
+                            config.payload,
+                            noopsPerSecond0,
+                            expectedNoopsPerSecond,
+                            vmLoad0,
+                            vmLoad0 * expectedNoopsPerSecond / noopsPerSecond0,
+                            Thread.activeCount());
+                    System.exit(0);
+                }
+            }
         }
 
-        @Override
-        public void beforeChannel(@NonNull JnlpConnectionState event) {
-            event.getChannelBuilder().withMode(mode);
+    }
+
+    private class Metrics {
+        private long time;
+        private long noops;
+        private long uptime;
+        private Long cpu;
+
+        public Metrics() {
+            time = System.currentTimeMillis();
+            noops = NoOpCallable.noops.get();
+            uptime = runtimeMXBean.getUptime();
+            cpu = getProcessCpuTime();
         }
 
-        @Override
-        public void afterChannel(@NonNull JnlpConnectionState event) {
+        public long getTime() {
+            return time;
+        }
 
+        public long getNoops() {
+            return noops;
+        }
+
+        public long getUptime() {
+            return uptime;
+        }
+
+        public Long getCpu() {
+            return cpu;
+        }
+
+        public double noopsPerSecond(Metrics reference) {
+            return (noops - reference.noops) * 1000.0 / (time - reference.time);
+        }
+
+        public double vmLoad(Metrics reference) {
+            if (cpu == null || reference.cpu == null) {
+                return Double.NaN;
+            } else {
+                return Math.min(99.0, (cpu - reference.cpu) / 1000000.0 / (uptime - reference.uptime));
+            }
         }
     }
 
-    public class Acceptor implements IOHubReadyListener, IOHubRegistrationCallback {
+    private class Acceptor implements IOHubReadyListener, IOHubRegistrationCallback {
         private final ServerSocketChannel channel;
+        private final AtomicInteger clientCount = new AtomicInteger();
+        public SettableFuture<Void> registered = SettableFuture.create();
         private SelectionKey selectionKey;
-        private final boolean nio;
 
-        public Acceptor(ServerSocketChannel channel, boolean nio) {
+        private Acceptor(ServerSocketChannel channel) {
             this.channel = channel;
-            this.nio = nio;
         }
 
         @Override
@@ -290,8 +703,11 @@ public class HandlerLoopbackLoadStress {
                                 DataInputStream dis = new DataInputStream(SocketChannelStream.in(fromClient));
                                 String header = dis.readUTF();
                                 if (header.equals("Protocol:" + handler.getName())) {
-                                    handler.handle(fromClient.socket(), new HashMap<String, String>(), serverListener).get();
-                                    System.out.println("Accepted connection from " + fromClient.getRemoteAddress());
+                                    handler.handle(fromClient.socket(), new HashMap<String, String>(), serverListener)
+                                            .get();
+                                    if (config.server && clientCount.incrementAndGet() >= config.numClients) {
+                                        stats.clientsStarted();
+                                    }
                                 } else {
                                     fromClient.close();
                                 }
@@ -304,12 +720,11 @@ public class HandlerLoopbackLoadStress {
                             }
                         }
                     });
-                    hub.addInterestAccept(selectionKey);
+                    acceptorHub.addInterestAccept(selectionKey);
                 } catch (IOException e) {
                     e.printStackTrace(System.err);
                 }
             }
-
         }
 
         @Override
@@ -324,155 +739,17 @@ public class HandlerLoopbackLoadStress {
                 return;
             }
             try {
-                System.out.println("  Accepting connections on port " + localAddress);
+                System.out.println("Accepting connections on port " + localAddress);
             } catch (Exception e) {
                 // ignore
             }
+            registered.set(null);
         }
 
         @Override
         public void onClosedChannel(ClosedChannelException e) {
 
         }
-    }
-
-    public static void main(String[] args) throws Exception {
-        String name = args.length >= 1 ? args[0] : "JNLP4-connect";
-        int numClients = args.length >= 2 ? Integer.parseInt(args[1]) : 100;
-        int clientIntervalMs = args.length >= 3 ? Integer.parseInt(args[2]) : 100;
-        int payload = args.length >= 4 ? Integer.parseInt(args[3]) : -1;
-        boolean nio = args.length < 5 || !"bio".equals(args[4].toLowerCase());
-        final double expectNoopsPerSecond = 1000.0 / clientIntervalMs * numClients;
-        final RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-        final OperatingSystemMXBean operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
-        final Method getProcessCpuTime = getProcessCpuTime(operatingSystemMXBean);
-        System.out.printf("Starting stress test of %s with %d clients making calls (payload %d bytes) every %dms (%.1f/sec) to give a "
-                                + "total expected rate of %.1f/sec%n",
-                        name, numClients, payload, clientIntervalMs, 1000.0 / clientIntervalMs, expectNoopsPerSecond);
-        System.out.printf("Server using %s%n", nio ? "Non-blocking I/O" : "Reader thread per client I/O");
-        HandlerLoopbackLoadStress stress = new HandlerLoopbackLoadStress(nio, name);
-        stress.hub.execute(new Runnable() {
-            @Override
-            public void run() {
-                long start = System.currentTimeMillis();
-                long last = start;
-                long initialNoops = NoOpCallable.noops.get();
-                long previousNoops = NoOpCallable.noops.get();
-                long uptime = runtimeMXBean.getUptime();
-                long cpu = 0;
-                while (true) {
-                    long next = last + 1000;
-                    long wait;
-                    while ((wait = next - System.currentTimeMillis()) > 0) {
-                        try {
-                            Thread.sleep(wait);
-                        } catch (InterruptedException e) {
-                            return;
-                        }
-                    }
-                    long now = System.currentTimeMillis();
-                    long currentNoops = NoOpCallable.noops.get();
-                    double noopsPerSecond = (currentNoops - initialNoops) * 1000.0 / (now - start);
-                    double instantNoopsPerSecond = (currentNoops - previousNoops) * 1000.0 / (now - last);
-                    double vmLoad;
-                    double vmLoad0;
-                    if (getProcessCpuTime == null) {
-                        vmLoad = Double.NaN;
-                        vmLoad0 = Double.NaN;
-                    } else {
-                        Object r = null;
-                        try {
-                            r = getProcessCpuTime.invoke(operatingSystemMXBean);
-                        } catch (IllegalAccessException e) {
-                            r = null;
-                        } catch (InvocationTargetException e) {
-                            r = null;
-                        }
-                        if (r instanceof Number && ((Number) r).longValue() >= 0) {
-                            long ut = runtimeMXBean.getUptime();
-                            double elapsed = TimeUnit.NANOSECONDS.toMillis(((Number) r).longValue() - cpu);
-                            vmLoad = Math.min(99.0, elapsed / (ut - uptime));
-                            vmLoad0 = Math.min(99.0, TimeUnit.NANOSECONDS.toMillis(((Number) r).longValue()) * 1.0 / ut);
-                            uptime = ut;
-                            cpu = ((Number) r).longValue();
-                        } else {
-                            vmLoad = Double.NaN;
-                            vmLoad0 = Double.NaN;
-                        }
-                    }
-                    System.out.printf("%nTotal rate %.1f/sec, instant %.1f/sec, expect %.1f/sec sys.load %.1f vm.load %.1f (%.1f)%n", noopsPerSecond,
-                            instantNoopsPerSecond, expectNoopsPerSecond, operatingSystemMXBean.getSystemLoadAverage(), vmLoad, vmLoad0);
-                    System.out.flush();
-                    last = now;
-                    previousNoops = currentNoops;
-                }
-            }
-        });
-        SocketAddress serverAddress = stress.startServer();
-        for (int i = 0; i < numClients; i++) {
-            Thread.sleep(10);
-            if (i % 10 == 0) {
-                System.out.println("Starting client " + i);
-            }
-            stress.startClient(i, serverAddress, clientIntervalMs, payload);
-        }
-        System.out.println("All clients started");
-
-    }
-
-    private static Method getProcessCpuTime(OperatingSystemMXBean operatingSystemMXBean) {
-        Method getProcessCpuTime;
-        try {
-            getProcessCpuTime = operatingSystemMXBean.getClass().getMethod("getProcessCpuTime");
-            getProcessCpuTime.setAccessible(true);
-        } catch (ClassCastException e) {
-            getProcessCpuTime = null;
-        } catch (NoSuchMethodException e) {
-            getProcessCpuTime = null;
-        }
-        return getProcessCpuTime;
-    }
-
-    private void startClient(int n, SocketAddress serverAddress, final int clientIntervalMs, final int payloadSize)
-            throws IOException, ExecutionException, InterruptedException {
-        SocketChannel toServer = SocketChannel.open();
-        toServer.socket().setKeepAlive(true);
-        toServer.socket().setTcpNoDelay(true);
-        toServer.configureBlocking(true);
-        toServer.connect(serverAddress);
-        HashMap<String, String> headers = new HashMap<String, String>();
-        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, "client-" + n);
-        headers.put(JnlpConnectionState.SECRET_KEY, "SECRETclient-" + n);
-        final Channel clientChannel = handler.connect(toServer.socket(), headers, clientListener).get();
-        timer[n % timer.length].scheduleAtFixedRate(new TimerTask() {
-            private NoOpCallable callable = new NoOpCallable(payloadSize == -1 ? null : new byte[payloadSize]);
-            long start = System.currentTimeMillis();
-            int times = 0;
-
-            @Override
-            public void run() {
-                try {
-                    long start = System.currentTimeMillis();
-                    clientChannel.call(callable);
-                    times++;
-                    if (times % 1000 == 0) {
-                        System.out.println(String.format("  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s",
-                                clientChannel.getName(), times,
-                                times * 1000.0 / (System.currentTimeMillis() - this.start), 1000.0 / clientIntervalMs));
-                    }
-                    long duration = System.currentTimeMillis() - start;
-                    if (duration > 250L) {
-                        System.err.println(
-                                String.format("  %s took %dms to complete a callable", clientChannel.getName(),
-                                        duration));
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace(System.err);
-                    IOUtils.closeQuietly(clientChannel);
-                    cancel();
-                }
-            }
-        }, entropy.nextInt(clientIntervalMs), clientIntervalMs);
     }
 
 }
