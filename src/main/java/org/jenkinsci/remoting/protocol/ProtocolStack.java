@@ -658,13 +658,14 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @throws IOException if the next layer could not process the data.
          */
         public void onRecv(ByteBuffer data) throws IOException {
-            if (getNextRecv() == null) {
-                throw new UnsupportedOperationException("Application layer is not supposed to call onRecv");
-            }
             if (!data.hasRemaining()) {
                 return;
             }
-            ProtocolLayer.Recv recv = nextRecv();
+            Ptr nextRecv = getNextRecv();
+            if (nextRecv == null) {
+                throw new UnsupportedOperationException("Application layer is not supposed to call onRecv");
+            }
+            ProtocolLayer.Recv recv = (ProtocolLayer.Recv)nextRecv.layer;
             if (recv.isRecvOpen()) {
                 recv.onRecv(data);
             } else {
@@ -680,13 +681,14 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @throws IOException if the next layer could not process the data.
          */
         public void doSend(ByteBuffer data) throws IOException {
-            if (getNextSend() == null) {
-                throw new UnsupportedOperationException("Network layer is not supposed to call doSend");
-            }
             if (!data.hasRemaining()) {
                 return;
             }
-            ProtocolLayer.Send send = nextSend();
+            Ptr nextSend = getNextSend();
+            if (nextSend == null) {
+                throw new UnsupportedOperationException("Network layer is not supposed to call doSend");
+            }
+            ProtocolLayer.Send send = (ProtocolLayer.Send) nextSend.layer;
             if (send.isSendOpen()) {
                 send.doSend(data);
             } else {
@@ -700,18 +702,20 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @return {@code true} if the next layer up the stack is open to receive data.
          */
         public boolean isRecvOpen() {
-            if (getNextRecv() == null) {
-                throw new UnsupportedOperationException("Application layer is not supposed to call isRecvOpen");
-            }
+            Ptr nextRecv;
             stackLock.readLock().lock();
             try {
+                nextRecv = getNextRecv();
+                if (nextRecv == null) {
+                    throw new UnsupportedOperationException("Application layer is not supposed to call isRecvOpen");
+                }
                 if (recvOnClosed) {
                     return false;
                 }
             } finally {
                 stackLock.readLock().unlock();
             }
-            return nextRecv().isRecvOpen();
+            return ((ProtocolLayer.Recv)nextRecv.layer).isRecvOpen();
         }
 
         /**
@@ -720,18 +724,20 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @return {@code true} if the next layer down the stack is open to send data.
          */
         public boolean isSendOpen() {
-            if (getNextSend() == null) {
-                throw new UnsupportedOperationException("Network layer is not supposed to call isSendOpen");
-            }
+            Ptr nextSend;
             stackLock.readLock().lock();
             try {
+                nextSend = getNextSend();
+                if (nextSend == null) {
+                    throw new UnsupportedOperationException("Network layer is not supposed to call isSendOpen");
+                }
                 if (sendDoClosed) {
                     return false;
                 }
             } finally {
                 stackLock.readLock().unlock();
             }
-            return nextSend().isSendOpen();
+            return ((ProtocolLayer.Send)nextSend.layer).isSendOpen();
         }
 
         /**
@@ -849,18 +855,19 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         @Nullable
         private Ptr getNextSend() {
             Ptr nextSend;
-            boolean needUpdate;
             stackLock.readLock().lock();
             try {
                 nextSend = this.nextSend;
                 while (nextSend != null && nextSend.removed && nextSend.nextSend != null) {
                     nextSend = nextSend.nextSend;
                 }
-                needUpdate = !removed && nextSend != this.nextSend;
+                if (nextSend == this.nextSend) {
+                    return nextSend;
+                }
             } finally {
                 stackLock.readLock().unlock();
             }
-            if (needUpdate && stackLock.writeLock().tryLock()) {
+            if (stackLock.writeLock().tryLock()) {
                 // we only need to unwind ourselves eventually, if we cannot do it now ok to do it later
                 try {
                     while (this.nextSend != nextSend && this.nextSend != null && this.nextSend.removed) {
@@ -901,18 +908,19 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         @Nullable
         private Ptr getNextRecv() {
             Ptr nextRecv;
-            boolean needUpdate;
             stackLock.readLock().lock();
             try {
                 nextRecv = this.nextRecv;
                 while (nextRecv != null && nextRecv.removed && nextRecv.nextRecv != null) {
                     nextRecv = nextRecv.nextRecv;
                 }
-                needUpdate = !removed && nextRecv != this.nextRecv;
+                if (nextRecv == this.nextRecv) {
+                    return this.nextRecv;
+                }
             } finally {
                 stackLock.readLock().unlock();
             }
-            if (needUpdate && stackLock.writeLock().tryLock()) {
+            if (stackLock.writeLock().tryLock()) {
                 // we only need to unwind ourselves eventually, if we cannot do it now ok to do it later
                 try {
                     while (this.nextRecv != nextRecv && this.nextRecv != null && this.nextRecv.removed) {
