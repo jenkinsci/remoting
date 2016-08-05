@@ -74,23 +74,38 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public int read() throws IOException {
-        if (length != -1 && pos >= length) {
-            return -1;
-        }
-        try {
-            byte b = queue.get();
-            pos++;
-            if (mark != null) {
+        if (length != -1) {
+            // we can assume that there is at least length bytes in the queue from the constructor.
+            if (pos >= length) {
+                return -1;
+            } else if (mark != null) {
                 if (mark.hasRemaining()) {
+                    pos++;
+                    byte b = queue.get();
                     mark.put(b);
+                    return b & 0xff;
                 } else {
-                    // mark was invalidated as there was more data than reserved
                     mark = null;
                 }
             }
-            return b & 0xff;
-        } catch (BufferUnderflowException e) {
-            return -1;
+            pos++;
+            return queue.get() & 0xff;
+        } else {
+            try {
+                byte b = queue.get();
+                pos++;
+                if (mark != null) {
+                    if (mark.hasRemaining()) {
+                        mark.put(b);
+                    } else {
+                        // mark was invalidated as there was more data than reserved
+                        mark = null;
+                    }
+                }
+                return b & 0xff;
+            } catch (BufferUnderflowException e) {
+                return -1;
+            }
         }
     }
 
@@ -128,16 +143,26 @@ public class ByteBufferQueueInputStream extends InputStream {
      */
     @Override
     public long skip(long n) throws IOException {
-        if (length != -1) {
-            if (pos >= length) {
-                return -1;
+        if (mark == null || mark.remaining() < n) {
+            mark = null;
+            if (length != -1) {
+                if (pos >= length) {
+                    return -1;
+                }
+                if (pos + n >= length) {
+                    n = length - pos;
+                }
             }
-            if (pos + n >= length) {
-                n = length - pos;
-            }
+            long skipped = queue.skip(n);
+            pos += skipped;
+            return skipped;
         }
-        long skipped = queue.skip(n);
-        pos += skipped;
+        int l = mark.limit();
+        int p = mark.position();
+        mark.limit(mark.position() + (int)n);
+        queue.get(mark);
+        int skipped = mark.position() - p;
+        mark.limit(l);
         return skipped;
     }
 
