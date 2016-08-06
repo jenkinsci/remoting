@@ -23,6 +23,7 @@
  */
 package hudson.remoting.jnlp;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import hudson.remoting.EngineListener;
@@ -59,6 +60,7 @@ public final class GuiListener implements EngineListener {
         });
     }
 
+    @SuppressFBWarnings(value = "DM_EXIT", justification = "This is an error handler for GUI, exit is valid")
     public void error(final Throwable t) {
         SwingUtilities.invokeLater(new Runnable() {
             public void run() {
