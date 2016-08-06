@@ -23,10 +23,12 @@
  */
 package hudson.remoting.jnlp;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
 
 import javax.swing.*;
 import java.awt.*;
+import javax.annotation.CheckForNull;
 
 /**
  * Main window for JNLP slave agent.
@@ -38,6 +40,8 @@ public class MainDialog extends JFrame {
     private MainMenu mainMenu;
     private final JLabel statusLabel;
 
+    @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE",
+            justification = "We allow overriding this resource. Just in case")
     public MainDialog() throws HeadlessException {
         super("Jenkins slave agent");
 
@@ -90,8 +94,9 @@ public class MainDialog extends JFrame {
 
     /**
      * If the current JVM runs a {@link MainDialog} as a JNLP slave agent,
-     * return its reference, otherwise null.
+     * return its reference, otherwise {@link null}.
      */
+    @CheckForNull
     public static MainDialog get() {
         Engine e = Engine.current();
         if(e==null)     return null;
