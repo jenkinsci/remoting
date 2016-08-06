@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
+import java.io.IOException;
 
 /**
  * Takes a directory of jars and populates them into the given jar cache
@@ -42,6 +43,9 @@ public class InitializeJarCacheMain {
         FileSystemJarCache jarCache = new FileSystemJarCache(jarCacheDir, false);
 
         File[] jars = sourceJarDir.listFiles(JAR_FILE_FILTER);
+        if (jars == null) {
+            throw new IOException("Cannot list JAR files in " + sourceJarDir);
+        }
         for (File jar : jars) {
             Checksum checksum = Checksum.forFile(jar);
             File newJarLocation = jarCache.map(checksum.sum1, checksum.sum2);
