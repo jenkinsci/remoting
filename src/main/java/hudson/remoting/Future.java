@@ -23,6 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+//TODO: This Future should be actually deprecated, because it may confuse API users
 /**
  * Alias to {@link Future}.
  *
@@ -32,5 +35,7 @@ package hudson.remoting;
  * 
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE",
+        justification = "This class is just an alias, but this alias is a part of public API")
 public interface Future<V> extends java.util.concurrent.Future<V> {
 }
