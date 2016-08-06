@@ -60,9 +60,11 @@ public final class GuiListener implements EngineListener {
         });
     }
 
-    @SuppressFBWarnings(value = "DM_EXIT", justification = "This is an error handler for GUI, exit is valid")
+    @Override
     public void error(final Throwable t) {
         SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            @SuppressFBWarnings(value = "DM_EXIT", justification = "This is an error handler for GUI, exit is valid")
             public void run() {
                 LOGGER.log(SEVERE, t.getMessage(), t);
                 StringWriter sw = new StringWriter();
