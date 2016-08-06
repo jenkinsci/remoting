@@ -3,7 +3,9 @@
   <Match>
     <Package name="~org\.kohsuke\.args4j.*"/>
   </Match>
-  
+  <Match>
+    <Package name="~org\.jenkinsci\.constant_pool_scanner.*"/>
+  </Match>
   
   <Match>
     <Or>
