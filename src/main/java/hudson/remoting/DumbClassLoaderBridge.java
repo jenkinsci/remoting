@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
+import javax.annotation.CheckForNull;
 
 /**
  * Implements full {@link IClassLoader} from a legacy one
@@ -40,10 +41,12 @@ class DumbClassLoaderBridge implements IClassLoader {
         return base.fetch2(className);
     }
 
+    @Override
     public byte[] getResource(String name) throws IOException {
         return base.getResource(name);
     }
 
+    @Override
     public byte[][] getResources(String name) throws IOException {
         return base.getResources(name);
     }
@@ -54,15 +57,16 @@ class DumbClassLoaderBridge implements IClassLoader {
                 new ClassFile2(cf.classLoader,new ResourceImageDirect(cf.classImage),null,null,null));
     }
 
+    @Override
     public ResourceFile getResource2(String name) throws IOException {
         byte[] img = base.getResource(name);
         if (img==null)  return null;
         return new ResourceFile(new ResourceImageDirect(img), null); // we are on the receiving side, so null is ok
     }
 
+    @Override
     public ResourceFile[] getResources2(String name) throws IOException {
         byte[][] r = base.getResources(name);
-        if (r==null)    return null;
         ResourceFile[] res = new ResourceFile[r.length];
         for (int i = 0; i < res.length; i++) {
             res[i] = new ResourceFile(new ResourceImageDirect(r[i]),null); // we are on the receiving side, so null is ok
