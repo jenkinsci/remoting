@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -884,6 +885,8 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         @Override
+        @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS", 
+                justification = "Null return value is a part of the public interface")
         public byte[] getResource(String name) throws IOException {
         	URL resource = getResourceURL(name);
         	if (resource == null)   return null;
