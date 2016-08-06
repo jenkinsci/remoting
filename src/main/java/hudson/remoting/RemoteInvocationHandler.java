@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import hudson.remoting.Channel.Ref;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -49,6 +50,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import org.jenkinsci.remoting.RoleChecker;
 
 /**
@@ -166,7 +168,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     @CheckForNull
     private Channel channel() {
-        return this.channel == null ? null : this.channel.channel();
+        final Ref ch = this.channel;
+        return ch == null ? null : ch.channel();
     }
     
     /**
@@ -177,9 +180,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * @throws IOException if the channel is disconnected or otherwise unavailable.
      * @since FIXME after merge
      */
-    @CheckForNull
+    @Nonnull
     private Channel channelOrFail() throws IOException {
-        Channel channel = channel();
+        final Channel channel = channel();
         if (channel == null) {
             throw new IOException("Backing channel is disconnected.");
         }
