@@ -1,5 +1,6 @@
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel;
 import hudson.remoting.SocketChannelStream;
 import org.jenkinsci.remoting.nio.NioChannelHub;
@@ -156,6 +157,8 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
      *
      * This exception can be thrown during the handshake to refuse the inbound client.
      */
+    @SuppressFBWarnings(value = "SIC_INNER_SHOULD_BE_STATIC",
+            justification = "It's an issue, but the class is being used in the core now")
     protected class Failure extends Exception {
         public Failure(String msg) {
             super(msg);
