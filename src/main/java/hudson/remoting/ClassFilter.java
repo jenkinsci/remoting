@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,10 +84,10 @@ public abstract class ClassFilter {
      */
     /*package*/ static ClassFilter createDefaultInstance() {
         try {
-            List<Pattern> patternOverride = loadPatternOverride();
+            List<String> patternOverride = loadPatternOverride();
             if (patternOverride != null) {
                 LOGGER.log(Level.FINE, "Using user specified overrides for class blacklisting");
-                return new RegExpClassFilter(patternOverride);
+                return new RegExpClassFilter(patternOverride.toArray(new String[patternOverride.size()]));
             } else {
                 LOGGER.log(Level.FINE, "Using default in built class blacklisting");
                 return new RegExpClassFilter(DEFAULT_PATTERNS);
@@ -100,7 +101,7 @@ public abstract class ClassFilter {
     }
 
     @CheckForNull
-    private static List<Pattern> loadPatternOverride() {
+    private static List<String> loadPatternOverride() {
         String prop = System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY);
         if (prop==null) {
             return null;
@@ -115,10 +116,11 @@ public abstract class ClassFilter {
         BufferedReader br = null;
         try {
             br = new BufferedReader(new InputStreamReader(new FileInputStream(prop), Charset.defaultCharset()));
-            ArrayList<Pattern> patterns = new ArrayList<Pattern>();
+            ArrayList<String> patterns = new ArrayList<String>();
             for (String line = br.readLine(); line != null; line = br.readLine()) {
                 try {
-                    patterns.add(Pattern.compile(line));
+                    Pattern.compile(line);
+                    patterns.add(line);
                 } catch (PatternSyntaxException pex) {
                     throw new Error("Error compiling blacklist expressions - '" + line + "' is not a valid regular expression.", pex);
                 }
@@ -142,23 +144,48 @@ public abstract class ClassFilter {
      */
     private static final class RegExpClassFilter extends ClassFilter {
 
-        private final List<Pattern> blacklistPatterns;
+        /**
+         * Any regex that is {@code ^some[.]package[.]name[.].*} or {@code ^some\.package\.name\.*} is really just a
+         * {@link String#startsWith(String)} test and we can reduce CPU usage by performing that test explicitly as
+         * well as reduce GC pressure.
+         */
+        private static final Pattern OPTIMIZE1 = Pattern.compile(
+                "^\\^(([\\p{L}_$][\\p{L}\\p{N}_$]*(\\.|\\[\\.\\])?)+)\\.\\*$");
+
+        /**
+         * Any regex that is {@code ^\Qsome.package.name\E.*} is really just a {@link String#startsWith(String)}
+         * test and we can reduce CPU usage by performing that test explicitly as well as reduce GC pressure.
+         */
+        private static final Pattern OPTIMIZE2 = Pattern.compile("^\\^\\Q[^\\\\]+\\\\E\\.\\*$");
+
+        private final Object[] blacklistPatterns;
 
         public RegExpClassFilter(List<Pattern> blacklistPatterns) {
-            this.blacklistPatterns = blacklistPatterns;
+            this.blacklistPatterns = blacklistPatterns.toArray(new Pattern[blacklistPatterns.size()]);
         }
 
         RegExpClassFilter(String[] patterns) {
-            blacklistPatterns = new ArrayList<Pattern>(patterns.length);
-            for (String pattern : patterns) {
-                blacklistPatterns.add(Pattern.compile(pattern));
+            blacklistPatterns = new Object[patterns.length];
+            for (int i = 0, patternsLength = patterns.length; i < patternsLength; i++) {
+                if (OPTIMIZE1.matcher(patterns[i]).matches()) {
+                    // this is a simple startsWith test, no need to slow things down with a regex
+                    blacklistPatterns[i] = patterns[i].substring(1,patterns[i].length()-2).replace("[.]",".");
+                } else  if (OPTIMIZE2.matcher(patterns[i]).matches()) {
+                    // this is a simple startsWith test, no need to slow things down with a regex
+                    blacklistPatterns[i] = patterns[i].substring(3,patterns[i].length()-4);
+                } else {
+                    blacklistPatterns[i] = Pattern.compile(patterns[i]);
+                }
             }
         }
 
         @Override
         protected boolean isBlacklisted(String name) {
-            for (Pattern p : blacklistPatterns) {
-                if (p.matcher(name).matches()) {
+            for (int i = 0; i < blacklistPatterns.length; i++) {
+                Object p = blacklistPatterns[i];
+                if (p instanceof Pattern && ((Pattern)p).matcher(name).matches()) {
+                    return true;
+                } else if (p instanceof String && name.startsWith((String)p)) {
                     return true;
                 }
             }
@@ -171,7 +198,7 @@ public abstract class ClassFilter {
          */
         @Override
         public String toString() {
-            return blacklistPatterns.toString();
+            return Arrays.toString(blacklistPatterns);
         }
     }
 }

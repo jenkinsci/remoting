@@ -23,7 +23,6 @@
  */
 package hudson.remoting;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel.Mode;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -40,9 +39,12 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -283,6 +285,7 @@ public class Engine extends Thread {
                 Throwable firstError=null;
                 String host=null;
                 String port=null;
+                Set<String> agentProtocolNames = null;
                 SSLSocketFactory sslSocketFactory = getSSLSocketFactory();
 
                 for (URL url : candidateUrls) {
@@ -316,6 +319,16 @@ public class Engine extends Thread {
                         }
                         host = con.getHeaderField("X-Jenkins-JNLP-Host"); // controlled by hudson.TcpSlaveAgentListener.hostName
                         if (host == null) host=url.getHost();
+                        String names = con.getHeaderField("X-Jenkins-Agent-Protocols");
+                        if (names != null) {
+                            agentProtocolNames = new HashSet<String>();
+                            for (String name: names.split(",")) {
+                                name = name.trim();
+                                if (!name.isEmpty()) {
+                                    agentProtocolNames.add(name);
+                                }
+                            }
+                        }
                     } finally {
                         con.disconnect();
                     }
@@ -347,22 +360,26 @@ public class Engine extends Thread {
                         if (jnlpSocket == null) {
                             jnlpSocket = connect(host, port);
                         }
+                        if (agentProtocolNames != null && !agentProtocolNames.contains(protocol.getName())) {
+                            events.status("Server reports protocol " + protocol.getName() + " not supported, skipping");
+                            continue;
+                        }
                         triedAtLeastOneProtocol = true;
                         events.status("Trying protocol: " + protocol.getName());
                         try {
                             channel = protocol.connect(jnlpSocket, headers, new JnlpConnectionStateListener() {
                                 @Override
-                                public void afterProperties(@NonNull JnlpConnectionState event) {
+                                public void afterProperties(@Nonnull JnlpConnectionState event) {
                                     event.approve();
                                 }
 
                                 @Override
-                                public void beforeChannel(@NonNull JnlpConnectionState event) {
+                                public void beforeChannel(@Nonnull JnlpConnectionState event) {
                                     event.getChannelBuilder().withJarCache(jarCache).withMode(Mode.BINARY);
                                 }
 
                                 @Override
-                                public void afterChannel(@NonNull JnlpConnectionState event) {
+                                public void afterChannel(@Nonnull JnlpConnectionState event) {
                                     // store the new cookie for next connection attempt
                                     String cookie = event.getProperty(JnlpConnectionState.COOKIE_KEY);
                                     if (cookie == null) {
@@ -456,7 +473,7 @@ public class Engine extends Thread {
             boolean isHttpProxy = false;
             InetSocketAddress targetAddress = null;
             try {
-                Socket s = null;
+                Socket s;
                 targetAddress = Util.getResolvedHttpProxyAddress(host, Integer.parseInt(port));
 
                 if(targetAddress == null) {
