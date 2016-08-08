@@ -23,9 +23,6 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
-import edu.umd.cs.findbugs.annotations.When;
 import hudson.remoting.Future;
 import java.io.Closeable;
 import java.io.IOException;
@@ -54,6 +51,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import javax.annotation.OverridingMethodsMustInvokeSuper;
 import javax.annotation.concurrent.GuardedBy;
 import org.jenkinsci.remoting.util.ByteBufferPool;
 import org.jenkinsci.remoting.util.DirectByteBufferPool;
@@ -164,7 +163,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      *
      * @return the {@link Selector}
      */
-    @NonNull
+    @Nonnull
     public final Selector getSelector() {
         return selector;
     }
@@ -173,7 +172,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * {@inheritDoc}
      */
     @Override
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     public void execute(Runnable task) {
         executor.execute(task);
     }
@@ -186,7 +185,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @throws RejectedExecutionException if this task cannot be accepted for execution
      * @throws NullPointerException       if task is null
      */
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     public void executeOnSelector(Runnable task) {
         if (task == null) {
             throw new NullPointerException();
@@ -214,7 +213,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @throws RejectedExecutionException if this task cannot be accepted for execution
      * @throws NullPointerException       if task is null
      */
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     public Future<?> executeLater(Runnable task, long delay, TimeUnit units) {
         if (task == null) {
             throw new NullPointerException();
@@ -232,7 +231,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      *
      * @return {@code true} if the hub is open.
      */
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     public boolean isOpen() {
         return selector.isOpen();
     }
@@ -241,7 +240,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * {@inheritDoc}
      */
     @Override
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     public void close() throws IOException {
         selector.close();
     }

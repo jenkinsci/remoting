@@ -23,12 +23,12 @@
  */
 package org.jenkinsci.remoting.util;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Utility methods to help working with {@link Key} instances.
@@ -44,6 +44,7 @@ public final class KeyUtils {
 
     /**
      * Check two keys for equality.
+     *
      * @param key1 the first key.
      * @param key2 the second key.
      * @return {@code true} if we can confirm that the two keys are identical, {@code false} otherwise.
@@ -94,7 +95,7 @@ public final class KeyUtils {
      * @param key the key.
      * @return the MD5 fingerprint of the key.
      */
-    @NonNull
+    @Nonnull
     public static String fingerprint(@CheckForNull Key key) {
         if (key == null) {
             return "null";

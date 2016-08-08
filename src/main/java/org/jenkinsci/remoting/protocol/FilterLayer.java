@@ -23,15 +23,14 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
-import edu.umd.cs.findbugs.annotations.When;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.OverridingMethodsMustInvokeSuper;
 import javax.annotation.concurrent.GuardedBy;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 
@@ -75,8 +74,8 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
      * {@inheritDoc}
      */
     @Override
-    @OverrideMustInvoke(When.ANYTIME)
-    public final synchronized void init(@NonNull ProtocolStack<?>.Ptr ptr) throws IOException {
+    @OverridingMethodsMustInvokeSuper
+    public final synchronized void init(@Nonnull ProtocolStack<?>.Ptr ptr) throws IOException {
         synchronized (this) {
             if (this.ptr != null && this.ptr != ptr) {
                 throw new IllegalStateException("Filter has already been initialized");
@@ -114,7 +113,8 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
      * Callback to notify that no more data will be handled by {@link #doSend(ByteBuffer)} as the send side has been
      * unhooked from the stack.
      */
-    /*package*/ final void onSendRemoved() {
+    /*package*/
+    final void onSendRemoved() {
         synchronized (this) {
             completionState |= 2;
             if (completionState == 7) {
@@ -128,7 +128,8 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
      * Callback to notify that no more data will be handled by {@link #onRecv(ByteBuffer)} as the receive side has been
      * unhooked from the stack.
      */
-    /*package*/ final void onRecvRemoved() {
+    /*package*/
+    final void onRecvRemoved() {
         synchronized (this) {
             completionState |= 4;
             if (completionState == 7) {
@@ -144,7 +145,7 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
      *
      * @param cause the root cause to report.
      */
-    protected final void abort(@NonNull IOException cause) {
+    protected final void abort(@Nonnull IOException cause) {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LogRecord record = new LogRecord(Level.FINEST, "[{0}] Aborted");
             record.setParameters(new Object[]{stack().name()});
@@ -266,12 +267,12 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
      * @throws IOException if there was an error during processing of the received data.
      */
     @Override
-    public abstract void onRecv(@NonNull ByteBuffer data) throws IOException;
+    public abstract void onRecv(@Nonnull ByteBuffer data) throws IOException;
 
     /**
      * {@inheritDoc}
      */
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     public void onRecvClosed(IOException cause) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] RECV Closed", stack().name());
@@ -307,12 +308,12 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
      * @throws IOException if there was an error during processing of the data.
      */
     @Override
-    public abstract void doSend(@NonNull ByteBuffer data) throws IOException;
+    public abstract void doSend(@Nonnull ByteBuffer data) throws IOException;
 
     /**
      * {@inheritDoc}
      */
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     public void doCloseSend() throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] Closing SEND", stack().name());

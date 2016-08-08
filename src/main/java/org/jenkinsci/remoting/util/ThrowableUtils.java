@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.util;
 
+import javax.annotation.CheckForNull;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -44,9 +45,10 @@ public class ThrowableUtils {
     /**
      * Helper to access {@link Throwable#addSuppressed(Throwable)} easily in code that is checked against the Java 1.6
      * signatures.
-     * @param primary the main {@link Throwable}.
+     *
+     * @param primary    the main {@link Throwable}.
      * @param suppressed the suppressed {@link Throwable} to attach.
-     * @param <T> the type of the main {@link Throwable}.
+     * @param <T>        the type of the main {@link Throwable}.
      * @return the main {@link Throwable}.
      */
     @SuppressWarnings("Since15")
@@ -59,5 +61,20 @@ public class ThrowableUtils {
             // best effort only
         }
         return primary;
+    }
+
+    /**
+     * Allows building a chain of exceptions.
+     *
+     * @param e1   The first exception (or {@code null}).
+     * @param e2   The second exception (or {@code null}).
+     * @param <T>  The widened return type.
+     * @param <T1> The type of first exception.
+     * @param <T2> The type of second exception.
+     * @return The first exception with the second added as a suppressed exception or the closest approximation to that.
+     */
+    @CheckForNull
+    public static <T extends Throwable, T1 extends T, T2 extends T> T chain(@CheckForNull T1 e1, @CheckForNull T2 e2) {
+        return e1 == null ? e2 : e2 == null ? e1 : addSuppressed(e1, e2);
     }
 }

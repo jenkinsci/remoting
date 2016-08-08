@@ -23,10 +23,10 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import java.net.Socket;
+import javax.annotation.Nonnull;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 
 /**
@@ -58,7 +58,7 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public void beforeProperties(@NonNull JnlpConnectionState event) {
+    public void beforeProperties(@Nonnull JnlpConnectionState event) {
 
     }
 
@@ -70,7 +70,7 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public abstract void afterProperties(@NonNull JnlpConnectionState event);
+    public abstract void afterProperties(@Nonnull JnlpConnectionState event);
 
     /**
      * Callback to allow the {@link JnlpConnectionState#approve()} listener to decorate the {@link ChannelBuilder} via
@@ -78,7 +78,7 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public void beforeChannel(@NonNull JnlpConnectionState event) {
+    public void beforeChannel(@Nonnull JnlpConnectionState event) {
     }
 
     /**
@@ -87,7 +87,7 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public abstract void afterChannel(@NonNull JnlpConnectionState event);
+    public abstract void afterChannel(@Nonnull JnlpConnectionState event);
 
     /**
      * Callback to notify the {@link JnlpConnectionState#approve()} listener that the {@link Channel} has been
@@ -95,7 +95,7 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public void channelClosed(@NonNull JnlpConnectionState event) {
+    public void channelClosed(@Nonnull JnlpConnectionState event) {
 
     }
 
@@ -105,7 +105,7 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public void afterDisconnect(@NonNull JnlpConnectionState event) {
+    public void afterDisconnect(@Nonnull JnlpConnectionState event) {
 
     }
 }

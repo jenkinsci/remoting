@@ -23,8 +23,8 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import hudson.remoting.AbstractByteBufferCommandTransport;
 import hudson.remoting.BinarySafeStream;
 import hudson.remoting.Capability;
@@ -91,7 +91,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * @param executorService the {@link ExecutorService} to use for the {@link Channel}.
      * @param listener the {@link Listener} to notify when the {@link Channel} is available.
      */
-    public ChannelApplicationLayer(@NonNull ExecutorService executorService,
+    public ChannelApplicationLayer(@Nonnull ExecutorService executorService,
                                    @CheckForNull Listener listener) {
         this.executorService = executorService;
         this.listener = listener;
@@ -117,7 +117,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * {@inheritDoc}
      */
     @Override
-    public void onRead(@NonNull ByteBuffer data) throws IOException {
+    public void onRead(@Nonnull ByteBuffer data) throws IOException {
         if (!futureChannel.isDone()) {
             assert channel == null && transport == null && capabilityLength != null;
             if (capabilityLength.hasRemaining()) {
@@ -249,7 +249,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          * Called when the {@link Channel} has been constructed.
          * @param channel the {@link Channel}.
          */
-        void onChannel(@NonNull Channel channel);
+        void onChannel(@Nonnull Channel channel);
     }
 
     /**
@@ -262,8 +262,8 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          * @param builder the {@link ChannelBuilder} to decorate
          * @return the provided {@link ChannelBuilder} for method chaining.
          */
-        @NonNull
-        ChannelBuilder decorate(@NonNull ChannelBuilder builder);
+        @Nonnull
+        ChannelBuilder decorate(@Nonnull ChannelBuilder builder);
     }
 
     /**

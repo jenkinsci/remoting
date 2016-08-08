@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -141,7 +141,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void onRecv(@NonNull ByteBuffer data) throws IOException {
+    public void onRecv(@Nonnull ByteBuffer data) throws IOException {
         final ConnectionRefusalException aborted = this.aborted;
         if (aborted != null) {
             throw newAbortCause(aborted);
@@ -456,7 +456,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void doSend(@NonNull ByteBuffer data) throws IOException {
+    public void doSend(@Nonnull ByteBuffer data) throws IOException {
         ConnectionRefusalException aborted = this.aborted;
         if (aborted != null) {
             throw newAbortCause(aborted);

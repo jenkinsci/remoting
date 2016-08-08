@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.SocketChannelStream;
@@ -53,7 +52,8 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
 
 /**
- * Implements the JNLP4-plaintext-connect protocol. This protocol uses {@link SSLEngine} to perform a TLS upgrade of the plaintext
+ * Implements the JNLP4-plaintext-connect protocol. This protocol uses {@link SSLEngine} to perform a TLS upgrade of
+ * the plaintext
  * connection before any connection secrets are exchanged. The subsequent connection is then secured using TLS. The
  * implementation uses the {@link IOHub} for non-blocking I/O wherever possible which removes the bottleneck of
  * the selector thread being used for linearization and I/O that creates a throughput limit with {@link NioChannelHub}.
@@ -180,13 +180,8 @@ public class JnlpProtocol4PlainHandler extends JnlpProtocolHandler<JnlpConnectio
         /**
          * The event.
          */
-        @NonNull
+        @Nonnull
         private final JnlpConnectionState event;
-        /**
-         * The remote conection headers.
-         */
-        @edu.umd.cs.findbugs.annotations.Nullable
-        private Map<String, String> remoteHeaders;
 
         /**
          * The client database used when {@link JnlpProtocol4PlainHandler#handle(Socket, Map, List)} is handling a
@@ -217,7 +212,7 @@ public class JnlpProtocol4PlainHandler extends JnlpProtocolHandler<JnlpConnectio
          * @param event          the event.
          * @param clientDatabase the client database.
          */
-        Handler(@NonNull JnlpConnectionState event, JnlpClientDatabase clientDatabase) {
+        Handler(@Nonnull JnlpConnectionState event, JnlpClientDatabase clientDatabase) {
             this.event = event;
             this.clientDatabase = clientDatabase;
             this.client = false;
@@ -229,7 +224,6 @@ public class JnlpProtocol4PlainHandler extends JnlpProtocolHandler<JnlpConnectio
         @Override
         public void onReceiveHeaders(Map<String, String> headers) throws ConnectionRefusalException {
             event.fireBeforeProperties();
-            remoteHeaders = headers;
             if (!client) {
                 String clientName = headers.get(JnlpConnectionState.CLIENT_NAME_KEY);
                 if (clientDatabase == null || !clientDatabase.exists(clientName)) {
@@ -254,8 +248,7 @@ public class JnlpProtocol4PlainHandler extends JnlpProtocolHandler<JnlpConnectio
          * {@inheritDoc}
          */
         @Override
-        public void onChannel(@NonNull final Channel channel) {
-            assert remoteHeaders != null;
+        public void onChannel(@Nonnull final Channel channel) {
             channel.addListener(this);
             threadPool.execute(new Runnable() {
                 @Override
@@ -271,9 +264,8 @@ public class JnlpProtocol4PlainHandler extends JnlpProtocolHandler<JnlpConnectio
          * {@inheritDoc}
          */
         @Override
-        @NonNull
-        public ChannelBuilder decorate(@NonNull ChannelBuilder builder) {
-            assert remoteHeaders != null;
+        @Nonnull
+        public ChannelBuilder decorate(@Nonnull ChannelBuilder builder) {
             event.fireBeforeChannel(builder);
             return event.getChannelBuilder();
         }
@@ -283,7 +275,6 @@ public class JnlpProtocol4PlainHandler extends JnlpProtocolHandler<JnlpConnectio
          */
         @Override
         public void onClosed(Channel channel, IOException cause) {
-            assert remoteHeaders != null;
             event.fireChannelClosed(cause);
             try {
                 event.getSocket().close();

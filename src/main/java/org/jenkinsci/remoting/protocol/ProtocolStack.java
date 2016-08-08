@@ -23,11 +23,6 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
-import edu.umd.cs.findbugs.annotations.When;
 import hudson.remoting.Future;
 import java.io.Closeable;
 import java.io.IOException;
@@ -43,6 +38,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.annotation.OverridingMethodsMustInvokeSuper;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.jenkinsci.remoting.util.ByteBufferPool;
@@ -382,7 +381,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * @throws RejectedExecutionException if this task cannot be accepted for execution
      * @throws NullPointerException       if task is null
      */
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     public void execute(Runnable task) {
         network.getIoHub().execute(task);
     }
@@ -398,7 +397,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * @throws RejectedExecutionException if this task cannot be accepted for execution
      * @throws NullPointerException       if task is null
      */
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     public Future<?> executeLater(Runnable task, long delay, TimeUnit units) {
         return network.getIoHub().executeLater(task, delay, units);
     }
@@ -665,7 +664,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
             if (nextRecv == null) {
                 throw new UnsupportedOperationException("Application layer is not supposed to call onRecv");
             }
-            ProtocolLayer.Recv recv = (ProtocolLayer.Recv)nextRecv.layer;
+            ProtocolLayer.Recv recv = (ProtocolLayer.Recv) nextRecv.layer;
             if (recv.isRecvOpen()) {
                 recv.onRecv(data);
             } else {
@@ -715,7 +714,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
             } finally {
                 stackLock.readLock().unlock();
             }
-            return ((ProtocolLayer.Recv)nextRecv.layer).isRecvOpen();
+            return ((ProtocolLayer.Recv) nextRecv.layer).isRecvOpen();
         }
 
         /**
@@ -737,7 +736,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
             } finally {
                 stackLock.readLock().unlock();
             }
-            return ((ProtocolLayer.Send)nextSend.layer).isSendOpen();
+            return ((ProtocolLayer.Send) nextSend.layer).isSendOpen();
         }
 
         /**
@@ -840,7 +839,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @return the next layer down the stack.
          * @throws NullPointerException if invoked from the {@link NetworkLayer}.
          */
-        @NonNull
+        @Nonnull
         private ProtocolLayer.Send nextSend() {
             return (ProtocolLayer.Send) (getNextSend().layer);
         }
@@ -874,7 +873,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
                         assert this.nextSend.layer instanceof FilterLayer
                                 : "this is the layer before and there is a layer after nextSend thus nextSend "
                                 + "*must* be a FilterLayer";
-                        ((FilterLayer)this.nextSend.layer).onSendRemoved();
+                        ((FilterLayer) this.nextSend.layer).onSendRemoved();
                         // remove this.nextSend from the stack as it has set it's removed flag
                         Ptr tmp = this.nextSend.nextSend;
                         this.nextSend.nextSend = null;
@@ -893,7 +892,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @return the next layer up the stack.
          * @throws NullPointerException if invoked from the {@link ApplicationLayer}.
          */
-        @NonNull
+        @Nonnull
         private ProtocolLayer.Recv nextRecv() {
             return (ProtocolLayer.Recv) (getNextRecv().layer);
         }
@@ -927,7 +926,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
                         assert this.nextRecv.layer instanceof FilterLayer
                                 : "this is the layer before and there is a layer after nextRecv thus nextRecv "
                                 + "*must* be a FilterLayer";
-                        ((FilterLayer)this.nextRecv.layer).onRecvRemoved();
+                        ((FilterLayer) this.nextRecv.layer).onRecvRemoved();
                         // remove this.nextRecv from the stack as it has set it's removed flag
                         Ptr tmp = this.nextRecv.nextRecv;
                         this.nextRecv.nextRecv = null;

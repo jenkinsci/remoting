@@ -23,12 +23,12 @@
  */
 package org.jenkinsci.remoting.protocol.cert;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.Socket;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
+import javax.annotation.Nonnull;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedTrustManager;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
@@ -44,7 +44,7 @@ public class ValidityCheckingX509ExtendedTrustManager extends X509ExtendedTrustM
     /**
      * Our delegate.
      */
-    @NonNull
+    @Nonnull
     private final X509ExtendedTrustManager delegate;
 
     /**
@@ -61,7 +61,7 @@ public class ValidityCheckingX509ExtendedTrustManager extends X509ExtendedTrustM
      * @param delegate the supplied {@link X509ExtendedTrustManager} that all certificates must additionally be trusted
      *                 by in order for a currently valid certificate to be trusted.
      */
-    public ValidityCheckingX509ExtendedTrustManager(@NonNull X509ExtendedTrustManager delegate) {
+    public ValidityCheckingX509ExtendedTrustManager(@Nonnull X509ExtendedTrustManager delegate) {
         this.delegate = delegate;
     }
 

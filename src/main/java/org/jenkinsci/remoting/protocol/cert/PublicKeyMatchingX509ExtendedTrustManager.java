@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.remoting.protocol.cert;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.Socket;
 import java.security.Key;
 import java.security.PublicKey;
@@ -33,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
@@ -106,7 +106,7 @@ public class PublicKeyMatchingX509ExtendedTrustManager extends X509ExtendedTrust
      * @param publicKey the key to trust.
      * @return {@code true} if this instance did not already trust the specified public key
      */
-    public boolean add(@NonNull PublicKey publicKey) {
+    public boolean add(@Nonnull PublicKey publicKey) {
         synchronized (publicKeys) {
             for (PublicKey k : publicKeys) {
                 if (KeyUtils.equals(publicKey, k)) {

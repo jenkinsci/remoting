@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.SocketChannelStream;
@@ -40,7 +39,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
@@ -227,19 +225,8 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         /**
          * The event.
          */
-        @NonNull
+        @Nonnull
         private final Jnlp4ConnectionState event;
-        /**
-         * The remote {@link X509Certificate}.
-         */
-        @CheckForNull
-        private X509Certificate remoteCertificate;
-        /**
-         * The remote conection headers.
-         */
-        @edu.umd.cs.findbugs.annotations.Nullable
-        private Map<String, String> remoteHeaders;
-
         /**
          * The client database used when {@link JnlpProtocol4Handler#handle(Socket, Map, List)} is handling a client.
          */
@@ -267,7 +254,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * @param event          the event.
          * @param clientDatabase the client database.
          */
-        Handler(@NonNull Jnlp4ConnectionState event, JnlpClientDatabase clientDatabase) {
+        Handler(@Nonnull Jnlp4ConnectionState event, JnlpClientDatabase clientDatabase) {
             this.event = event;
             this.clientDatabase = clientDatabase;
             this.client = false;
@@ -278,6 +265,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          */
         @Override
         public void onHandshakeCompleted(SSLSession session) throws ConnectionRefusalException {
+            X509Certificate remoteCertificate;
             try {
                 remoteCertificate = (X509Certificate) session.getPeerCertificates()[0];
             } catch (ClassCastException e) {
@@ -297,15 +285,14 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          */
         @Override
         public void onReceiveHeaders(Map<String, String> headers) throws ConnectionRefusalException {
-            remoteHeaders = headers;
             if (!client) {
                 String clientName = headers.get(JnlpConnectionState.CLIENT_NAME_KEY);
                 if (clientDatabase == null || !clientDatabase.exists(clientName)) {
                     throw new ConnectionRefusalException("Unknown client name: " + clientName);
                 }
-                JnlpClientDatabase.ValidationResult validation = remoteCertificate == null
+                JnlpClientDatabase.ValidationResult validation = event.getCertificate() == null
                         ? JnlpClientDatabase.ValidationResult.UNCHECKED
-                        : clientDatabase.validateCertificate(clientName, remoteCertificate);
+                        : clientDatabase.validateCertificate(clientName, event.getCertificate());
                 switch (validation) {
                     case IDENTITY_PROVED:
                         // no-op, we trust the certificate as being from the client
@@ -337,8 +324,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@inheritDoc}
          */
         @Override
-        public void onChannel(@NonNull final Channel channel) {
-            assert remoteHeaders != null;
+        public void onChannel(@Nonnull final Channel channel) {
             channel.addListener(this);
             threadPool.execute(new Runnable() {
                 @Override
@@ -354,9 +340,8 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@inheritDoc}
          */
         @Override
-        @NonNull
-        public ChannelBuilder decorate(@NonNull ChannelBuilder builder) {
-            assert remoteHeaders != null;
+        @Nonnull
+        public ChannelBuilder decorate(@Nonnull ChannelBuilder builder) {
             if (!client) {
                 builder.withMode(Channel.Mode.NEGOTIATE);
             }
@@ -369,7 +354,6 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          */
         @Override
         public void onClosed(Channel channel, IOException cause) {
-            assert remoteHeaders != null;
             event.fireChannelClosed(cause);
             try {
                 event.getSocket().close();

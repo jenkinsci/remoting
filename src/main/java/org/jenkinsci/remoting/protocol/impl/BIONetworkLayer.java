@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -94,7 +94,7 @@ public class BIONetworkLayer extends NetworkLayer {
      * {@inheritDoc}
      */
     @Override
-    protected void write(@NonNull ByteBuffer data) throws IOException {
+    protected void write(@Nonnull ByteBuffer data) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] SEND: {1} bytes", new Object[]{stack().name(), data.remaining()});
         }

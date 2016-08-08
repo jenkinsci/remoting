@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
@@ -194,7 +194,7 @@ public class AckFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void onRecv(@NonNull ByteBuffer data) throws IOException {
+    public void onRecv(@Nonnull ByteBuffer data) throws IOException {
         if (aborted) {
             // if aborted then the buffers are immutable, so no lock needed
             if (!sendAck.hasRemaining()) {
@@ -297,7 +297,7 @@ public class AckFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void doSend(@NonNull ByteBuffer data) throws IOException {
+    public void doSend(@Nonnull ByteBuffer data) throws IOException {
         if (aborted) {
             if (!sendAck.hasRemaining()) {
                 throw new ConnectionRefusalException(

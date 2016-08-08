@@ -23,19 +23,19 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
-import edu.umd.cs.findbugs.annotations.When;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import javax.annotation.OverridingMethodsMustInvokeSuper;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 
 /**
- * The lowest {@link ProtocolLayer} in a {@link ProtocolStack}. This layer is responsible for sending the output of the protocol
+ * The lowest {@link ProtocolLayer} in a {@link ProtocolStack}. This layer is responsible for sending the output of
+ * the protocol
  * to the recipient and injecting the input from the recipient into the protocol stack.
  *
  * @since FIXME
@@ -53,12 +53,13 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
     /**
      * Our {@link IOHub}.
      */
-    @NonNull
+    @Nonnull
     private final IOHub ioHub;
 
     /**
      * The send queue of any data requested to send before a call to {@link #start()}.
-     * In theory this should not be needed as the network layer will be the first layer to be {@link ProtocolLayer#start()}
+     * In theory this should not be needed as the network layer will be the first layer to be
+     * {@link ProtocolLayer#start()}
      * but it can simplify the othre layer implementations if they can queue up data to output in their call to
      * {@link ProtocolLayer#init(ProtocolStack.Ptr)} which is what this queue facilitates.
      */
@@ -80,7 +81,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      *
      * @param ioHub the {@link IOHub} that we use.
      */
-    public NetworkLayer(@NonNull IOHub ioHub) {
+    public NetworkLayer(@Nonnull IOHub ioHub) {
         this.ioHub = ioHub;
         this.recvQueue = new ByteBufferQueue(CAPACITY);
         this.sendQueue = new ByteBufferQueue(CAPACITY);
@@ -90,7 +91,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      * {@inheritDoc}
      */
     @Override
-    public final void doSend(@NonNull ByteBuffer data) throws IOException {
+    public final void doSend(@Nonnull ByteBuffer data) throws IOException {
         ByteBufferQueue sendQueue = this.sendQueue;
         if (ptr == null) {
             sendQueue.put(data);
@@ -113,7 +114,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      *             to resubmit in subsequent calls.
      * @throws IOException if something goes wrong
      */
-    protected abstract void write(@NonNull ByteBuffer data) throws IOException;
+    protected abstract void write(@Nonnull ByteBuffer data) throws IOException;
 
     /**
      * SPI: Performed the handling of te actual read from the recipient.
@@ -140,7 +141,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
     /**
      * SPI: Notify that the connection with the recipient is closed.
      */
-    @OverrideMustInvoke(When.ANYTIME)
+    @OverridingMethodsMustInvokeSuper
     protected final void onRecvClosed() {
         if (ptr == null) {
             throw new IllegalStateException("Not initialized");
@@ -226,7 +227,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      * {@inheritDoc}
      */
     @Override
-    public final void init(@NonNull ProtocolStack<?>.Ptr ptr) throws IOException {
+    public final void init(@Nonnull ProtocolStack<?>.Ptr ptr) throws IOException {
         if (this.ptr != null && this.ptr != ptr) {
             throw new IllegalStateException("Already initialized");
         }
@@ -237,7 +238,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      * {@inheritDoc}
      */
     @Override
-    @OverrideMustInvoke(When.LAST)
+    @OverridingMethodsMustInvokeSuper
     public void start() throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] Starting", ptr.stack().name());

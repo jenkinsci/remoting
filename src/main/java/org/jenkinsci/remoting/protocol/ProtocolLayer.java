@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
@@ -55,7 +55,7 @@ public interface ProtocolLayer {
      * @param ptr the position of this layer in the stack.
      * @throws IOException if something goes wrong.
      */
-    void init(@NonNull ProtocolStack<?>.Ptr ptr) throws IOException;
+    void init(@Nonnull ProtocolStack<?>.Ptr ptr) throws IOException;
 
     /**
      * Starts this layer. All layers in the stack will be initialized before a call to this method. All lower layers
@@ -79,7 +79,7 @@ public interface ProtocolLayer {
          *             to resubmit in subsequent calls.
          * @throws IOException if there was an error during processing of the received data.
          */
-        void onRecv(@NonNull ByteBuffer data) throws IOException;
+        void onRecv(@Nonnull ByteBuffer data) throws IOException;
 
         /**
          * Callback on the lower layer's source of data being closed.
@@ -113,7 +113,7 @@ public interface ProtocolLayer {
          *             to resubmit in subsequent calls.
          * @throws IOException if there was an error during processing of the data.
          */
-        void doSend(@NonNull ByteBuffer data) throws IOException;
+        void doSend(@Nonnull ByteBuffer data) throws IOException;
 
         /**
          * Notify the lower layer that it should close. Callers to this method are assumed to have already called

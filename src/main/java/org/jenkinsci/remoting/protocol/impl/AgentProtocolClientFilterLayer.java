@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Logger;
@@ -77,7 +77,7 @@ public class AgentProtocolClientFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void onRecv(@NonNull ByteBuffer data) throws IOException {
+    public void onRecv(@Nonnull ByteBuffer data) throws IOException {
         next().onRecv(data);
     }
 
@@ -85,7 +85,7 @@ public class AgentProtocolClientFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void doSend(@NonNull ByteBuffer data) throws IOException {
+    public synchronized void doSend(@Nonnull ByteBuffer data) throws IOException {
         if (sendProtocol.hasRemaining()) {
             sendQueue.put(data);
             next().doSend(sendProtocol);
