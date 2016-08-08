@@ -527,17 +527,23 @@ public class HandlerLoopbackLoadStress {
         private boolean started;
         private boolean warmed;
         private Metrics start;
+        double memoryA = Runtime.getRuntime().totalMemory();
+        double memoryS = 0;
+        int memoryCount = 1;
 
         public synchronized void clearStats() {
             start = new Metrics();
-            System.out.printf("%n%-7s   %-29s   %-20s   %6s%n",
-                    "", "          Calls rate", "JVM CPU utilization", "");
-            System.out.printf("%-7s   %9s %9s %9s   %6s %6s %6s   %6s%n",
+            memoryA = Runtime.getRuntime().totalMemory();
+            memoryS = 0;
+            memoryCount = 1;
+            System.out.printf("%n%-7s   %-29s   %-20s   %8s   %14s%n",
+                    "", "          Calls rate", "JVM CPU utilization", "", "");
+            System.out.printf("%-7s   %9s %9s %9s   %6s %6s %6s   %8s   %14s%n",
                     "Time", "cur", "all", "expect", "cur", "all",
-                    "expect", "Sys load");
-            System.out.printf("%7s   %9s %9s %9s   %6s %6s %6s   %6s%n",
+                    "expect", "Sys load", "Average Memory");
+            System.out.printf("%7s   %9s %9s %9s   %6s %6s %6s   %8s   %14s%n",
                     "=======", "=========", "=========", "=========", "======", "======",
-                    "======", "======");
+                    "======", "========", "==============");
         }
 
         private synchronized void clientsStarted() {
@@ -551,15 +557,24 @@ public class HandlerLoopbackLoadStress {
             clearStats();
             Metrics last = start;
             double expectedNoopsPerSecond = 1000.0 / config.clientIntervalMs * config.numClients;
+
             while (true) {
+                long memory = Runtime.getRuntime().totalMemory();
+                double memoryO = memoryA;
+                memoryA += (memory - memoryO) / ++memoryCount;
+                memoryS += (memory - memoryO) * (memory - memoryA);
                 long next = last.time + 1000;
                 long wait;
                 while ((wait = next - System.currentTimeMillis()) > 0) {
                     try {
-                        Thread.sleep(wait);
+                        Thread.sleep(Math.min(wait, 100));
                     } catch (InterruptedException e) {
                         return;
                     }
+                    memory = Runtime.getRuntime().totalMemory();
+                    memoryO = memoryA;
+                    memoryA += (memory - memoryO) / ++memoryCount;
+                    memoryS += (memory - memoryO) * (memory - memoryA);
                 }
                 Metrics start = this.start;
                 Metrics current = new Metrics();
@@ -568,7 +583,7 @@ public class HandlerLoopbackLoadStress {
                 double noopsPerSecond = current.noopsPerSecond(last);
                 double vmLoad0 = current.vmLoad(start);
                 double vmLoad = current.vmLoad(last);
-                System.out.printf("%-4.1fmin   %7.1f/s %7.1f/s %7.1f/s   %6.2f %6.2f %6.2f   %6.2f%n",
+                System.out.printf("%-4.1fmin   %7.1f/s %7.1f/s %7.1f/s   %6.2f %6.2f %6.2f   %8.2f   %7.1fkB ± %.1f %ddf%n",
                         (current.uptime - start.uptime) / 60000.0,
                         noopsPerSecond,
                         noopsPerSecond0,
@@ -576,12 +591,15 @@ public class HandlerLoopbackLoadStress {
                         vmLoad,
                         vmLoad0,
                         vmLoad0 * expectedNoopsPerSecond / noopsPerSecond0,
-                        operatingSystemMXBean.getSystemLoadAverage()
+                        operatingSystemMXBean.getSystemLoadAverage(),
+                        memoryCount > 0 ? memoryA / 1024 : Double.NaN,
+                        memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
+                        memoryCount
                 );
                 System.out.flush();
                 last = current;
                 if (started && !warmed && (config.warmup <= 0
-                        || current.uptime - start.uptime > config.collect * 1000L)) {
+                        || current.uptime - start.uptime > config.warmup * 1000L)) {
                     System.out.println("Warmup completed");
                     clearStats();
                     warmed = true;
@@ -595,12 +613,13 @@ public class HandlerLoopbackLoadStress {
                                 pw = new PrintWriter(new FileWriter(f));
                                 pw.printf(
                                         "\"protocol\",\"io\",\"clients\",\"interval\",\"payload\",\"observedRate\","
-                                                + "\"expectedRate\",\"vmLoad\",\"expectedVmLoad\",\"threads\"%n");
+                                                + "\"expectedRate\",\"vmLoad\",\"expectedVmLoad\",\"threads\","
+                                                + "\"avgMemory\",\"stdMemory\",\"dfMemory\"%n");
                             } else {
                                 pw = new PrintWriter(new FileWriter(f, true));
                             }
                             try {
-                                pw.printf("\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d%n",
+                                pw.printf("\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d%n",
                                         config.name,
                                         config.bio ? "blocking" : "non-blocking",
                                         config.numClients,
@@ -610,7 +629,11 @@ public class HandlerLoopbackLoadStress {
                                         expectedNoopsPerSecond,
                                         vmLoad0,
                                         vmLoad0 * expectedNoopsPerSecond / noopsPerSecond0,
-                                        Thread.activeCount());
+                                        Thread.activeCount(),
+                                        memoryCount > 0 ? memoryA / 1024 : Double.NaN,
+                                        memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
+                                        memoryCount
+                                );
                             } finally {
                                 pw.close();
                             }
@@ -618,7 +641,7 @@ public class HandlerLoopbackLoadStress {
                             e.printStackTrace();
                         }
                     }
-                    System.out.printf("%n\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d%n",
+                    System.out.printf("%n\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d%n",
                             config.name,
                             config.bio ? "blocking" : "non-blocking",
                             config.numClients,
@@ -628,7 +651,11 @@ public class HandlerLoopbackLoadStress {
                             expectedNoopsPerSecond,
                             vmLoad0,
                             vmLoad0 * expectedNoopsPerSecond / noopsPerSecond0,
-                            Thread.activeCount());
+                            Thread.activeCount(),
+                            memoryCount > 0 ? memoryA / 1024 : Double.NaN,
+                            memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
+                            memoryCount
+                    );
                     System.exit(0);
                 }
             }
