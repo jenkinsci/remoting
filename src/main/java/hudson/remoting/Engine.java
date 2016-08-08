@@ -356,11 +356,11 @@ public class Engine extends Thread {
                                         if (certificate != null) {
                                             String fingerprint = KeyUtils
                                                     .fingerprint(certificate.getPublicKey());
-                                            events.status("Received remote identity: " + fingerprint);
                                             if (!KeyUtils.equals(endpoint.getPublicKey(), certificate.getPublicKey())) {
                                                 event.reject(new ConnectionRefusalException(
                                                         "Expecting identity " + fingerprint));
                                             }
+                                            events.status("Remote identity confirmed: " + fingerprint);
                                         }
                                     }
                                 }
@@ -485,7 +485,7 @@ public class Engine extends Thread {
 
     private static final Logger LOGGER = Logger.getLogger(Engine.class.getName());
 
-    private static KeyStore getCacertsKeyStore()
+    static KeyStore getCacertsKeyStore()
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException {
         Map<String, String> properties = AccessController.doPrivileged(
