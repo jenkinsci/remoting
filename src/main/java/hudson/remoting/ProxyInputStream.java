@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -134,7 +135,7 @@ final class ProxyInputStream extends InputStream {
             InputStream in;
             try {
                 in = (InputStream) channel.getExportedObject(oid);
-            } catch (InvalidObjectIdException ex) {
+            } catch (ExecutionException ex) {
                 throw new IOException(ex);
             }
 
