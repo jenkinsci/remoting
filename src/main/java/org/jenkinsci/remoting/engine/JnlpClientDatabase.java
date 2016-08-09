@@ -62,7 +62,7 @@ public abstract class JnlpClientDatabase {
     /**
      * The types of certificate validation results.
      */
-    enum ValidationResult {
+    public enum ValidationResult {
         /**
          * The certificate is invalid, reject the connection.
          */
