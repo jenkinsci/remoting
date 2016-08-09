@@ -74,7 +74,7 @@ public class JnlpAgentEndpoint {
      * @param protocols The supported protocols.
      */
     public JnlpAgentEndpoint(@Nonnull String host, int port, @CheckForNull RSAPublicKey publicKey,
-                             @javax.annotation.CheckForNull Set<String> protocols) {
+                             @CheckForNull Set<String> protocols) {
         this.host = host;
         this.port = port;
         this.publicKey = publicKey;
