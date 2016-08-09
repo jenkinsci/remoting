@@ -24,6 +24,8 @@
 package org.jenkinsci.remoting.util;
 
 import java.nio.charset.Charset;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Local implementation of standard charsets as the remoting library currently needs to be compiled against Java 6
@@ -32,6 +34,7 @@ import java.nio.charset.Charset;
  * @since FIXME
  */
 // TODO replace with StandardCharsets once Java 7
+@Restricted(NoExternalUse.class)
 public final class Charsets {
     /**
      * Utility class.

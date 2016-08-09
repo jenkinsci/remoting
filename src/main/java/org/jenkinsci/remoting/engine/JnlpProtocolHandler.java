@@ -89,7 +89,6 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * Whether this protocol is enabled for connecting.
      *
      * @return {@code true} if this protocol is enabled.
-     * @since 2.59
      */
     public boolean isEnabled() {
         // map to the legacy names

@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.ByteBufferQueueOutputStream;
 import org.jenkinsci.remoting.util.FastByteBufferQueueInputStream;
@@ -132,7 +133,6 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * @throws IOException          if something goes wrong during the receive.
      * @throws InterruptedException if interrupted during the receive.
      */
-    @Nonnull
     public final synchronized void receive(@Nonnull ByteBuffer data) throws IOException, InterruptedException {
         while (receiver != null && readCommandIndex > 0) {
             processCommand();
@@ -239,10 +239,10 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     /**
      * Set the frame size.
      *
-     * @param transportFrameSize the new frame size.
+     * @param transportFrameSize the new frame size (must be in the range {@code 1}-{@link Short#MAX_VALUE}).
      */
     public void setFrameSize(int transportFrameSize) {
-        if (transportFrameSize <= 0 || transportFrameSize >= Short.MAX_VALUE) {
+        if (transportFrameSize <= 0 || transportFrameSize > Short.MAX_VALUE) {
             throw new IllegalArgumentException();
         }
         this.transportFrameSize = transportFrameSize;
@@ -250,10 +250,19 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         writeChunkBody = ByteBuffer.allocate(transportFrameSize);
     }
 
+    /**
+     * Gets the channel.
+     *
+     * @return the channel.
+     */
+    @Nullable // only null before setup.
     private synchronized Channel getChannel() {
         return channel;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final synchronized void setup(final Channel channel, final CommandReceiver receiver) {
         this.channel = channel;
@@ -269,6 +278,9 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final void write(Command cmd, boolean last) throws IOException {
         ByteBufferQueueOutputStream bqos = new ByteBufferQueueOutputStream(sendStaging);

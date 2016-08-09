@@ -24,9 +24,10 @@
 package org.jenkinsci.remoting.util;
 
 import java.nio.ByteBuffer;
+import javax.annotation.concurrent.GuardedBy;
 
 /**
- * A buffer pool tht keeps a free list of {@link ByteBuffer}s of a specified default size in a simple fixed
+ * A buffer pool that keeps a free list of {@link ByteBuffer}s of a specified default size in a simple fixed
  * size stack.
  *
  * If the stack is full, the buffer is de-referenced and available to be freed by normal garbage collection (whenever
@@ -39,19 +40,26 @@ public class DirectByteBufferPool implements ByteBufferPool {
     /**
      * The pool of {@link ByteBuffer}. Only the first {@link #poolCount} elements will contain buffers.
      */
+    @GuardedBy("this")
     private ByteBuffer[] pool;
     /**
      * The minimum size to allocate buffers.
      */
-    private int bufferSize;
+    private final int bufferSize;
     /**
      * The number of buffers currently held in the pool.
      */
+    @GuardedBy("this")
     private int poolCount;
 
-    public DirectByteBufferPool(int bufferSize, int maxPoolSize) {
+    /**
+     * Constructor.
+     * @param minBufferSize the minimum size to create buffers.
+     * @param maxPoolSize the maximum buffers to keep in the pool.
+     */
+    public DirectByteBufferPool(int minBufferSize, int maxPoolSize) {
         this.pool = new ByteBuffer[maxPoolSize];
-        this.bufferSize = bufferSize;
+        this.bufferSize = minBufferSize;
         this.poolCount = 0;
     }
 

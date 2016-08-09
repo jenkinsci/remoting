@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Future;
 import java.util.AbstractMap;
 import java.util.LinkedList;
@@ -305,8 +306,9 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * Verifies that a value is non-null without findbugs complaining too much.
      *
      * @param o the object that should be non-null.
+     * @throws NullPointerException if the object is actually null
      */
-    @edu.umd.cs.findbugs.annotations.SuppressWarnings
+    @SuppressFBWarnings
     private static void verifyNonnull(@Nullable Object o) {
         if (o == null) {
             throw new NullPointerException();

@@ -188,7 +188,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     @OverridingMethodsMustInvokeSuper
     public void executeOnSelector(Runnable task) {
         if (task == null) {
-            throw new NullPointerException();
+            throw new NullPointerException("Task is null");
         }
         if (!selector.isOpen()) {
             throw new RejectedExecutionException("IOHub#" + _id + " Selector is closed");
@@ -216,7 +216,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     @OverridingMethodsMustInvokeSuper
     public Future<?> executeLater(Runnable task, long delay, TimeUnit units) {
         if (task == null) {
-            throw new NullPointerException();
+            throw new NullPointerException("Task is null");
         }
         if (!selector.isOpen()) {
             throw new RejectedExecutionException("IOHub#" + _id + " Selector is closed");
@@ -410,18 +410,19 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                     boolean wantSelectNow = processRegistrations();
                     wantSelectNow = processInterestOps() || wantSelectNow;
                     wantSelectNow = processSelectorTasks() || wantSelectNow;
+                    int selected;
                     if (wantSelectNow) {
                         // we did some work that is anticipated to either take some time or have likely resulted
                         // in an immediately ready selection key, hence we use the non-blocking form
-                        selector.selectNow();
+                        selected = selector.selectNow();
                     } else {
-                        selector.select(); // WINDOWS!!! Waiting the whole timeout anyway if timeout specified?!?
+                        selected = selector.select(); // WINDOWS!!! Waiting the whole timeout anyway if timeout specified?!?
                     }
-                    Set<SelectionKey> keys = selector.selectedKeys();
-                    if (keys.isEmpty()) {
-                        // don't stress the GC by creating an iterator for an empty set
+                    if (selected == 0) {
+                        // don't stress the GC by creating instantiating the selected keys
                         continue;
                     }
+                    Set<SelectionKey> keys = selector.selectedKeys();
                     gen++;
                     for (Iterator<SelectionKey> keyIterator = keys.iterator(); keyIterator.hasNext(); ) {
                         SelectionKey key = keyIterator.next();

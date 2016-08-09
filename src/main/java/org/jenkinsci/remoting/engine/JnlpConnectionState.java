@@ -426,9 +426,9 @@ public class JnlpConnectionState {
     /**
      * Advances the connection state to indicate that the channel has been closed.
      *
-     * @param cause
+     * @param cause the reason why the channel was closed or {@code null} if normally closed
      */
-    /*package*/ void fireChannelClosed(IOException cause) {
+    /*package*/ void fireChannelClosed(@CheckForNull IOException cause) {
         if (lifecycle.compareTo(State.BEFORE_CHANNEL) < 0) {
             throw new IllegalStateException("fireChannelClosed cannot be invoked at lifecycle " + lifecycle);
         }

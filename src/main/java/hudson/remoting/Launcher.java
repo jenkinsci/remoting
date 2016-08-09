@@ -32,6 +32,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.cert.CertificateFactory;
+import javax.annotation.CheckForNull;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import org.jenkinsci.remoting.util.IOUtils;
@@ -271,6 +272,7 @@ public class Launcher {
         System.exit(0);
     }
 
+    @CheckForNull
     private SSLSocketFactory getSSLSocketFactory()
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException, KeyManagementException {
@@ -331,8 +333,7 @@ public class Launcher {
                     try {
                         cert = certOrAtFilename.getBytes("US-ASCII");
                     } catch (UnsupportedEncodingException e) {
-                        LOGGER.log(Level.WARNING, "Could not parse certificate " + certOrAtFilename, e);
-                        continue;
+                        throw new IllegalStateException("US-ASCII support is mandated by the JLS", e);
                     }
                 }
                 try {

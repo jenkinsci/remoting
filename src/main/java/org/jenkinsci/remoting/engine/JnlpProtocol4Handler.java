@@ -355,7 +355,11 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          */
         @Override
         public void onClosed(Channel channel, IOException cause) {
+            if (channel != event.getChannel()) {
+                return;
+            }
             event.fireChannelClosed(cause);
+            channel.removeListener(this);
             try {
                 event.getSocket().close();
             } catch (IOException e) {
