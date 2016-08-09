@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
@@ -56,12 +57,16 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -133,6 +138,7 @@ public class HandlerLoopbackLoadStress {
     private final Random entropy = new Random();
 
     private final RuntimeMXBean runtimeMXBean;
+    private final List<GarbageCollectorMXBean> garbageCollectorMXBeans;
     private final OperatingSystemMXBean operatingSystemMXBean;
     private final Method _getProcessCpuTime;
     private final Config config;
@@ -236,6 +242,13 @@ public class HandlerLoopbackLoadStress {
         runtimeMXBean = ManagementFactory.getRuntimeMXBean();
         operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
         _getProcessCpuTime = _getProcessCpuTime(operatingSystemMXBean);
+        garbageCollectorMXBeans = new ArrayList<GarbageCollectorMXBean>(ManagementFactory.getGarbageCollectorMXBeans());
+        Collections.sort(garbageCollectorMXBeans, new Comparator<GarbageCollectorMXBean>() {
+            @Override
+            public int compare(GarbageCollectorMXBean o1, GarbageCollectorMXBean o2) {
+                return o1.getName().compareTo(o2.getName());
+            }
+        });
         stats = new Stats();
     }
 
@@ -612,7 +625,7 @@ public class HandlerLoopbackLoadStress {
                 double noopsPerSecond = current.noopsPerSecond(last);
                 double vmLoad0 = current.vmLoad(start);
                 double vmLoad = current.vmLoad(last);
-                System.out.printf("%-4.1fmin   %7.1f/s %7.1f/s %7.1f/s   %6.2f %6.2f %6.2f   %8.2f   %7.1fkB ± %.1f %ddf%n",
+                System.out.printf("%-4.1fmin   %7.1f/s %7.1f/s %7.1f/s   %6.2f %6.2f %6.2f   %8.2f   %7.1fkB ± %.1f %ddf   %s%n",
                         (current.uptime - start.uptime) / 60000.0,
                         noopsPerSecond,
                         noopsPerSecond0,
@@ -623,7 +636,8 @@ public class HandlerLoopbackLoadStress {
                         operatingSystemMXBean.getSystemLoadAverage(),
                         memoryCount > 0 ? memoryA / 1024 : Double.NaN,
                         memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
-                        memoryCount
+                        memoryCount,
+                        current.gcSummary(start)
                 );
                 System.out.flush();
                 last = current;
@@ -643,12 +657,13 @@ public class HandlerLoopbackLoadStress {
                                 pw.printf(
                                         "\"protocol\",\"io\",\"clients\",\"interval\",\"payload\",\"observedRate\","
                                                 + "\"expectedRate\",\"vmLoad\",\"expectedVmLoad\",\"threads\","
-                                                + "\"avgMemory\",\"stdMemory\",\"dfMemory\",\"maxMemory\"%n");
+                                                + "\"avgMemory\",\"stdMemory\",\"dfMemory\",\"maxMemory\",%s%n",
+                                        current.gcTitles());
                             } else {
                                 pw = new PrintWriter(new FileWriter(f, true));
                             }
                             try {
-                                pw.printf("\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d,%.2f%n",
+                                pw.printf("\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d,%.2f,%s%n",
                                         config.name,
                                         config.bio ? "blocking" : "non-blocking",
                                         config.numClients,
@@ -662,7 +677,8 @@ public class HandlerLoopbackLoadStress {
                                         memoryCount > 0 ? memoryA / 1024 : Double.NaN,
                                         memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
                                         memoryCount,
-                                        Runtime.getRuntime().maxMemory() / 1024.0
+                                        Runtime.getRuntime().maxMemory() / 1024.0,
+                                        current.gcData(start)
                                 );
                             } finally {
                                 pw.close();
@@ -671,7 +687,12 @@ public class HandlerLoopbackLoadStress {
                             e.printStackTrace();
                         }
                     }
-                    System.out.printf("%n\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d,%.2f%n",
+                    System.out.printf(
+                            "%n\"protocol\",\"io\",\"clients\",\"interval\",\"payload\",\"observedRate\","
+                                    + "\"expectedRate\",\"vmLoad\",\"expectedVmLoad\",\"threads\","
+                                    + "\"avgMemory\",\"stdMemory\",\"dfMemory\",\"maxMemory\",%s%n"
+                                    + "\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d,%.2f,%s%n",
+                            current.gcTitles(),
                             config.name,
                             config.bio ? "blocking" : "non-blocking",
                             config.numClients,
@@ -685,7 +706,8 @@ public class HandlerLoopbackLoadStress {
                             memoryCount > 0 ? memoryA / 1024 : Double.NaN,
                             memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
                             memoryCount,
-                            Runtime.getRuntime().maxMemory() / 1024.0
+                            Runtime.getRuntime().maxMemory() / 1024.0,
+                            current.gcData(start)
                     );
                     System.exit(0);
                 }
@@ -694,17 +716,32 @@ public class HandlerLoopbackLoadStress {
 
     }
 
+    private class GCStats {
+        private final long count;
+        private final long time;
+
+        public GCStats(GarbageCollectorMXBean bean) {
+            this.count = bean.getCollectionCount();
+            this.time = bean.getCollectionTime();
+        }
+    }
+
     private class Metrics {
         private long time;
         private long noops;
         private long uptime;
         private Long cpu;
+        private Map<String,GCStats> gc;
 
         public Metrics() {
             time = System.currentTimeMillis();
             noops = NoOpCallable.noops.get();
             uptime = runtimeMXBean.getUptime();
             cpu = getProcessCpuTime();
+            gc = new TreeMap<String, GCStats>();
+            for (GarbageCollectorMXBean bean: garbageCollectorMXBeans) {
+                this.gc.put(bean.getName(), new GCStats(bean));
+            }
         }
 
         public long getTime() {
@@ -733,6 +770,67 @@ public class HandlerLoopbackLoadStress {
             } else {
                 return Math.min(99.0, (cpu - reference.cpu) / 1000000.0 / (uptime - reference.uptime));
             }
+        }
+
+        public String gcData(Metrics reference) {
+            StringBuilder result = new StringBuilder();
+            boolean first = true;
+            for (GarbageCollectorMXBean g: garbageCollectorMXBeans) {
+                String name = g.getName();
+                GCStats s = reference.gc.get(name);
+                GCStats x = gc.get(name);
+                if (first) {
+                    first = false;
+                } else {
+                    result.append(',');
+                }
+                result.append("\"").append(name).append("\",");
+                if (x == null) {
+                    result.append(0).append(',').append(0.0);
+                } else  if (s == null) {
+                    result.append(x.count).append(',').append(x.time/1000.0);
+                } else {
+                    result.append(x.count - s.count).append(',').append((x.time - s.time) / 1000.0);
+                }
+            }
+            return result.toString();
+        }
+
+        public String gcTitles() {
+            StringBuilder result = new StringBuilder();
+            boolean first = true;
+            int i = 0;
+            for (GarbageCollectorMXBean g : garbageCollectorMXBeans) {
+                String name = g.getName();
+                result.append("\"gc[").append(i).append("].name\",");
+                result.append("\"gc[").append(i).append("].count\",");
+                result.append("\"gc[").append(i).append("].time\",");
+                i++;
+            }
+            return result.toString();
+        }
+
+        public String gcSummary(Metrics reference) {
+            StringBuilder result = new StringBuilder();
+            boolean first = true;
+            for (GarbageCollectorMXBean g : garbageCollectorMXBeans) {
+                String name = g.getName();
+                GCStats s = reference.gc.get(name);
+                GCStats x = gc.get(name);
+                if (first) {
+                    first = false;
+                } else {
+                    result.append(' ');
+                }
+                if (x == null) {
+                    result.append(String.format("%s: %d / %.1fs", name, 0, 0.0));
+                } else if (s == null) {
+                    result.append(String.format("%s: %d / %.1fs", name, x.count, x.time / 1000.0));
+                } else {
+                    result.append(String.format("%s: %d / %.1fs", name, x.count - s.count, (x.time - s.time) / 1000.0));
+                }
+            }
+            return result.toString();
         }
     }
 
