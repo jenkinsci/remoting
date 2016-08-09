@@ -48,6 +48,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -256,8 +257,9 @@ public class JnlpAgentEndpointResolver {
                     if (con.getResponseCode() == 200) {
                         return;
                     }
-                    LOGGER.info("Master isn't ready to talk to us. Will retry again: response code=" + con
-                            .getResponseCode());
+                    LOGGER.log(Level.INFO,
+                            "Master isn't ready to talk to us on {0}. Will retry again: response code={1}",
+                            new Object[]{url, con.getResponseCode()});
                 } catch (IOException e) {
                     // report the failure
                     LOGGER.log(INFO, "Failed to connect to the master. Will retry again", e);
