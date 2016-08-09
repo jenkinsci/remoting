@@ -223,7 +223,7 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
                         ros.connect(channel, oidPos);
                     } catch (IOException e) {
                         logger.log(Level.SEVERE,"Failed to connect to pipe",e);
-                    } catch (InvalidObjectIdException ex) {
+                    } catch (ExecutionException ex) {
                         throw new IllegalStateException(ex);
                     }
                 }

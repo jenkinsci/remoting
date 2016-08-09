@@ -4,6 +4,7 @@ import junit.framework.TestCase;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -19,7 +20,7 @@ public class ExportTableTest extends TestCase {
         try {
             e.get(i);
             fail();
-        } catch (InvalidObjectIdException x) {
+        } catch (ExecutionException x) {
             StringWriter sw = new StringWriter();
             x.printStackTrace(new PrintWriter(sw));
             assertTrue(sw.toString().contains("Object was recently deallocated"));

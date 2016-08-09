@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -97,7 +98,7 @@ class MultiClassLoaderSerializer {
                 Object proxyObject;
                 try {
                     proxyObject = channel.getExportedObject(readInt());
-                } catch (InvalidObjectIdException ex) {
+                } catch (ExecutionException ex) {
                     throw new IOException("Cannot locate RemoteClassLoader.ClassLoaderProxy(" +
                             code + ") in the channel exported table", ex);
                 }

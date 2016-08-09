@@ -245,7 +245,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             final OutputStream os;
             try {
                 os = (OutputStream) channel.getExportedObject(oid);
-            } catch (InvalidObjectIdException ex) {
+            } catch (ExecutionException ex) {
                 throw new ExecutionException(String.format("Channel %s: Output stream object has been released before sending last chunk for oid=%s", 
                                 channel.getName(), oid), ex);
             }

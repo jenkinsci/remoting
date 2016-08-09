@@ -1002,7 +1002,7 @@ final class RemoteClassLoader extends URLClassLoader {
         private Object readResolve() {
             try {
                 return Channel.current().getExportedObject(oid);
-            } catch (InvalidObjectIdException ex) {
+            } catch (ExecutionException ex) {
                 //TODO: Implement something better?
                 throw new IllegalStateException("Cannot resolve remoting classloader", ex);
             }

@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -325,7 +326,7 @@ final class ExportTable {
     }
 
     synchronized @Nonnull
-    Object get(int id) throws InvalidObjectIdException {
+    Object get(int id) throws ExecutionException {
         Entry e = table.get(id);
         if(e!=null) return e.object;
 
@@ -347,7 +348,7 @@ final class ExportTable {
     }
     
     synchronized @Nonnull
-    Class[] type(int id) throws InvalidObjectIdException {
+    Class[] type(int id) throws ExecutionException {
         Entry e = table.get(id);
         if(e!=null) return e.getInterfaces();
 
@@ -391,7 +392,7 @@ final class ExportTable {
      * @param id Object ID
      * @return Exception to be thrown
      */
-    private synchronized InvalidObjectIdException diagnoseInvalidObjectId(int id) {
+    private synchronized ExecutionException diagnoseInvalidObjectId(int id) {
         Exception cause=null;
 
         if (!unexportLog.isEmpty()) {
@@ -404,7 +405,7 @@ final class ExportTable {
                     new Date(unexportLog.get(0).releaseTrace.timestamp));
         }
 
-        return new InvalidObjectIdException("Invalid object ID "+id+" iota="+iota, cause);
+        return new ExecutionException("Invalid object ID "+id+" iota="+iota, cause);
     }
 
     /**
