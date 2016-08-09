@@ -55,14 +55,18 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -295,21 +299,43 @@ public class HandlerLoopbackLoadStress {
         System.out.println(!config.bio ? "Preferring NIO" : "Prefering BIO");
         final HandlerLoopbackLoadStress stress = new HandlerLoopbackLoadStress(config);
         stress.mainHub.execute(stress.stats);
-        SocketAddress serverAddress;
+        final SocketAddress serverAddress;
         if (config.client == null) {
             serverAddress = stress.startServer(config.listen);
+            Thread.sleep(1000);
         } else {
             serverAddress = toSocketAddress(config.client);
         }
         try {
             if (!config.server) {
+                final CountDownLatch started = new CountDownLatch(config.numClients);
+                List<Future<Void>> clients = new ArrayList<Future<Void>>(config.numClients);
                 for (int i = 0; i < config.numClients; i++) {
-                    Thread.sleep(10);
+                    if (config.connectDelay > 0) {
+                        Thread.sleep(config.connectDelay);
+                    }
                     if (i % 10 == 0) {
                         System.out.println("Starting client " + i);
                     }
-                    stress.startClient(i, serverAddress, config.clientIntervalMs, config.payload);
+                    final int clientNumber = i;
+                    clients.add(
+                    stress.executorService.submit(new java.util.concurrent.Callable<Void>() {
+                        @Override
+                        public Void call() throws Exception {
+                            try {
+                                stress.startClient(clientNumber, serverAddress, config.clientIntervalMs,
+                                        config.payload);
+                            } finally {
+                                started.countDown();
+                            }
+                            return null;
+                        }
+                    }));
                 }
+                for (Future<Void> future: clients) {
+                    future.get(60, TimeUnit.SECONDS);
+                }
+                started.await(60, TimeUnit.SECONDS);
                 System.out.println("All clients started");
                 stress.stats.clientsStarted();
             }
@@ -468,6 +494,9 @@ public class HandlerLoopbackLoadStress {
                 usage = "Specify to run as a client only and connect to a server on the specified HOST:PORT")
         public String client;
 
+        @Option(name="--connect", metaVar = "MILLIS",
+                usage = "The number of milliseconds to wait between client starts")
+        public int connectDelay = -1;
 
         @Option(name = "--help", aliases = {"-h", "-?"})
         public boolean help;
@@ -614,12 +643,12 @@ public class HandlerLoopbackLoadStress {
                                 pw.printf(
                                         "\"protocol\",\"io\",\"clients\",\"interval\",\"payload\",\"observedRate\","
                                                 + "\"expectedRate\",\"vmLoad\",\"expectedVmLoad\",\"threads\","
-                                                + "\"avgMemory\",\"stdMemory\",\"dfMemory\"%n");
+                                                + "\"avgMemory\",\"stdMemory\",\"dfMemory\",\"maxMemory\"%n");
                             } else {
                                 pw = new PrintWriter(new FileWriter(f, true));
                             }
                             try {
-                                pw.printf("\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d%n",
+                                pw.printf("\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d,%.2f%n",
                                         config.name,
                                         config.bio ? "blocking" : "non-blocking",
                                         config.numClients,
@@ -632,7 +661,8 @@ public class HandlerLoopbackLoadStress {
                                         Thread.activeCount(),
                                         memoryCount > 0 ? memoryA / 1024 : Double.NaN,
                                         memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
-                                        memoryCount
+                                        memoryCount,
+                                        Runtime.getRuntime().maxMemory() / 1024.0
                                 );
                             } finally {
                                 pw.close();
@@ -641,7 +671,7 @@ public class HandlerLoopbackLoadStress {
                             e.printStackTrace();
                         }
                     }
-                    System.out.printf("%n\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d%n",
+                    System.out.printf("%n\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d,%.2f%n",
                             config.name,
                             config.bio ? "blocking" : "non-blocking",
                             config.numClients,
@@ -654,7 +684,8 @@ public class HandlerLoopbackLoadStress {
                             Thread.activeCount(),
                             memoryCount > 0 ? memoryA / 1024 : Double.NaN,
                             memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
-                            memoryCount
+                            memoryCount,
+                            Runtime.getRuntime().maxMemory() / 1024.0
                     );
                     System.exit(0);
                 }
