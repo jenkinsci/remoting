@@ -37,6 +37,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.jenkinsci.remoting.util.IOUtils;
 import org.jenkinsci.remoting.util.KeyUtils;
+import org.jenkinsci.remoting.util.ThrowableUtils;
 
 import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
 
@@ -186,7 +187,13 @@ public class JnlpAgentEndpoint {
             }
             return socket;
         } catch (IOException e) {
-            IOUtils.closeQuietly(channel);
+            if (channel != null) {
+                try {
+                    channel.close();
+                } catch (IOException suppressed) {
+                    e = ThrowableUtils.addSuppressed(e, suppressed);
+                }
+            }
             String suffix = "";
             if (isHttpProxy) {
                 suffix = " through proxy " + targetAddress.toString();
