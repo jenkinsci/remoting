@@ -55,9 +55,9 @@ class ReferenceCountRecorder {
      * Dumps this recorded result into the given {@link PrintWriter}
      */
     synchronized void dump(PrintWriter w) {
-        w.printf("  Reference count recording: cap=%d total=%d\n", cap, total);
+        w.printf("  Reference count recording: cap=%d total=%d%n", cap, total);
         for (Event e : events) {
-            w.printf("  %s at %s\n", e.getClass().getSimpleName(), new Date(e.site.timestamp));
+            w.printf("  %s at %s%n", e.getClass().getSimpleName(), new Date(e.site.timestamp));
 
             StringWriter sw = new StringWriter();
             e.site.printStackTrace(new PrintWriter(sw,true));

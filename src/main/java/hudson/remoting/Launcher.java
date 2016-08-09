@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
@@ -33,6 +34,7 @@ import java.security.PrivilegedActionException;
 import java.security.cert.CertificateFactory;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
+import org.jenkinsci.remoting.util.IOUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -100,6 +102,7 @@ import javax.crypto.spec.SecretKeySpec;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "DM_EXIT", justification = "This class is runnable. It is eligible to exit in the case of wrong params")
 public class Launcher {
     public Mode mode = Mode.BINARY;
 
@@ -299,16 +302,18 @@ public class Launcher {
                             // than 64kb we can revisit the upper bound.
                             cert = new byte[(int) length];
                             fis = new FileInputStream(file);
-                            int read = fis.read(cert);
-                            if (cert.length != read) {
-                                LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
-                                        new Object[]{read, file, cert.length});
-                                // skip it
-                                continue;
-                            }
+                                int read = fis.read(cert);
+                                if (cert.length != read) {
+                                    LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
+                                            new Object[]{read, file, cert.length});
+                                    // skip it
+                                    continue;
+                                }
                         } catch (IOException e) {
                             LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
                             continue;
+                        } finally {
+                            IOUtils.closeQuietly(fis);
                         }
                     } else {
                         if (file.isFile()) {

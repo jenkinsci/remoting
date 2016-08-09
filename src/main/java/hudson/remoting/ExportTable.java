@@ -151,7 +151,7 @@ final class ExportTable {
          * Dumps the contents of the entry.
          */
         void dump(PrintWriter w) throws IOException {
-            w.printf("#%d (ref.%d) : object=%s type=%s interfaces=%s\n", id, referenceCount, object, objectType, interfaceNames());
+            w.printf("#%d (ref.%d) : object=%s type=%s interfaces=%s%n", id, referenceCount, object, objectType, interfaceNames());
             allocationTrace.printStackTrace(w);
             if (releaseTrace!=null) {
                 releaseTrace.printStackTrace(w);

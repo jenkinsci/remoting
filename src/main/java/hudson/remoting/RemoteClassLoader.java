@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,6 +51,7 @@ import javax.annotation.CheckForNull;
 
 import static hudson.remoting.Util.*;
 import static java.util.logging.Level.*;
+import javax.annotation.Nonnull;
 
 /**
  * Loads class files from the other peer through {@link Channel}.
@@ -663,7 +665,16 @@ final class RemoteClassLoader extends URLClassLoader {
          */
         ClassFile fetch2(String className) throws ClassNotFoundException;
 
+        /**
+         * Retrieve resource by name.
+         * @param name Name of the resource
+         * @return Loaded resource. {@code null} if the resource is missing
+         * @throws IOException Loading error
+         */
+        @CheckForNull
         byte[] getResource(String name) throws IOException;
+        
+        @Nonnull
         byte[][] getResources(String name) throws IOException;
 
     // the rest is added as a part of Capability.supportsPrefetch()
@@ -687,15 +698,17 @@ final class RemoteClassLoader extends URLClassLoader {
          *      null if the resource is not found.
          * @since 2.24
          */
+        @CheckForNull
         ResourceFile getResource2(String name) throws IOException;
 
         /**
          * Remoting equivalent of {@link ClassLoader#getResources(String)}
          *
          * @return
-         *      never null
+         *      never {@code null}
          * @since 2.24
          */
+        @Nonnull
         ResourceFile[] getResources2(String name) throws IOException;
     }
 
@@ -904,6 +917,9 @@ final class RemoteClassLoader extends URLClassLoader {
             return new ResourceFile(resource);
         }
 
+        @Override
+        @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS", 
+                justification = "Null return value is a part of the public interface")
         public byte[] getResource(String name) throws IOException {
         	URL resource = getResourceURL(name);
         	if (resource == null)   return null;
@@ -933,6 +949,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return images;
         }
 
+        @Override
         public byte[][] getResources(String name) throws IOException {
             List<URL> x = getResourcesURL(name);
             byte[][] r = new byte[x.size()][];
@@ -941,6 +958,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return r;
         }
 
+        @Override
         public ResourceFile[] getResources2(String name) throws IOException {
             List<URL> x = getResourcesURL(name);
             ResourceFile[] r = new ResourceFile[x.size()];
@@ -1016,18 +1034,22 @@ final class RemoteClassLoader extends URLClassLoader {
             return proxy.fetch3(className);
         }
 
+        @Override
         public byte[] getResource(String name) throws IOException {
             return proxy.getResource(name);
         }
 
+        @Override
         public byte[][] getResources(String name) throws IOException {
             return proxy.getResources(name);
         }
 
+        @Override
         public ResourceFile getResource2(String name) throws IOException {
             return proxy.getResource2(name);
         }
 
+        @Override
         public ResourceFile[] getResources2(String name) throws IOException {
             return proxy.getResources2(name);
         }

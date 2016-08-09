@@ -1116,17 +1116,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Print the performance counters.
+     * @param w Output writer
      * @since 2.24
      */
     public void dumpPerformanceCounters(PrintWriter w) throws IOException {
         // locale fixed to English to get ',' for every 3 digits
         int l = classLoadingCount.get();
         int p = classLoadingPrefetchCacheCount.get();
-        w.printf(Locale.ENGLISH, "Class loading count=%d\n", l);
-        w.printf(Locale.ENGLISH, "Class loading prefetch hit=%s (%d%%)\n", p, p*100/l);
-        w.printf(Locale.ENGLISH, "Class loading time=%,dms\n", classLoadingTime.get() / (1000 * 1000));
-        w.printf(Locale.ENGLISH, "Resource loading count=%d\n", resourceLoadingCount.get());
-        w.printf(Locale.ENGLISH, "Resource loading time=%,dms\n", resourceLoadingTime.get() / (1000 * 1000));
+        w.printf(Locale.ENGLISH, "Class loading count=%d%n", l);
+        w.printf(Locale.ENGLISH, "Class loading prefetch hit=%s (%d%%)%n", p, p*100/l);
+        w.printf(Locale.ENGLISH, "Class loading time=%,dms%n", classLoadingTime.get() / (1000 * 1000));
+        w.printf(Locale.ENGLISH, "Resource loading count=%d%n", resourceLoadingCount.get());
+        w.printf(Locale.ENGLISH, "Resource loading time=%,dms%n", resourceLoadingTime.get() / (1000 * 1000));
     }
 
     /**

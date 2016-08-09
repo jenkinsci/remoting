@@ -23,6 +23,7 @@
  */
 package hudson.remoting.jnlp;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.FileSystemJarCache;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -31,6 +32,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import org.jenkinsci.remoting.util.IOUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Argument;
@@ -206,6 +208,8 @@ public class Main {
                         } catch (IOException e) {
                             LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
                             continue;
+                        } finally {
+                            IOUtils.closeQuietly(fis);
                         }
                     } else {
                         if (file.isFile()) {
@@ -254,6 +258,8 @@ public class Main {
             status(msg,null);
         }
 
+        @SuppressFBWarnings(value = "DM_EXIT",
+                justification = "Yes, we really want to exit in the case of severe error")
         public void error(Throwable t) {
             LOGGER.log(Level.SEVERE, t.getMessage(), t);
             System.exit(-1);

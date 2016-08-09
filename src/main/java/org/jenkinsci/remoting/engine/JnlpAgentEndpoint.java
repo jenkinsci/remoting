@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -35,7 +36,6 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import org.jenkinsci.remoting.util.IOUtils;
 import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.ThrowableUtils;
 
@@ -145,6 +145,16 @@ public class JnlpAgentEndpoint {
         return protocols == null || protocols.contains(name);
     }
 
+    /**
+     * Opens a socket connection to the remote endpoint.
+     *
+     * @param socketTimeout the {@link Socket#setSoTimeout(int)} to apply to the socket.
+     * @return the socket.
+     * @throws IOException if things go wrong.
+     */
+    @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
+                        justification = "Unsafe endline symbol is a pert of the protocol. Unsafe to fix it. See TODO "
+                                + "below")
     public Socket open(int socketTimeout) throws IOException {
         boolean isHttpProxy = false;
         InetSocketAddress targetAddress = null;
@@ -174,13 +184,15 @@ public class JnlpAgentEndpoint {
 
             if (isHttpProxy) {
                 String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
-                socket.getOutputStream().write(connectCommand.getBytes("UTF-8")); // TODO: internationalized domain names
+                socket.getOutputStream()
+                        .write(connectCommand.getBytes("UTF-8")); // TODO: internationalized domain names
 
                 BufferedInputStream is = new BufferedInputStream(socket.getInputStream());
                 String line = readLine(is);
                 String[] responseLineParts = line.split(" ");
-                if (responseLineParts.length < 2 || !responseLineParts[1].equals("200"))
+                if (responseLineParts.length < 2 || !responseLineParts[1].equals("200")) {
                     throw new IOException("Got a bad response from proxy: " + line);
+                }
                 while (!readLine(is).isEmpty()) {
                     // Do nothing, scrolling through headers returned from proxy
                 }
