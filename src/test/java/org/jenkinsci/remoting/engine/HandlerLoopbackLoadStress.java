@@ -798,13 +798,12 @@ public class HandlerLoopbackLoadStress {
 
         public String gcTitles() {
             StringBuilder result = new StringBuilder();
-            boolean first = true;
             int i = 0;
             for (GarbageCollectorMXBean g : garbageCollectorMXBeans) {
-                String name = g.getName();
+                if (i > 0) result.append(",");
                 result.append("\"gc[").append(i).append("].name\",");
                 result.append("\"gc[").append(i).append("].count\",");
-                result.append("\"gc[").append(i).append("].time\",");
+                result.append("\"gc[").append(i).append("].time\"");
                 i++;
             }
             return result.toString();
