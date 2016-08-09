@@ -428,18 +428,6 @@ public class SSLEngineFilterLayer extends FilterLayer {
         }
     }
 
-    private ByteBuffer allocateByteBuffer(int capacity) {
-        while (true) {
-            ByteBuffer buffer = directBufferRef.get();
-            if (buffer == null || buffer.capacity() < capacity) {
-                return ByteBuffer.allocateDirect(capacity);
-            }
-            if (directBufferRef.compareAndSet(buffer, null)) {
-                return buffer;
-            }
-        }
-    }
-
     /**
      * Process the session handshake status and the last operation result in order to
      * update the internal state and propagate handshake related events.

@@ -169,7 +169,13 @@ public class JnlpAgentEndpointResolver {
                 RSAPublicKey identity = null;
                 if (idHeader != null) {
                     try {
-                        X509EncodedKeySpec spec = new X509EncodedKeySpec(Base64.decode(idHeader));
+                        byte[] encodedKey = Base64.decode(idHeader);
+                        if (encodedKey == null) {
+                            firstError = chain(firstError, new IOException(
+                                    salURL + " appears to be publishing an invalid X-Instance-Identity."));
+                            continue;
+                        }
+                        X509EncodedKeySpec spec = new X509EncodedKeySpec(encodedKey);
                         KeyFactory kf = KeyFactory.getInstance("RSA");
                         identity = (RSAPublicKey) kf.generatePublic(spec);
                     } catch (InvalidKeySpecException e) {
@@ -228,8 +234,9 @@ public class JnlpAgentEndpointResolver {
         return null;
     }
 
-    private URL toAgentListenerURL(String jenkinsUrl) throws MalformedURLException {
-        return jenkinsUrl.endsWith("/")
+    @CheckForNull
+    private URL toAgentListenerURL(@CheckForNull String jenkinsUrl) throws MalformedURLException {
+        return jenkinsUrl == null ? null : jenkinsUrl.endsWith("/")
                 ? new URL(jenkinsUrl + "tcpSlaveAgentListener/")
                 : new URL(jenkinsUrl + "/tcpSlaveAgentListener/");
     }
@@ -245,6 +252,10 @@ public class JnlpAgentEndpointResolver {
                     // Jenkins top page might be read-protected. see http://www.nabble
                     // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
                     URL url = toAgentListenerURL(first(jenkinsUrls));
+                    if (url == null) {
+                        // returning here will cause the whole loop to be broken and all the urls to be tried again
+                        return;
+                    }
 
                     retries++;
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");

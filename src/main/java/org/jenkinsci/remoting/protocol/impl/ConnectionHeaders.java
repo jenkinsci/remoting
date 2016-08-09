@@ -218,6 +218,8 @@ public final class ConnectionHeaders {
                         state = 2;
                     }
                     break;
+                default:
+                    throw new ParseException("Unexpected parser state machine state: " + state);
             }
         }
         return result;

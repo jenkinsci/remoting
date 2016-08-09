@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import java.io.IOException;
@@ -85,6 +86,17 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
      */
     @Nonnull
     @Override
+    protected abstract STATE createConnectionState(@Nonnull Socket socket,
+                                          @Nonnull List<? extends JnlpConnectionStateListener> listeners)
+            throws IOException;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Nonnull
+    @Override
+    @SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST_OF_RETURN_VALUE",
+                        justification = "Generics will ensure the implementation returns the correct type.")
     public Future<Channel> handle(@Nonnull final Socket socket, @Nonnull final Map<String, String> headers,
                                   @Nonnull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException {
@@ -138,6 +150,8 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
      */
     @Nonnull
     @Override
+    @SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST_OF_RETURN_VALUE",
+                        justification = "Generics will ensure the implementation returns the correct type.")
     public Future<Channel> connect(@Nonnull final Socket socket, @Nonnull final Map<String, String> headers,
                                    @Nonnull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
         final STATE state = createConnectionState(socket, listeners);

@@ -290,9 +290,10 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                 if (clientDatabase == null || !clientDatabase.exists(clientName)) {
                     throw new ConnectionRefusalException("Unknown client name: " + clientName);
                 }
-                JnlpClientDatabase.ValidationResult validation = event.getCertificate() == null
+                X509Certificate certificate = event.getCertificate();
+                JnlpClientDatabase.ValidationResult validation = certificate == null
                         ? JnlpClientDatabase.ValidationResult.UNCHECKED
-                        : clientDatabase.validateCertificate(clientName, event.getCertificate());
+                        : clientDatabase.validateCertificate(clientName, certificate);
                 switch (validation) {
                     case IDENTITY_PROVED:
                         // no-op, we trust the certificate as being from the client

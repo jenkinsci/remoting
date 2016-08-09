@@ -188,6 +188,8 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
                         processCommand();
                     }
                     break;
+                default:
+                    throw new IllegalStateException("Unknown readState = " + readState);
             }
         }
     }
@@ -196,6 +198,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         try {
             FastByteBufferQueueInputStream is = new FastByteBufferQueueInputStream(receiveQueue, readCommandSizes[0]);
             try {
+                final Channel channel = getChannel();
                 ObjectInputStreamEx ois = new ObjectInputStreamEx(is, channel.baseClassLoader, channel.classFilter);
                 receiver.handle(Command.readFrom(channel, ois));
             } catch (IOException e1) {
@@ -205,7 +208,10 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
             } finally {
                 int available = is.available();
                 if (available > 0) {
-                    is.skip(available);
+                    if (is.skip(available) != available) {
+                        // let's polish the decks of the Titanic
+                        LOGGER.log(Level.FINE, "Failed to skip remainder of Command");
+                    }
                 }
                 IOUtils.closeQuietly(is);
             }
@@ -244,6 +250,9 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         writeChunkBody = ByteBuffer.allocate(transportFrameSize);
     }
 
+    private synchronized Channel getChannel() {
+        return channel;
+    }
 
     @Override
     public final synchronized void setup(final Channel channel, final CommandReceiver receiver) {
@@ -264,8 +273,11 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     public final void write(Command cmd, boolean last) throws IOException {
         ByteBufferQueueOutputStream bqos = new ByteBufferQueueOutputStream(sendStaging);
         ObjectOutputStream oos = new ObjectOutputStream(bqos);
-        cmd.writeTo(channel, oos);
-        oos.close();
+        try {
+            cmd.writeTo(getChannel(), oos);
+        } finally {
+            oos.close();
+        }
         long remaining = sendStaging.remaining();
         while (remaining > 0L) {
             int frame = remaining > transportFrameSize
