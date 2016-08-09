@@ -75,6 +75,9 @@ public class JnlpAgentEndpoint {
      */
     public JnlpAgentEndpoint(@Nonnull String host, int port, @CheckForNull RSAPublicKey publicKey,
                              @CheckForNull Set<String> protocols) {
+        if (port <= 0 || 65536 <= port) {
+            throw new IllegalArgumentException("Port " + port + " is not in the range 1-65535");
+        }
         this.host = host;
         this.port = port;
         this.publicKey = publicKey;
