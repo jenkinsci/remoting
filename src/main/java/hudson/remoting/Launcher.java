@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -91,6 +92,7 @@ import javax.crypto.spec.SecretKeySpec;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "DM_EXIT", justification = "This class is runnable. It is eligible to exit in the case of wrong params")
 public class Launcher {
     public Mode mode = Mode.BINARY;
 

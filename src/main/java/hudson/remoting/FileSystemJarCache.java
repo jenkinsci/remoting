@@ -85,7 +85,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                 Checksum actual = Checksum.forFile(tmp);
                 if (!expected.equals(actual)) {
                     throw new IOException(String.format(
-                            "Incorrect checksum of retrieved jar: %s\nExpected: %s\nActual: %s",
+                            "Incorrect checksum of retrieved jar: %s%nExpected: %s%nActual: %s",
                             tmp.getAbsolutePath(), expected, actual));
                 }
 
@@ -102,7 +102,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                     actual = Checksum.forFile(target);
                     if (!expected.equals(actual)) {
                         throw new IOException(String.format(
-                                "Incorrect checksum of previous jar: %s\nExpected: %s\nActual: %s",
+                                "Incorrect checksum of previous jar: %s%nExpected: %s%nActual: %s",
                                 target.getAbsolutePath(), expected, actual));
                     }
                 }

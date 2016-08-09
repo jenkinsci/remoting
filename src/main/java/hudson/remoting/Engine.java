@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -356,6 +357,8 @@ public class Engine extends Thread {
     /**
      * Connects to TCP slave host:port, with a few retries.
      */
+    @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
+            justification = "Unsafe endline symbol is a pert of the protocol. Unsafe to fix it. See TODO below")
     private Socket connect(String host, String port) throws IOException, InterruptedException {
 
         if(tunnel!=null) {
@@ -394,6 +397,7 @@ public class Engine extends Thread {
                 s.setSoTimeout(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
 
                 if (isHttpProxy) {
+                    //TODO: \n here is a part of the protocol. It's unsafe to change it to the encoding-safe value
                     String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
                     s.getOutputStream().write(connectCommand.getBytes("UTF-8")); // TODO: internationalized domain names
 

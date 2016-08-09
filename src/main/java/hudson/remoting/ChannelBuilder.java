@@ -391,6 +391,9 @@ public class ChannelBuilder {
                                 cap = Capability.read(is);
                                 LOGGER.log(Level.FINER, "Received capability preamble: {0}", cap);
                                 break;
+                            default:
+                                throw new IllegalStateException("Unexpected preamble byte #" + i + 
+                                        ". Only " + preambles.length + " bytes are supported");
                             }
                             ptr[i]=0; // reset
                         }

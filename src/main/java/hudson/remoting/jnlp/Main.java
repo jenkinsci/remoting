@@ -23,6 +23,7 @@
  */
 package hudson.remoting.jnlp;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.FileSystemJarCache;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
@@ -253,6 +254,8 @@ public class Main {
             status(msg,null);
         }
 
+        @SuppressFBWarnings(value = "DM_EXIT",
+                justification = "Yes, we really want to exit in the case of severe error")
         public void error(Throwable t) {
             LOGGER.log(Level.SEVERE, t.getMessage(), t);
             System.exit(-1);

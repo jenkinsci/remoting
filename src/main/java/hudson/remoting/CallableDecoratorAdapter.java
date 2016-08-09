@@ -25,7 +25,7 @@ class CallableDecoratorAdapter extends CallableDecorator {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj.getClass()==this.getClass()) {
+        if (obj != null && obj.getClass() == this.getClass()) {
             return ((CallableDecoratorAdapter)obj).filter.equals(filter);
         }
         return false;

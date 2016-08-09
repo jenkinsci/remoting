@@ -64,6 +64,7 @@ THE SOFTWARE.
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <findbugs.failOnError>false</findbugs.failOnError>
   </properties>
 
   <repositories>
@@ -155,12 +156,6 @@ THE SOFTWARE.
       <optional>true</optional><!-- no need to have this at runtime -->
     </dependency>
     <dependency>
-      <groupId>com.github.stephenc.findbugs</groupId>
-      <artifactId>findbugs-annotations</artifactId>
-      <version>1.3.9-1</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jenkins-ci</groupId>
       <artifactId>constant-pool-scanner</artifactId>
       <version>1.2</version>
@@ -170,6 +165,12 @@ THE SOFTWARE.
       <artifactId>jsr305</artifactId>
       <version>2.0.1</version>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>annotations</artifactId>
+      <version>3.0.1</version>
+      <type>jar</type>
     </dependency>
   </dependencies>
 
@@ -379,11 +380,11 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.2</version>
+        <version>3.0.4</version>
         <configuration>
           <xmlOutput>true</xmlOutput>
-          <excludeFilterFile>${basedir}/src/findbugs-filter.xml</excludeFilterFile>
-          <failOnError>true</failOnError>
+          <effort>Max</effort>
+          <excludeFilterFile>${basedir}/src/findbugs/excludeFilter.xml</excludeFilterFile>
           <threshold>Low</threshold><!-- we want to find serialization related problems -->
         </configuration>
         <executions>
