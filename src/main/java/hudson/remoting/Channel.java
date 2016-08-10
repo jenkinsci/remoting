@@ -589,6 +589,23 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public <T> T export(Class<T> type, T instance) {
         return export(type, instance, true);
     }
+    
+    /**
+     * Exports object, which involves asynchronous operation.
+     * Such objects may be returned and serialized back to the channel before the real operation completes.
+     * In such case we have to disable automatic unexport, because otherwise the original object
+     * on our side may be deallocated by garbage Collector, which will trigger unexport from the {@link ExportTable}.
+     * <p/>
+     * This method should be invoked if and only if the call presumes async calls.
+     * For example Jenkins' {@code RemoteLauncher} starts the process and then calls {@code join()} to monitor it.
+     * In such case usage of this method is valid, because otherwise the {@code RemoteInvocationHandler} for
+     * {@code RemoteProcess} object may be deallocated
+     * before we join the process and get the object ID.
+     * @since TODO
+     */
+    public <T> T exportAsyncObject(Class<T> type, T instance) {
+        return export(type, instance, true, false);
+    }
 
     /**
      * @param userProxy
@@ -601,6 +618,27 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      To create proxies for objects inside remoting, pass in false. 
      */
     /*package*/ <T> T export(Class<T> type, T instance, boolean userProxy) {
+        // either local side will auto-unexport, or the remote side will unexport when it's GC-ed
+        boolean autoUnexportByCaller = exportedObjects.isRecording();
+        
+        return export(type, instance, userProxy, autoUnexportByCaller);
+    }
+    
+    /**
+     * @param userProxy
+     *      If true, the returned proxy will be capable to handle classes
+     *      defined in the user classloader as parameters and return values.
+     *      Such proxy relies on {@link RemoteClassLoader} and related mechanism,
+     *      so it's not usable for implementing lower-layer services that are
+     *      used by {@link RemoteClassLoader}.
+     *
+     *      To create proxies for objects inside remoting, pass in false. 
+     * @param autoUnexportByCaller 
+     *      If {@code true}, the object will be automatically unexported by 
+     *      either local side will auto-unexport, or the remote side when it's GC-ed
+     * @since TODO
+     */
+    /*package*/ <T> T export(Class<T> type, T instance, boolean userProxy, boolean autoUnexportByCaller) {
         if(instance==null)
             return null;
 
@@ -615,8 +653,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 logger.log(Level.WARNING, "Unable to send GC command",e);
             }
 
-        // either local side will auto-unexport, or the remote side will unexport when it's GC-ed
-        boolean autoUnexportByCaller = exportedObjects.isRecording();
         final int id = internalExport(type, instance, autoUnexportByCaller);
         return RemoteInvocationHandler.wrap(null, id, type, userProxy, autoUnexportByCaller);
     }
