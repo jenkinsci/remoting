@@ -1055,7 +1055,12 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         private Object readResolve() {
-            return Channel.current().getExportedObject(oid);
+            try {
+                return Channel.current().getExportedObject(oid);
+            } catch (ExecutionException ex) {
+                //TODO: Implement something better?
+                throw new IllegalStateException("Cannot resolve remoting classloader", ex);
+            }
         }
 
         private static final long serialVersionUID = 1L;

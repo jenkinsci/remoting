@@ -33,9 +33,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
+import javax.annotation.CheckForNull;
 
 /**
  * Manages unique ID for exported objects, and allows look-up from IDs.
@@ -323,19 +326,33 @@ final class ExportTable {
     }
 
     synchronized @Nonnull
-    Object get(int id) {
+    Object get(int id) throws ExecutionException {
         Entry e = table.get(id);
         if(e!=null) return e.object;
 
-        throw diagnoseInvalidId(id);
+        throw diagnoseInvalidObjectId(id);
     }
 
+    /**
+     * Retrieves object by id.
+     * @param oid Object ID
+     * @return Object or {@code null} if the ID is missing in the {@link ExportTable}.
+     * @since TODO
+     */
+    @CheckForNull
+    synchronized Object getOrNull(int oid) {
+        Entry<?> e = table.get(oid);
+        if(e!=null) return e.object;
+
+        return null;
+    }
+    
     synchronized @Nonnull
-    Class[] type(int id) {
+    Class[] type(int id) throws ExecutionException {
         Entry e = table.get(id);
         if(e!=null) return e.getInterfaces();
 
-        throw diagnoseInvalidId(id);
+        throw diagnoseInvalidObjectId(id);
     }
 
     /**
@@ -370,7 +387,12 @@ final class ExportTable {
         }
     }
 
-    private synchronized IllegalStateException diagnoseInvalidId(int id) {
+    /**
+     * Creates a diagnostic exception for Invalid object id.
+     * @param id Object ID
+     * @return Exception to be thrown
+     */
+    private synchronized ExecutionException diagnoseInvalidObjectId(int id) {
         Exception cause=null;
 
         if (!unexportLog.isEmpty()) {
@@ -383,7 +405,7 @@ final class ExportTable {
                     new Date(unexportLog.get(0).releaseTrace.timestamp));
         }
 
-        return new IllegalStateException("Invalid object ID "+id+" iota="+iota, cause);
+        return new ExecutionException("Invalid object ID "+id+" iota="+iota, cause);
     }
 
     /**
@@ -401,14 +423,27 @@ final class ExportTable {
 
     /**
      * Removes the exported object for the specified oid from the table.
+     * Logs error if the object has been already unexported.
      */
-    synchronized void unexportByOid(Integer oid, Throwable callSite) {
+    void unexportByOid(Integer oid, Throwable callSite) {
+        unexportByOid(oid, callSite, true);
+    }
+    
+    /**
+     * Removes the exported object for the specified oid from the table.
+     * @param oid Object ID
+     * @param callSite Unexport command caller
+     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
+     * @since TODO
+     */
+    synchronized void unexportByOid(Integer oid, Throwable callSite, boolean severeErrorIfMissing) {
         if(oid==null)     return;
         Entry e = table.get(oid);
         if(e==null) {
-            LOGGER.log(SEVERE, "Trying to unexport an object that's already unexported", diagnoseInvalidId(oid));
+            Level loggingLevel = severeErrorIfMissing ? SEVERE : FINE;
+            LOGGER.log(loggingLevel, "Trying to unexport an object that's already unexported", diagnoseInvalidObjectId(oid));
             if (callSite!=null)
-                LOGGER.log(SEVERE, "2nd unexport attempt is here", callSite);
+                LOGGER.log(loggingLevel, "2nd unexport attempt is here", callSite);
             return;
         }
         e.release(callSite);

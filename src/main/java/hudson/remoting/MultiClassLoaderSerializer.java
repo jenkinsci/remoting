@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link ObjectInputStream}/{@link ObjectOutputStream} pair that can handle object graph that spans across
@@ -92,7 +95,14 @@ class MultiClassLoaderSerializer {
                 return null;
 
             case TAG_LOCAL_CLASSLOADER:
-                cl = ((RemoteClassLoader.ClassLoaderProxy)channel.getExportedObject(readInt())).cl;
+                Object proxyObject;
+                try {
+                    proxyObject = channel.getExportedObject(readInt());
+                } catch (ExecutionException ex) {
+                    throw new IOException("Cannot locate RemoteClassLoader.ClassLoaderProxy(" +
+                            code + ") in the channel exported table", ex);
+                }
+                cl = ((RemoteClassLoader.ClassLoaderProxy)proxyObject).cl;
                 classLoaders.add(cl);
                 return cl;
 

@@ -629,16 +629,32 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return exportedObjects.export(clazz, instance, automaticUnexport);
     }
 
-    /*package*/ @Nonnull Object getExportedObject(int oid) {
+    /*package*/ @Nonnull Object getExportedObject(int oid) throws ExecutionException {
         return exportedObjects.get(oid);
     }
+    
+    @CheckForNull
+    /*package*/ Object getExportedObjectOrNull(int oid)  {
+        return exportedObjects.getOrNull(oid);
+    }
 
-    /*package*/ @Nonnull Class[] getExportedTypes(int oid) {
+    /*package*/ @Nonnull Class[] getExportedTypes(int oid) throws ExecutionException {
         return exportedObjects.type(oid);
     }
 
     /*package*/ void unexport(int id, Throwable cause) {
-        exportedObjects.unexportByOid(id, cause);
+        unexport(id, cause, true);
+    }
+    
+    /**
+     * Unexports object.
+     * @param id Object ID
+     * @param cause Stacktrace pf the object creation call
+     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
+     * @since TODO
+     */
+    /*package*/ void unexport(int id, Throwable cause, boolean severeErrorIfMissing) {
+        exportedObjects.unexportByOid(id, cause, severeErrorIfMissing);
     }
 
     /**

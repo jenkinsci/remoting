@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * One-way command to be sent over to the remote system and executed there.
@@ -74,9 +75,10 @@ abstract class Command implements Serializable {
      *
      * @param channel
      *      The {@link Channel} of the remote system.
+     * @throws ExecutionException Execution error
      */
-    protected abstract void execute(Channel channel);
-    
+    protected abstract void execute(Channel channel) throws ExecutionException;
+      
     void writeTo(Channel channel, ObjectOutputStream oos) throws IOException {
         Channel old = Channel.setCurrent(channel);
         try {

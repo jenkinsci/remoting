@@ -27,6 +27,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link InputStream} that reads bits from an exported
@@ -38,9 +41,12 @@ import java.io.Serializable;
  * @author Kohsuke Kawaguchi
  */
 final class ProxyInputStream extends InputStream {
+    
+    private static final Logger LOGGER = Logger.getLogger(ProxyInputStream.class.getName());
+    
     private Channel channel;
     private int oid;
-
+    
     /**
      * Creates an already connected {@link ProxyOutputStream}.
      *
@@ -126,7 +132,12 @@ final class ProxyInputStream extends InputStream {
         }
 
         protected Buffer perform(Channel channel) throws IOException {
-            InputStream in = (InputStream) channel.getExportedObject(oid);
+            InputStream in;
+            try {
+                in = (InputStream) channel.getExportedObject(oid);
+            } catch (ExecutionException ex) {
+                throw new IOException(ex);
+            }
 
             Buffer buf = new Buffer(len);
             buf.read(in);
@@ -146,10 +157,16 @@ final class ProxyInputStream extends InputStream {
             this.oid = oid;
         }
 
-
         protected void execute(Channel channel) {
-            InputStream in = (InputStream) channel.getExportedObject(oid);
-            channel.unexport(oid,createdAt);
+            final InputStream in = (InputStream) channel.getExportedObjectOrNull(oid);
+            // EOF may be late to the party if we interrupt request, hence we do not fail for this command         
+            if (in == null) { // Input stream has not been closed yet
+                LOGGER.log(Level.FINE, "InputStream with oid=%s has been already unexported", oid);
+                return;
+            }
+            
+            channel.unexport(oid,createdAt,false);
+            
             try {
                 in.close();
             } catch (IOException e) {
@@ -158,7 +175,7 @@ final class ProxyInputStream extends InputStream {
         }
 
         public String toString() {
-            return "EOF("+oid+")";
+            return "ProxyInputStream.EOF("+oid+")";
         }
 
         private static final long serialVersionUID = 1L;
