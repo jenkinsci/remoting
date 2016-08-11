@@ -85,13 +85,13 @@ class Jnlp3Util {
     /**
      * Create a response to a given challenge.
      *
-     * <p>The response is a SHA-256 hash of the challenge string.
+     * <p>The response is a SHA-256 hash of the challenge string (probably mangled by UTF-8 encoding issues).
      */
     public static String createChallengeResponse(String challenge) {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
             messageDigest.update(challenge.getBytes(Charsets.UTF_8));
-            return new String(messageDigest.digest(), Charsets.UTF_8);
+            return new String(messageDigest.digest(), Charsets.UTF_8); // <--- One of the root causes of JENKINS-37315
         } catch (NoSuchAlgorithmException nsae) {
             // This should never happen.
             throw new AssertionError(nsae);
@@ -102,6 +102,14 @@ class Jnlp3Util {
      * Validate the given challenge response matches for the given challenge.
      */
     public static boolean validateChallengeResponse(String challenge, String challengeResponse) {
-        return challengeResponse.equals(createChallengeResponse(challenge));
+        String expectedResponse = createChallengeResponse(challenge);
+        if (expectedResponse.equals(challengeResponse)) {
+            return true;
+        }
+        // JENKINS-37315 fallback to comparing the encoded bytes because the format should never have used UTF-8
+        if (Arrays.equals(expectedResponse.getBytes(Charsets.UTF_8), challengeResponse.getBytes(Charsets.UTF_8))) {
+            return true;
+        }
+        return false;
     }
 }
