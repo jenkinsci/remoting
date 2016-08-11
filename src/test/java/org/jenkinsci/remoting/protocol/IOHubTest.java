@@ -246,7 +246,7 @@ public class IOHubTest {
         
         // Wait for registration, in other case we get unpredictable timing related results due to late registration
         while (key.get() == null) {
-            Thread.sleep(100);
+            Thread.sleep(10);
         }
         
         Socket client = new Socket();
@@ -254,6 +254,10 @@ public class IOHubTest {
         client.connect(srv.getLocalAddress(), 100);
         assertThat(IOUtils.toString(client.getInputStream()), is("Go away #1"));
         hub.hub().removeInterestAccept(key.get());
+        // wait for the interest accept to be removed
+        while ((key.get().interestOps() & SelectionKey.OP_ACCEPT) != 0) {
+            Thread.sleep(10);
+        }
         client = new Socket();
         client.setSoTimeout(100);
         client.connect(srv.getLocalAddress(), 100);
