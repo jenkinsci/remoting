@@ -23,10 +23,10 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import java.security.SecureRandom;
+import java.util.Random;
 import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Test;
-
-import java.nio.charset.Charset;
 
 import static org.junit.Assert.assertEquals;
 
@@ -37,9 +37,11 @@ import static org.junit.Assert.assertEquals;
  */
 public class ChannelCiphersTest {
 
+    private static final Random ENTROPY = new SecureRandom();
+
     @Test
     public void testEncryptDecrypt() throws Exception {
-        ChannelCiphers ciphers = ChannelCiphers.create();
+        ChannelCiphers ciphers = ChannelCiphers.create(ENTROPY);
 
         byte[] encrypted = ciphers.getEncryptCipher().doFinal(
                 "string 1".getBytes(Charsets.UTF_8));
@@ -50,7 +52,7 @@ public class ChannelCiphersTest {
 
     @Test
     public void testMatchingWithKeys() throws Exception {
-        ChannelCiphers ciphers1 = ChannelCiphers.create();
+        ChannelCiphers ciphers1 = ChannelCiphers.create(ENTROPY);
         ChannelCiphers ciphers2 = ChannelCiphers.create(
                 ciphers1.getAesKey(), ciphers1.getSpecKey());
 

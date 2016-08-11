@@ -24,11 +24,10 @@
 package org.jenkinsci.remoting.engine;
 
 import java.math.BigInteger;
-import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Random;
 import org.jenkinsci.remoting.util.Charsets;
 
 /**
@@ -41,9 +40,9 @@ class Jnlp3Util {
     /**
      * Generate a random 128bit key.
      */
-    public static byte[] generate128BitKey() {
+    public static byte[] generate128BitKey(Random entropy) {
         byte[] key = new byte[16];
-        new SecureRandom().nextBytes(key);
+        entropy.nextBytes(key);
         return key;
     }
 
@@ -77,9 +76,10 @@ class Jnlp3Util {
 
     /**
      * Generate a random challenge phrase.
+     * @param entropy
      */
-    public static String generateChallenge() {
-        return new BigInteger(10400, new SecureRandom()).toString(32);
+    public static String generateChallenge(Random entropy) {
+        return new BigInteger(10400, entropy).toString(32);
     }
 
     /**

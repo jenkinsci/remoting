@@ -182,7 +182,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         HandshakeCiphers handshakeCiphers = HandshakeCiphers.create(clientName, secretKey);
 
         // Authenticate the master.
-        String challenge = Jnlp3Util.generateChallenge();
+        String challenge = Jnlp3Util.generateChallenge(RANDOM);
 
         // Send initial information which includes the encrypted challenge.
         Properties props = new Properties();
@@ -240,7 +240,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         }
 
         // Authentication complete, send encryption keys to use for Channel.
-        ChannelCiphers channelCiphers = ChannelCiphers.create();
+        ChannelCiphers channelCiphers = ChannelCiphers.create(RANDOM);
         outputStream.writeUTF(handshakeCiphers.encrypt(
                 Jnlp3Util.keyToString(channelCiphers.getAesKey())));
         outputStream.writeUTF(handshakeCiphers.encrypt(
@@ -309,7 +309,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         }
 
         // now validate the client
-        String masterChallenge = Jnlp3Util.generateChallenge();
+        String masterChallenge = Jnlp3Util.generateChallenge(RANDOM);
         String encryptedMasterChallenge = handshakeCiphers.encrypt(masterChallenge);
         out.println(encryptedMasterChallenge.getBytes(Charsets.UTF_8).length);
         out.print(encryptedMasterChallenge);
@@ -330,6 +330,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         String newCookie = null;
         String encryptedCookie = null;
         // JENKINS-37140 the protocol cannot handle encrypted cookies that contain a '\n', i.e. approx 22% of them
+        // also rarer (6%) but likely, if the cookie starts or ends with whitespace then it will also get mangled
         // we loop up to 100 times
         for (int loopCount = 0; loopCount < 110; loopCount++) {
             if (loopCount >= 100) {
@@ -339,7 +340,9 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
             }
             newCookie = generateCookie();
             encryptedCookie = handshakeCiphers.encrypt(newCookie);
-            if (encryptedCookie.indexOf('\n') == -1) {
+            if (encryptedCookie.indexOf('\n') == -1
+                    || Character.isWhitespace(encryptedCookie.charAt(0))
+                    || Character.isWhitespace(encryptedCookie.charAt(encryptedCookie.length()-1))) {
                 break;
             }
         }
