@@ -25,49 +25,54 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.Socket;
+import java.net.URL;
 import java.security.AccessController;
+import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
-import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
-import java.security.cert.Certificate;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import javax.annotation.CheckForNull;
-import javax.annotation.concurrent.NotThreadSafe;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManagerFactory;
-import org.jenkinsci.remoting.engine.JnlpProtocol;
-import org.jenkinsci.remoting.engine.JnlpProtocolFactory;
-
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.URL;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.util.logging.Level.INFO;
-import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.concurrent.NotThreadSafe;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
+import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
+import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
+import org.jenkinsci.remoting.engine.JnlpConnectionState;
+import org.jenkinsci.remoting.engine.JnlpConnectionStateListener;
+import org.jenkinsci.remoting.engine.JnlpProtocolHandler;
+import org.jenkinsci.remoting.engine.JnlpProtocolHandlerFactory;
+import org.jenkinsci.remoting.protocol.IOHub;
+import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
+import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
+import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
+import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
+import org.jenkinsci.remoting.util.KeyUtils;
 
 /**
  * Slave agent engine that proactively connects to Jenkins master.
@@ -138,6 +143,8 @@ public class Engine extends Thread {
 
     private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
 
+    private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
+
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
         this.listener = listener;
         this.events.add(listener);
@@ -197,11 +204,87 @@ public class Engine extends Thread {
         events.remove(el);
     }
 
-    @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     @Override
     public void run() {
+        try {
+            IOHub hub = IOHub.create(executor);
+            try {
+                SSLContext context;
+                // prepare our SSLContext
+                try {
+                    context = SSLContext.getInstance("TLS");
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Java runtime specification requires support for TLS algorithm", e);
+                }
+                char[] password = "password".toCharArray();
+                KeyStore store;
+                try {
+                    store = KeyStore.getInstance("JKS");
+                } catch (KeyStoreException e) {
+                    throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
+                }
+                try {
+                    store.load(null, password);
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
+                } catch (CertificateException e) {
+                    throw new IllegalStateException("Empty keystore", e);
+                }
+                KeyManagerFactory kmf;
+                try {
+                    kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IllegalStateException("Java runtime specification requires support for default key manager", e);
+                }
+                try {
+                    kmf.init(store, password);
+                } catch (KeyStoreException e) {
+                    throw new IllegalStateException(e);
+                } catch (NoSuchAlgorithmException e) {
+                    throw new IllegalStateException(e);
+                } catch (UnrecoverableKeyException e) {
+                    throw new IllegalStateException(e);
+                }
+                try {
+                    context.init(kmf.getKeyManagers(), new TrustManager[]{agentTrustManager}, null);
+                } catch (KeyManagementException e) {
+                    events.error(e);
+                    return;
+                }
+                innerRun(hub, context, executor);
+            } finally {
+                hub.close();
+            }
+        } catch (IOException e) {
+            events.error(e);
+        }
+    }
+
+    @SuppressWarnings({"ThrowableInstanceNeverThrown"})
+    private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
         // Create the protocols that will be attempted to connect to the master.
-        List<JnlpProtocol> protocols = JnlpProtocolFactory.createProtocols(secretKey, slaveName, events);
+        List<JnlpProtocolHandler> protocols = new JnlpProtocolHandlerFactory(service)
+                .withIOHub(hub)
+                .withSSLContext(context)
+                .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
+                .handlers();
+        final Map<String,String> headers = new HashMap<String,String>();
+        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, slaveName);
+        headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
+        List<String> jenkinsUrls = new ArrayList<String>();
+        for (URL url: candidateUrls) {
+            jenkinsUrls.add(url.toExternalForm());
+        }
+        JnlpAgentEndpointResolver resolver = new JnlpAgentEndpointResolver(jenkinsUrls);
+        resolver.setCredentials(credentials);
+        resolver.setProxyCredentials(proxyCredentials);
+        resolver.setTunnel(tunnel);
+        try {
+            resolver.setSslSocketFactory(getSSLSocketFactory());
+        } catch (Exception e) {
+            events.error(e);
+        }
+
 
         try {
             boolean first = true;
@@ -214,133 +297,147 @@ public class Engine extends Thread {
                 }
 
                 events.status("Locating server among " + candidateUrls);
-                Throwable firstError=null;
-                String host=null;
-                String port=null;
-                Set<String> agentProtocolNames = null;
-                SSLSocketFactory sslSocketFactory = getSSLSocketFactory();
-
-                for (URL url : candidateUrls) {
-                    String s = url.toExternalForm();
-                    if(!s.endsWith("/"))    s+='/';
-                    URL salURL = new URL(s+"tcpSlaveAgentListener/");
-
-                    // find out the TCP port
-                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory);
-                    try {
-                        try {
-                            con.setConnectTimeout(30000);
-                            con.setReadTimeout(60000);
-                            con.connect();
-                        } catch (IOException x) {
-                            if (firstError == null) {
-                                firstError = new IOException("Failed to connect to " + salURL + ": " + x.getMessage()).initCause(x);
-                            }
-                            continue;
-                        }
-                        port = con.getHeaderField("X-Hudson-JNLP-Port");
-                        if(con.getResponseCode()!=200) {
-                            if(firstError==null)
-                                firstError = new Exception(salURL+" is invalid: "+con.getResponseCode()+" "+con.getResponseMessage());
-                            continue;
-                        }
-                        if(port ==null) {
-                            if(firstError==null)
-                                firstError = new Exception(url+" is not Jenkins");
-                            continue;
-                        }
-                        host = con.getHeaderField("X-Jenkins-JNLP-Host"); // controlled by hudson.TcpSlaveAgentListener.hostName
-                        if (host == null) host=url.getHost();
-                        String names = con.getHeaderField("X-Jenkins-Agent-Protocols");
-                        if (names != null) {
-                            agentProtocolNames = new HashSet<String>();
-                            for (String name: names.split(",")) {
-                                name = name.trim();
-                                if (!name.isEmpty()) {
-                                    agentProtocolNames.add(name);
-                                }
-                            }
-                        }
-                    } finally {
-                        con.disconnect();
-                    }
-
-                    // this URL works. From now on, only try this URL
-                    hudsonUrl = url;
-                    firstError = null;
-                    candidateUrls = Collections.singletonList(hudsonUrl);
-                    break;
+                final JnlpAgentEndpoint endpoint;
+                try {
+                    endpoint = resolver.resolve();
+                } catch (Exception e) {
+                    events.error(e);
+                    return;
                 }
-
-                if(firstError!=null) {
-                    events.error(firstError);
+                if (endpoint == null) {
+                    events.status("Could not resolve server among " + candidateUrls);
                     return;
                 }
 
+                events.status(String.format("Agent discovery successful%n"
+                        + "  Agent address: %s%n"
+                        + "  Agent port:    %d%n"
+                        + "  Identity:      %s",
+                        endpoint.getHost(),
+                        endpoint.getPort(),
+                        KeyUtils.fingerprint(endpoint.getPublicKey()))
+                );
+                PublicKeyMatchingX509ExtendedTrustManager delegate = new PublicKeyMatchingX509ExtendedTrustManager();
+                RSAPublicKey publicKey = endpoint.getPublicKey();
+                if (publicKey != null) {
+                    // This is so that JNLP4-connect will only connect if the public key matches
+                    // if the public key is not published then JNLP4-connect will refuse to connect
+                    delegate.add(publicKey);
+                }
+                agentTrustManager.setDelegate(delegate);
+
                 events.status("Handshaking");
-                Socket jnlpSocket = connect(host,port);
-                ChannelBuilder channelBuilder = new ChannelBuilder("channel", executor)
-                        .withJarCache(jarCache)
-                        .withMode(Mode.BINARY);
+                Socket jnlpSocket = connect(endpoint);
                 Channel channel = null;
 
-                // Try available protocols.
-                boolean triedAtLeastOneProtocol = false;
-                for (JnlpProtocol protocol : protocols) {
-                    if (!protocol.isEnabled()) {
-                        events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
+                try {
+                    // Try available protocols.
+                    boolean triedAtLeastOneProtocol = false;
+                    for (JnlpProtocolHandler<?> protocol : protocols) {
+                        if (!protocol.isEnabled()) {
+                            events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
+                            continue;
+                        }
+                        if (jnlpSocket == null) {
+                            jnlpSocket = connect(endpoint);
+                        }
+                        if (!endpoint.isProtocolSupported(protocol.getName())) {
+                            events.status("Server reports protocol " + protocol.getName() + " not supported, skipping");
+                            continue;
+                        }
+                        triedAtLeastOneProtocol = true;
+                        events.status("Trying protocol: " + protocol.getName());
+                        try {
+                            channel = protocol.connect(jnlpSocket, headers, new JnlpConnectionStateListener() {
+
+                                @Override
+                                public void beforeProperties(@Nonnull JnlpConnectionState event) {
+                                    if (event instanceof Jnlp4ConnectionState) {
+                                        X509Certificate certificate = ((Jnlp4ConnectionState) event).getCertificate();
+                                        if (certificate != null) {
+                                            String fingerprint = KeyUtils
+                                                    .fingerprint(certificate.getPublicKey());
+                                            if (!KeyUtils.equals(endpoint.getPublicKey(), certificate.getPublicKey())) {
+                                                event.reject(new ConnectionRefusalException(
+                                                        "Expecting identity " + fingerprint));
+                                            }
+                                            events.status("Remote identity confirmed: " + fingerprint);
+                                        }
+                                    }
+                                }
+
+                                @Override
+                                public void afterProperties(@Nonnull JnlpConnectionState event) {
+                                    event.approve();
+                                }
+
+                                @Override
+                                public void beforeChannel(@Nonnull JnlpConnectionState event) {
+                                    event.getChannelBuilder().withJarCache(jarCache).withMode(Mode.BINARY);
+                                }
+
+                                @Override
+                                public void afterChannel(@Nonnull JnlpConnectionState event) {
+                                    // store the new cookie for next connection attempt
+                                    String cookie = event.getProperty(JnlpConnectionState.COOKIE_KEY);
+                                    if (cookie == null) {
+                                        headers.remove(JnlpConnectionState.COOKIE_KEY);
+                                    } else {
+                                        headers.put(JnlpConnectionState.COOKIE_KEY, cookie);
+                                    }
+                                }
+                            }).get();
+                        } catch (IOException ioe) {
+                            events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
+                        } catch (RuntimeException e) {
+                            events.status("Protocol " + protocol.getName() + " encountered a runtime error", e);
+                        } catch (Error e) {
+                            events.status("Protocol " + protocol.getName() + " could not be completed due to an error",
+                                    e);
+                        } catch (Throwable e) {
+                            events.status("Protocol " + protocol.getName() + " encountered an unexpected exception", e);
+                        }
+
+                        // On success do not try other protocols.
+                        if (channel != null) {
+                            break;
+                        }
+
+                        // On failure form a new connection.
+                        jnlpSocket.close();
+                        jnlpSocket = null;
+                    }
+
+                    // If no protocol worked.
+                    if (channel == null) {
+                        if (triedAtLeastOneProtocol) {
+                            onConnectionRejected("None of the protocols were accepted");
+                        } else {
+                            onConnectionRejected("None of the protocols are enabled");
+                            return; // exit
+                        }
                         continue;
                     }
-                    if (agentProtocolNames != null && !agentProtocolNames.contains(protocol.getName())) {
-                        events.status("Server reports protocol " + protocol.getName() + " not supported, skipping");
-                        continue;
-                    }
-                    triedAtLeastOneProtocol = true;
-                    events.status("Trying protocol: " + protocol.getName());
-                    try {
-                        channel = protocol.establishChannel(jnlpSocket, channelBuilder);
-                    } catch (IOException ioe) {
-                        events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
-                    } catch (RuntimeException e) {
-                        events.status("Protocol " + protocol.getName() + " encountered a runtime error", e);
-                    } catch (Error e) {
-                        events.status("Protocol " + protocol.getName() + " could not be completed due to an error", e);
-                    } catch (Throwable e) {
-                        events.status("Protocol " + protocol.getName() + " encountered an unexpected exception", e);
-                    }
 
-                    // On success do not try other protocols.
-                    if (channel != null) {
-                        break;
+                    events.status("Connected");
+                    channel.join();
+                    events.status("Terminated");
+                } finally {
+                    if (jnlpSocket != null) {
+                        try {
+                            jnlpSocket.close();
+                        } catch (IOException e) {
+                            events.status("Failed to close socket", e);
+                        }
                     }
-
-                    // On failure form a new connection.
-                    jnlpSocket.close();
-                    jnlpSocket = connect(host,port);
                 }
-
-                // If no protocol worked.
-                if (channel == null) {
-                    if (triedAtLeastOneProtocol) {
-                        onConnectionRejected("None of the protocols were accepted");
-                    } else {
-                        onConnectionRejected("None of the protocols are enabled");
-                        return; // exit
-                    }
-                    continue;
-                }
-
-                events.status("Connected");
-                channel.join();
-                events.status("Terminated");
-
                 if(noReconnect)
                     return; // exit
 
                 events.onDisconnect();
 
                 // try to connect back to the server every 10 secs.
-                waitForServerToBack();
+                resolver.waitForReady();
 
                 events.onReconnect();
             }
@@ -357,111 +454,21 @@ public class Engine extends Thread {
     /**
      * Connects to TCP slave host:port, with a few retries.
      */
-    @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
-            justification = "Unsafe endline symbol is a pert of the protocol. Unsafe to fix it. See TODO below")
-    private Socket connect(String host, String port) throws IOException, InterruptedException {
+    private Socket connect(JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
 
-        if(tunnel!=null) {
-            String[] tokens = tunnel.split(":",3);
-            if(tokens.length!=2)
-                throw new IOException("Illegal tunneling parameter: "+tunnel);
-            if(tokens[0].length()>0)    host = tokens[0];
-            if(tokens[1].length()>0)    port = tokens[1];
-        }
-
-        String msg = "Connecting to " + host + ':' + port;
+        String msg = "Connecting to " + endpoint.getHost() + ':' + endpoint.getPort();
         events.status(msg);
         int retry = 1;
         while(true) {
-            boolean isHttpProxy = false;
-            InetSocketAddress targetAddress = null;
             try {
-                Socket s = null;
-                targetAddress = Util.getResolvedHttpProxyAddress(host, Integer.parseInt(port));
-
-                if(targetAddress == null) {
-                    targetAddress = new InetSocketAddress(host, Integer.parseInt(port));
-                } else {
-                    isHttpProxy = true;
-                }
-
-                s = new Socket();
-                s.connect(targetAddress);
-
-                s.setTcpNoDelay(true); // we'll do buffering by ourselves
-
-                // set read time out to avoid infinite hang. the time out should be long enough so as not
-                // to interfere with normal operation. the main purpose of this is that when the other peer dies
-                // abruptly, we shouldn't hang forever, and at some point we should notice that the connection
-                // is gone.
-                s.setSoTimeout(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
-
-                if (isHttpProxy) {
-                    //TODO: \n here is a part of the protocol. It's unsafe to change it to the encoding-safe value
-                    String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
-                    s.getOutputStream().write(connectCommand.getBytes("UTF-8")); // TODO: internationalized domain names
-
-                    BufferedInputStream is = new BufferedInputStream(s.getInputStream());
-                    String line = readLine(is);
-                    String[] responseLineParts = line.split(" ");
-                    if(responseLineParts.length < 2 || !responseLineParts[1].equals("200"))
-                        throw new IOException("Got a bad response from proxy: " + line);
-                    while(!readLine(is).isEmpty()) {
-                        // Do nothing, scrolling through headers returned from proxy
-                    }
-                }
-                return s;
+                return endpoint.open(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
             } catch (IOException e) {
                 if(retry++>10) {
-                    String suffix = "";
-                    if(isHttpProxy) {
-                        suffix = " through proxy " + targetAddress.toString();
-                    }
-                    throw new IOException("Failed to connect to " + host + ':' + port + suffix, e);
+                    throw e;
                 }
                 Thread.sleep(1000*10);
                 events.status(msg+" (retrying:"+retry+")",e);
             }
-        }
-    }
-
-    /**
-     * Waits for the server to come back.
-     */
-    private void waitForServerToBack() throws InterruptedException {
-        Thread t = Thread.currentThread();
-        String oldName = t.getName();
-        SSLSocketFactory sslSocketFactory = null;
-        try {
-            sslSocketFactory = getSSLSocketFactory();
-        } catch (Throwable e) {
-            events.error(e);
-        }
-        try {
-            int retries=0;
-            while(true) {
-                Thread.sleep(1000*10);
-                try {
-                    // Jenkins top page might be read-protected. see http://www.nabble.com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
-                    URL url = new URL(hudsonUrl, "tcpSlaveAgentListener/");
-
-                    retries++;
-                    t.setName(oldName+": trying "+url+" for "+retries+" times");
-
-                    HttpURLConnection con = (HttpURLConnection)Util.openURLConnection(url, credentials, proxyCredentials, sslSocketFactory);
-                    con.setConnectTimeout(5000);
-                    con.setReadTimeout(5000);
-                    con.connect();
-                    if(con.getResponseCode()==200)
-                        return;
-                    LOGGER.info("Master isn't ready to talk to us. Will retry again: response code=" + con.getResponseCode());
-                } catch (IOException e) {
-                    // report the failure
-                    LOGGER.log(INFO, "Failed to connect to the master. Will retry again",e);
-                }
-            }
-        } finally {
-            t.setName(oldName);
         }
     }
 
@@ -479,7 +486,7 @@ public class Engine extends Thread {
 
     private static final Logger LOGGER = Logger.getLogger(Engine.class.getName());
 
-    private static KeyStore getCacertsKeyStore()
+    static KeyStore getCacertsKeyStore()
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException {
         Map<String, String> properties = AccessController.doPrivileged(
@@ -606,9 +613,4 @@ public class Engine extends Thread {
      * @since 2.4
      */
     static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName()+".socketTimeout",30*60*1000);
-    /**
-     * @deprecated Use {@link JnlpProtocol#GREETING_SUCCESS}.
-     */
-    @Deprecated
-    public static final String GREETING_SUCCESS = JnlpProtocol.GREETING_SUCCESS;
 }

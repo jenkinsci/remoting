@@ -32,6 +32,7 @@ import java.io.UnsupportedEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import org.jenkinsci.remoting.util.IOUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Argument;
@@ -207,6 +208,8 @@ public class Main {
                         } catch (IOException e) {
                             LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
                             continue;
+                        } finally {
+                            IOUtils.closeQuietly(fis);
                         }
                     } else {
                         if (file.isFile()) {
@@ -234,6 +237,7 @@ public class Main {
                     LOGGER.log(Level.WARNING, "Could not parse X.509 certificate from " + certOrAtFilename, e);
                 }
             }
+            engine.setCandidateCertificates(certificates);
         }
         return engine;
     }

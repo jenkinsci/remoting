@@ -23,12 +23,13 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.Random;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 
 /**
  * {@link javax.crypto.Cipher}s that will be used to construct an encrypted
@@ -72,8 +73,8 @@ class ChannelCiphers {
      *
      * @throws IOException If there is a problem constructing the ciphers.
      */
-    public static ChannelCiphers create() throws IOException {
-        return create(Jnlp3Util.generate128BitKey(), Jnlp3Util.generate128BitKey());
+    public static ChannelCiphers create(Random entropy) throws IOException {
+        return create(Jnlp3Util.generate128BitKey(entropy), Jnlp3Util.generate128BitKey(entropy));
     }
 
     /**

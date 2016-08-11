@@ -617,7 +617,7 @@ final class RemoteClassLoader extends URLClassLoader {
          *
          * This information is crucial in determining which classloaders are to cache
          * the prefetch information. Imagine classloader X requests fetch3("Foo"),
-         * which returns 2 <tt>ClassFile2<tt> instances:
+         * which returns 2 {@code ClassFile2} instances:
          *
          * <ol>
          *     <li>ClassFile2 #1: image of "Foo" is here and load this from classloader Y

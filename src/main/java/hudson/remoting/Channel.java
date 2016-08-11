@@ -659,8 +659,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Increase reference count so much to effectively prevent de-allocation.
-     *
-     * @see ExportTable.Entry#pin()
      */
     public void pin(Object instance) {
         exportedObjects.pin(instance);
@@ -1081,8 +1079,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Notifies the remote peer that we are closing down.
      *
-     * Execution of this command also triggers the {@link SynchronousCommandTransport.ReaderThread} to shut down
-     * and quit. The {@link CloseCommand} is always the last command to be sent on
+     * Execution of this command also triggers the {@code SynchronousCommandTransport.ReaderThread} to shut down
+     * and quit. The {@code CloseCommand} is always the last command to be sent on
      * {@link ObjectOutputStream}, and it's the last command to be read.
      */
     private static final class CloseCommand extends Command {
@@ -1171,6 +1169,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         try {
             send(new CloseCommand(this, diagnosis));
+        } catch (ChannelClosedException e) {
+            logger.log(Level.FINEST, "Channel is already closed", e);
+            terminate(e);
+            return;
         } catch (IOException e) {
             // send should only ever - worst case - throw an IOException so we'll just catch that and not Throwable
             logger.log(Level.WARNING, "Having to terminate early", e);

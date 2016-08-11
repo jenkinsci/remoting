@@ -3,6 +3,7 @@ package hudson.remoting;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import org.hamcrest.core.StringContains;
+import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,7 +53,7 @@ public class FileSystemJarCacheTest {
         fileSystemJarCache = new FileSystemJarCache(tmp.getRoot(), true);
 
         expectedChecksum = ChecksumTest.createdExpectedChecksum(
-                Hashing.sha256().hashBytes(CONTENTS.getBytes(Charset.forName("UTF-8"))));
+                Hashing.sha256().hashBytes(CONTENTS.getBytes(Charsets.UTF_8)));
     }
 
     @Test
@@ -73,7 +74,7 @@ public class FileSystemJarCacheTest {
             @Override
             public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
                 RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-                o.write(CONTENTS.getBytes(Charset.forName("UTF-8")));
+                o.write(CONTENTS.getBytes(Charsets.UTF_8));
                 return null;
             }
         }).when(mockJarLoader).writeJarTo(
@@ -93,7 +94,7 @@ public class FileSystemJarCacheTest {
             @Override
             public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
                 RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-                o.write("Some other contents".getBytes(Charset.forName("UTF-8")));
+                o.write("Some other contents".getBytes(Charsets.UTF_8));
                 return null;
             }
         }).when(mockJarLoader).writeJarTo(
@@ -120,7 +121,7 @@ public class FileSystemJarCacheTest {
             @Override
             public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
                 RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-                o.write(CONTENTS.getBytes(Charset.forName("UTF-8")));
+                o.write(CONTENTS.getBytes(Charsets.UTF_8));
                 return null;
             }
         }).when(mockJarLoader).writeJarTo(
@@ -149,7 +150,7 @@ public class FileSystemJarCacheTest {
             @Override
             public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
                 RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-                o.write(CONTENTS.getBytes(Charset.forName("UTF-8")));
+                o.write(CONTENTS.getBytes(Charsets.UTF_8));
                 return null;
             }
         }).when(mockJarLoader).writeJarTo(
@@ -161,7 +162,7 @@ public class FileSystemJarCacheTest {
             public Boolean answer(InvocationOnMock invocationOnMock) throws Throwable {
                 Files.createParentDirs(expectedFile);
                 expectedFile.createNewFile();
-                Files.append("Some other contents", expectedFile, Charset.forName("UTF-8"));
+                Files.append("Some other contents", expectedFile, Charsets.UTF_8);
                 return false;
             }
         }).when(fileSpy).renameTo(expectedFile);

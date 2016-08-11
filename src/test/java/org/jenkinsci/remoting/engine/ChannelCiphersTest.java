@@ -23,9 +23,10 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import java.security.SecureRandom;
+import java.util.Random;
+import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Test;
-
-import java.nio.charset.Charset;
 
 import static org.junit.Assert.assertEquals;
 
@@ -36,27 +37,29 @@ import static org.junit.Assert.assertEquals;
  */
 public class ChannelCiphersTest {
 
+    private static final Random ENTROPY = new SecureRandom();
+
     @Test
     public void testEncryptDecrypt() throws Exception {
-        ChannelCiphers ciphers = ChannelCiphers.create();
+        ChannelCiphers ciphers = ChannelCiphers.create(ENTROPY);
 
         byte[] encrypted = ciphers.getEncryptCipher().doFinal(
-                "string 1".getBytes(Charset.forName("UTF-8")));
+                "string 1".getBytes(Charsets.UTF_8));
         String decrypted = new String(
-                ciphers.getDecryptCipher().doFinal(encrypted), Charset.forName("UTF-8"));
+                ciphers.getDecryptCipher().doFinal(encrypted), Charsets.UTF_8);
         assertEquals("string 1", decrypted);
     }
 
     @Test
     public void testMatchingWithKeys() throws Exception {
-        ChannelCiphers ciphers1 = ChannelCiphers.create();
+        ChannelCiphers ciphers1 = ChannelCiphers.create(ENTROPY);
         ChannelCiphers ciphers2 = ChannelCiphers.create(
                 ciphers1.getAesKey(), ciphers1.getSpecKey());
 
         byte[] encrypted = ciphers1.getEncryptCipher().doFinal(
-                "string 1".getBytes(Charset.forName("UTF-8")));
+                "string 1".getBytes(Charsets.UTF_8));
         String decrypted = new String(
-                ciphers2.getDecryptCipher().doFinal(encrypted), Charset.forName("UTF-8"));
+                ciphers2.getDecryptCipher().doFinal(encrypted), Charsets.UTF_8);
         assertEquals("string 1", decrypted);
         assertEquals(16, ciphers1.getAesKey().length);
         assertEquals(16, ciphers1.getSpecKey().length);

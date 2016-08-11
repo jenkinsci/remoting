@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.security.GeneralSecurityException;
 import java.security.spec.KeySpec;
+import org.jenkinsci.remoting.util.Charsets;
 
 /**
  * {@link Cipher}s that will be used to during the handshake
@@ -64,7 +65,7 @@ class HandshakeCiphers {
     public String encrypt(String raw) throws IOException {
         try {
             String encrypted = new String(encryptCipher.doFinal(
-                    raw.getBytes(Charset.forName("UTF-8"))), Charset.forName("ISO-8859-1"));
+                    raw.getBytes(Charsets.UTF_8)), Charsets.ISO_8859_1);
             encryptCipher.init(Cipher.ENCRYPT_MODE, secretKey, spec);
             return encrypted;
         } catch (GeneralSecurityException e) {
@@ -81,7 +82,7 @@ class HandshakeCiphers {
     public String decrypt(String encrypted) throws IOException {
         try {
             String raw = new String(decryptCipher.doFinal(
-                    encrypted.getBytes(Charset.forName("ISO-8859-1"))), Charset.forName("UTF-8"));
+                    encrypted.getBytes(Charsets.ISO_8859_1)), Charsets.UTF_8);
             decryptCipher.init(Cipher.DECRYPT_MODE, secretKey, spec);
             return raw;
         } catch (GeneralSecurityException e) {
@@ -121,7 +122,7 @@ class HandshakeCiphers {
             throws GeneralSecurityException {
         SecretKeyFactory factory = SecretKeyFactory.getInstance(FACTORY_ALGORITHM);
         KeySpec spec = new PBEKeySpec(
-                slaveSecret.toCharArray(), slaveName.getBytes(Charset.forName("UTF-8")),
+                slaveSecret.toCharArray(), slaveName.getBytes(Charsets.UTF_8),
                 INTEGRATION_COUNT, KEY_LENGTH);
         SecretKey tmpSecret = factory.generateSecret(spec);
         return new SecretKeySpec(tmpSecret.getEncoded(), SPEC_ALGORITHM);

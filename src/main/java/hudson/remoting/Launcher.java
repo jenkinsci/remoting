@@ -25,6 +25,17 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
+import java.io.FileInputStream;
+import java.io.UnsupportedEncodingException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchProviderException;
+import java.security.PrivilegedActionException;
+import java.security.cert.CertificateFactory;
+import javax.annotation.CheckForNull;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
+import org.jenkinsci.remoting.util.IOUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -154,6 +165,12 @@ public class Launcher {
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
 
+    @Option(name = "-cert",
+            usage = "Specify additional X.509 encoded PEM certificates to trust when connecting to Jenkins " +
+                    "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
+                    "certificate file to read.", forbids = "-noCertificateCheck")
+    public List<String> candidateCertificates;
+
     public InetSocketAddress connectionTarget = null;
 
     @Option(name="-connectTo",usage="make a TCP connection to the given host and port, then start communication.",metaVar="HOST:PORT")
@@ -172,7 +189,7 @@ public class Launcher {
      * @param ignored
      *      This is ignored.
      */
-    @Option(name="-noCertificateCheck")
+    @Option(name="-noCertificateCheck", forbids = "-cert")
     public void setNoCertificateCheck(boolean ignored) throws NoSuchAlgorithmException, KeyManagementException {
         System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
         SSLContext context = SSLContext.getInstance("TLS");
@@ -217,6 +234,9 @@ public class Launcher {
                 }
             });
         }
+        if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+            HttpsURLConnection.setDefaultSSLSocketFactory(getSSLSocketFactory());
+        }
         if(connectionTarget!=null) {
             runAsTcpClient();
         } else
@@ -228,6 +248,12 @@ public class Launcher {
             }
             if (this.noReconnect) {
                 jnlpArgs.add("-noreconnect");
+            }
+            if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+                for (String c: candidateCertificates) {
+                    jnlpArgs.add("-cert");
+                    jnlpArgs.add(c);
+                }
             }
             try {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
@@ -244,6 +270,92 @@ public class Launcher {
             runWithStdinStdout();
         }
         System.exit(0);
+    }
+
+    @CheckForNull
+    private SSLSocketFactory getSSLSocketFactory()
+            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
+            NoSuchAlgorithmException, IOException, KeyManagementException {
+        SSLSocketFactory sslSocketFactory = null;
+        if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+            CertificateFactory factory;
+            try {
+                factory = CertificateFactory.getInstance("X.509");
+            } catch (CertificateException e) {
+                throw new IllegalStateException("Java platform specification mandates support for X.509", e);
+            }
+            KeyStore keyStore = Engine.getCacertsKeyStore();
+            // load the keystore
+            keyStore.load(null, null);
+            int i = 0;
+            for (String certOrAtFilename : candidateCertificates) {
+                certOrAtFilename = certOrAtFilename.trim();
+                byte[] cert;
+                if (certOrAtFilename.startsWith("@")) {
+                    File file = new File(certOrAtFilename.substring(1));
+                    long length;
+                    if (file.isFile()
+                            && (length = file.length()) < 65536
+                            && length > "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----".length()) {
+                        FileInputStream fis = null;
+                        try {
+                            // we do basic size validation, if there are x509 certificates that have a PEM encoding
+                            // larger
+                            // than 64kb we can revisit the upper bound.
+                            cert = new byte[(int) length];
+                            fis = new FileInputStream(file);
+                                int read = fis.read(cert);
+                                if (cert.length != read) {
+                                    LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
+                                            new Object[]{read, file, cert.length});
+                                    // skip it
+                                    continue;
+                                }
+                        } catch (IOException e) {
+                            LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
+                            continue;
+                        } finally {
+                            IOUtils.closeQuietly(fis);
+                        }
+                    } else {
+                        if (file.isFile()) {
+                            LOGGER.log(Level.WARNING,
+                                    "Could not read certificate from {0}. File size is not within " +
+                                            "the expected range for a PEM encoded X.509 certificate",
+                                    file.getAbsolutePath());
+                        } else {
+                            LOGGER.log(Level.WARNING, "Could not read certificate from {0}. File not found",
+                                    file.getAbsolutePath());
+                        }
+                        continue;
+                    }
+                } else {
+                    try {
+                        cert = certOrAtFilename.getBytes("US-ASCII");
+                    } catch (UnsupportedEncodingException e) {
+                        throw new IllegalStateException("US-ASCII support is mandated by the JLS", e);
+                    }
+                }
+                try {
+                    keyStore.setCertificateEntry(String.format("alias-%d", i++),
+                            factory.generateCertificate(new ByteArrayInputStream(cert)));
+                } catch (ClassCastException e) {
+                    LOGGER.log(Level.WARNING, "Expected X.509 certificate from " + certOrAtFilename, e);
+                } catch (CertificateException e) {
+                    LOGGER.log(Level.WARNING, "Could not parse X.509 certificate from " + certOrAtFilename, e);
+                }
+            }
+            // prepare the trust manager
+            TrustManagerFactory trustManagerFactory =
+                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(keyStore);
+            // prepare the SSL context
+            SSLContext ctx = SSLContext.getInstance("TLS");
+            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
+            // now we have our custom socket factory
+            sslSocketFactory = ctx.getSocketFactory();
+        }
+        return sslSocketFactory;
     }
 
     /**

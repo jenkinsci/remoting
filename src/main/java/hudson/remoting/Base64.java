@@ -30,8 +30,6 @@ import javax.annotation.CheckForNull;
  * data. You need the data that you will encode/decode
  * already on a byte arrray.
  *
- * @xerces.internal
- *
  * @author Jeffrey Rodriguez
  * @author Sandy Gao
  * @version $Id: Base64.java,v 1.4 2007/07/19 04:38:32 ofung Exp $

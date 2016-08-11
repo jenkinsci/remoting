@@ -60,8 +60,11 @@ class Util {
         resource.getParentFile().mkdirs();
 
         FileOutputStream fos = new FileOutputStream(resource);
-        fos.write(image);
-        fos.close();
+        try {
+            fos.write(image);
+        } finally {
+            fos.close();
+        }
 
         deleteDirectoryOnExit(tmpFile);
 
@@ -216,40 +219,6 @@ class Util {
      */
     static URLConnection openURLConnection(URL url) throws IOException {
         return openURLConnection(url, null, null, null);
-    }
-
-    static InetSocketAddress getResolvedHttpProxyAddress(String host, int port) throws IOException {
-        InetSocketAddress targetAddress = null;
-        Iterator<Proxy> proxies = ProxySelector.getDefault().select(URI.create(String.format("http://%s:%d", host, port))).iterator();
-        while (targetAddress == null && proxies.hasNext()) {
-            Proxy proxy = proxies.next();
-            if(proxy.type() == Proxy.Type.DIRECT) {
-                break;
-            }
-            if(proxy.type() == Proxy.Type.HTTP) {
-                final SocketAddress address = proxy.address();
-                if (!(address instanceof InetSocketAddress)) {
-                    System.err.println("Unsupported proxy address type " + (address != null ? address.getClass() : "null"));
-                    continue;
-                }
-                InetSocketAddress proxyAddress = (InetSocketAddress) address;
-                if(proxyAddress.isUnresolved())
-                    proxyAddress = new InetSocketAddress(proxyAddress.getHostName(), proxyAddress.getPort());
-                targetAddress = proxyAddress;
-            }
-        }
-        if(targetAddress == null) {
-            String httpProxy = System.getenv("http_proxy");
-            if(httpProxy != null && !inNoProxyEnvVar(host)) {
-                try {
-                    URL url = new URL(httpProxy);
-                    targetAddress = new InetSocketAddress(url.getHost(), url.getPort());
-                } catch (MalformedURLException e) {
-                    System.err.println("Not use http_proxy environment variable which is invalid: "+e.getMessage());
-                }
-            }
-        }
-        return targetAddress;
     }
 
     @IgnoreJRERequirement @SuppressWarnings("Since15")

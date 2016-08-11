@@ -27,17 +27,17 @@ import java.util.Collections;
  * </pre>
  *
  * <p>
- * Then the callables that are meant to be run on the server would return {@code CLIENT} from
- * {@link RoleSensitive#getRecipients()}:
+ * Then the callables that are meant to be run on the client would check {@code CLIENT} from
+ * {@link RoleSensitive#checkRoles(RoleChecker)}:
  *
  * <pre>
  * // from the server
- * channelToClient.call(new Callable&lt;Void,IOException>() {
+ * channelToClient.call(new Callable&lt;Void,IOException&gt;() {
  *     Void call() {
  *         ...
  *     }
- *     Collection&lt;Role> getRecipients() {
- *          return Collections.singleton(MyProtocol.CLIENT);
+ *     void checkRoles(RoleChecker checker) {
+ *          checker.check(this,MyProtocol.CLIENT);
  *     }
  * });
  * </pre>

@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
+import javax.annotation.CheckForNull;
 
 /**
  * Restricts what classes can be received through remoting.
@@ -24,7 +24,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
  */
 public abstract class ClassFilter {
     /**
-     * Property to set to <b>override<b> the blacklist used by {{@link #DEFAULT} with a different set.
+     * Property to set to <b>override</b> the blacklist used by {{@link #DEFAULT} with a different set.
      * The location should point to a a file containing regular expressions (one per line) of classes to blacklist.
      * If this property is set but the file can not be read the default blacklist will be used.
      * @since 2.53.2
