@@ -66,7 +66,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     /**
      * Our channel.
      */
-    protected Channel channel;
+    private Channel channel;
     /**
      * The chunk header buffer.
      */
@@ -133,7 +133,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * @throws IOException          if something goes wrong during the receive.
      * @throws InterruptedException if interrupted during the receive.
      */
-    public final synchronized void receive(@Nonnull ByteBuffer data) throws IOException, InterruptedException {
+    public final void receive(@Nonnull ByteBuffer data) throws IOException, InterruptedException {
         while (receiver != null && readCommandIndex > 0) {
             processCommand();
         }
@@ -198,7 +198,6 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         try {
             FastByteBufferQueueInputStream is = new FastByteBufferQueueInputStream(receiveQueue, readCommandSizes[0]);
             try {
-                final Channel channel = getChannel();
                 ObjectInputStreamEx ois = new ObjectInputStreamEx(is, channel.baseClassLoader, channel.classFilter);
                 receiver.handle(Command.readFrom(channel, ois));
             } catch (IOException e1) {
@@ -256,7 +255,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * @return the channel.
      */
     @Nullable // only null before setup.
-    private synchronized Channel getChannel() {
+    protected Channel getChannel() {
         return channel;
     }
 
@@ -286,7 +285,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         ByteBufferQueueOutputStream bqos = new ByteBufferQueueOutputStream(sendStaging);
         ObjectOutputStream oos = new ObjectOutputStream(bqos);
         try {
-            cmd.writeTo(getChannel(), oos);
+            cmd.writeTo(channel, oos);
         } finally {
             oos.close();
         }
