@@ -94,7 +94,7 @@ public class MainDialog extends JFrame {
 
     /**
      * If the current JVM runs a {@link MainDialog} as a JNLP slave agent,
-     * return its reference, otherwise {@link null}.
+     * return its reference, otherwise {@code null}.
      */
     @CheckForNull
     public static MainDialog get() {
