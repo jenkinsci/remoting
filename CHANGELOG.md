@@ -6,6 +6,26 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 2.62 
+
+Release date: (Aug 14, 2016) => TBD
+
+Fixed issues:
+* [JENKINS-22853](https://issues.jenkins-ci.org/browse/JENKINS-22853) - 
+Be robust against the delayed EOF command when unexporting input and output streams.
+(https://github.com/jenkinsci/remoting/pull/97)
+* Fixed ~20 minor issues reported by FindBugs. 
+More fixes to be delivered in future versions.
+(https://github.com/jenkinsci/remoting/pull/96)
+
+Enhancements:
+* [JENKINS-37218](https://issues.jenkins-ci.org/browse/JENKINS-37218) - 
+Performance: <code>ClassFilter</code> does not use Regular Expressions anymore to match <code>String.startsWith</code> patterns.
+(https://github.com/jenkinsci/remoting/pull/92)
+* [JENKINS-37031](https://issues.jenkins-ci.org/browse/JENKINS-37031)
+<code>TcpSlaveAgentListener</code> now publishes a list of supported agent protocols to speed up connection setup.
+(https://github.com/jenkinsci/remoting/pull/93)
+
 ##### 2.61
 
 Release date: (Aug 5, 2016) => Jenkins 2.17
