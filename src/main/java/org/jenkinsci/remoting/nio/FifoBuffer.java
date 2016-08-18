@@ -310,6 +310,8 @@ public class FifoBuffer implements Closeable {
      *
      * @return
      *      number of bytes read, or -1 if the given channel has reached EOF and no further read is possible.
+     * @exception IOException
+     *      receive error
      */
     public int receive(ReadableByteChannel ch) throws IOException {
         if (closed)
@@ -321,6 +323,13 @@ public class FifoBuffer implements Closeable {
                 int chunk = writable();
                 if (chunk==0)
                     return written; // no more space to write
+                
+                // If the buffer gets closed before we acquire lock, we are at risk of null "w" and NPE.
+                // So in such case we just interrupt the receive process
+                if (closed) {
+                    throw new IOException("closed during the receive() operation");
+                }
+                
                 try {
                     int received = w.receive(ch, chunk);
                     if (received==0)
