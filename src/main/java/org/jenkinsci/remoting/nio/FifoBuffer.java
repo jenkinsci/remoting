@@ -9,6 +9,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import javax.annotation.Nonnegative;
+import javax.annotation.concurrent.GuardedBy;
 
 /**
  * FIFO buffer for a reader thread and a writer thread to collaborate.
@@ -149,6 +151,7 @@ public class FifoBuffer implements Closeable {
     /**
      * Cap to the # of bytes that we can hold.
      */
+    @GuardedBy("lock")
     private int limit;
     private final int pageSize;
 
@@ -209,11 +212,17 @@ public class FifoBuffer implements Closeable {
         }
     }
 
+    //TODO: Value beyond the limit is actually a bug (JENKINS-37514)
     /**
-     * Number of bytes writable
+     * Number of bytes writable.
+     * @return Number of bytes we can write to the buffer.
+     *         If the buffer is closed, may return the value beyond the limit (JENKINS-37514)
      */
+    @Nonnegative
     public int writable() {
-        return Math.max(0,limit-readable());
+        synchronized(lock) {
+            return Math.max(0,limit-readable());
+        }
     }
 
     /**
