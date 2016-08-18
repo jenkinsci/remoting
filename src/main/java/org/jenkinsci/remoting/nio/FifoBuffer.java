@@ -279,6 +279,8 @@ public class FifoBuffer implements Closeable {
                     if (sent == 0)    // channel filled up
                         return read;
                 } catch (ClosedChannelException e) {
+                    // If the underlying channel is closed, we should close the buffer as well
+                    close();
                     return -1; // propagate EOF
                 }
             }
@@ -344,6 +346,8 @@ public class FifoBuffer implements Closeable {
                     sz += received;
                     written += received;
                 } catch (ClosedChannelException e) {
+                    // If the underlying channel is closed, we should close the buffer as well
+                    close();
                     if (written == 0) return -1; // propagate EOF
                     return written;
                 }
@@ -373,7 +377,7 @@ public class FifoBuffer implements Closeable {
                 }
                 
                 while ((chunk = Math.min(len,writable()))==0) {
-                    // The buffer is full, but we give other threads a chance to cleanup
+                    // The buffer is full, but we give other threads a chance to cleanup it
                     lock.wait(100);
                 }
 
