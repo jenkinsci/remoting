@@ -195,6 +195,8 @@ public class FifoBuffer implements Closeable {
     public void setLimit(int newLimit) {
         synchronized (lock) {
             limit = newLimit;
+            // We resized the buffer, hence read/write threads may be able to proceed
+            lock.notifyAll();
         }
     }
 
@@ -363,12 +365,15 @@ public class FifoBuffer implements Closeable {
         while (len>0) {
             int chunk;
 
+            final boolean shouldWaitToCleanTheBuffer;
             synchronized (lock) {
+                if (closeRequested) {
+                    handleCloseRequest();
+                    throw new IOException("closed during write operation");
+                }
+                
                 while ((chunk = Math.min(len,writable()))==0) {
-                    if (closeRequested) {
-                        handleCloseRequest();
-                        throw new IOException("closed during write operation");
-                    }
+                    
                     lock.wait(100);
                 }
 
@@ -380,6 +385,8 @@ public class FifoBuffer implements Closeable {
 
                 lock.notifyAll();
             }
+            
+            // 
         }
     }
 
