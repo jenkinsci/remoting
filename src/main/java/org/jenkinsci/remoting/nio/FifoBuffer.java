@@ -369,11 +369,11 @@ public class FifoBuffer implements Closeable {
             synchronized (lock) {
                 if (closeRequested) {
                     handleCloseRequest();
-                    throw new IOException("closed during write operation");
+                    throw new IOException("closed during write() operation");
                 }
                 
                 while ((chunk = Math.min(len,writable()))==0) {
-                    
+                    // The buffer is full, but we give other threads a chance to cleanup
                     lock.wait(100);
                 }
 
