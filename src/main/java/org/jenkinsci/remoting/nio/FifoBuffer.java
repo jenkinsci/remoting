@@ -370,13 +370,12 @@ public class FifoBuffer implements Closeable {
             int chunk;
 
             final boolean shouldWaitToCleanTheBuffer;
-            synchronized (lock) {
-                if (closeRequested) {
-                    handleCloseRequest();
-                    throw new IOException("closed during write() operation");
-                }
-                
+            synchronized (lock) { 
                 while ((chunk = Math.min(len,writable()))==0) {
+                    if (closeRequested) {
+                        handleCloseRequest();
+                        throw new IOException("closed during write() operation");
+                    }
                     // The buffer is full, but we give other threads a chance to cleanup it
                     lock.wait(100);
                 }
