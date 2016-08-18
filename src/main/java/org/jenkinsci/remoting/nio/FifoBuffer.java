@@ -162,8 +162,12 @@ public class FifoBuffer implements Closeable {
 
     /**
      * Set to true when the writer closes the write end.
+     * Close operation requires flushing of buffers, hence this field is synchronized.
+     * In order to get runtime status, use {@link #closeRequested}
      */
+    @GuardedBy("lock")
     private boolean closed;
+    private boolean closeRequested = false;
 
     public FifoBuffer(int pageSize, int limit) {
         this(null,pageSize,limit);
@@ -203,6 +207,7 @@ public class FifoBuffer implements Closeable {
      *
      * @return
      *      -1 if the buffer is closed and there's no more data to read.
+     *      May return non-negative value if the buffer close is requested, but not performed
      */
     public int readable() {
         synchronized (lock) {
@@ -230,6 +235,7 @@ public class FifoBuffer implements Closeable {
      * no more new data will arrive.
      *
      * Note that there still might be a data left in the buffer to be read.
+     * The method may also return {@code true} when the close operation is actually requested.
      */
     public boolean isClosed() {
         return closed;
@@ -254,8 +260,8 @@ public class FifoBuffer implements Closeable {
 
                     if (read>0)     return read;    // we've already read some
 
-                    if (closed) {
-                        releaseRing();
+                    if (closeRequested) { // Somebody requested the close operation in parallel thread
+                        handleCloseRequest();
                         return -1;  // no more data
                     }
                     return 0;   // no data to read
@@ -350,9 +356,10 @@ public class FifoBuffer implements Closeable {
 
             synchronized (lock) {
                 while ((chunk = Math.min(len,writable()))==0) {
-                    if (closed)
+                    if (closeRequested) {
+                        handleCloseRequest();
                         throw new IOException("closed during write operation");
-
+                    }
                     lock.wait(100);
                 }
 
@@ -374,6 +381,22 @@ public class FifoBuffer implements Closeable {
      * returning EOF signals.
      */
     public void close() {
+        // Async modification of the field in order to notify other threads that we are about closing this buffer
+        closeRequested = true;
+        
+        // Now perform close operation
+        handleCloseRequest();
+    }
+    
+    /**
+     * This is a close operation, which is guarded by the instance lock.
+     * Actually this method may be invoked by multiple threads, not only by {@link #close()} when it requests it.
+     */
+    private void handleCloseRequest() {
+        if (!closeRequested) {
+            // Do nothing when actually we have no close request
+            return;
+        }
         synchronized (lock) {
             if (!closed) {
                 closed = true;
@@ -472,8 +495,8 @@ public class FifoBuffer implements Closeable {
 
                     if (read>0)     return read;    // we've already read some
 
-                    if (closed) {
-                        releaseRing();
+                    if (closeRequested) {
+                        handleCloseRequest();
                         return -1;  // no more data
                     }
 
