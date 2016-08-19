@@ -189,14 +189,18 @@ public class Main {
                     if (file.isFile()
                             && (length = file.length()) < 65536
                             && length > "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----".length()) {
-                        FileInputStream fis = null;
                         try {
                             // we do basic size validation, if there are x509 certificates that have a PEM encoding
                             // larger
                             // than 64kb we can revisit the upper bound.
                             cert = new byte[(int) length];
-                            fis = new FileInputStream(file);
-                            int read = fis.read(cert);
+                            FileInputStream fis = new FileInputStream(file);
+                            final int read;
+                            try {
+                                read = fis.read(cert);
+                            } finally {
+                                fis.close();
+                            }
                             if (cert.length != read) {
                                 LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
                                         new Object[]{read, file, cert.length});
