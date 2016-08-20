@@ -107,7 +107,7 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
             // Something went wrong. We want to gracefully close Cipher stream in the case they were open
             EngineUtil.closeAndLogFailures(in, LOGGER, "CipherInputStream", socket.toString());
             EngineUtil.closeAndLogFailures(out, LOGGER, "CipherOutputStream", socket.toString());
-            if (ex instanceof RuntimeException) {
+            if (ex instanceof IOException) {
                 throw (IOException) ex;
             } else {
                 throw new IOException("Unexpected runtime exception during creation of the channel", ex);
