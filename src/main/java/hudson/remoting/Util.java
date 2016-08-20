@@ -60,8 +60,11 @@ class Util {
         resource.getParentFile().mkdirs();
 
         FileOutputStream fos = new FileOutputStream(resource);
-        fos.write(image);
-        fos.close();
+        try {
+            fos.write(image);
+        } finally {
+            fos.close();
+        }
 
         deleteDirectoryOnExit(tmpFile);
 
