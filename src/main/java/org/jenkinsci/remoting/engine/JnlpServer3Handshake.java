@@ -95,11 +95,25 @@ public abstract class JnlpServer3Handshake extends JnlpServerHandshake {
                 Jnlp3Util.keyFromString(aesKeyString),
                 Jnlp3Util.keyFromString(specKeyString));
 
-        Channel channel = createChannelBuilder(nodeName).build(
-                new CipherInputStream(SocketChannelStream.in(socket),
-                        channelCiphers.getDecryptCipher()),
-                new CipherOutputStream(SocketChannelStream.out(socket),
-                        channelCiphers.getEncryptCipher()));
+
+        CipherInputStream in = null;
+        CipherOutputStream out = null;
+        final Channel channel;
+        try {
+            in = new CipherInputStream(SocketChannelStream.in(socket), channelCiphers.getDecryptCipher());
+            out = new CipherOutputStream(SocketChannelStream.out(socket), channelCiphers.getEncryptCipher());
+            channel = createChannelBuilder(nodeName).build(in, out);
+        } catch (Exception ex) {
+            // Something went wrong. We want to gracefully close Cipher stream in the case they were open
+            EngineUtil.closeAndLogFailures(in, LOGGER, "CipherInputStream", socket.toString());
+            EngineUtil.closeAndLogFailures(out, LOGGER, "CipherOutputStream", socket.toString());
+            if (ex instanceof IOException) {
+                throw (IOException) ex;
+            } else {
+                throw new IOException("Unexpected runtime exception during creation of the channel", ex);
+            }
+        }
+
 
         channel.setProperty(COOKIE_NAME, newCookie);
 
