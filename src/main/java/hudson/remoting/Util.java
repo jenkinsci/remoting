@@ -125,7 +125,7 @@ class Util {
      *
      * Warning: this method won't match shortened representation of IPV6 address
      */
-    static boolean inNoProxyEnvVar(String host) {
+    static boolean inNoProxyEnvVar(@Nonnull  String host) {
         String noProxy = System.getenv("no_proxy");
         if (noProxy != null) {
             noProxy = noProxy.trim()
@@ -218,7 +218,7 @@ class Util {
         return openURLConnection(url, null, null, null);
     }
 
-    static InetSocketAddress getResolvedHttpProxyAddress(String host, int port) throws IOException {
+    static InetSocketAddress getResolvedHttpProxyAddress(@Nonnull String host, int port) throws IOException {
         InetSocketAddress targetAddress = null;
         Iterator<Proxy> proxies = ProxySelector.getDefault().select(URI.create(String.format("http://%s:%d", host, port))).iterator();
         while (targetAddress == null && proxies.hasNext()) {

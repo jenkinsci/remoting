@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.FileInputStream;
@@ -45,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -356,10 +358,13 @@ public class Engine extends Thread {
 
     /**
      * Connects to TCP slave host:port, with a few retries.
+     * @param host Host to be used. May be {@code null} if the data comes from the {@link #tunnel} definition.
+     * @param port Port to be used. May be {@code null} if the data comes from the {@link #tunnel} definition.
+     * @throws IOException Connection failure or invalid parameter specification
      */
     @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
-            justification = "Unsafe endline symbol is a pert of the protocol. Unsafe to fix it. See TODO below")
-    private Socket connect(String host, String port) throws IOException, InterruptedException {
+            justification = "Unsafe endline symbol is a part of the protocol. Unsafe to fix it. See TODO below")
+    private Socket connect(@CheckForNull String host, @CheckForNull String port) throws IOException, InterruptedException {
 
         if(tunnel!=null) {
             String[] tokens = tunnel.split(":",3);
@@ -369,6 +374,21 @@ public class Engine extends Thread {
             if(tokens[1].length()>0)    port = tokens[1];
         }
 
+        // Verify settings
+        if (host == null || host.isEmpty()) {
+            throw new IOException("Illegal parameter: Empty destination host");
+        }
+        final int portValue;
+        if (port == null || port.isEmpty()) {
+            throw new IOException("Illegal parameter: Empty destination port");
+        }
+        try {
+            portValue = Integer.parseInt(port);
+        } catch (NumberFormatException ex) {
+            throw new IOException("Illegal parameter: Destination port value '" + port + "' is not integer");
+        }
+
+
         String msg = "Connecting to " + host + ':' + port;
         events.status(msg);
         int retry = 1;
@@ -377,10 +397,10 @@ public class Engine extends Thread {
             InetSocketAddress targetAddress = null;
             try {
                 Socket s = null;
-                targetAddress = Util.getResolvedHttpProxyAddress(host, Integer.parseInt(port));
+                targetAddress = Util.getResolvedHttpProxyAddress(host, portValue);
 
                 if(targetAddress == null) {
-                    targetAddress = new InetSocketAddress(host, Integer.parseInt(port));
+                    targetAddress = new InetSocketAddress(host, portValue);
                 } else {
                     isHttpProxy = true;
                 }
