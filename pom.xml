@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.36</version>
+    <version>1.37</version>
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
@@ -60,6 +60,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
+    <java.level>7</java.level>
     <build.type>private</build.type>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
