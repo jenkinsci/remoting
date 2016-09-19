@@ -50,6 +50,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.OverridingMethodsMustInvokeSuper;
@@ -693,6 +694,13 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         (ops & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT,
                         (ops & SelectionKey.OP_READ) == SelectionKey.OP_READ,
                         (ops & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE);
+            } catch (Throwable e) {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LogRecord record = new LogRecord(Level.SEVERE, "[{0}] Listener {1} propagated an uncaught {2}");
+                    record.setThrown(e);
+                    record.setParameters(new Object[]{workerThread.getName(), listener, e.getClass().getSimpleName()});
+                    LOGGER.log(record);
+                }
             } finally {
                 workerThread.setName(oldName);
             }

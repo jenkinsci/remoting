@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import java.util.logging.LogRecord;
 import javax.annotation.Nonnull;
 import java.io.EOFException;
 import java.io.IOException;
@@ -248,10 +249,23 @@ public class BIONetworkLayer extends NetworkLayer {
                         } catch (ClosedChannelException e) {
                             onRecvClosed();
                             return;
-                        } catch (EOFException e) {
+                        } catch (IOException e) {
+                            if (LOGGER.isLoggable(Level.FINER)) {
+                                // will likely be reported elsewhere, so we just trace this at FINER
+                                LogRecord record = new LogRecord(Level.FINER, "[{0}] Unexpected I/O exception");
+                                record.setThrown(e);
+                                record.setParameters(new Object[]{stack().name()});
+                                LOGGER.log(record);
+                            }
                             onRecvClosed();
                             return;
-                        } catch (IOException e) {
+                        } catch (RuntimeException e) {
+                            // this should *never* happen... but just in case it does we will log & close connection
+                            if (LOGGER.isLoggable(Level.WARNING)) {
+                                LogRecord record = new LogRecord(Level.WARNING, "[{0}] Uncaught {1}");
+                                record.setThrown(e);
+                                record.setParameters(new Object[]{stack().name(), e.getClass().getSimpleName()});
+                            }
                             onRecvClosed();
                             return;
                         }
@@ -272,6 +286,13 @@ public class BIONetworkLayer extends NetworkLayer {
                     }
                 } finally {
                     release(buffer);
+                }
+            } catch (Throwable e) {
+                if (LOGGER.isLoggable(Level.SEVERE)) {
+                    LogRecord record = new LogRecord(Level.SEVERE, "[{0}] Reader thread killed by {1}");
+                    record.setThrown(e);
+                    record.setParameters(new Object[]{stack().name(), e.getClass().getSimpleName()});
+                    LOGGER.log(record);
                 }
             } finally {
                 synchronized (BIONetworkLayer.this) {
