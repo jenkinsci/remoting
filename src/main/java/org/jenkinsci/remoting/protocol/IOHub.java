@@ -701,6 +701,9 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                     record.setParameters(new Object[]{workerThread.getName(), listener, e.getClass().getSimpleName()});
                     LOGGER.log(record);
                 }
+                if (e instanceof Error) {
+                    throw (Error)e;
+                }
             } finally {
                 workerThread.setName(oldName);
             }

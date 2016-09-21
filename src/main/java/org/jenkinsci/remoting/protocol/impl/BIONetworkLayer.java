@@ -294,6 +294,9 @@ public class BIONetworkLayer extends NetworkLayer {
                     record.setParameters(new Object[]{stack().name(), e.getClass().getSimpleName()});
                     LOGGER.log(record);
                 }
+                if (e instanceof Error) {
+                    throw (Error) e;
+                }
             } finally {
                 synchronized (BIONetworkLayer.this) {
                     running = false;
