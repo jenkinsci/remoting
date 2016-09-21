@@ -167,6 +167,15 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                         }
                         recvKey.cancel();
                         onRecvClosed();
+                    } catch (RuntimeException e) {
+                        // this should *never* happen... but just in case it does we will log & close connection
+                        if (LOGGER.isLoggable(Level.WARNING)) {
+                            LogRecord record = new LogRecord(Level.WARNING, "[{0}] Uncaught {1}");
+                            record.setThrown(e);
+                            record.setParameters(new Object[]{stack().name(), e.getClass().getSimpleName()});
+                        }
+                        recvKey.cancel();
+                        onRecvClosed();
                     }
                 } else {
                     onRecvClosed();
@@ -194,7 +203,14 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                 } catch (ClosedChannelException e) {
                     sendKey.cancel();
                     return;
-                } catch (final IOException e) {
+                } catch (IOException e) {
+                    if (LOGGER.isLoggable(Level.FINER)) {
+                        // will be reported elsewhere, so we just trace this at FINER
+                        LogRecord record = new LogRecord(Level.FINER, "[{0}] Unexpected I/O exception");
+                        record.setThrown(e);
+                        record.setParameters(new Object[]{stack().name()});
+                        LOGGER.log(record);
+                    }
                     sendKey.cancel();
                     return;
                 }
