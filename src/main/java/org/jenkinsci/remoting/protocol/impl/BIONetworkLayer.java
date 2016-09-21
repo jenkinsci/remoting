@@ -250,7 +250,7 @@ public class BIONetworkLayer extends NetworkLayer {
                             onRecvClosed();
                             return;
                         } catch (IOException e) {
-                            if (LOGGER.isLoggable(Level.FINER)) {
+                            if (LOGGER.isLoggable(Level.FINER) && !(e instanceof EOFException)) {
                                 // will likely be reported elsewhere, so we just trace this at FINER
                                 LogRecord record = new LogRecord(Level.FINER, "[{0}] Unexpected I/O exception");
                                 record.setThrown(e);
