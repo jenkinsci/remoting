@@ -24,9 +24,14 @@
 package org.jenkinsci.remoting.engine;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Engine utility methods.

@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.File;
@@ -453,8 +454,10 @@ public class Engine extends Thread {
 
     /**
      * Connects to TCP slave host:port, with a few retries.
+     * @param endpoint Connection endpoint
+     * @throws IOException Connection failure or invalid parameter specification
      */
-    private Socket connect(JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
+    private Socket connect(@Nonnull JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
 
         String msg = "Connecting to " + endpoint.getHost() + ':' + endpoint.getPort();
         events.status(msg);
