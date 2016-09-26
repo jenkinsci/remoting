@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Iterator;
 
 /**
@@ -55,8 +56,9 @@ class Util {
     }
 
     static File makeResource(String name, byte[] image) throws IOException {
-        File tmpFile = createTempDir();
-        File resource = new File(tmpFile, name);
+        Path tmpDir = Files.createTempDirectory("resource-");
+        File resource = new File(tmpDir.toFile(), name);
+        Files.createFile(resource.toPath());
         resource.getParentFile().mkdirs();
 
         FileOutputStream fos = new FileOutputStream(resource);
@@ -66,30 +68,8 @@ class Util {
             fos.close();
         }
 
-        deleteDirectoryOnExit(tmpFile);
-
+        deleteDirectoryOnExit(resource);
         return resource;
-    }
-
-    static File createTempDir() throws IOException {
-    	// work around sun bug 6325169 on windows
-    	// see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6325169
-        int nRetry=0;
-        while (true) {
-            try {
-                File tmpFile = File.createTempFile("jenkins-remoting", "");
-                tmpFile.delete();
-                tmpFile.mkdir();
-                return tmpFile;
-            } catch (IOException e) {
-                if (nRetry++ < 100){
-                    continue;
-                }
-                IOException nioe = new IOException("failed to create temp directory at default location, most probably at: "+System.getProperty("java.io.tmpdir"));
-                nioe.initCause(e);
-                throw nioe;
-            }
-        }
     }
 
     /** Instructs Java to recursively delete the given directory (dir) and its contents when the JVM exits.
