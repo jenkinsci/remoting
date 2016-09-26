@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -89,9 +90,12 @@ final class ExportTable {
          */
         private int referenceCount;
 
+        //TODO: cleanup this mess?
         /**
-         * This field can be set programmatically to track reference counting
+         * This field can be set programmatically to track reference counting.
+         * Please note that value unset is not thread-safe.
          */
+        @SuppressFBWarnings(value = "UWF_UNWRITTEN_FIELD", justification = "Old System script magic")
         private ReferenceCountRecorder recorder;
 
         Entry(T object, Class<? super T>... interfaces) {
