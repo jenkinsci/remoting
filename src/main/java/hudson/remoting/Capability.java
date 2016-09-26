@@ -111,17 +111,16 @@ public final class Capability implements Serializable {
      */
     void writePreamble(OutputStream os) throws IOException {
         os.write(PREAMBLE);
-        ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os));
-        oos.writeObject(this);
-        oos.flush();
+        try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os))) {
+            oos.writeObject(this);
+        }
     }
 
     /**
      * The opposite operation of {@link #writePreamble(OutputStream)}.
      */
     public static Capability read(InputStream is) throws IOException {
-        try {
-            ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
+        try (ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
                 // during deserialization, only accept Capability to protect ourselves
                 // from malicious payload. Allow java.lang.String so that
                 // future versions of Capability can send more complex data structure.
@@ -134,7 +133,7 @@ public final class Capability implements Serializable {
                         return super.resolveClass(desc);
                     throw new SecurityException("Rejected: "+n);
                 }
-            };
+            }) {
             return (Capability)ois.readObject();
         } catch (ClassNotFoundException e) {
             throw (Error)new NoClassDefFoundError(e.getMessage()).initCause(e);
