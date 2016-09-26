@@ -45,6 +45,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Map;
@@ -254,7 +255,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Property bag that contains application-specific stuff.
      */
-    private final Hashtable<Object,Object> properties = new Hashtable<Object,Object>();
+    private final HashMap<Object,Object> properties = new HashMap<>();
 
     /**
      * Proxy to the remote {@link Channel} object.
@@ -1204,7 +1205,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * (as opposed to executing {@link Callable}, which cannot have any reference to the context
      * of the remote {@link Channel}.
      */
-    public Object getProperty(Object key) {
+    @Override
+    public synchronized Object getProperty(Object key) {
         return properties.get(key);
     }
 
