@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -37,6 +38,8 @@ import javax.annotation.concurrent.GuardedBy;
  * {@link Writer} on a remote machine.
  */
 final class ProxyWriter extends Writer {
+    
+    @GuardedBy("this")
     private Channel channel;
     private int oid;
 
@@ -165,7 +168,7 @@ final class ProxyWriter extends Writer {
         }
     }
 
-    public void flush() throws IOException {
+    public synchronized void flush() throws IOException {
         if(channel!=null && channel.remoteCapability.supportsProxyWriter2_35())
             channel.send(new Flush(channel.newIoId(),oid));
     }
@@ -179,18 +182,18 @@ final class ProxyWriter extends Writer {
             closed = true;
 //            error = e;
         }
-        if(channel!=null)
-            doClose(e);
+        if(channel!=null) {
+            // Close the channel
+            channel.send(new EOF(channel.newIoId(),oid/*,error*/));
+            channel = null;
+            oid = -1;
+        }
     }
 
-    private void doClose(Throwable error) throws IOException {
-        channel.send(new EOF(channel.newIoId(),oid/*,error*/));
-        channel = null;
-        oid = -1;
-    }
-
-
-    protected void finalize() throws Throwable {
+    @Override
+    //TODO: really?
+    @SuppressFBWarnings(value = "FI_FINALIZER_NULLS_FIELDS", justification = "As designed")
+    protected synchronized void finalize() throws Throwable {
         super.finalize();
         // if we haven't done so, release the exported object on the remote side.
         // if the object is auto-unexported, the export entry could have already been removed.
