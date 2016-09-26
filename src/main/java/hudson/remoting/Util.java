@@ -128,7 +128,7 @@ class Util {
      *
      * Warning: this method won't match shortened representation of IPV6 address
      */
-    static boolean inNoProxyEnvVar(String host) {
+    static boolean inNoProxyEnvVar(@Nonnull  String host) {
         String noProxy = System.getenv("no_proxy");
         if (noProxy != null) {
             noProxy = noProxy.trim()

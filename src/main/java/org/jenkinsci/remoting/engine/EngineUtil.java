@@ -24,9 +24,14 @@
 package org.jenkinsci.remoting.engine;
 
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Engine utility methods.
@@ -89,6 +94,26 @@ public class EngineUtil {
             }
             int idx = line.indexOf(':');
             response.put(line.substring(0,idx).trim(), line.substring(idx+1).trim());
+        }
+    }
+
+    /**
+      * Closes the item and logs error to the log in the case of error.
+      * Logging will be performed on the {@code WARNING} level.
+      * @param toClose Item to close. Nothing will happen if it is {@code null}
+      * @param logger Logger, which receives the error
+      * @param closeableName Name of the closeable item
+      * @param closeableOwner String representation of the closeable holder
+      */
+    static void closeAndLogFailures(@CheckForNull Closeable toClose, @Nonnull Logger logger,
+                                    @Nonnull String closeableName, @Nonnull String closeableOwner) {
+        if (toClose == null) {
+           return;
+        }
+        try {
+            toClose.close();
+        } catch(IOException ex) {
+            logger.log(Level.WARNING, String.format("Failed to close %s of %s", closeableName, closeableOwner), ex);
         }
     }
 }

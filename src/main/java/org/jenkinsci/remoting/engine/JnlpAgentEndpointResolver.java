@@ -282,7 +282,8 @@ public class JnlpAgentEndpointResolver {
 
     }
 
-    static InetSocketAddress getResolvedHttpProxyAddress(String host, int port) throws IOException {
+    @CheckForNull
+    static InetSocketAddress getResolvedHttpProxyAddress(@Nonnull String host, int port) throws IOException {
         InetSocketAddress targetAddress = null;
         Iterator<Proxy>
                 proxies =
