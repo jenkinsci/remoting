@@ -212,8 +212,6 @@ public class Main {
                         } catch (IOException e) {
                             LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
                             continue;
-                        } finally {
-                            IOUtils.closeQuietly(fis);
                         }
                     } else {
                         if (file.isFile()) {
