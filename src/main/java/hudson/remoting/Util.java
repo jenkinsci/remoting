@@ -59,13 +59,9 @@ class Util {
         Path tmpDir = Files.createTempDirectory("resource-");
         File resource = new File(tmpDir.toFile(), name);
         Files.createFile(resource.toPath());
-        resource.getParentFile().mkdirs();
 
-        FileOutputStream fos = new FileOutputStream(resource);
-        try {
+        try(FileOutputStream fos = new FileOutputStream(resource)) {
             fos.write(image);
-        } finally {
-            fos.close();
         }
 
         deleteDirectoryOnExit(resource);
