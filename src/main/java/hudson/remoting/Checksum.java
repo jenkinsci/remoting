@@ -108,7 +108,7 @@ final class Checksum {
             MessageDigest md = MessageDigest.getInstance(JarLoaderImpl.DIGEST_ALGORITHM);
             Util.copy(url.openStream(), new DigestOutputStream(new NullOutputStream(), md));
             Checksum checksum =  new Checksum(md.digest(), md.getDigestLength() / 8);
-            CHECKSUMS_BY_URL.putIfAbsent(url, checksum);
+            CHECKSUMS_BY_URL.put(url, checksum);
             return checksum;
         } catch (NoSuchAlgorithmException e) {
             throw new AssertionError(e);
