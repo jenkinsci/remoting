@@ -30,6 +30,7 @@ import java.io.Writer;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.concurrent.GuardedBy;
 
 /**
  * {@link Writer} that sends bits to an exported
@@ -50,6 +51,7 @@ final class ProxyWriter extends Writer {
     /**
      * Set to true if the stream is closed.
      */
+    @GuardedBy("this")
     private boolean closed;
 
     /**
@@ -98,7 +100,7 @@ final class ProxyWriter extends Writer {
         write(new char[]{(char)c},0,1);
     }
 
-    public void write(char[] cbuf, int off, int len) throws IOException {
+    public synchronized void write(char[] cbuf, int off, int len) throws IOException {
         if (closed)
             throw new IOException("stream is already closed");
         _write(cbuf, off, len);
