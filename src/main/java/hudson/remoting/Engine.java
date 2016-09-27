@@ -138,6 +138,13 @@ public class Engine extends Thread {
 
     private boolean noReconnect;
 
+    /**
+     * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
+     *
+     * @since TODO
+     */
+    private boolean keepAlive = true;
+
     private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
 
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
@@ -176,6 +183,24 @@ public class Engine extends Thread {
 
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;
+    }
+
+    /**
+     * Returns {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.
+     *
+     * @return {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.
+     */
+    public boolean isKeepAlive() {
+        return keepAlive;
+    }
+
+    /**
+     * Sets the {@link Socket#setKeepAlive(boolean)} to use for the connection to the master.
+     *
+     * @param keepAlive the {@link Socket#setKeepAlive(boolean)} to use for the connection to the master.
+     */
+    public void setKeepAlive(boolean keepAlive) {
+        this.keepAlive = keepAlive;
     }
 
     public void setCandidateCertificates(List<X509Certificate> candidateCertificates) {
@@ -409,6 +434,7 @@ public class Engine extends Thread {
                 s.connect(targetAddress);
 
                 s.setTcpNoDelay(true); // we'll do buffering by ourselves
+                s.setKeepAlive(keepAlive);
 
                 // set read time out to avoid infinite hang. the time out should be long enough so as not
                 // to interfere with normal operation. the main purpose of this is that when the other peer dies

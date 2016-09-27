@@ -85,6 +85,10 @@ public class Main {
             usage="If the connection ends, don't retry and just exit.")
     public boolean noReconnect = false;
 
+    @Option(name="-noKeepAlive",
+            usage="Do not open the socket to the master with SO_KEEPALIVE enabled")
+    public boolean noKeepAlive = false;
+
     @Option(name = "-cert",
             usage = "Specify additional X.509 encoded PEM certificates to trust when connecting to Jenkins " +
                     "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
@@ -173,6 +177,7 @@ public class Main {
         if(jarCache!=null)
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
+        engine.setKeepAlive(!noKeepAlive);
         if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
             CertificateFactory factory;
             try {
