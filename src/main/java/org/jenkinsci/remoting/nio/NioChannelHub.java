@@ -596,8 +596,13 @@ public class NioChannelHub implements Runnable, Closeable {
                                         assert packetSize==0;
                                         if (packet.length > 0) {
                                             t.swimLane.submit(new Runnable() {
+                                                @Override
                                                 public void run() {
-                                                    t.receiver.handle(packet);
+                                                    final ByteArrayReceiver receiver = t.receiver;
+                                                    if (receiver == null) {
+                                                        throw new IllegalStateException("NIO transport layer has not been set up yet");
+                                                    }
+                                                    receiver.handle(packet);
                                                 }
                                             });
                                         }
