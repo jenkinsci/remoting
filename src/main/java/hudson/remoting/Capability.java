@@ -111,12 +111,19 @@ public final class Capability implements Serializable {
     /**
      * Writes out the capacity preamble.
      */
-    @SuppressFBWarnings(value = "OS_OPEN_STREAM", justification = "ObjectOutputStream should not close output stream here")
     void writePreamble(OutputStream os) throws IOException {
         os.write(PREAMBLE);
-        ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os));
-        oos.writeObject(this);
-        oos.flush();
+        try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os)) {
+            @Override
+            public void close() throws IOException {
+                flush();
+                // TODO: Cannot invoke the private clear() method, but GC well do it for us. Not worse than the original solution
+                // Here the code does not close the proxied stream OS on completion
+            }
+        }) {
+            oos.writeObject(this);
+            oos.flush();
+        }
     }
 
     /**
@@ -136,6 +143,11 @@ public final class Capability implements Serializable {
                         return super.resolveClass(desc);
                     throw new SecurityException("Rejected: "+n);
                 }
+
+                @Override
+                public void close() throws IOException {
+                    // Do not close the stream since we continue reading from the input stream "is" 
+                }   
             }) {
             return (Capability)ois.readObject();
         } catch (ClassNotFoundException e) {
