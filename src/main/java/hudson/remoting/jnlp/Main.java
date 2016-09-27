@@ -86,7 +86,7 @@ public class Main {
     public boolean noReconnect = false;
 
     @Option(name="-noKeepAlive",
-            usage="Do not open the socket to the master with SO_KEEPALIVE enabled")
+            usage="Disable TCP socket keep alive on connection to the master.")
     public boolean noKeepAlive = false;
 
     @Option(name = "-cert",
