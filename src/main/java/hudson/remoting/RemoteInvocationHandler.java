@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Ref;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -842,6 +843,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * If this is used as {@link Callable}, we need to remember what classloader
          * to be used to serialize the request and the response.
          */
+        @CheckForNull
+        @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
         private transient ClassLoader classLoader;
 
         public RPCRequest(int oid, Method m, Object[] arguments) {
@@ -870,6 +873,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             // this callable only executes public methods exported by this side, so these methods are assumed to be safe
         }
 
+        @Nonnull
         public ClassLoader getClassLoader() {
             if(classLoader!=null)
                 return classLoader;

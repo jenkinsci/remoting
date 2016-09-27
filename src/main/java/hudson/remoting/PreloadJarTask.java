@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 
@@ -40,6 +41,7 @@ final class PreloadJarTask implements DelegatingCallable<Boolean,IOException> {
      */
     private final URL[] jars;
 
+    //TODO:"SE_TRANSIENT_FIELD_NOT_RESTORED", needs investigation
     private transient ClassLoader target;
 
     PreloadJarTask(URL[] jars, ClassLoader target) {
