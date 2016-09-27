@@ -58,6 +58,7 @@ class Util {
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
         File resource = new File(tmpDir.toFile(), name);
+        Files.createDirectories(resource.getParentFile().toPath());
         Files.createFile(resource.toPath());
 
         try(FileOutputStream fos = new FileOutputStream(resource)) {
