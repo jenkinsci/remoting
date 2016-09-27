@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.IOException;
 import java.io.InputStream;
@@ -106,14 +107,16 @@ public final class Capability implements Serializable {
         return (mask & MASK_PROXY_WRITER_2_35) != 0;
     }
 
+    //TODO: ideally preamble handling needs to be reworked in order to avoid FB suppression
     /**
      * Writes out the capacity preamble.
      */
+    @SuppressFBWarnings(value = "OS_OPEN_STREAM", justification = "ObjectOutputStream should not close output stream here")
     void writePreamble(OutputStream os) throws IOException {
         os.write(PREAMBLE);
-        try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os))) {
-            oos.writeObject(this);
-        }
+        ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os));
+        oos.writeObject(this);
+        oos.flush();
     }
 
     /**
