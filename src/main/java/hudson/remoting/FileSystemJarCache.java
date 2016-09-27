@@ -115,7 +115,7 @@ public class FileSystemJarCache extends JarCacheSupport {
 
                 return target.toURI().toURL();
             } finally {
-                Files.delete(tmp.toPath());
+                Files.deleteIfExists(tmp.toPath());
             }
         } catch (IOException e) {
             throw (IOException)new IOException("Failed to write to "+target).initCause(e);
