@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.PipeWindow.Key;
@@ -1210,6 +1211,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return properties.get(key);
     }
 
+    @SuppressFBWarnings(value = "UG_SYNC_SET_UNSYNC_GET", justification = "Underlying getProperty call is synchronized")
     public <T> T getProperty(ChannelProperty<T> key) {
         return key.type.cast(getProperty((Object) key));
     }
