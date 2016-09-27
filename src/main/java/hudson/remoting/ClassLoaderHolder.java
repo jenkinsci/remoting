@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.RemoteClassLoader.IClassLoader;
 
 import java.io.IOException;
@@ -36,6 +37,8 @@ public class ClassLoaderHolder implements Serializable {
         classLoader = proxy==null ? null : Channel.current().importedClassLoaders.get(proxy);
     }
 
+    @SuppressFBWarnings(value = "DMI_NONSERIALIZABLE_OBJECT_WRITTEN", 
+            justification = "RemoteClassLoader.export() produces a serializable wrapper class")
     private void writeObject(ObjectOutputStream oos) throws IOException {
         if (classLoader==null)
             oos.writeObject(null);
