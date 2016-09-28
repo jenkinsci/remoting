@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import java.net.SocketTimeoutException;
 import java.util.logging.LogRecord;
 import javax.annotation.Nonnull;
 import java.io.EOFException;
@@ -246,6 +247,9 @@ public class BIONetworkLayer extends NetworkLayer {
                                 onRecvClosed();
                                 return;
                             }
+                        } catch (SocketTimeoutException e) {
+                            // perfectly normal, loop back around and check everything is still open before retrying
+                            continue;
                         } catch (ClosedChannelException e) {
                             onRecvClosed();
                             return;
