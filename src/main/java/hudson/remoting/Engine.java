@@ -485,26 +485,13 @@ public class Engine extends Thread {
     private Socket connect(@Nonnull JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
 
         String msg = "Connecting to " + endpoint.getHost() + ':' + endpoint.getPort();
-        if (host == null || host.isEmpty()) {
-            throw new IOException("Illegal parameter: Empty destination host");
-        }
-        final int portValue;
-        if (port == null || port.isEmpty()) {
-            throw new IOException("Illegal parameter: Empty destination port");
-        }
-        try {
-            portValue = Integer.parseInt(port);
-        } catch (NumberFormatException ex) {
-            throw new IOException("Illegal parameter: Destination port value '" + port + "' is not integer");
-        }
-
-
         events.status(msg);
         int retry = 1;
         while(true) {
             try {
-                return endpoint.open(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
+                final Socket s = endpoint.open(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
                 s.setKeepAlive(keepAlive);
+                return s;
             } catch (IOException e) {
                 if(retry++>10) {
                     throw e;
