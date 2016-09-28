@@ -23,8 +23,10 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import javax.annotation.Nonnull;
+import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.util.Properties;
