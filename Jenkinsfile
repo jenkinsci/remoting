@@ -28,7 +28,7 @@ node('java') {
             junit '**/target/surefire-reports/TEST-*.xml'
 
             /* Archive the build artifacts */
-            archiveArtifacts artifacts: 'target/*.hpi,target/*.jpi'
+            archiveArtifacts artifacts: 'target/**/*.jar'
         }
     }
 }
