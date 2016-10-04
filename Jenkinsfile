@@ -27,7 +27,13 @@ for (int i = 0; i < platforms.size(); ++i) {
                         'PATH+JDK=$JAVA_HOME/bin',
                     ]) {
                         timeout(30) {
-                            sh 'mvn clean install -Dmaven.test.failure.ignore=true'
+                            String command = 'mvn clean install -Dmaven.test.failure.ignore=true'
+                            if (isUnix()) {
+                                sh command
+                            }
+                            else {
+                                bat command
+                            }
                         }
                     }
                 }
