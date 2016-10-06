@@ -6,6 +6,25 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 2.62.1
+
+Release date: (Oct 7, 2016) => TBD
+
+Fixed issues:
+
+* [JENKINS-38539](https://issues.jenkins-ci.org/browse/JENKINS-38539) - 
+Stability: Turn on SO_KEEPALIVE and provide CLI option to turn it off again.
+(https://github.com/jenkinsci/remoting/pull/110)
+* [JENKINS-37539](https://issues.jenkins-ci.org/browse/JENKINS-37539) - 
+Prevent <code>NullPointerException</code> in <code>Engine#connect()</code> when host or port parameters are <code>null</code> or empty.
+(https://github.com/jenkinsci/remoting/pull/101)
+* [CID-152201] - 
+Fix resource leak in <code>remoting.jnlp.Main</code>.
+(https://github.com/jenkinsci/remoting/pull/102)
+* [CID-152200,CID-152202] - 
+Resource leak in Encryption Cipher I/O streams on exceptional paths.
+(https://github.com/jenkinsci/remoting/pull/104)
+
 ##### 2.62 
 
 Release date: (Aug 14, 2016) => TBD
