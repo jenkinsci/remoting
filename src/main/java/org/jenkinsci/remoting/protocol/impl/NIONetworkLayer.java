@@ -147,12 +147,12 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                             while (recv.hasRemaining()) {
                                 onRead(recv);
                             }
-                            if (in.isOpen() && recvKey.isValid()) {
-                                getIoHub().addInterestRead(recvKey);
-                            } else {
-                                recvKey.cancel();
-                                onRecvClosed();
-                            }
+                        }
+                        if (in.isOpen() && recvKey.isValid()) {
+                            getIoHub().addInterestRead(recvKey);
+                        } else {
+                            recvKey.cancel();
+                            onRecvClosed();
                         }
                     } catch (ClosedChannelException e) {
                         recvKey.cancel();
