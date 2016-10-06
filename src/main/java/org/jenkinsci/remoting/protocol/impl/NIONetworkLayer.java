@@ -123,6 +123,10 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
      */
     @Override
     public void ready(boolean accept, boolean connect, boolean read, boolean write) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, "{0} - entering ready({1}, {2}, {3}, {4})",
+                    new Object[] { Thread.currentThread().getName(), accept, connect, read, write });
+        }
         if (read) {
             ByteBuffer recv = acquire();
             recvLock.lock();
@@ -194,9 +198,18 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                     sendQueue.get(send);
                     sendHasRemaining = sendQueue.hasRemaining();
                 }
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST, "[{0}] sendHasRemaining - has remaining: {1}",
+                            new Object[] { Thread.currentThread().getName(), sendHasRemaining });
+                }
                 send.flip();
                 try {
-                    if (out.write(send) == -1) {
+                    final int sentBytes = out.write(send);
+                    if (LOGGER.isLoggable(Level.FINEST)) {
+                        LOGGER.log(Level.FINEST, "[{0}] sentBytes - sent {1} bytes",
+                                new Object[] { Thread.currentThread().getName(), sentBytes });
+                    }
+                    if (sentBytes == -1) {
                         sendKey.cancel();
                         return;
                     }
@@ -229,6 +242,9 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                 sendLock.unlock();
                 release(send);
             }
+        }
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, "{0} - leaving ready(...)", Thread.currentThread().getName());
         }
     }
 

@@ -292,6 +292,10 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void addInterestRead(SelectionKey key) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            // TODO probably want some more info about the key here...
+            LOGGER.log(Level.FINEST, "Scheduling adding OP_READ to {0}", key);
+        }
         interestOps.add(new InterestOps(key, SelectionKey.OP_READ, 0));
         selector.wakeup();
     }
@@ -302,6 +306,10 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void removeInterestRead(SelectionKey key) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            // TODO probably want some more info about the key here...
+            LOGGER.log(Level.FINEST, "Scheduling removing OP_READ to {0}", key);
+        }
         interestOps.add(new InterestOps(key, 0, SelectionKey.OP_READ));
         selector.wakeup();
     }
@@ -312,6 +320,10 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void addInterestWrite(SelectionKey key) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            // TODO probably want some more info about the key here...
+            LOGGER.log(Level.FINEST, "Scheduling adding OP_WRITE to {0}", key);
+        }
         interestOps.add(new InterestOps(key, SelectionKey.OP_WRITE, 0));
         selector.wakeup();
     }
@@ -322,6 +334,10 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param key the key.
      */
     public final void removeInterestWrite(SelectionKey key) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            // TODO probably want some more info about the key here...
+            LOGGER.log(Level.FINEST, "Scheduling removing OP_WRITE to {0}", key);
+        }
         interestOps.add(new InterestOps(key, 0, SelectionKey.OP_WRITE));
         selector.wakeup();
     }
@@ -480,7 +496,11 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * Process the scheduled tasks list.
      */
     private void processScheduledTasks() {
-        if (scheduledTasks.size() > 4) {
+        final int tasksWaiting = scheduledTasks.size();
+        if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, "{0} scheduled tasks to process", tasksWaiting);
+        }
+        if (tasksWaiting > 4) {
             // DelayQueue.drainTo is more efficient than repeated polling
             // but we don't want to create the ArrayList every time the selector loops
             List<DelayedRunnable> scheduledWork = new ArrayList<DelayedRunnable>();
@@ -690,6 +710,14 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             final String oldName = workerThread.getName();
             try {
                 workerThread.setName("IOHub#" + _id + ": Worker[channel:" + key.channel() + "] / " + oldName);
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    // TODO probably want some more info about the key here...
+                    LOGGER.log(Level.FINEST, "Calling listener.ready({0}, {1}, {2}, {3}) for channel {4}",
+                            new Object[] { (ops & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT,
+                                    (ops & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT,
+                                    (ops & SelectionKey.OP_READ) == SelectionKey.OP_READ,
+                                    (ops & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE, key.channel() });
+                }
                 listener.ready((ops & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT,
                         (ops & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT,
                         (ops & SelectionKey.OP_READ) == SelectionKey.OP_READ,
@@ -742,11 +770,17 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         }
 
         /**
-         * Returns the desired {@link SelectionKey#interestOps()}.
+         * Returns {@code true} if the desired {@link SelectionKey#interestOps()} was potentially updated.
+         * This method will generally return {@code false} only if the {@link SelectionKey} is no longer valid when the request runs.
          *
-         * @return the desired {@link SelectionKey#interestOps()}.
+         * @return {@code true} if the desired {@link SelectionKey#interestOps()} was potentially modified.
          */
         private boolean interestOps() {
+            if (LOGGER.isLoggable(Level.FINEST)) {
+                // TODO probably want some more info about the key here...
+                LOGGER.log(Level.FINEST, "updating interest ops &={0} |={1} on {2} with existing ops {3} on key {4}",
+                        new Object[] { opsAnd, opsOr, key.channel(), key.interestOps(), key });
+            }
             if (key.isValid()) {
                 key.interestOps((key.interestOps() & opsAnd) | opsOr);
                 return true;
