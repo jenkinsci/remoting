@@ -142,6 +142,13 @@ public class Engine extends Thread {
 
     private boolean noReconnect;
 
+    /**
+     * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
+     *
+     * @since TODO
+     */
+    private boolean keepAlive = true;
+
     private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
 
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
@@ -182,6 +189,24 @@ public class Engine extends Thread {
 
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;
+    }
+
+    /**
+     * Returns {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.
+     *
+     * @return {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.
+     */
+    public boolean isKeepAlive() {
+        return keepAlive;
+    }
+
+    /**
+     * Sets the {@link Socket#setKeepAlive(boolean)} to use for the connection to the master.
+     *
+     * @param keepAlive the {@link Socket#setKeepAlive(boolean)} to use for the connection to the master.
+     */
+    public void setKeepAlive(boolean keepAlive) {
+        this.keepAlive = keepAlive;
     }
 
     public void setCandidateCertificates(List<X509Certificate> candidateCertificates) {
@@ -464,7 +489,9 @@ public class Engine extends Thread {
         int retry = 1;
         while(true) {
             try {
-                return endpoint.open(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
+                final Socket s = endpoint.open(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
+                s.setKeepAlive(keepAlive);
+                return s;
             } catch (IOException e) {
                 if(retry++>10) {
                     throw e;

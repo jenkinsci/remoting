@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 2.62 
 
-Release date: (Aug 14, 2016) => TBD
+Release date: (Aug 14, 2016) => Jenkins 2.17, 2.19.1 LTS
 
 Fixed issues:
 * [JENKINS-22853](https://issues.jenkins-ci.org/browse/JENKINS-22853) - 

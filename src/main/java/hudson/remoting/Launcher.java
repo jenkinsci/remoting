@@ -206,6 +206,10 @@ public class Launcher {
     @Option(name="-noReconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
     public boolean noReconnect = false;
 
+    @Option(name = "-noKeepAlive",
+            usage = "Disable TCP socket keep alive on connection to the master.")
+    public boolean noKeepAlive = false;
+
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
@@ -248,6 +252,9 @@ public class Launcher {
             }
             if (this.noReconnect) {
                 jnlpArgs.add("-noreconnect");
+            }
+            if (this.noKeepAlive) {
+                jnlpArgs.add("-noKeepAlive");
             }
             if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
                 for (String c: candidateCertificates) {
