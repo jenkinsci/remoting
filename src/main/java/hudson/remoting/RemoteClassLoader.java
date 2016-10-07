@@ -33,6 +33,7 @@ import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.URLClassLoader;
 import java.security.AccessController;
+import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -108,14 +109,29 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     private final Map<String,ClassReference> prefetchedClasses = Collections.synchronizedMap(new HashMap<String,ClassReference>());
 
-    public static ClassLoader create(ClassLoader parent, IClassLoader proxy) {
+    public static ClassLoader create(final ClassLoader parent, final IClassLoader proxy) {
         if(proxy instanceof ClassLoaderProxy) {
             // when the remote sends 'RemoteIClassLoader' as the proxy, on this side we get it
             // as ClassLoaderProxy. This means, the so-called remote classloader here is
             // actually our classloader that we exported to the other side.
             return ((ClassLoaderProxy)proxy).cl;
         }
-        return new RemoteClassLoader(parent, proxy);
+
+        // Create new RemoteClassLoader otherwise
+        final RemoteClassLoader created;
+        try {
+            created = AccessController.doPrivileged(
+                    new PrivilegedExceptionAction<RemoteClassLoader>() {
+                        @Override
+                        public RemoteClassLoader run() throws Exception {
+                            return new RemoteClassLoader(parent, proxy);
+                        }
+                    });
+        } catch (PrivilegedActionException ex) {
+            LOGGER.log(SEVERE, "Cannot instantiate the Remote classloader", ex);
+            throw new IllegalStateException( "Cannot instantiate the Remote classloader", ex);
+        }
+        return created;
     }
 
     private RemoteClassLoader(ClassLoader parent, IClassLoader proxy) {
@@ -996,12 +1012,27 @@ final class RemoteClassLoader extends URLClassLoader {
          * any new classpath. In this way, we can effectively use this classloader as a representation
          * of the bootstrap classloader.
          */
-        private static final ClassLoader PSEUDO_BOOTSTRAP = new URLClassLoader(new URL[0],(ClassLoader)null) {
-            @Override
-            public String toString() {
-                return "PSEUDO_BOOTSTRAP";
+        private static final ClassLoader PSEUDO_BOOTSTRAP;
+
+        static {
+            try {
+                 PSEUDO_BOOTSTRAP = AccessController.doPrivileged(
+                        new PrivilegedExceptionAction<ClassLoader>() {
+                            @Override
+                            public ClassLoader run() throws Exception {
+                                return new URLClassLoader(new URL[0],(ClassLoader)null) {
+                                    @Override
+                                    public String toString() {
+                                        return "PSEUDO_BOOTSTRAP";
+                                    }
+                                };
+                            }
+                        });
+            } catch (PrivilegedActionException ex) {
+                LOGGER.log(SEVERE, "Cannot instantiate the Pseudo Bootstrap classloader", ex);
+                throw new IllegalStateException( "Cannot instantiate the Pseudo Bootstrap classloader", ex);
             }
-        };
+        }
     }
 
     /**
