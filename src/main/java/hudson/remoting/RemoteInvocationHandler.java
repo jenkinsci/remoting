@@ -52,6 +52,7 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.util.ReflectionUtils;
 
 /**
  * Sits behind a proxy object and implements the proxy logic.
@@ -884,7 +885,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 Method m = choose(clazz);
                 if(m==null)
                     throw new IllegalStateException("Unable to call " + methodName + ". No matching method found in " + Arrays.toString(clazz) + " for " + o);
-                m.setAccessible(true);  // in case the class is not public
+                ReflectionUtils.makeAccessible(m);
                 Object r;
                 try {
                     r = m.invoke(o, arguments);

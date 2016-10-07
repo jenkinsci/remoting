@@ -32,6 +32,8 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.URLClassLoader;
+import java.security.AccessController;
+import java.security.PrivilegedExceptionAction;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +48,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
+import org.jenkinsci.remoting.util.ReflectionUtils;
 
 import javax.annotation.CheckForNull;
 
@@ -327,7 +330,7 @@ final class RemoteClassLoader extends URLClassLoader {
     static {
         try {
             gCLL = ClassLoader.class.getDeclaredMethod("getClassLoadingLock", String.class);
-            gCLL.setAccessible(true);
+            ReflectionUtils.makeAccessible(gCLL);
         } catch (NoSuchMethodException x) {
             // OK, Java 6
         } catch (Exception x) {

@@ -45,14 +45,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.security.KeyManagementException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
+import java.security.*;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -76,6 +69,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -100,6 +94,7 @@ import org.jenkinsci.remoting.protocol.IOHubReadyListener;
 import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
 import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
 import org.jenkinsci.remoting.util.Charsets;
+import org.jenkinsci.remoting.util.ReflectionUtils;
 import org.jenkinsci.remoting.util.SettableFuture;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -358,14 +353,13 @@ public class HandlerLoopbackLoadStress {
         }
     }
 
+    @CheckForNull
     private static Method _getProcessCpuTime(OperatingSystemMXBean operatingSystemMXBean) {
         Method getProcessCpuTime;
         try {
             getProcessCpuTime = operatingSystemMXBean.getClass().getMethod("getProcessCpuTime");
-            getProcessCpuTime.setAccessible(true);
-        } catch (ClassCastException e) {
-            getProcessCpuTime = null;
-        } catch (NoSuchMethodException e) {
+            ReflectionUtils.makeAccessible(getProcessCpuTime);
+        } catch (ClassCastException | NoSuchMethodException | PrivilegedActionException e) {
             getProcessCpuTime = null;
         }
         return getProcessCpuTime;

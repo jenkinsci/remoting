@@ -1,5 +1,7 @@
 package org.jenkinsci.remoting.nio;
 
+import org.jenkinsci.remoting.util.ReflectionUtils;
+
 import java.io.FileInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -91,7 +93,7 @@ public class Main {
         while (true) {
             if (i instanceof FilterInputStream) {
                 Field $in = FilterInputStream.class.getDeclaredField("in");
-                $in.setAccessible(true);
+                ReflectionUtils.makeAccessible($in);
                 i = (InputStream)$in.get(i);
                 continue;
             }

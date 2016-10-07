@@ -28,6 +28,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.jenkinsci.remoting.util.ReflectionUtils;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsString;
@@ -200,7 +202,7 @@ public class ConnectionHeadersTest {
     @Test
     public void utilityClass_2() throws Exception {
         Constructor<ConnectionHeaders> constructor = ConnectionHeaders.class.getDeclaredConstructor();
-        constructor.setAccessible(true);
+        ReflectionUtils.makeAccessible(constructor);
         try {
             constructor.newInstance();
             fail();

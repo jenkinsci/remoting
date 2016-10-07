@@ -36,6 +36,7 @@ import javax.annotation.CheckForNull;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import org.jenkinsci.remoting.util.IOUtils;
+import org.jenkinsci.remoting.util.ReflectionUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -77,7 +78,6 @@ import java.net.InetSocketAddress;
 import java.net.HttpURLConnection;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
-import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -85,9 +85,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.security.cert.X509Certificate;
 import java.security.cert.CertificateException;
-import java.security.NoSuchAlgorithmException;
-import java.security.KeyManagementException;
-import java.security.SecureRandom;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -138,8 +135,8 @@ public class Launcher {
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader.")
     public void addClasspath(String pathList) throws Exception {
-        Method $addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-        $addURL.setAccessible(true);
+        final Method $addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+        ReflectionUtils.makeAccessible($addURL);
 
         for(String token : pathList.split(File.pathSeparator))
             $addURL.invoke(ClassLoader.getSystemClassLoader(),new File(token).toURI().toURL());

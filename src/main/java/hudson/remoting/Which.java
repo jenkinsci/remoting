@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.util.ReflectionUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +35,7 @@ import java.net.MalformedURLException;
 import java.net.URLConnection;
 import java.net.JarURLConnection;
 import java.lang.reflect.Field;
+import java.security.PrivilegedActionException;
 import java.util.zip.ZipFile;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
@@ -141,19 +144,25 @@ public class Which {
                 Object delegate = is;
                 while (delegate.getClass().getEnclosingClass()!=ZipFile.class) {
                     Field f = delegate.getClass().getDeclaredField("delegate");
-                    f.setAccessible(true);
+                    if (!ReflectionUtils.makeAccessibleOrLog(f, LOGGER, Level.FINE)) {
+                        continue;
+                    }
+
                     delegate = f.get(delegate);
                     //JENKINS-5922 - workaround for CertificateReaderInputStream; JBoss 5.0.0, EAP 5.0 and EAP 5.1
                     if(delegate.getClass().getName().equals("java.util.jar.JarVerifier$VerifierStream")){
                         f = delegate.getClass().getDeclaredField("is");
-                        f.setAccessible(true);
+                        if (!ReflectionUtils.makeAccessibleOrLog(f, LOGGER, Level.FINE)) {
+                            continue;
+                        }
                         delegate = f.get(delegate);
                     }
                 }
                 Field f = delegate.getClass().getDeclaredField("this$0");
-                f.setAccessible(true);
-                ZipFile zipFile = (ZipFile)f.get(delegate);
-                return new File(zipFile.getName());
+                if (ReflectionUtils.makeAccessibleOrLog(f, LOGGER, Level.FINE)) {
+                    ZipFile zipFile = (ZipFile)f.get(delegate);
+                    return new File(zipFile.getName());
+                } // Else fall through till alternative actions or exception
             } catch (NoSuchFieldException e) {
                 // something must have changed in JBoss5. fall through
                 LOGGER.log(Level.FINE, "Failed to resolve vfszip into a jar location",e);
@@ -201,8 +210,9 @@ public class Which {
                     // so this just keeps getting tricker and trickier...
                     try {
                         Field f = ZipFile.class.getDeclaredField("name");
-                        f.setAccessible(true);
-                        return new File((String) f.get(jarFile));
+                        if (ReflectionUtils.makeAccessibleOrLog(f, LOGGER, Level.FINE)) {
+                            return new File((String) f.get(jarFile));
+                        }
                     } catch (NoSuchFieldException e) {
                         LOGGER.log(Level.INFO, "Failed to obtain the local cache file name of "+resURL, e);
                     } catch (IllegalAccessException e) {

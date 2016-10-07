@@ -1,5 +1,7 @@
 package org.jenkinsci.remoting.nio;
 
+import org.jenkinsci.remoting.util.ReflectionUtils;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -20,6 +22,7 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.security.PrivilegedActionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,12 +50,12 @@ public class SelectableFileChannelFactory {
         if (i instanceof BufferedInputStream) {
             try {
                 Field $in = FilterInputStream.class.getDeclaredField("in");
-                $in.setAccessible(true);
+                ReflectionUtils.makeAccessible($in);
                 return unwrap((InputStream)$in.get(i));
             } catch (NoSuchFieldException e) {
                 warn(e);
                 return null;
-            } catch (IllegalAccessException e) {
+            } catch (IllegalAccessException | PrivilegedActionException e) {
                 warn(e);
                 return null;
             }
@@ -67,12 +70,12 @@ public class SelectableFileChannelFactory {
         if (i instanceof BufferedOutputStream) {
             try {
                 Field $in = FilterOutputStream.class.getDeclaredField("out");
-                $in.setAccessible(true);
+                ReflectionUtils.makeAccessible($in);
                 return unwrap((OutputStream)$in.get(i));
             } catch (NoSuchFieldException e) {
                 warn(e);
                 return null;
-            } catch (IllegalAccessException e) {
+            } catch (IllegalAccessException | PrivilegedActionException e) {
                 warn(e);
                 return null;
             }
@@ -111,11 +114,11 @@ public class SelectableFileChannelFactory {
                 FileDescriptor.class,
                 InetSocketAddress.class
             );
-            $c.setAccessible(true);
+            ReflectionUtils.makeAccessible($c);
 
             // increment the FileDescriptor use count since we are giving it to SocketChannel
             Method $m = fd.getClass().getDeclaredMethod("incrementAndGetUseCount");
-            $m.setAccessible(true);
+            ReflectionUtils.makeAccessible($m);
             $m.invoke(fd);
 
             return (SocketChannel)$c.newInstance(SelectorProvider.provider(), fd, null);
@@ -128,7 +131,7 @@ public class SelectableFileChannelFactory {
         } catch (ClassNotFoundException e) {
             warn(e);
             return null;
-        } catch (IllegalAccessException e) {
+        } catch (IllegalAccessException | PrivilegedActionException e) {
             warn(e);
             return null;
         } catch (InvocationTargetException e) {
