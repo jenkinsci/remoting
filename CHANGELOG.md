@@ -27,7 +27,7 @@ Resource leak in Encryption Cipher I/O streams on exceptional paths.
 
 ##### 2.62 
 
-Release date: (Aug 14, 2016) => TBD
+Release date: (Aug 14, 2016) => Jenkins 2.17, 2.19.1 LTS
 
 Fixed issues:
 * [JENKINS-22853](https://issues.jenkins-ci.org/browse/JENKINS-22853) - 
@@ -47,7 +47,7 @@ Performance: <code>ClassFilter</code> does not use Regular Expressions anymore t
 
 ##### 2.61
 
-Release date: (Aug 5, 2016) => Jenkins 2.17
+Release date: (Aug 5, 2016) => Jenkins 2.17, 2.19.1 LTS
 
 Fixed issues:
 * [JENKINS-37140](https://issues.jenkins-ci.org/browse/JENKINS-37140) - 
