@@ -86,7 +86,7 @@ public class ReflectionUtils {
         try {
             makeAccessible(object);
         } catch (PrivilegedActionException ex) {
-            logger.log(level, String.format("Cannot make the field {0} accessible", object), ex);
+            logger.log(level, String.format("Cannot make the field %s accessible", object), ex);
             return false;
         }
         return true;
