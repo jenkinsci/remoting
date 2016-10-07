@@ -124,35 +124,41 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
     @Override
     public void ready(boolean accept, boolean connect, boolean read, boolean write) {
         if (read) {
-            ByteBuffer recv = acquire();
             recvLock.lock();
             try {
                 if (in.isOpen()) {
+                    final boolean logFinest = LOGGER.isLoggable(Level.FINEST);
+                    ByteBuffer recv = acquire();
                     try {
+                        READ:
                         while (true) {
-                            recv.clear();
-                            int count = in.read(recv);
-                            if (count == -1) {
-                                onRecvClosed();
-                                break;
+                            switch (in.read(recv)) {
+                                case -1:
+                                    // don't cancel recvKey here, out may still be open & can share same selector key
+                                    onRecvClosed();
+                                    break READ;
+                                case 0:
+                                    // out of data
+                                    if (recvKey.isValid() && in.isOpen()) {
+                                        getIoHub().addInterestRead(recvKey);
+                                    } else {
+                                        recvKey.cancel();
+                                        onRecvClosed();
+                                    }
+                                    break READ;
+                                default:
+                                    recv.flip();
+                                    if (logFinest) {
+                                        LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes",
+                                                new Object[]{stack().name(), recv.remaining()});
+                                    }
+                                    while (recv.hasRemaining()) {
+                                        onRead(recv);
+                                    }
+                                    // it's always clear when we get from acquire, so clear again for re-use
+                                    recv.clear();
+                                    break;
                             }
-                            if (count == 0 && recv.position() == 0) {
-                                break;
-                            }
-                            recv.flip();
-                            if (LOGGER.isLoggable(Level.FINEST)) {
-                                LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes",
-                                        new Object[]{stack().name(), recv.remaining()});
-                            }
-                            while (recv.hasRemaining()) {
-                                onRead(recv);
-                            }
-                        }
-                        if (in.isOpen() && recvKey.isValid()) {
-                            getIoHub().addInterestRead(recvKey);
-                        } else {
-                            recvKey.cancel();
-                            onRecvClosed();
                         }
                     } catch (ClosedChannelException e) {
                         recvKey.cancel();
@@ -176,13 +182,15 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                         }
                         recvKey.cancel();
                         onRecvClosed();
+                    } finally {
+                        release(recv);
                     }
                 } else {
+                    // don't cancel recvKey here, out may still be open & can share same selector key
                     onRecvClosed();
                 }
             } finally {
                 recvLock.unlock();
-                release(recv);
             }
         }
         if (write && out.isOpen()) {
