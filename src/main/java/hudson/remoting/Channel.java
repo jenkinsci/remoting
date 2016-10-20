@@ -45,6 +45,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Map;
@@ -204,7 +205,31 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     private final Vector<Listener> listeners = new Vector<Listener>();
     private int gcCounter;
+
+    /**
+     * Number of {@link Command} objects sent to the other side.
+     */
     private int commandsSent;
+
+    /**
+     * Number of {@link Command} objects received from the other side.
+     *
+     * When a transport is functioning correctly, {@link #commandsSent} of one side
+     * and {@link #commandsReceived} of the other side should closely match.
+     */
+    private int commandsReceived;
+
+    /**
+     * Timestamp of the last {@link Command} object sent/received, in
+     * {@link System#currentTimeMillis()} format.
+     */
+    private long lastCommandSent, lastCommandReceived;
+
+    /**
+     * Timestamp of when this channel was connected/created, in
+     * {@link System#currentTimeMillis()} format.
+     */
+    private final long createdAt = System.currentTimeMillis();
 
     /**
      * Total number of nanoseconds spent for remote class loading.
@@ -494,6 +519,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
+                commandsReceived++;
+                lastCommandReceived = System.currentTimeMillis();
                 updateLastHeard();
                 if (logger.isLoggable(Level.FINE))
                     logger.fine("Received " + cmd);
@@ -509,6 +536,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 Channel.this.terminate(e);
             }
         });
+        ACTIVE_CHANNELS.put(this,ref());
     }
 
     /**
@@ -581,6 +609,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         transport.write(cmd, cmd instanceof CloseCommand);
         commandsSent++;
+        lastCommandSent = System.currentTimeMillis();
     }
 
     /**
@@ -1149,6 +1178,20 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
+     * Print the diagnostic information.
+     */
+    public void dumpDiagnostics(PrintWriter w) throws IOException {
+        w.printf("Channel %s%n",name);
+        w.printf("  Created=%s%n", new Date(createdAt));
+        w.printf("  Commands sent=%d%n", commandsSent);
+        w.printf("  Commands received=%d%n", commandsReceived);
+        w.printf("  Last command sent=%s%n", new Date(lastCommandSent));
+        w.printf("  Last command received=%s%n", new Date(lastCommandReceived));
+        w.printf("  Pending outgoing calls=%d%n", pendingCalls.size());
+        w.printf("  Pending incoming calls=%d%n", pendingCalls.size());
+    }
+
+    /**
      * {@inheritDoc}
      */
     public synchronized void close() throws IOException {
@@ -1499,6 +1542,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
+     * Calls {@link #dumpDiagnostics(PrintWriter)} across all the active channels in this system.
+     * Used for diagnostics.
+     */
+    public static void dumpDiagnosticsForAll(PrintWriter w) throws IOException {
+        for (Ref ref : ACTIVE_CHANNELS.values()) {
+            Channel ch = ref.channel();
+            if (ch!=null)
+                ch.dumpDiagnostics(w);
+        }
+    }
+
+    /**
      * Remembers the current "channel" associated for this thread.
      */
     private static final ThreadLocal<Channel> CURRENT = new ThreadLocal<Channel>();
@@ -1521,6 +1576,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @see PipeWindow
      */
     public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",1024*1024);
+
+    /**
+     * Keep track of active channels in the system for diagnostics purposes.
+     */
+    private static final Map<Channel,Ref> ACTIVE_CHANNELS = Collections.synchronizedMap(new WeakHashMap<Channel, Ref>());
 
     static final Class jarLoaderProxy;
 
