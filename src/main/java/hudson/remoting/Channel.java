@@ -223,6 +223,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Timestamp of the last {@link Command} object sent/received, in
      * {@link System#currentTimeMillis()} format.
+     * This can be used as a basis for detecting dead connections.
+     *
+     * <p>
+     * Note that {@link #lastCommandSentAt} doesn't mean
+     * anything in terms of whether the underlying network was able to send
+     * the data (for example, if the other end of a socket connection goes down
+     * without telling us anything, the {@link SocketOutputStream#write(int)} will
+     * return right away, and the socket only really times out after 10s of minutes.
      */
     private long lastCommandSentAt, lastCommandReceivedAt;
 
@@ -291,19 +299,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Capability of the remote {@link Channel}.
      */
     public final Capability remoteCapability;
-
-    /**
-     * When did we receive any data from this slave the last time?
-     * This can be used as a basis for detecting dead connections.
-     * <p>
-     * Note that this doesn't include our sender side of the operation,
-     * as successfully returning from {@link #send(Command)} doesn't mean
-     * anything in terms of whether the underlying network was able to send
-     * the data (for example, if the other end of a socket connection goes down
-     * without telling us anything, the {@link SocketOutputStream#write(int)} will
-     * return right away, and the socket only really times out after 10s of minutes.
-     */
-    private volatile long lastHeard;
 
     /**
      * Single-thread executor for running pipe I/O operations.
@@ -522,7 +517,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             public void handle(Command cmd) {
                 commandsReceived++;
                 lastCommandReceivedAt = System.currentTimeMillis();
-                updateLastHeard();
                 if (logger.isLoggable(Level.FINE))
                     logger.fine("Received " + cmd);
                 try {
@@ -1563,12 +1557,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public long getLastHeard() {
         // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
-        return lastHeard;
-    }
-
-    private void updateLastHeard() {
-        // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
-        lastHeard = System.currentTimeMillis();
+        return lastCommandReceivedAt;
     }
 
     /*package*/ static Channel setCurrent(Channel channel) {
