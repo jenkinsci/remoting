@@ -224,7 +224,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Timestamp of the last {@link Command} object sent/received, in
      * {@link System#currentTimeMillis()} format.
      */
-    private long lastCommandSent, lastCommandReceived;
+    private long lastCommandSentAt, lastCommandReceivedAt;
 
     /**
      * Timestamp of when this channel was connected/created, in
@@ -521,7 +521,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
                 commandsReceived++;
-                lastCommandReceived = System.currentTimeMillis();
+                lastCommandReceivedAt = System.currentTimeMillis();
                 updateLastHeard();
                 if (logger.isLoggable(Level.FINE))
                     logger.fine("Received " + cmd);
@@ -610,7 +610,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         transport.write(cmd, cmd instanceof CloseCommand);
         commandsSent++;
-        lastCommandSent = System.currentTimeMillis();
+        lastCommandSentAt = System.currentTimeMillis();
     }
 
     /**
@@ -1209,12 +1209,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * <dt>Last command sent
      * <dd>
      * The timestamp in which the last command was sent to the other side. The timestamp in which
-     * {@link #lastCommandSent} was updated.
+     * {@link #lastCommandSentAt} was updated.
      *
      * <dt>Last command received
      * <dd>
      * The timestamp in which the last command was sent to the other side. The timestamp in which
-     * {@link #lastCommandReceived} was updated.
+     * {@link #lastCommandReceivedAt} was updated.
      *
      * <dt>Pending outgoing calls
      * <dd>
@@ -1237,8 +1237,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         w.printf("  Created=%s%n", new Date(createdAt));
         w.printf("  Commands sent=%d%n", commandsSent);
         w.printf("  Commands received=%d%n", commandsReceived);
-        w.printf("  Last command sent=%s%n", new Date(lastCommandSent));
-        w.printf("  Last command received=%s%n", new Date(lastCommandReceived));
+        w.printf("  Last command sent=%s%n", new Date(lastCommandSentAt));
+        w.printf("  Last command received=%s%n", new Date(lastCommandReceivedAt));
         w.printf("  Pending outgoing calls=%d%n", pendingCalls.size());
         w.printf("  Pending incoming calls=%d%n", pendingCalls.size());
     }
