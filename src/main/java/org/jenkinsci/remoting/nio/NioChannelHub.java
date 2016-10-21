@@ -472,7 +472,7 @@ public class NioChannelHub implements Runnable, Closeable {
             protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
-                if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking()) {
+                if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking() && !DISABLE_NIO) {
                     try {
                         // run() might be called asynchronously from another thread, so wait until that gets going
                         // if you see the execution hanging here forever, that means you forgot to call run()
@@ -492,9 +492,9 @@ public class NioChannelHub implements Runnable, Closeable {
                     else            t = new DualNioTransport(getName(),r,w,cap);
                     t.scheduleReregister();
                     return t;
-                }
-                else
+                } else {
                     return super.makeTransport(is, os, mode, cap);
+                }
             }
         };
     }
@@ -699,4 +699,15 @@ public class NioChannelHub implements Runnable, Closeable {
     }
 
     private static final Logger LOGGER = Logger.getLogger(NioChannelHub.class.getName());
+
+    /**
+     * Escape hatch to disable NIO-based remoting.
+     *
+     * @since 2.26.3
+     * @deprecated
+     *      This field is a debug switch and not a part of the committed interface of this library,
+     *      but needs to be public and mutable for example so that it can be set from script console.
+     *      Subject to change without notice. Do not rely on this from application code.
+     */
+    public static boolean DISABLE_NIO = Boolean.getBoolean(NioChannelHub.class.getName()+".disabled");
 }
