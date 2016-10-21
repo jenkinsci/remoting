@@ -10,14 +10,49 @@ It includes: TCP-based communication protocols, data serialization, Java classlo
 
 The library is reusable outside Jenkins.
 
+### Remoting versions
+
+Currently there are two supported baselines of Remoting.
+
+#### Remoting 3
+
+Remoting 3 is a new baseline introduced in Jenkins 2.27.
+
+Major changes:
+
+* Java 7 is a new target JVM, the new remoting version is not guaranteed to work properly on Java 9 and versions below Java 7
+* <code>JNLP4-connect</code> and <code>JNLP4-plaintext</code>  protocols, which offers a high-performance communication layer
+
+Remoting 3 does not have full binary compatibity with Remoting <code>2</code> (see [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)).
+
+#### Remoting 2
+
+Remoting 2 is a version, which was used in Jenkins till the <code>2.27</code> release. 
+It is not being offered in new releases.
+
+Maintenance approach:
+
+* The version will be maintained till May at least 2017
+* New releases may include bugfixes, security fixes and performance enhancements
+* There is no plans to introduce new features in <code>remoting-2.x</code>
+
 ### Documentation
 
 Remoting documentation is under development.
 More info will appear soon.
 Feel free to contribute.
 
+User documentation:
+
 * [Changelog](CHANGELOG.md)
-* [Remoting Configuration](docs/configuration.md)
+* [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)
+* [Remoting Protocols](docs/protocols.md) - Overview of protocols integrated with Jenkins
+* [Remoting Configuration](docs/configuration.md) - Configuring remoting agents
+* [Jenkins Specifics](docs/jenkins-specifics.md) - Notes on using remoting in Jenkins
+
+Developer documentation:
+
+* [Contributing](CONTRIBUTING.md)
 * [Channel Termination Process](docs/close.md)
 
 ### Reporting issues
