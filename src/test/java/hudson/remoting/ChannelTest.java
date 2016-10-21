@@ -166,6 +166,7 @@ public class ChannelTest extends RmiTestBase {
         }
     }
 
+    @Bug(39150)
     public void testDiagnostics() throws Exception {
         StringWriter sw = new StringWriter();
         Channel.dumpDiagnosticsForAll(new PrintWriter(sw));
