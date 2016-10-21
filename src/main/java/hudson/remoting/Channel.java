@@ -1225,6 +1225,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * The reverse of "pending outgoing calls".
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that the other side has made to us but not yet returned yet.
+     *
+     * @since 2.26.3
      */
     public void dumpDiagnostics(PrintWriter w) throws IOException {
         w.printf("Channel %s%n",name);
@@ -1585,6 +1587,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Calls {@link #dumpDiagnostics(PrintWriter)} across all the active channels in this system.
      * Used for diagnostics.
+     *
+     * @since 2.26.3
      */
     public static void dumpDiagnosticsForAll(PrintWriter w) throws IOException {
         for (Ref ref : ACTIVE_CHANNELS.values().toArray(new Ref[0])) {
