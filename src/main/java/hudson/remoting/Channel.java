@@ -1587,7 +1587,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Used for diagnostics.
      */
     public static void dumpDiagnosticsForAll(PrintWriter w) throws IOException {
-        for (Ref ref : ACTIVE_CHANNELS.values()) {
+        for (Ref ref : ACTIVE_CHANNELS.values().toArray(new Ref[0])) {
             Channel ch = ref.channel();
             if (ch!=null)
                 ch.dumpDiagnostics(w);
