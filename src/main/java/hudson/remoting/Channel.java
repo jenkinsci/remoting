@@ -32,6 +32,7 @@ import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
 import org.jenkinsci.remoting.CallableDecorator;
 import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.nio.NioChannelHub;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -1179,6 +1180,57 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Print the diagnostic information.
+     *
+     * <p>
+     * Here's how you interpret these metrics:
+     *
+     * <dl>
+     * <dt>Created
+     * <dd>
+     * When the channel was created, which is more or less the same thing as when the channel is connected.
+     *
+     * <dt>Commands sent
+     * <dd>
+     * Number of {@link Command} objects sent to the other side. More specifically, number of commands
+     * successfully passed to {@link #transport}, which means data was written to socket with
+     * {@link ClassicCommandTransport} but just buffered for write with {@link NioChannelHub}.
+     *
+     * If you have access to the remoting diagnostics
+     * of the other side of the channel, then you can compare this with "commandsReceived" metrics of the other
+     * side to see how many commands are in transit in transport. If {@code commandsSent==commandsReceived},
+     * then no command is in transit.
+     *
+     * <dt>Commands received
+     * <dd>
+     * Number of {@link Command} objects received from the other side. More precisely, number
+     * of commands reported from {@link #transport}. So for example, if data is still buffered somewhere
+     * in the networking stack, it won't be counted here.
+     *
+     * <dt>Last command sent
+     * <dd>
+     * The timestamp in which the last command was sent to the other side. The timestamp in which
+     * {@link #lastCommandSent} was updated.
+     *
+     * <dt>Last command received
+     * <dd>
+     * The timestamp in which the last command was sent to the other side. The timestamp in which
+     * {@link #lastCommandReceived} was updated.
+     *
+     * <dt>Pending outgoing calls
+     * <dd>
+     * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
+     * that are made but not returned yet. If you have the remoting diagnostics of the other side, you
+     * can compare this number with "pending incoming calls" on the other side to see how many RPC
+     * calls are executing vs in flight. "one side's incoming calls" < "the other side's outgoing calls"
+     * indicates some RPC requests or responses are passing through the network layer, and mismatch
+     * between "# of commands sent" vs "# of commands received" can give some indication of whether
+     * it is request or response that's in flight.
+     *
+     * <dt>Pending incoming calls
+     * <dd>
+     * The reverse of "pending outgoing calls".
+     * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
+     * that the other side has made to us but not yet returned yet.
      */
     public void dumpDiagnostics(PrintWriter w) throws IOException {
         w.printf("Channel %s%n",name);
