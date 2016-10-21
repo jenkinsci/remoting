@@ -232,7 +232,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * without telling us anything, the {@link SocketOutputStream#write(int)} will
      * return right away, and the socket only really times out after 10s of minutes.
      */
-    private long lastCommandSentAt, lastCommandReceivedAt;
+    private volatile long lastCommandSentAt, lastCommandReceivedAt;
 
     /**
      * Timestamp of when this channel was connected/created, in
