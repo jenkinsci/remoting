@@ -32,6 +32,7 @@ import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
 import org.jenkinsci.remoting.CallableDecorator;
 import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.nio.NioChannelHub;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -45,6 +46,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Map;
@@ -204,7 +206,39 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     private final Vector<Listener> listeners = new Vector<Listener>();
     private int gcCounter;
+
+    /**
+     * Number of {@link Command} objects sent to the other side.
+     */
     private int commandsSent;
+
+    /**
+     * Number of {@link Command} objects received from the other side.
+     *
+     * When a transport is functioning correctly, {@link #commandsSent} of one side
+     * and {@link #commandsReceived} of the other side should closely match.
+     */
+    private int commandsReceived;
+
+    /**
+     * Timestamp of the last {@link Command} object sent/received, in
+     * {@link System#currentTimeMillis()} format.
+     * This can be used as a basis for detecting dead connections.
+     *
+     * <p>
+     * Note that {@link #lastCommandSentAt} doesn't mean
+     * anything in terms of whether the underlying network was able to send
+     * the data (for example, if the other end of a socket connection goes down
+     * without telling us anything, the {@link SocketOutputStream#write(int)} will
+     * return right away, and the socket only really times out after 10s of minutes.
+     */
+    private volatile long lastCommandSentAt, lastCommandReceivedAt;
+
+    /**
+     * Timestamp of when this channel was connected/created, in
+     * {@link System#currentTimeMillis()} format.
+     */
+    private final long createdAt = System.currentTimeMillis();
 
     /**
      * Total number of nanoseconds spent for remote class loading.
@@ -265,19 +299,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Capability of the remote {@link Channel}.
      */
     public final Capability remoteCapability;
-
-    /**
-     * When did we receive any data from this slave the last time?
-     * This can be used as a basis for detecting dead connections.
-     * <p>
-     * Note that this doesn't include our sender side of the operation,
-     * as successfully returning from {@link #send(Command)} doesn't mean
-     * anything in terms of whether the underlying network was able to send
-     * the data (for example, if the other end of a socket connection goes down
-     * without telling us anything, the {@link SocketOutputStream#write(int)} will
-     * return right away, and the socket only really times out after 10s of minutes.
-     */
-    private volatile long lastHeard;
 
     /**
      * Single-thread executor for running pipe I/O operations.
@@ -494,7 +515,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
-                updateLastHeard();
+                commandsReceived++;
+                lastCommandReceivedAt = System.currentTimeMillis();
                 if (logger.isLoggable(Level.FINE))
                     logger.fine("Received " + cmd);
                 try {
@@ -509,6 +531,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 Channel.this.terminate(e);
             }
         });
+        ACTIVE_CHANNELS.put(this,ref());
     }
 
     /**
@@ -581,6 +604,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         transport.write(cmd, cmd instanceof CloseCommand);
         commandsSent++;
+        lastCommandSentAt = System.currentTimeMillis();
     }
 
     /**
@@ -1147,6 +1171,73 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
+     * Print the diagnostic information.
+     *
+     * <p>
+     * Here's how you interpret these metrics:
+     *
+     * <dl>
+     * <dt>Created
+     * <dd>
+     * When the channel was created, which is more or less the same thing as when the channel is connected.
+     *
+     * <dt>Commands sent
+     * <dd>
+     * Number of {@link Command} objects sent to the other side. More specifically, number of commands
+     * successfully passed to {@link #transport}, which means data was written to socket with
+     * {@link ClassicCommandTransport} but just buffered for write with {@link NioChannelHub}.
+     *
+     * If you have access to the remoting diagnostics
+     * of the other side of the channel, then you can compare this with "commandsReceived" metrics of the other
+     * side to see how many commands are in transit in transport. If {@code commandsSent==commandsReceived},
+     * then no command is in transit.
+     *
+     * <dt>Commands received
+     * <dd>
+     * Number of {@link Command} objects received from the other side. More precisely, number
+     * of commands reported from {@link #transport}. So for example, if data is still buffered somewhere
+     * in the networking stack, it won't be counted here.
+     *
+     * <dt>Last command sent
+     * <dd>
+     * The timestamp in which the last command was sent to the other side. The timestamp in which
+     * {@link #lastCommandSentAt} was updated.
+     *
+     * <dt>Last command received
+     * <dd>
+     * The timestamp in which the last command was sent to the other side. The timestamp in which
+     * {@link #lastCommandReceivedAt} was updated.
+     *
+     * <dt>Pending outgoing calls
+     * <dd>
+     * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
+     * that are made but not returned yet. If you have the remoting diagnostics of the other side, you
+     * can compare this number with "pending incoming calls" on the other side to see how many RPC
+     * calls are executing vs in flight. "one side's incoming calls" < "the other side's outgoing calls"
+     * indicates some RPC requests or responses are passing through the network layer, and mismatch
+     * between "# of commands sent" vs "# of commands received" can give some indication of whether
+     * it is request or response that's in flight.
+     *
+     * <dt>Pending incoming calls
+     * <dd>
+     * The reverse of "pending outgoing calls".
+     * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
+     * that the other side has made to us but not yet returned yet.
+     *
+     * @since 2.26.3
+     */
+    public void dumpDiagnostics(PrintWriter w) throws IOException {
+        w.printf("Channel %s%n",name);
+        w.printf("  Created=%s%n", new Date(createdAt));
+        w.printf("  Commands sent=%d%n", commandsSent);
+        w.printf("  Commands received=%d%n", commandsReceived);
+        w.printf("  Last command sent=%s%n", new Date(lastCommandSentAt));
+        w.printf("  Last command received=%s%n", new Date(lastCommandReceivedAt));
+        w.printf("  Pending outgoing calls=%d%n", pendingCalls.size());
+        w.printf("  Pending incoming calls=%d%n", pendingCalls.size());
+    }
+
+    /**
      * {@inheritDoc}
      */
     public synchronized void close() throws IOException {
@@ -1470,12 +1561,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public long getLastHeard() {
         // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
-        return lastHeard;
-    }
-
-    private void updateLastHeard() {
-        // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
-        lastHeard = System.currentTimeMillis();
+        return lastCommandReceivedAt;
     }
 
     /*package*/ static Channel setCurrent(Channel channel) {
@@ -1501,6 +1587,20 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
+     * Calls {@link #dumpDiagnostics(PrintWriter)} across all the active channels in this system.
+     * Used for diagnostics.
+     *
+     * @since 2.26.3
+     */
+    public static void dumpDiagnosticsForAll(PrintWriter w) throws IOException {
+        for (Ref ref : ACTIVE_CHANNELS.values().toArray(new Ref[0])) {
+            Channel ch = ref.channel();
+            if (ch!=null)
+                ch.dumpDiagnostics(w);
+        }
+    }
+
+    /**
      * Remembers the current "channel" associated for this thread.
      */
     private static final ThreadLocal<Channel> CURRENT = new ThreadLocal<Channel>();
@@ -1523,6 +1623,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @see PipeWindow
      */
     public static final int PIPE_WINDOW_SIZE = Integer.getInteger(Channel.class.getName()+".pipeWindowSize",1024*1024);
+
+    /**
+     * Keep track of active channels in the system for diagnostics purposes.
+     */
+    private static final Map<Channel,Ref> ACTIVE_CHANNELS = Collections.synchronizedMap(new WeakHashMap<Channel, Ref>());
 
     static final Class jarLoaderProxy;
 

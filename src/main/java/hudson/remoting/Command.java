@@ -31,6 +31,8 @@ import java.util.concurrent.ExecutionException;
 
 /**
  * One-way command to be sent over to the remote system and executed there.
+ * This is the smallest unit of message in remoting from one side to another,
+ * such as "please execute this method" or "here's the return value from an earlier method call".
  * This is layer 0, the lower most layer.
  *
  * <p>
