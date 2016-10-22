@@ -21,7 +21,7 @@ Remoting 3 is a new baseline introduced in Jenkins 2.27.
 Major changes:
 
 * Java 7 is a new target JVM, the new remoting version is not guaranteed to work properly on Java 9 and versions below Java 7
-* <code>JNLP4-connect</code> and <code>JNLP4-plaintext</code>  protocols, which offers a high-performance communication layer
+* <code>JNLP4-connect</code> and <code>JNLP4-plaintext</code>  protocols, which offer a high-performance communication layer
 
 Remoting 3 does not have full binary compatibity with Remoting <code>2</code> (see [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)).
 
@@ -49,6 +49,7 @@ User documentation:
 * [Remoting Protocols](docs/protocols.md) - Overview of protocols integrated with Jenkins
 * [Remoting Configuration](docs/configuration.md) - Configuring remoting agents
 * [Jenkins Specifics](docs/jenkins-specifics.md) - Notes on using remoting in Jenkins
+* [Troubleshooting](docs/troubleshooting.md) - Investigating and solving common remoting issues
 
 Developer documentation:
 
