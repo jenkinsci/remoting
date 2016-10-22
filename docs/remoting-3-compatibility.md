@@ -7,14 +7,14 @@ It addresses binary compatibility and also functional compatibility with old rem
 ## Establishing connection between Remoting 2.x and 3.x
 
 Remoting 3 library still contains <code>JNLP1-connect</code>, <code>JNLP2-connect</code> 
-  and <code>JNLP3-connect</code> [protocols](docs/protocols.md). 
+  and <code>JNLP3-connect</code> [protocols](protocols.md). 
 When any of these protocols is enabled on both sides, 
   remoting versions will be able to establish connection between each other.
 This is a **default** behavior.
 
 If <code>JNLP4-connect</code> is the only enabled protocol on one of the sides, 
   Remoting <code>2.x</code> and <code>3.x</code> versions will be unable to establish the connection between each other.
-It may happen only in the case of the custom configuration via [system properties](docs/configuration.md).
+It may happen only in the case of the custom configuration via [system properties](configuration.md).
 
 ## Java compatibility
 
