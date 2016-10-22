@@ -53,12 +53,14 @@ Protocol uses non-blocking I/O wherever possible which removes the performance b
 ### JNLP4-plaintext
 
 * Introduced in: Remoting 3.0, [JENKINS-36871](https://issues.jenkins-ci.org/browse/JENKINS-36871)
-* Use with caution
+* For performance testing **only**, not supported for other purposes
+* Cannot be used in Jenkins
 
-The protocol is similar to <code>JNLP4-plaintext</code>, 
+This protocol was developed to allow for like for like performance comparison 
+  between the original NIO engine used by <code>JNLP2-connect</code> and the new NIO engine 
+  used by <connect>JNLP4-connect</code>. 
+
+The protocol is similar to <code>JNLP4-connect</code>, 
   but it does not setup the TLS encryption between agent and master.
-In particular cases it may expose the secret data.
-
-On the other had, the protocol allows to get extra performance in the case when the remoting layer does not need its own encryption   
-  (e.g. when the connection goes within a secured VPN).
+As this protocol is plaintext it is not for use outside of like for like performance testing.
 

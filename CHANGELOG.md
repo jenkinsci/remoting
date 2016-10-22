@@ -16,7 +16,7 @@ See (see [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)) for
 Enhancements:
 
 * [JENKINS-36871](https://issues.jenkins-ci.org/browse/JENKINS-36871) - 
-<code>JNLP4-connect</code> and <code>JNLP4-plaintext</code>  protocols, which Java improves performance and stability compared to the JNLP3 protocol.
+New <code>JNLP4-connect</code> protocol, which improves performance and stability compared to the JNLP3 protocol.
 (https://github.com/jenkinsci/remoting/pull/92)
 * [JENKINS-37565](https://issues.jenkins-ci.org/browse/JENKINS-37565) - 
 Update the required Java version to Java 7, Java 6 is not supported anymore.
