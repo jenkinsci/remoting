@@ -1,7 +1,7 @@
 Remoting 3 Compatibility Notes
 =====
 
-This page describes compatibility of the remoting 3 library. 
+This page describes compatibility of the Remoting 3 library. 
 It addresses binary compatibility and also functional compatibility with old remoting and Java versions.
 
 ## Establishing connection between Remoting 2.x and 3.x
@@ -43,7 +43,7 @@ Protocol class hierarchy change:
 * `JnlpProtocol` / `JnlpProtocol1` / `JnlpProtocol2` / `JnlpProtocol3` classes were removed.
   Their functionality has been moved to the <code>JnlpProtocolHandler</code> class and its subclasses.  
 * <code>JnlpServerHandshake</code> class and all its subclasses have been removed from the library
-* Several debendent internal classes have been removed or modified
+* Several dependent internal classes have been removed or modified
 
 The only **known** usage of the classes was in the Jenkins core,
   the incompatibility is fixed in the [pull-request #2492](https://github.com/jenkinsci/jenkins/pull/2492).
