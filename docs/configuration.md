@@ -83,12 +83,15 @@ These properties require independent configuration on both sides of the channel.
       </td>
     </tr>
     <tr>
-      <td>${PROTOCOL_CLASS_NAME}.disabled</td>
+      <td>${PROTOCOL_FULLY_QUALIFIED_NAME}.disabled, 
+      where PROTOCOL_FULLY_QUALIFIED_NAME equals 
+      <code>PROTOCOL_HANDLER_CLASSNAME</code> without the <code>Handler</code> suffix.</td>,
       <td>false</td>
       <td>2.59</td>
       <td>2.4</td>
       <td><a href="https://issues.jenkins-ci.org/browse/JENKINS-34819">JENKINS-34819</a></td>
-      <td>Boolean flag, which allows disabling particular protocols in remoting.
+      <td>Boolean flag, which allows disabling particular protocols in remoting. 
+      <br/><br/>
       Property example: <code>org.jenkinsci.remoting.engine.JnlpProtocol3.disabled</code>
       </td>
     </tr>
