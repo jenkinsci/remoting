@@ -60,6 +60,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -1172,6 +1174,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         w.printf(Locale.ENGLISH, "Resource loading time=%,dms%n", resourceLoadingTime.get() / (1000 * 1000));
     }
 
+    //TODO: Make public after merge into the master branch
     /**
      * Print the diagnostic information.
      *
@@ -1226,8 +1229,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that the other side has made to us but not yet returned yet.
      *
-     * @since 2.26.3
+     * @since 2.62.3 - stable 2.x (restricted)
+     * @since TODO 3.x - public version 
      */
+    @Restricted(NoExternalUse.class)
     public void dumpDiagnostics(PrintWriter w) throws IOException {
         w.printf("Channel %s%n",name);
         w.printf("  Created=%s%n", new Date(createdAt));
@@ -1584,17 +1589,22 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return CURRENT.get();
     }
 
+    // TODO: Unrestrict after the merge into the master.
+    // By now one may use it via the reflection logic only
     /**
      * Calls {@link #dumpDiagnostics(PrintWriter)} across all the active channels in this system.
      * Used for diagnostics.
      *
-     * @since 2.26.3
+     * @since 2.62.3 - stable 2.x (restricted)
+     * @since TODO 3.x - public version 
      */
+    @Restricted(NoExternalUse.class)
     public static void dumpDiagnosticsForAll(PrintWriter w) throws IOException {
         for (Ref ref : ACTIVE_CHANNELS.values().toArray(new Ref[0])) {
             Channel ch = ref.channel();
-            if (ch!=null)
+            if (ch!=null) {
                 ch.dumpDiagnostics(w);
+            }
         }
     }
 
