@@ -1605,8 +1605,21 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     @Restricted(NoExternalUse.class)
     public static void dumpDiagnosticsForAll(@Nonnull PrintWriter w) {
-        for (Ref ref : ACTIVE_CHANNELS.values().toArray(new Ref[0])) {
-            Channel ch = ref.channel();
+        final Ref[] channels = ACTIVE_CHANNELS.values().toArray(new Ref[0]);
+        int processedCount = 0;
+        for (Ref ref : channels) {
+            // Check if we can still write the output
+            if (w.checkError()) {
+                logger.log(Level.WARNING, 
+                        String.format("Cannot dump diagnostics for all channels, because output stream encontered an error. "
+                                + "Processed %d of %d channels, first unprocessed channel reference is %s.",
+                                processedCount, channels.length, ref
+                        )); 
+                break;
+            }
+            
+            // Dump channel info if the reference still points to it
+            final Channel ch = ref.channel();
             if (ch != null) {
                 try {
                     ch.dumpDiagnostics(w);
@@ -1614,10 +1627,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                     if (ex instanceof Error) {
                         throw (Error)ex;
                     }
+                    w.printf("Cannot dump diagnostics for the channel %s. %s. See Error stacktrace in system logs", 
+                            ch.getName(), ex.getMessage());
                     logger.log(Level.WARNING, 
                             String.format("Cannot dump diagnostics for the channel %s", ch.getName()), ex);
                 }
             }
+            processedCount++;
         }
     }
 
