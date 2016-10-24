@@ -212,7 +212,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Number of {@link Command} objects sent to the other side.
      */
-    private int commandsSent;
+    private volatile long commandsSent;
 
     /**
      * Number of {@link Command} objects received from the other side.
@@ -220,7 +220,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * When a transport is functioning correctly, {@link #commandsSent} of one side
      * and {@link #commandsReceived} of the other side should closely match.
      */
-    private int commandsReceived;
+    private volatile long commandsReceived;
 
     /**
      * Timestamp of the last {@link Command} object sent/received, in
