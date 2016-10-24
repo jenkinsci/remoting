@@ -1229,11 +1229,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that the other side has made to us but not yet returned yet.
      *
+     * @param w Output destination
+     * @throws IOException Error while creating or writing the channel information
+     * 
      * @since 2.62.3 - stable 2.x (restricted)
      * @since TODO 3.x - public version 
      */
     @Restricted(NoExternalUse.class)
-    public void dumpDiagnostics(PrintWriter w) throws IOException {
+    public void dumpDiagnostics(@Nonnull PrintWriter w) throws IOException {
         w.printf("Channel %s%n",name);
         w.printf("  Created=%s%n", new Date(createdAt));
         w.printf("  Commands sent=%d%n", commandsSent);
@@ -1595,15 +1598,25 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Calls {@link #dumpDiagnostics(PrintWriter)} across all the active channels in this system.
      * Used for diagnostics.
      *
+     * @param w Output destination
+     * 
      * @since 2.62.3 - stable 2.x (restricted)
      * @since TODO 3.x - public version 
      */
     @Restricted(NoExternalUse.class)
-    public static void dumpDiagnosticsForAll(PrintWriter w) throws IOException {
+    public static void dumpDiagnosticsForAll(@Nonnull PrintWriter w) {
         for (Ref ref : ACTIVE_CHANNELS.values().toArray(new Ref[0])) {
             Channel ch = ref.channel();
-            if (ch!=null) {
-                ch.dumpDiagnostics(w);
+            if (ch != null) {
+                try {
+                    ch.dumpDiagnostics(w);
+                } catch (Throwable ex) {
+                    if (ex instanceof Error) {
+                        throw (Error)ex;
+                    }
+                    logger.log(Level.WARNING, 
+                            String.format("Cannot domp diagmostics for the channel %s", ch.getName()), ex);
+                }
             }
         }
     }
