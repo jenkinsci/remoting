@@ -1615,7 +1615,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                         throw (Error)ex;
                     }
                     logger.log(Level.WARNING, 
-                            String.format("Cannot domp diagmostics for the channel %s", ch.getName()), ex);
+                            String.format("Cannot dump diagnostics for the channel %s", ch.getName()), ex);
                 }
             }
         }
