@@ -139,7 +139,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                 final String name = t.getName();
                 try {
                     // wait until the response arrives
-                    t.setName(name+" / waiting for "+channel);
+                    t.setName(name+" / waiting for "+channel.getName()+" id="+id);
                     while(response==null && !channel.isInClosed())
                         // I don't know exactly when this can happen, as pendingCalls are cleaned up by Channel,
                         // but in production I've observed that in rare occasion it can block forever, even after a channel
@@ -233,6 +233,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
 
             public RSP get() throws InterruptedException, ExecutionException {
                 synchronized(Request.this) {
+                    String oldThreadName = Thread.currentThread().getName();
+                    Thread.currentThread().setName(oldThreadName+" for "+channel.getName()+" id="+id);
                     try {
                         while(response==null) {
                             if (isCancelled()) {
@@ -250,6 +252,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                             // couldn't cancel. ignore.
                         }
                         throw e;
+                    } finally {
+                        Thread.currentThread().setName(oldThreadName);
                     }
 
                     if(response.exception!=null)
@@ -320,7 +324,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
 
             public void run() {
                 String oldThreadName = Thread.currentThread().getName();
-                Thread.currentThread().setName(oldThreadName+" for "+channel.getName());
+                Thread.currentThread().setName(oldThreadName+" for "+channel.getName()+" id="+id);
                 try {
                     Command rsp;
                     CURRENT.set(Request.this);

@@ -1,33 +1,21 @@
-Changelog
+Remoting 2.x Changelog
 ====
 
-Below you can changelogs for the trunk version of remoting.
-This file also provides links to Jenkins versions, 
+Below you can changelogs for Remoting <code>2.x</code>.
+This version only contains bugfixes and performance improvements.
+Current mainline is Remoting <code>3.x</code>, changelogs are available [here](CHANGELOG.md).
+
+The file also provides links to Jenkins versions, 
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
-##### 3.0
+##### 2.62.3 (coming soon)
 
-Release date:: (Oct 13, 2016) => Jenkins 2.27
-
-NOTE: This is a new major release of remoting, which is not fully compatible with <code>remoting 2.x</code>.
-See (see [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)) for more info.
-
-Enhancements:
-
-* [JENKINS-36871](https://issues.jenkins-ci.org/browse/JENKINS-36871) - 
-New <code>JNLP4-connect</code> protocol, which improves performance and stability compared to the JNLP3 protocol.
-(https://github.com/jenkinsci/remoting/pull/92)
-* [JENKINS-37565](https://issues.jenkins-ci.org/browse/JENKINS-37565) - 
-Update the required Java version to Java 7, Java 6 is not supported anymore.
-(https://github.com/jenkinsci/remoting/pull/103)
+TODO: update once it is ready to release
 
 ##### 2.62.2
 
-Release date: (Oct 7, 2016) => Jenkins 2.26
-
-This is the last release note for Remoting `2.x` in this changelog.
-See [Remoting 2.x Changelog](CHANGELOG-2.x.md) for further releases.
+Release date: (Oct 7, 2016) => TBD
 
 Fixed issues:
 
