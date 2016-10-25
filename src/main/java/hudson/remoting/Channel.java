@@ -60,6 +60,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -210,7 +212,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Number of {@link Command} objects sent to the other side.
      */
-    private int commandsSent;
+    private volatile long commandsSent;
 
     /**
      * Number of {@link Command} objects received from the other side.
@@ -218,7 +220,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * When a transport is functioning correctly, {@link #commandsSent} of one side
      * and {@link #commandsReceived} of the other side should closely match.
      */
-    private int commandsReceived;
+    private volatile long commandsReceived;
 
     /**
      * Timestamp of the last {@link Command} object sent/received, in
@@ -1172,6 +1174,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         w.printf(Locale.ENGLISH, "Resource loading time=%,dms%n", resourceLoadingTime.get() / (1000 * 1000));
     }
 
+    //TODO: Make public after merge into the master branch
     /**
      * Print the diagnostic information.
      *
@@ -1226,17 +1229,24 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that the other side has made to us but not yet returned yet.
      *
-     * @since 2.26.3
+     * @param w Output destination
+     * @throws IOException Error while creating or writing the channel information
+     * 
+     * @since 2.62.3 - stable 2.x (restricted)
+     * @since TODO 3.x - public version 
      */
-    public void dumpDiagnostics(PrintWriter w) throws IOException {
+    @Restricted(NoExternalUse.class)
+    public void dumpDiagnostics(@Nonnull PrintWriter w) throws IOException {
         w.printf("Channel %s%n",name);
         w.printf("  Created=%s%n", new Date(createdAt));
         w.printf("  Commands sent=%d%n", commandsSent);
         w.printf("  Commands received=%d%n", commandsReceived);
         w.printf("  Last command sent=%s%n", new Date(lastCommandSentAt));
         w.printf("  Last command received=%s%n", new Date(lastCommandReceivedAt));
-        w.printf("  Pending outgoing calls=%d%n", pendingCalls.size());
-        w.printf("  Pending incoming calls=%d%n", pendingCalls.size());
+        
+        // TODO: Update after the merge to 3.x branch, where the Hashtable is going to be replaced as a part of
+        // https://github.com/jenkinsci/remoting/pull/109
+        w.printf("  Pending calls=%d%n", pendingCalls.size());
     }
 
     /**
@@ -1584,17 +1594,48 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return CURRENT.get();
     }
 
+    // TODO: Unrestrict after the merge into the master.
+    // By now one may use it via the reflection logic only
     /**
      * Calls {@link #dumpDiagnostics(PrintWriter)} across all the active channels in this system.
      * Used for diagnostics.
      *
-     * @since 2.26.3
+     * @param w Output destination
+     * 
+     * @since 2.62.3 - stable 2.x (restricted)
+     * @since TODO 3.x - public version 
      */
-    public static void dumpDiagnosticsForAll(PrintWriter w) throws IOException {
-        for (Ref ref : ACTIVE_CHANNELS.values().toArray(new Ref[0])) {
-            Channel ch = ref.channel();
-            if (ch!=null)
-                ch.dumpDiagnostics(w);
+    @Restricted(NoExternalUse.class)
+    public static void dumpDiagnosticsForAll(@Nonnull PrintWriter w) {
+        final Ref[] channels = ACTIVE_CHANNELS.values().toArray(new Ref[0]);
+        int processedCount = 0;
+        for (Ref ref : channels) {
+            // Check if we can still write the output
+            if (w.checkError()) {
+                logger.log(Level.WARNING, 
+                        String.format("Cannot dump diagnostics for all channels, because output stream encountered an error. "
+                                + "Processed %d of %d channels, first unprocessed channel reference is %s.",
+                                processedCount, channels.length, ref
+                        )); 
+                break;
+            }
+            
+            // Dump channel info if the reference still points to it
+            final Channel ch = ref.channel();
+            if (ch != null) {
+                try {
+                    ch.dumpDiagnostics(w);
+                } catch (Throwable ex) {
+                    if (ex instanceof Error) {
+                        throw (Error)ex;
+                    }
+                    w.printf("Cannot dump diagnostics for the channel %s. %s. See Error stacktrace in system logs", 
+                            ch.getName(), ex.getMessage());
+                    logger.log(Level.WARNING, 
+                            String.format("Cannot dump diagnostics for the channel %s", ch.getName()), ex);
+                }
+            }
+            processedCount++;
         }
     }
 

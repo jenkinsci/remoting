@@ -172,6 +172,12 @@ THE SOFTWARE.
       <version>3.0.1</version>
       <type>jar</type>
     </dependency>
+    <dependency>
+      <groupId>org.kohsuke</groupId>
+      <artifactId>access-modifier-annotation</artifactId>
+      <version>1.7</version>
+      <type>jar</type>
+    </dependency>
   </dependencies>
 
   <build>
