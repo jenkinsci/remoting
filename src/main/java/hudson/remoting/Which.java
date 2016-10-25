@@ -144,26 +144,21 @@ public class Which {
                 Object delegate = is;
                 while (delegate.getClass().getEnclosingClass()!=ZipFile.class) {
                     Field f = delegate.getClass().getDeclaredField("delegate");
-                    if (!ReflectionUtils.makeAccessibleOrLog(f, LOGGER, Level.FINE)) {
-                        continue;
-                    }
+                    ReflectionUtils.makeAccessible(f);
 
                     delegate = f.get(delegate);
                     //JENKINS-5922 - workaround for CertificateReaderInputStream; JBoss 5.0.0, EAP 5.0 and EAP 5.1
                     if(delegate.getClass().getName().equals("java.util.jar.JarVerifier$VerifierStream")){
                         f = delegate.getClass().getDeclaredField("is");
-                        if (!ReflectionUtils.makeAccessibleOrLog(f, LOGGER, Level.FINE)) {
-                            continue;
-                        }
+                        ReflectionUtils.makeAccessible(f);
                         delegate = f.get(delegate);
                     }
                 }
                 Field f = delegate.getClass().getDeclaredField("this$0");
-                if (ReflectionUtils.makeAccessibleOrLog(f, LOGGER, Level.FINE)) {
-                    ZipFile zipFile = (ZipFile)f.get(delegate);
-                    return new File(zipFile.getName());
-                } // Else fall through till alternative actions or exception
-            } catch (NoSuchFieldException e) {
+                ReflectionUtils.makeAccessible(f);
+                ZipFile zipFile = (ZipFile)f.get(delegate);
+                return new File(zipFile.getName());
+            } catch (NoSuchFieldException | PrivilegedActionException e) {
                 // something must have changed in JBoss5. fall through
                 LOGGER.log(Level.FINE, "Failed to resolve vfszip into a jar location",e);
             } catch (IllegalAccessException e) {
