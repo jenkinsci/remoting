@@ -197,6 +197,12 @@ THE SOFTWARE.
       <version>1.54</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.kohsuke</groupId>
+      <artifactId>access-modifier-annotation</artifactId>
+      <version>1.7</version>
+      <type>jar</type>
+    </dependency>
   </dependencies>
 
   <build>
