@@ -38,6 +38,8 @@ Maintenance approach:
 * New releases may include bugfixes, security fixes and performance enhancements
 * There is no plans to introduce new features in <code>remoting-2.x</code>
 
+Changelogs for Remoting 2.x releases are available [here](CHANGELOG-2.x.md).
+
 ### Documentation
 
 Remoting documentation is under development.
@@ -46,7 +48,8 @@ Feel free to contribute.
 
 User documentation:
 
-* [Changelog](CHANGELOG.md)
+* [Changelog - Mainstream](CHANGELOG.md) - Changelog for the Remoting 3 and previous releases of Remoting 2
+* [Changelog - 2.x](CHANGELOG-2.x.md) - Changelog for the Remoting `2.x` stabilization releases after the Remoting 3 release
 * [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)
 * [Remoting Protocols](docs/protocols.md) - Overview of protocols integrated with Jenkins
 * [Remoting Configuration](docs/configuration.md) - Configuring remoting agents

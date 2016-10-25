@@ -26,6 +26,9 @@ Update the required Java version to Java 7, Java 6 is not supported anymore.
 
 Release date: (Oct 7, 2016) => Jenkins 2.26
 
+This is the last release note for Remoting `2.x` in this changelog.
+See [Remoting 2.x Changelog](CHANGELOG-2.x.md) for further releases.
+
 Fixed issues:
 
 * [JENKINS-38539](https://issues.jenkins-ci.org/browse/JENKINS-38539) - 
