@@ -1613,7 +1613,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             // Check if we can still write the output
             if (w.checkError()) {
                 logger.log(Level.WARNING, 
-                        String.format("Cannot dump diagnostics for all channels, because output stream encontered an error. "
+                        String.format("Cannot dump diagnostics for all channels, because output stream encountered an error. "
                                 + "Processed %d of %d channels, first unprocessed channel reference is %s.",
                                 processedCount, channels.length, ref
                         )); 
