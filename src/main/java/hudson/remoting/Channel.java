@@ -1244,8 +1244,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         w.printf("  Last command sent=%s%n", new Date(lastCommandSentAt));
         w.printf("  Last command received=%s%n", new Date(lastCommandReceivedAt));
         
-        // TODO: Update after the merge to 3.x branch, where the Hashtable is going to be replaced as a part of
-        // https://github.com/jenkinsci/remoting/pull/109
+        // TODO: Synchronize when Hashtable gets replaced by a modern collection.
         w.printf("  Pending calls=%d%n", pendingCalls.size());
     }
 
