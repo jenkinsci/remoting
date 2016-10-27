@@ -177,6 +177,7 @@ THE SOFTWARE.
       <artifactId>access-modifier-annotation</artifactId>
       <version>1.7</version>
       <type>jar</type>
+      <optional>true</optional><!-- no need to have this at runtime -->
     </dependency>
   </dependencies>
 
