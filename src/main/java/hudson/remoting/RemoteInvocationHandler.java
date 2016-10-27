@@ -182,11 +182,15 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     @Nonnull
     private Channel channelOrFail() throws IOException {
-        final Channel channel = channel();
-        if (channel == null) {
-            throw new IOException("Backing channel is disconnected.");
+        final Ref ch = this.channel;
+        if (ch == null) {
+            throw new IOException("Not connected to any channel");
         }
-        return channel;
+        Channel c = ch.channel();
+        if (c == null) {
+            throw new IOException("Backing channel '"+ch.name()+"' is disconnected.",ch.cause());
+        }
+        return c;
     }
 
     /**
