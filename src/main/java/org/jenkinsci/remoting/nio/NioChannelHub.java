@@ -11,6 +11,9 @@ import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 import hudson.remoting.SingleLaneExecutorService;
 import org.jenkinsci.remoting.RoleChecker;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import java.io.Closeable;
 import java.io.EOFException;
@@ -702,12 +705,13 @@ public class NioChannelHub implements Runnable, Closeable {
 
     /**
      * Escape hatch to disable NIO-based remoting.
+     * <p>
+     * This field is a debug switch and not a part of the committed interface of this library,
+     * but needs to be public and mutable for example so that it can be set from script console.
+     * Subject to change without notice. Do not rely on this from application code.
      *
      * @since 2.26.3
-     * @deprecated
-     *      This field is a debug switch and not a part of the committed interface of this library,
-     *      but needs to be public and mutable for example so that it can be set from script console.
-     *      Subject to change without notice. Do not rely on this from application code.
      */
+    @Restricted(NoExternalUse.class)
     public static boolean DISABLE_NIO = Boolean.getBoolean(NioChannelHub.class.getName()+".disabled");
 }
