@@ -27,12 +27,15 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.cert.CertificateFactory;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import org.jenkinsci.remoting.util.IOUtils;
@@ -111,7 +114,14 @@ public class Launcher {
     @Option(name="-ping")
     public boolean ping = true;
 
-    @Option(name="-slaveLog", usage="create local slave error log")
+    //TODO: rename the option
+    /**
+     * Specifies a destination for error logs.
+     * If specified, this option overrides the default destination within {@link #workDir}.
+     * If both this options and {@link #workDir} is not set, the log will not be generated.
+     */
+    @Option(name="-slaveLog", usage="Local agent error log destination (overrides workDir)")
+    @CheckForNull
     public File slaveLog = null;
 
     @Option(name="-text",usage="encode communication with the master with base64. " +
@@ -210,6 +220,33 @@ public class Launcher {
             usage = "Disable TCP socket keep alive on connection to the master.")
     public boolean noKeepAlive = false;
 
+    /**
+     * Specifies a default working directory of the remoting instance.
+     * If specified, this directory will be used to store logs, JAR cache, etc.
+     * <p>
+     * In order to retain compatibility, the option is disabled by default.
+     * <p>
+     * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
+     * @since TODO
+     */
+    @Option(name = "-workDir",
+            usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
+    @CheckForNull
+    public File workDir = null;
+
+    /**
+     * Specifies a directory within {@link #workDir}, which stores all the remoting-internal files.
+     * <p>
+     * This option is not expected to be used frequently, but it allows remoting users to specify a custom
+     * storage directory if the default {@code remoting} directory is consumed by other stuff.
+     * @since TODO
+     */
+    @Option(name = "-internalDir",
+            usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
+            depends = "-workDir")
+    @Nonnull
+    public String internalDir = "remoting";
+
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
@@ -226,9 +263,46 @@ public class Launcher {
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings("DM_DEFAULT_ENCODING")    // log file, just like console output, should be in platform default encoding
     public void run() throws Exception {
-        if (slaveLog!=null) {
-            System.setErr(new PrintStream(new TeeOutputStream(System.err,new FileOutputStream(slaveLog))));
+
+        // Create and verify working directory if required
+        @CheckForNull Path internalDirPath = workDir != null ? workDir.toPath() : null;
+        if (internalDirPath == null) {
+            System.err.println("WARNING: Agent working directory is not specified. Some functionality introduced in Remoting 3 may be disabled");
+        } else {
+            if (workDir.exists()) {
+                if (!workDir.isDirectory()) {
+                    throw new IOException("The specified agent working directory path points to a non-directory file");
+                }
+                if (!workDir.canWrite() || !workDir.canRead() || !workDir.canExecute()) {
+                    throw new IOException("The specified agent working directory should be fully accessible to the remoting executable (RWX)");
+                }
+            }
+
+            // Now we create a subdirectory for remoting operations
+            internalDirPath = new File(workDir, internalDir).toPath();
+            Files.createDirectories(internalDirPath);
+            System.out.println("Using " + internalDirPath + " as a remoting working files directory");
         }
+
+        if (slaveLog != null) { // Legacy behavior
+            System.out.println("Using " + slaveLog + " as an agent Error log destination. 'Out' log won't be generated");
+            System.out.flush(); // Just in case the channel
+            System.err.flush();
+            System.setErr(new PrintStream(new TeeOutputStream(System.err,new FileOutputStream(slaveLog))));
+        } else if (internalDirPath != null) { // New behavior
+            System.out.println("Both error and output logs will be printed to " + internalDirPath);
+            System.out.flush();
+            System.err.flush();
+
+            // TODO: Log rotation by default?
+            System.setErr(new PrintStream(new TeeOutputStream(System.err,
+                    new FileOutputStream(new File(internalDirPath.toFile(), "remoting.err.log")))));
+            System.setOut(new PrintStream(new TeeOutputStream(System.out,
+                    new FileOutputStream(new File(internalDirPath.toFile(), "remoting.out.log")))));
+        } else {
+            System.err.println("WARNING: Log location is not specified (neither -workDir nor -slaveLog set)");
+        }
+
         if(auth!=null) {
             final int idx = auth.indexOf(':');
             if(idx<0)   throw new CmdLineException(null, "No ':' in the -auth option");
@@ -255,6 +329,10 @@ public class Launcher {
             }
             if (this.noKeepAlive) {
                 jnlpArgs.add("-noKeepAlive");
+            }
+            if (this.workDir != null) {
+                jnlpArgs.add("-workDir");
+                jnlpArgs.add(workDir.getPath());
             }
             if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
                 for (String c: candidateCertificates) {
