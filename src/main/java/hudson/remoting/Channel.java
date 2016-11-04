@@ -201,7 +201,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * termination and simplify the circles into chains which can then be collected easily by the garbage collector.
      * @since FIXME after merge
      */
-    private final Ref reference = new Ref(this);
+    private final Ref reference;
 
     /**
      * Registered listeners. 
@@ -491,6 +491,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     protected Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
         this.name = settings.getName();
+        this.reference = new Ref(this);
         this.executor = new InterceptingExecutorService(settings.getExecutors(),decorators);
         this.arbitraryCallableAllowed = settings.isArbitraryCallableAllowed();
         this.remoteClassLoadingAllowed = settings.isRemoteClassLoadingAllowed();
@@ -537,7 +538,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * Gets the {@link Ref} for this {@link Channel}. The {@link Ref} will be {@linkplain Ref#clear()}ed when
+     * Gets the {@link Ref} for this {@link Channel}. The {@link Ref} will be {@linkplain Ref#clear(Exception)}ed when
      * the channel is terminated in order to break any complex object cycles.
      * @return the {@link Ref} for this {@link Channel}
      * @since FIXME after merge
@@ -896,7 +897,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                     }
                     exportedObjects.abort(e);
                     // break any object cycles into simple chains to simplify work for the garbage collector
-                    reference.clear();
+                    reference.clear(e);
                 } finally {
                     notifyAll();
                 }
@@ -1704,16 +1705,28 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     /*package*/ static final class Ref {
         /**
+         * @see {@link Channel#getName()}
+         */
+        @Nonnull
+        private final String name;
+
+        /**
          * The channel.
          */
         @CheckForNull
         private Channel channel;
 
         /**
+         * If the channel is cleared, retain the reason channel was closed to assist diagnostics.
+         */
+        private Exception cause;
+
+        /**
          * Constructor.
          * @param channel the {@link Channel}.
          */
         private Ref(@CheckForNull Channel channel) {
+            this.name = channel.getName();
             this.channel = channel;
         }
 
@@ -1727,11 +1740,27 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         }
 
         /**
+         * If the channel is null, return the cause of the channel termination.
+         */
+        public Exception cause() {
+            return  cause;
+        }
+
+        /**
+         * @see Channel#getName()
+         */
+        @Nonnull
+        public String name() {
+            return name;
+        }
+
+        /**
          * Clears the {@link #channel} to signify that the {@link Channel} has been closed and break any complex
          * object cycles that might prevent the full garbage collection of the channel's associated object tree.
          */
-        public void clear() {
-            channel = null;
+        public void clear(Exception cause) {
+            this.channel = null;
+            this.cause = cause;
         }
 
         /**
