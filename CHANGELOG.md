@@ -15,7 +15,8 @@ Improvements:
 * [JENKINS-39150](https://issues.jenkins-ci.org/browse/JENKINS-39150) - 
 Add logic for dumping diagnostics across all the channels.
 ([PR #122](https://github.com/jenkinsci/remoting/pull/122), [PR #125](https://github.com/jenkinsci/remoting/pull/125))
-* Improve the caller/callee correlation diagnostics in thread dumps.
+* [JENKINS-39543](https://issues.jenkins-ci.org/browse/JENKINS-39543) - 
+Improve the caller/callee correlation diagnostics in thread dumps.
 ([PR #119](https://github.com/jenkinsci/remoting/pull/119))
 * [JENKINS-39290](https://issues.jenkins-ci.org/browse/JENKINS-39290) - 
 Add the `org.jenkinsci.remoting.nio.NioChannelHub.disabled` flag for disabling NIO (mostly for debugging purposes).
