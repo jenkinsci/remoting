@@ -6,9 +6,34 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.1
+
+Release date: Coming soon => TBD
+
+Improvements:
+
+* [JENKINS-39150](https://issues.jenkins-ci.org/browse/JENKINS-39150) - 
+Add logic for dumping diagnostics across all the channels.
+([PR #122](https://github.com/jenkinsci/remoting/pull/122), [PR #125](https://github.com/jenkinsci/remoting/pull/125))
+* Improve the caller/callee correlation diagnostics in thread dumps.
+([PR #119](https://github.com/jenkinsci/remoting/pull/119))
+* [JENKINS-39290](https://issues.jenkins-ci.org/browse/JENKINS-39290) - 
+Add the `org.jenkinsci.remoting.nio.NioChannelHub.disabled` flag for disabling NIO (mostly for debugging purposes).
+([PR #123](https://github.com/jenkinsci/remoting/pull/123))
+* [JENKINS-38692](https://issues.jenkins-ci.org/browse/JENKINS-38692) - 
+Add extra logging to help diagnosing `IOHub` Thread spikes.
+([PR #116](https://github.com/jenkinsci/remoting/pull/116))
+* [JENKINS-39289](https://issues.jenkins-ci.org/browse/JENKINS-39289) - 
+ When a proxy fails, report what caused the channel to go down.
+([PR #128](https://github.com/jenkinsci/remoting/pull/128))
+
+Bugfixes:
+
+
+
 ##### 3.0
 
-Release date:: (Oct 13, 2016) => Jenkins 2.27
+Release date: (Oct 13, 2016) => Jenkins 2.27
 
 NOTE: This is a new major release of remoting, which is not fully compatible with <code>remoting 2.x</code>.
 See (see [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)) for more info.
