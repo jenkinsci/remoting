@@ -9,9 +9,9 @@ The file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
-##### 2.62.3 (coming soon)
+##### 2.62.3
 
-Release date: (Oct 7, 2016) => TBD
+Release date: Coming soon => TBD
 
 Improvements:
 
