@@ -74,8 +74,9 @@ final class Checksum {
      * Returns the checksum for the given URL.
      */
     static Checksum forURL(URL url) throws IOException {
-        if (CHECKSUMS_BY_URL.containsKey(url)) {
-            return CHECKSUMS_BY_URL.get(url);
+        String location = url.toExternalForm();
+        if (CHECKSUMS_BY_URL.containsKey(location)) {
+            return CHECKSUMS_BY_URL.get(location);
         }
 
         return calculateFor(url);
@@ -100,15 +101,16 @@ final class Checksum {
         // When callers all request the checksum of a large jar the calls to
         // forURL will all fall through to this method since the first caller's
         // calculation may take a while. Hence re-check the cache at the start.
-        if (CHECKSUMS_BY_URL.containsKey(url)) {
-            return CHECKSUMS_BY_URL.get(url);
+        String location = url.toExternalForm();
+        if (CHECKSUMS_BY_URL.containsKey(location)) {
+            return CHECKSUMS_BY_URL.get(location);
         }
 
         try {
             MessageDigest md = MessageDigest.getInstance(JarLoaderImpl.DIGEST_ALGORITHM);
             Util.copy(url.openStream(), new DigestOutputStream(new NullOutputStream(), md));
             Checksum checksum =  new Checksum(md.digest(), md.getDigestLength() / 8);
-            CHECKSUMS_BY_URL.putIfAbsent(url, checksum);
+            CHECKSUMS_BY_URL.putIfAbsent(location, checksum);
             return checksum;
         } catch (NoSuchAlgorithmException e) {
             throw new AssertionError(e);
@@ -129,7 +131,6 @@ final class Checksum {
         }
     }
 
-    @edu.umd.cs.findbugs.annotations.SuppressWarnings("DMI_COLLECTION_OF_URLS")
-    private static final ConcurrentMap<URL,Checksum> CHECKSUMS_BY_URL =
-        new ConcurrentHashMap<URL,Checksum>();
+    private static final ConcurrentMap<String,Checksum> CHECKSUMS_BY_URL =
+        new ConcurrentHashMap<String,Checksum>();
 }
