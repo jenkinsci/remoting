@@ -5,6 +5,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
@@ -74,44 +75,10 @@ final class Checksum {
      * Returns the checksum for the given URL.
      */
     static Checksum forURL(URL url) throws IOException {
-        String location = url.toExternalForm();
-        if (CHECKSUMS_BY_URL.containsKey(location)) {
-            return CHECKSUMS_BY_URL.get(location);
-        }
-
-        return calculateFor(url);
-    }
-
-    /**
-     * Allow calculating checksums only one at a time.
-     *
-     * <p>This method caches calculated checksums so future calls to
-     * {@link #forURL)} should not need to re-calculate the value.
-     *
-     * <p>Even if many slaves connect at around the same time, the checksums
-     * should only be calculated once. Making this method synchronized ensures
-     * this behavior.
-     *
-     * <p>Previously when a large number of slaves connected at the same time
-     * the master would experience a spike in CPU and probably I/O. By caching
-     * the results and synchronizing the calculation of the results this issue
-     * is addressed.
-     */
-    private synchronized static Checksum calculateFor(URL url) throws IOException {
-        // When callers all request the checksum of a large jar the calls to
-        // forURL will all fall through to this method since the first caller's
-        // calculation may take a while. Hence re-check the cache at the start.
-        String location = url.toExternalForm();
-        if (CHECKSUMS_BY_URL.containsKey(location)) {
-            return CHECKSUMS_BY_URL.get(location);
-        }
-
         try {
             MessageDigest md = MessageDigest.getInstance(JarLoaderImpl.DIGEST_ALGORITHM);
             Util.copy(url.openStream(), new DigestOutputStream(new NullOutputStream(), md));
-            Checksum checksum =  new Checksum(md.digest(), md.getDigestLength() / 8);
-            CHECKSUMS_BY_URL.putIfAbsent(location, checksum);
-            return checksum;
+            return new Checksum(md.digest(), md.getDigestLength() / 8);
         } catch (NoSuchAlgorithmException e) {
             throw new AssertionError(e);
         }
@@ -130,7 +97,4 @@ final class Checksum {
         public void write(byte[] b, int off, int len) {
         }
     }
-
-    private static final ConcurrentMap<String,Checksum> CHECKSUMS_BY_URL =
-        new ConcurrentHashMap<String,Checksum>();
 }

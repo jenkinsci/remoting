@@ -60,13 +60,21 @@ public class FileSystemJarCache extends JarCacheSupport {
 
     @Override
     protected URL retrieve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
+        Checksum expected = new Checksum(sum1, sum2);
         File target = map(sum1, sum2);
 
         if (target.exists()) {
-            // Assume its already been fetched correctly before. ie. We are not going to validate
-            // the checksum.
-            LOGGER.fine(String.format("Jar file already exists: %16X%16X", sum1, sum2));
-            return target.toURI().toURL();
+            Checksum actual = Checksum.forFile(target);
+            if (expected.equals(actual)) {
+                LOGGER.fine(String.format("Jar file already exists: %s", expected));
+                return target.toURI().toURL();
+            } else {
+                LOGGER.warning(String.format(
+                        "Cached file checksum mismatch: %s%nExpected: %s%n Actual: %s",
+                        target.getAbsolutePath(), expected, actual
+                ));
+                target.delete();
+            }
         }
 
         try {
@@ -81,7 +89,6 @@ public class FileSystemJarCache extends JarCacheSupport {
                 }
 
                 // Verify the checksum of the download.
-                Checksum expected = new Checksum(sum1, sum2);
                 Checksum actual = Checksum.forFile(tmp);
                 if (!expected.equals(actual)) {
                     throw new IOException(String.format(
@@ -93,7 +100,6 @@ public class FileSystemJarCache extends JarCacheSupport {
                     if (!target.exists()) {
                         throw new IOException("Unable to create " + target + " from " + tmp);
                     }
-
                     // Even if we fail to rename, we are OK as long as the target actually exists at
                     // this point. This can happen if two FileSystemJarCache instances share the
                     // same cache dir.
@@ -105,8 +111,12 @@ public class FileSystemJarCache extends JarCacheSupport {
                                 "Incorrect checksum of previous jar: %s%nExpected: %s%nActual: %s",
                                 target.getAbsolutePath(), expected, actual));
                     }
+                } else {
+                    Checksum ts = Checksum.forFile(target);
+                    if (!expected.equals(ts)) {
+                        throw new Error(expected + " != " + ts);
+                    }
                 }
-
 
                 return target.toURI().toURL();
             } finally {
