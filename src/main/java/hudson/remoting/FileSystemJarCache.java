@@ -8,6 +8,8 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -64,17 +66,18 @@ public class FileSystemJarCache extends JarCacheSupport {
         File target = map(sum1, sum2);
 
         if (target.exists()) {
-            Checksum actual = Checksum.forFile(target);
+            Checksum actual = fileChecksum(target);
             if (expected.equals(actual)) {
                 LOGGER.fine(String.format("Jar file already exists: %s", expected));
                 return target.toURI().toURL();
-            } else {
-                LOGGER.warning(String.format(
-                        "Cached file checksum mismatch: %s%nExpected: %s%n Actual: %s",
-                        target.getAbsolutePath(), expected, actual
-                ));
-                target.delete();
             }
+
+            LOGGER.warning(String.format(
+                    "Cached file checksum mismatch: %s%nExpected: %s%n Actual: %s",
+                    target.getAbsolutePath(), expected, actual
+            ));
+            target.delete();
+            checksumsByPath.remove(target.getCanonicalPath());
         }
 
         try {
@@ -105,16 +108,11 @@ public class FileSystemJarCache extends JarCacheSupport {
                     // same cache dir.
                     //
                     // Verify the checksum to be sure the target is correct.
-                    actual = Checksum.forFile(target);
+                    actual = fileChecksum(target);
                     if (!expected.equals(actual)) {
                         throw new IOException(String.format(
                                 "Incorrect checksum of previous jar: %s%nExpected: %s%nActual: %s",
                                 target.getAbsolutePath(), expected, actual));
-                    }
-                } else {
-                    Checksum ts = Checksum.forFile(target);
-                    if (!expected.equals(ts)) {
-                        throw new Error(expected + " != " + ts);
                     }
                 }
 
@@ -126,6 +124,32 @@ public class FileSystemJarCache extends JarCacheSupport {
             throw (IOException)new IOException("Failed to write to "+target).initCause(e);
         }
     }
+
+    /**
+     * Get file checksum calculating it or retrieving from cache.
+     */
+    private Checksum fileChecksum(File file) throws IOException {
+        // When callers all request the checksum of a large jar the calls to
+        // forURL will all fall through to this method since the first caller's
+        // calculation may take a while. Hence re-check the cache at the start.
+        String location = file.getCanonicalPath();
+        if (checksumsByPath.containsKey(location)) {
+            return checksumsByPath.get(location);
+        }
+
+        Checksum cs;
+        // Synchronize the calculation to throttle the load on master side in
+        // case many slaves are connecting at the same time.
+        // Previously when a large number of slaves connected at the same time
+        // the master would experience a spike in CPU and probably I/O. By caching
+        // the results and synchronizing the calculation of the results this issue addressed.
+        synchronized (this) {
+            cs = Checksum.forFile(file);
+        }
+        checksumsByPath.put(location, cs);
+        return cs;
+    }
+    private final ConcurrentMap<String, Checksum> checksumsByPath = new ConcurrentHashMap<>();
 
     /*package for testing*/ File createTempJar(@Nonnull File target) throws IOException {
         File parent = target.getParentFile();

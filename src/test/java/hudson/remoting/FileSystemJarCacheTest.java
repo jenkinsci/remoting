@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
-import org.apache.commons.io.IOUtils;
 import org.hamcrest.core.StringContains;
 import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Before;
@@ -19,7 +18,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.charset.Charset;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -63,8 +61,16 @@ public class FileSystemJarCacheTest {
         File expectedFile = fileSystemJarCache.map(expectedChecksum.sum1, expectedChecksum.sum2);
         expectedFile.getParentFile().mkdirs();
         assertTrue(expectedFile.createNewFile());
+        writeToFile(expectedFile, CONTENTS);
 
         URL url = fileSystemJarCache.retrieve(
+                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+        assertEquals(expectedFile.toURI().toURL(), url);
+
+        // Changing the content after successfully cached is not an expected use-case.
+        // Here used to verity checksums are cached.
+        writeToFile(expectedFile, "Something else");
+        url = fileSystemJarCache.retrieve(
                 mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
         assertEquals(expectedFile.toURI().toURL(), url);
     }
@@ -105,18 +111,22 @@ public class FileSystemJarCacheTest {
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
 
         File expected = fileSystemJarCache.map(expectedChecksum.sum1, expectedChecksum.sum2);
-        expected.getParentFile().mkdirs();
-        FileWriter fileWriter = new FileWriter(expected);
-        try {
-            fileWriter.write("This is no going to match the checksum");
-        } finally {
-            fileWriter.close();
-        }
+        writeToFile(expected, "This is no going to match the checksum");
 
         mockCorrectLoad();
 
         URL url = fileSystemJarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
         assertEquals(expectedChecksum, Checksum.forURL(url));
+    }
+
+    private void writeToFile(File expected, String content) throws IOException {
+        expected.getParentFile().mkdirs();
+        FileWriter fileWriter = new FileWriter(expected);
+        try {
+            fileWriter.write(content);
+        } finally {
+            fileWriter.close();
+        }
     }
 
     @Test
