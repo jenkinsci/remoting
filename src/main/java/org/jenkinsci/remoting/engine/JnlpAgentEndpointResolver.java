@@ -127,7 +127,16 @@ public class JnlpAgentEndpointResolver {
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
         for (String jenkinsUrl : jenkinsUrls) {
-            URL salURL = toAgentListenerURL(jenkinsUrl);
+            
+            final URL selectedJenkinsURL;
+            final URL salURL;
+            try {
+                selectedJenkinsURL = new URL(jenkinsUrl);
+                salURL = toAgentListenerURL(jenkinsUrl);
+            } catch (MalformedURLException ex) {
+                LOGGER.log(Level.WARNING, String.format("Cannot parse agent endpoint URL %s. Skipping it", jenkinsUrl), ex);
+                continue;
+            }
 
             // find out the TCP port
             HttpURLConnection con =
@@ -223,7 +232,8 @@ public class JnlpAgentEndpointResolver {
                     if (tokens[0].length() > 0) host = tokens[0];
                     if (tokens[1].length() > 0) port = Integer.parseInt(tokens[1]);
                 }
-                return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames);
+                
+                return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames, selectedJenkinsURL);
             } finally {
                 con.disconnect();
             }
