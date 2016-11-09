@@ -50,6 +50,8 @@ import java.io.IOException;
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
 
+import javax.annotation.CheckForNull;
+
 /**
  * Entry point to JNLP slave agent.
  *
@@ -95,6 +97,20 @@ public class Main {
                     "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
                     "certificate file to read.")
     public List<String> candidateCertificates;
+
+    /**
+     * Specifies a default working directory of the remoting instance.
+     * If specified, this directory will be used to store logs, JAR cache, etc.
+     * <p>
+     * In order to retain compatibility, the option is disabled by default.
+     * <p>
+     * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
+     * @since TODO
+     */
+    @Option(name = "-workDir",
+            usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
+    @CheckForNull
+    public File workDir = null;
 
     /**
      * @since 2.24

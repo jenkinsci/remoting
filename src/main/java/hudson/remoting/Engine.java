@@ -32,6 +32,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -151,6 +152,28 @@ public class Engine extends Thread {
 
     private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
 
+    /**
+     * Specifies a default working directory of the remoting instance.
+     * If specified, this directory will be used to store logs, JAR cache, etc.
+     * <p>
+     * In order to retain compatibility, the option is disabled by default.
+     * <p>
+     * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
+     * @since TODO
+     */
+    @CheckForNull
+    public Path workDir = null;
+
+    /**
+     * Specifies a directory within {@link #workDir}, which stores all the remoting-internal files.
+     * <p>
+     * This option is not expected to be used frequently, but it allows remoting users to specify a custom
+     * storage directory if the default {@code remoting} directory is consumed by other stuff.
+     * @since TODO
+     */
+    @Nonnull
+    public String internalDir = "remoting";
+
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
 
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
@@ -189,6 +212,25 @@ public class Engine extends Thread {
 
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;
+    }
+
+    /**
+     * Specified a path to the work directory.
+     * @param workDir Path to the working directory of the remoting instance.
+     *                {@code null} Disables the working directory.
+     * @since TODO
+     */
+    public void setWorkDir(@CheckForNull Path workDir) {
+        this.workDir = workDir;
+    }
+
+    /**
+     * Specifies name of the internal data directory within {@link #workDir}.
+     * @param internalDir Directory name
+     * @since TODO
+     */
+    public void setInternalDir(@Nonnull String internalDir) {
+        this.internalDir = internalDir;
     }
 
     /**
@@ -232,6 +274,9 @@ public class Engine extends Thread {
 
     @Override
     public void run() {
+        //
+
+        // Create the engine
         try {
             IOHub hub = IOHub.create(executor);
             try {
