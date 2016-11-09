@@ -10,6 +10,17 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 Release date: Coming soon => TBD
 
+Bugfixes:
+
+* [JENKINS-39596](https://issues.jenkins-ci.org/browse/JENKINS-39596) - 
+Jenkins URL in `hudson.remoting.Engine` was always `null` since `3.0`.
+It was causing connection failures of Jenkins JNLP agents when using Java Web Start.
+([PR #131](https://github.com/jenkinsci/remoting/pull/131))
+* [JENKINS-39617](https://issues.jenkins-ci.org/browse/JENKINS-39617) - 
+`hudson.remoting.Engine` was failing to establish connection if one of the URLs parameter in parameters was malformed.
+([PR #131](https://github.com/jenkinsci/remoting/pull/131))
+
+
 Improvements:
 
 * [JENKINS-39150](https://issues.jenkins-ci.org/browse/JENKINS-39150) - 
@@ -27,10 +38,6 @@ Add extra logging to help diagnosing `IOHub` Thread spikes.
 * [JENKINS-39289](https://issues.jenkins-ci.org/browse/JENKINS-39289) - 
  When a proxy fails, report what caused the channel to go down.
 ([PR #128](https://github.com/jenkinsci/remoting/pull/128))
-
-Bugfixes:
-
-
 
 ##### 3.0
 
