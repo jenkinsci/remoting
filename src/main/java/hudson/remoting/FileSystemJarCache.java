@@ -1,15 +1,16 @@
 package hudson.remoting;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,6 +29,12 @@ public class FileSystemJarCache extends JarCacheSupport {
      * We've reported these checksums as present on this side.
      */
     private final Set<Checksum> notified = Collections.synchronizedSet(new HashSet<Checksum>());
+
+    /**
+     * Cache of computer checksums for cached jars.
+     */
+    @GuardedBy("itself")
+    private final Map<String, Checksum> checksumsByPath = new HashMap<>();
 
     /**
      * @param touch
@@ -77,7 +84,9 @@ public class FileSystemJarCache extends JarCacheSupport {
                     target.getAbsolutePath(), expected, actual
             ));
             target.delete();
-            checksumsByPath.remove(target.getCanonicalPath());
+            synchronized (checksumsByPath) {
+                checksumsByPath.remove(target.getCanonicalPath());
+            }
         }
 
         try {
@@ -129,27 +138,20 @@ public class FileSystemJarCache extends JarCacheSupport {
      * Get file checksum calculating it or retrieving from cache.
      */
     private Checksum fileChecksum(File file) throws IOException {
-        // When callers all request the checksum of a large jar the calls to
-        // forURL will all fall through to this method since the first caller's
-        // calculation may take a while. Hence re-check the cache at the start.
         String location = file.getCanonicalPath();
-        if (checksumsByPath.containsKey(location)) {
-            return checksumsByPath.get(location);
-        }
 
-        Checksum cs;
-        // Synchronize the calculation to throttle the load on master side in
-        // case many slaves are connecting at the same time.
-        // Previously when a large number of slaves connected at the same time
-        // the master would experience a spike in CPU and probably I/O. By caching
-        // the results and synchronizing the calculation of the results this issue addressed.
-        synchronized (this) {
-            cs = Checksum.forFile(file);
+        // When callers all request the checksum of a large jar, the first thread
+        // will calculate the checksum and the other treads will be blocked here
+        // until calculated to be picked up from cache right away.
+        synchronized (checksumsByPath) {
+            Checksum checksum = checksumsByPath.get(location);
+            if (checksum != null) return checksum;
+
+            checksum = Checksum.forFile(file);
+            checksumsByPath.put(location, checksum);
+            return checksum;
         }
-        checksumsByPath.put(location, cs);
-        return cs;
     }
-    private final ConcurrentMap<String, Checksum> checksumsByPath = new ConcurrentHashMap<>();
 
     /*package for testing*/ File createTempJar(@Nonnull File target) throws IOException {
         File parent = target.getParentFile();

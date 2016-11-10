@@ -20,7 +20,8 @@ import java.util.concurrent.ConcurrentMap;
 class JarLoaderImpl implements JarLoader, Serializable {
     private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<>();
 
-    private final ConcurrentMap<String, Checksum> checksums = new ConcurrentHashMap<>();
+    @edu.umd.cs.findbugs.annotations.SuppressWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
+    private final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<>();
 
     private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<Checksum>());
 
@@ -57,14 +58,13 @@ class JarLoaderImpl implements JarLoader, Serializable {
      * Obtains the checksum for the jar at the specified URL.
      */
     public Checksum calcChecksum(URL jar) throws IOException {
-        String jarPath = jar.toExternalForm();
-        Checksum v = checksums.get(jarPath);    // cache hit
+        Checksum v = checksums.get(jar);    // cache hit
         if (v!=null)    return v;
 
         v = Checksum.forURL(jar);
 
         knownJars.put(v,jar);
-        checksums.put(jarPath,v);
+        checksums.put(jar,v);
         return v;
     }
 
