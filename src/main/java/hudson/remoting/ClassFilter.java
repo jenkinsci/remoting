@@ -63,7 +63,6 @@ public abstract class ClassFilter {
         "^com[.]sun[.]org[.]apache[.]regex[.]internal[.].*",
         "^java[.]awt[.].*",
         "^java[.]rmi[.].*",
-        "^java[.]security[.].*",
         "^javax[.]management[.].*",
         "^javax[.]naming[.].*",
         "^javax[.]script[.].*",
