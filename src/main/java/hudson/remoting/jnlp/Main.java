@@ -32,6 +32,8 @@ import java.io.UnsupportedEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+
+import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
@@ -51,6 +53,7 @@ import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Entry point to JNLP slave agent.
@@ -113,6 +116,19 @@ public class Main {
     public File workDir = null;
 
     /**
+     * Specifies a directory within {@link #workDir}, which stores all the remoting-internal files.
+     * <p>
+     * This option is not expected to be used frequently, but it allows remoting users to specify a custom
+     * storage directory if the default {@code remoting} directory is consumed by other stuff.
+     * @since TODO
+     */
+    @Option(name = "-internalDir",
+            usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
+            depends = "-workDir")
+    @Nonnull
+    public String internalDir = WorkDirManager.DEFAULT_INTERNAL_DIRECTORY;
+
+    /**
      * @since 2.24
      */
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
@@ -167,7 +183,7 @@ public class Main {
 
     public void main() throws IOException, InterruptedException {
         Engine engine = createEngine();
-        engine.start();
+        engine.startEngine();
         try {
             engine.join();
             LOGGER.fine("Engine has died");
@@ -262,6 +278,13 @@ public class Main {
             }
             engine.setCandidateCertificates(certificates);
         }
+
+        // Working directory settings
+        if (workDir != null) {
+            engine.setWorkDir(workDir.toPath());
+        }
+        engine.setInternalDir(internalDir);
+
         return engine;
     }
 

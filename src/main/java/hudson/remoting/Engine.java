@@ -29,7 +29,9 @@ import hudson.remoting.Channel.Mode;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Path;
@@ -69,6 +71,7 @@ import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.engine.JnlpConnectionStateListener;
 import org.jenkinsci.remoting.engine.JnlpProtocolHandler;
 import org.jenkinsci.remoting.engine.JnlpProtocolHandlerFactory;
+import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
@@ -172,7 +175,7 @@ public class Engine extends Thread {
      * @since TODO
      */
     @Nonnull
-    public String internalDir = "remoting";
+    public String internalDir = WorkDirManager.DEFAULT_INTERNAL_DIRECTORY;
 
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
 
@@ -184,6 +187,31 @@ public class Engine extends Thread {
         this.slaveName = slaveName;
         if(candidateUrls.isEmpty())
             throw new IllegalArgumentException("No URLs given");
+    }
+
+    /**
+     * Starts the engine.
+     * The procedure initializes the working directory and all the required environment
+     * @throws IOException Initialization error
+     * @since TODO
+     */
+    public synchronized void startEngine() throws IOException {
+        // Prepare the working directory if required
+        final Path path = WorkDirManager.getInstance().initializeWorkDir(workDir.toFile(), internalDir);
+        if (path != null) {
+            System.out.println("Both error and output logs will be printed to " + path);
+            System.out.flush();
+            System.err.flush();
+
+            // TODO: Log rotation by default?
+            System.setErr(new PrintStream(new TeeOutputStream(System.err,
+                    new FileOutputStream(new File(path.toFile(), "remoting.err.log")))));
+            System.setOut(new PrintStream(new TeeOutputStream(System.out,
+                    new FileOutputStream(new File(path.toFile(), "remoting.out.log")))));
+        }
+
+        // Start the engine thread
+        this.start();
     }
 
     /**

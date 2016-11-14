@@ -38,6 +38,8 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
+
+import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -245,7 +247,7 @@ public class Launcher {
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
             depends = "-workDir")
     @Nonnull
-    public String internalDir = "remoting";
+    public String internalDir = WorkDirManager.DEFAULT_INTERNAL_DIRECTORY;
 
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
@@ -265,24 +267,7 @@ public class Launcher {
     public void run() throws Exception {
 
         // Create and verify working directory if required
-        @CheckForNull Path internalDirPath = workDir != null ? workDir.toPath() : null;
-        if (internalDirPath == null) {
-            System.err.println("WARNING: Agent working directory is not specified. Some functionality introduced in Remoting 3 may be disabled");
-        } else {
-            if (workDir.exists()) {
-                if (!workDir.isDirectory()) {
-                    throw new IOException("The specified agent working directory path points to a non-directory file");
-                }
-                if (!workDir.canWrite() || !workDir.canRead() || !workDir.canExecute()) {
-                    throw new IOException("The specified agent working directory should be fully accessible to the remoting executable (RWX)");
-                }
-            }
-
-            // Now we create a subdirectory for remoting operations
-            internalDirPath = new File(workDir, internalDir).toPath();
-            Files.createDirectories(internalDirPath);
-            System.out.println("Using " + internalDirPath + " as a remoting working files directory");
-        }
+        final Path internalDirPath = WorkDirManager.getInstance().initializeWorkDir(workDir, internalDir);
 
         if (slaveLog != null) { // Legacy behavior
             System.out.println("Using " + slaveLog + " as an agent Error log destination. 'Out' log won't be generated");
