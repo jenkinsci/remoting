@@ -54,16 +54,29 @@ public abstract class ClassFilter {
 	}
 
     private static final String[] DEFAULT_PATTERNS = {
+        "^bsh[.].*",
         "^com[.]google[.]inject[.].*",
-        "^com[.]sun[.]jndi[.]rmi[.].*",
+        "^com[.]mchange[.]v2[.]c3p0[.].*",
+        "^com[.]sun[.]jndi[.].*",
+        "^com[.]sun[.]corba[.].*",
+        "^com[.]sun[.]javafx[.].*",
+        "^com[.]sun[.]org[.]apache[.]regex[.]internal[.].*",
+        "^java[.]awt[.].*",
         "^java[.]rmi[.].*",
+        "^javax[.]management[.].*",
+        "^javax[.]naming[.].*",
+        "^javax[.]script[.].*",
+        "^javax[.]swing[.].*",
         "^org[.]apache[.]commons[.]beanutils[.].*",
         "^org[.]apache[.]commons[.]collections[.]functors[.].*",
+        "^org[.]apache[.]myfaces[.].*",
+        "^org[.]apache[.]wicket[.].*",
         ".*org[.]apache[.]xalan.*",
         "^org[.]codehaus[.]groovy[.]runtime[.].*",
         "^org[.]hibernate[.].*",
+        "^org[.]python[.].*",
         "^org[.]springframework[.](?!(\\p{Alnum}+[.])*\\p{Alnum}*Exception$).*",
-        "^sun[.]rmi[.].*",
+        "^sun[.]rmi[.].*"
     };
 
     /**
