@@ -50,9 +50,10 @@ public class WorkDirManager {
     private static final WorkDirManager INSTANCE = new WorkDirManager();
 
     /**
-     * Defines a default name of the internal data directory within the Working directory.
+     * Default value for the behavior when the requested working directory is missing.
+     * The default value is {@code false}, because otherwise agents would fail on the first startup.
      */
-    public static final String DEFAULT_INTERNAL_DIRECTORY = "remoting";
+    public static final boolean DEFAULT_FAIL_IF_WORKDIR_IS_MISSING = false;
 
     /**
      * Regular expression, which declares restrictions of the remoting internal directory symbols
@@ -80,35 +81,101 @@ public class WorkDirManager {
      * @param workDir Working directory
      * @param internalDir Name of the remoting internal data directory within the working directory.
      *                    The range of the supported symbols is restricted to {@link #SUPPORTED_INTERNAL_DIR_NAME_MASK}.
+     * @param failIfMissing Fail the initialization if the workDir or internalDir are missing.
+     *                      This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
+     *                      (e.g. if a mount gets disconnected).
      * @return Initialized directory for internal files within workDir or {@code null} if it is disabled
      * @throws IOException Workspace allocation issue (e.g. the specified directory is not writable).
      *                     In such case Remoting should not start up at all.
      */
     @CheckForNull
-    public Path initializeWorkDir(final @CheckForNull File workDir, final @Nonnull String internalDir) throws IOException {
+    public Path initializeWorkDir(final @CheckForNull File workDir, final @Nonnull String internalDir, final boolean failIfMissing) throws IOException {
 
         if (!internalDir.matches(SUPPORTED_INTERNAL_DIR_NAME_MASK)) {
-            throw new IOException("Remoting internal directory '" + internalDir +"' is not compliant with the required format " + SUPPORTED_INTERNAL_DIR_NAME_MASK);
+            throw new IOException(String.format("Name of %s ('%s') is not compliant with the required format: %s",
+                    DirType.INTERNAL_DIR, internalDir, SUPPORTED_INTERNAL_DIR_NAME_MASK));
         }
 
         if (workDir == null) {
             LOGGER.log(Level.WARNING, "Agent working directory is not specified. Some functionality introduced in Remoting 3 may be disabled");
             return null;
         } else {
-            if (workDir.exists()) {
-                if (!workDir.isDirectory()) {
-                    throw new IOException("The specified agent working directory path points to a non-directory file");
-                }
-                if (!workDir.canWrite() || !workDir.canRead() || !workDir.canExecute()) {
-                    throw new IOException("The specified agent working directory should be fully accessible to the remoting executable (RWX)");
-                }
-            }
+            // Verify working directory
+            verifyDirectory(workDir, DirType.WORK_DIR, failIfMissing);
 
-            // Now we create a subdirectory for remoting operations
-            Path internalDirPath = new File(workDir, internalDir).toPath();
+            // Create a subdirectory for remoting operations
+            final File internalDirFile = new File(workDir, internalDir);
+            verifyDirectory(internalDirFile, DirType.INTERNAL_DIR, failIfMissing);
+
+            // Create the directory on-demand
+            final Path internalDirPath = internalDirFile.toPath();
             Files.createDirectories(internalDirPath);
             LOGGER.log(Level.INFO, "Using {0} as a remoting working files directory", internalDirPath);
             return internalDirPath;
+        }
+    }
+
+    /**
+     * Verifies that the directory is compliant with the specified requirements.
+     * The directory is expected to have {@code RWX} permissions if exists.
+     * @param dir Directory
+     * @param type Type of the working directory component to be verified
+     * @param failIfMissing Fail if the directory is missing
+     * @throws IOException Verification failure
+     */
+    private static void verifyDirectory(@Nonnull File dir, @Nonnull DirType type, boolean failIfMissing) throws IOException {
+        if (dir.exists()) {
+            if (!dir.isDirectory()) {
+                throw new IOException("The specified " + type + " path points to a non-directory file: " + dir.getPath());
+            }
+            if (!dir.canWrite() || !dir.canRead() || !dir.canExecute()) {
+                throw new IOException("The specified " + type + " should be fully accessible to the remoting executable (RWX): " + dir.getPath());
+            }
+        } else if (failIfMissing) {
+            throw new IOException("The " + type + " is missing, but it is expected to exist: " + dir.getPath());
+        }
+    }
+
+    /**
+     * Defines components of the Working directory.
+     * @since TODO
+     */
+    @Restricted(NoExternalUse.class)
+    public enum DirType {
+        /**
+         * Top-level entry of the working directory.
+         */
+        WORK_DIR("working directory", ""),
+        /**
+         * Directory, which stores internal data of the remoting layer itself.
+         * This directory is located within {@link #WORK_DIR}.
+         */
+        INTERNAL_DIR("remoting internal directory", "remoting");
+
+        @Nonnull
+        private final String name;
+
+        @Nonnull
+        private final String defaultLocation;
+
+        DirType(String name, String defaultLocation) {
+            this.name = name;
+            this.defaultLocation = defaultLocation;
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
+
+        @Nonnull
+        public String getDefaultLocation() {
+            return defaultLocation;
+        }
+
+        @Nonnull
+        public String getName() {
+            return name;
         }
     }
 }
