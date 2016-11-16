@@ -71,9 +71,10 @@ public class WorkDirManager {
     //TODO: New interfaces should ideally use Path instead of File
     /**
      * Initializes the working directory for the agent.
+     * Within the working directory the method also initializes a working directory for internal needs (like logging)
      * @param workDir Working directory
      * @param internalDir Name of the remoting internal data directory within the working directory
-     * @return Initialized workspace or {@code null} if it is disabled
+     * @return Initialized directory for internal files within workDir or {@code null} if it is disabled
      * @throws IOException Workspace allocation issue (e.g. the specified directory is not writable).
      *                     In such case Remoting should not start up at all.
      */
