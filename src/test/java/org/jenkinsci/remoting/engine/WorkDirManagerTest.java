@@ -132,6 +132,28 @@ public class WorkDirManagerTest {
         verifyDirectoryFlag(DirectoryFlag.NOT_READABLE);
     }
 
+    @Test
+    public void shouldNotSupportPathDelimitersAndSpacesInTheInternalDirName() throws IOException {
+        File foo = tmpDir.newFolder("foo");
+
+        assertAllocationFails(foo, " remoting ");
+        assertAllocationFails(foo, " remoting");
+        assertAllocationFails(foo, "directory with spaces");
+        assertAllocationFails(foo, "nested/directory");
+        assertAllocationFails(foo, "nested\\directory\\in\\Windows");
+        assertAllocationFails(foo, "just&a&symbol&I&do&not&like");
+    }
+
+    private void assertAllocationFails(File workDir, String internalDirName) throws AssertionError {
+        try {
+            WorkDirManager.getInstance().initializeWorkDir(workDir, internalDirName);
+        }  catch (IOException ex) {
+            assertThat(ex.getMessage(), containsString("Remoting internal directory '" + internalDirName +"' is not compliant with the required format"));
+            return;
+        }
+        Assert.fail("Initialization of WorkDirManager with invalid internal directory '" + internalDirName + "' should have failed");
+    }
+
     private void verifyDirectoryFlag(DirectoryFlag flag) throws IOException, AssertionError {
         final File dir = tmpDir.newFolder("foo");
         flag.modifyFile(dir);
@@ -144,7 +166,6 @@ public class WorkDirManagerTest {
         }
         Assert.fail("The directory has been initialized, but it should fail since the target dir is " + flag);
     }
-
 
     private enum DirectoryFlag {
         NOT_WRITABLE,
