@@ -29,7 +29,8 @@ Add the `org.jenkinsci.remoting.nio.NioChannelHub.disabled` flag for disabling N
 
 Release date: (Nov 13, 2016) => Jenkins 2.19.3 LTS
 
-* SECURITY-360 - Blacklist serialization of particular classes.
+* [SECURITY-360](https://wiki.jenkins-ci.org/display/SECURITY/Jenkins+Security+Advisory+2016-11-16) - 
+Blacklist serialization of particular classes to close the Remote code execution vulnerability.
 ([Commit #b7ac85ed4ae41482d9754a881df91d2eb86d047d](https://github.com/jenkinsci/remoting/commit/b7ac85ed4ae41482d9754a881df91d2eb86d047d))
 
 ##### 2.62.2
