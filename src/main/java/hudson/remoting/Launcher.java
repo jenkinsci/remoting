@@ -247,7 +247,19 @@ public class Launcher {
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
             depends = "-workDir")
     @Nonnull
-    public String internalDir = WorkDirManager.DEFAULT_INTERNAL_DIRECTORY;
+    public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
+
+    /**
+     * Fail the initialization if the workDir or internalDir are missing.
+     * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
+     * (e.g. if a filesystem mount gets disconnected).
+     * @since TODO
+     */
+    @Option(name = "-failIfWorkDirIsMissing",
+            usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
+            depends = "-workDir")
+    @Nonnull
+    public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
@@ -267,7 +279,7 @@ public class Launcher {
     public void run() throws Exception {
 
         // Create and verify working directory if required
-        final Path internalDirPath = WorkDirManager.getInstance().initializeWorkDir(workDir, internalDir);
+        final Path internalDirPath = WorkDirManager.getInstance().initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
 
         if (slaveLog != null) { // Legacy behavior
             System.out.println("Using " + slaveLog + " as an agent Error log destination. 'Out' log won't be generated");
@@ -318,6 +330,10 @@ public class Launcher {
             if (this.workDir != null) {
                 jnlpArgs.add("-workDir");
                 jnlpArgs.add(workDir.getPath());
+                jnlpArgs.add("-internalDir");
+                jnlpArgs.add(internalDir);
+                jnlpArgs.add("-failIfWorkDirIsMissing");
+                jnlpArgs.add(Boolean.toString(failIfWorkDirIsMissing));
             }
             if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
                 for (String c: candidateCertificates) {

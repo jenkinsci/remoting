@@ -175,7 +175,16 @@ public class Engine extends Thread {
      * @since TODO
      */
     @Nonnull
-    public String internalDir = WorkDirManager.DEFAULT_INTERNAL_DIRECTORY;
+    public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
+
+    /**
+     * Fail the initialization if the workDir or internalDir are missing.
+     * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
+     * (e.g. if a filesystem mount gets disconnected).
+     * @since TODO
+     */
+    @Nonnull
+    public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
 
@@ -197,7 +206,7 @@ public class Engine extends Thread {
      */
     public synchronized void startEngine() throws IOException {
         // Prepare the working directory if required
-        final Path path = WorkDirManager.getInstance().initializeWorkDir(workDir.toFile(), internalDir);
+        final Path path = WorkDirManager.getInstance().initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
         if (path != null) {
             System.out.println("Both error and output logs will be printed to " + path);
             System.out.flush();
@@ -260,6 +269,15 @@ public class Engine extends Thread {
     public void setInternalDir(@Nonnull String internalDir) {
         this.internalDir = internalDir;
     }
+
+    /**
+     * Sets up behavior if the workDir or internalDir are missing during the startup.
+     * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
+     * (e.g. if a filesystem mount gets disconnected).
+     * @param failIfWorkDirIsMissing Flag
+     * @since TODO
+     */
+    public void setFailIfWorkDirIsMissing(boolean failIfWorkDirIsMissing) { this.failIfWorkDirIsMissing = failIfWorkDirIsMissing; }
 
     /**
      * Returns {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.

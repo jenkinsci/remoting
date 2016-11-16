@@ -41,6 +41,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.jenkinsci.remoting.engine.WorkDirManager.DirType;
+import org.jvnet.hudson.test.Bug;
 
 /**
  * Tests of {@link WorkDirManager}
@@ -159,6 +160,39 @@ public class WorkDirManagerTest {
         assertAllocationFails(foo, "nested/directory");
         assertAllocationFails(foo, "nested\\directory\\in\\Windows");
         assertAllocationFails(foo, "just&a&symbol&I&do&not&like");
+    }
+
+    @Test
+    @Bug(39130)
+    public void shouldFailToStartupIf_WorkDir_IsMissing_andRequired() throws Exception {
+        final File tmpDirFile = tmpDir.newFolder("foo");
+        final File workDir = new File(tmpDirFile, "just/a/long/non/existent/path");
+        Assert.assertFalse("The " +  DirType.INTERNAL_DIR + " should not exist in the test", workDir.exists());
+
+        assertAllocationFailsForMissingDir(workDir, DirType.WORK_DIR);
+    }
+
+    @Test
+    @Bug(39130)
+    public void shouldFailToStartupIf_InternalDir_IsMissing_andRequired() throws Exception {
+        // Create only the working directory, not the nested one
+        final File tmpDirFile = tmpDir.newFolder("foo");
+        final File workDir = new File(tmpDirFile, "just/a/long/non/existent/path");
+        Files.createDirectories(workDir.toPath());
+
+        assertAllocationFailsForMissingDir(workDir, DirType.INTERNAL_DIR);
+    }
+
+    private void assertAllocationFailsForMissingDir(File workDir, DirType expectedCheckFailure) {
+        // Initialize and check the results
+        try {
+            WorkDirManager.getInstance().initializeWorkDir(workDir, DirType.INTERNAL_DIR.getDefaultLocation(), true);
+        } catch (IOException ex) {
+            assertThat("Unexpected exception message", ex.getMessage(),
+                    containsString("The " + expectedCheckFailure + " is missing, but it is expected to exist:"));
+            return;
+        }
+        Assert.fail("The workspace allocation did not fail for the missing " + expectedCheckFailure);
     }
 
     private void assertAllocationFails(File workDir, String internalDirName) throws AssertionError {

@@ -126,7 +126,19 @@ public class Main {
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
             depends = "-workDir")
     @Nonnull
-    public String internalDir = WorkDirManager.DEFAULT_INTERNAL_DIRECTORY;
+    public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
+
+    /**
+     * Fail the initialization if the workDir or internalDir are missing.
+     * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
+     * (e.g. if a filesystem mount gets disconnected).
+     * @since TODO
+     */
+    @Option(name = "-failIfWorkDirIsMissing",
+            usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
+            depends = "-workDir")
+    @Nonnull
+    public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     /**
      * @since 2.24
@@ -284,6 +296,7 @@ public class Main {
             engine.setWorkDir(workDir.toPath());
         }
         engine.setInternalDir(internalDir);
+        engine.setFailIfWorkDirIsMissing(failIfWorkDirIsMissing);
 
         return engine;
     }
