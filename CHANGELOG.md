@@ -6,9 +6,17 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.2
+
+Release date: (Nov 13, 2016) => Jenkins 2.32
+
+* [SECURITY-360](https://wiki.jenkins-ci.org/display/SECURITY/Jenkins+Security+Advisory+2016-11-16) - 
+Blacklist serialization of particular classes to close the Remote code execution vulnerability.
+([Commit #b7ac85ed4ae41482d9754a881df91d2eb86d047d](https://github.com/jenkinsci/remoting/commit/b7ac85ed4ae41482d9754a881df91d2eb86d047d))
+
 ##### 3.1
 
-Release date: Coming soon => TBD
+Release date: (Nov 10, 2016) => Jenkins 2.31
 
 Bugfixes:
 
