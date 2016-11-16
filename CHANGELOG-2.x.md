@@ -9,24 +9,33 @@ The file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
-##### 2.62.3 (coming soon)
+##### 2.62.4
 
-Release date: (Oct 7, 2016) => TBD
+Release date: Coming soon => TBD
 
 Improvements:
 
 * [JENKINS-39150](https://issues.jenkins-ci.org/browse/JENKINS-39150) - 
 Add logic for dumping diagnostics across all the channels.
 ([PR #122](https://github.com/jenkinsci/remoting/pull/122), [PR #125](https://github.com/jenkinsci/remoting/pull/125))
-* Improve the caller/callee correlation diagnostics in thread dumps.
+* [JENKINS-39543](https://issues.jenkins-ci.org/browse/JENKINS-39543) - 
+Improve the caller/callee correlation diagnostics in thread dumps.
 ([PR #119](https://github.com/jenkinsci/remoting/pull/119))
 * [JENKINS-39290](https://issues.jenkins-ci.org/browse/JENKINS-39290) - 
 Add the `org.jenkinsci.remoting.nio.NioChannelHub.disabled` flag for disabling NIO (mostly for debugging purposes).
 ([PR #123](https://github.com/jenkinsci/remoting/pull/123))
 
+##### 2.62.3
+
+Release date: (Nov 13, 2016) => Jenkins 2.19.3 LTS
+
+* [SECURITY-360](https://wiki.jenkins-ci.org/display/SECURITY/Jenkins+Security+Advisory+2016-11-16) - 
+Blacklist serialization of particular classes to close the Remote code execution vulnerability.
+([Commit #b7ac85ed4ae41482d9754a881df91d2eb86d047d](https://github.com/jenkinsci/remoting/commit/b7ac85ed4ae41482d9754a881df91d2eb86d047d))
+
 ##### 2.62.2
 
-Release date: (Oct 7, 2016) => TBD
+Release date: (Oct 7, 2016) => Jenkins 2.19.3 LTS
 
 Fixed issues:
 
