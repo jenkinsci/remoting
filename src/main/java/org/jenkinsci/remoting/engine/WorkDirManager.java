@@ -39,6 +39,8 @@ import java.util.logging.Logger;
 
 /**
  * Performs working directory management in remoting.
+ * Using this manager remoting can initialize its working directory and put the data there.
+ * The structure of the directory is described in {@link DirType}.
  * @author Oleg Nenashev
  * @since TODO
  */
