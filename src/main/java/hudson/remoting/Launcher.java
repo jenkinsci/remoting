@@ -297,7 +297,8 @@ public class Launcher {
             System.setOut(new PrintStream(new TeeOutputStream(System.out,
                     new FileOutputStream(new File(internalDirPath.toFile(), "remoting.out.log")))));
         } else {
-            System.err.println("WARNING: Log location is not specified (neither -workDir nor -slaveLog set)");
+            // TODO: This message is suspected to break the CI
+            // System.err.println("WARNING: Log location is not specified (neither -workDir nor -slaveLog set)");
         }
 
         if(auth!=null) {
