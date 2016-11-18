@@ -99,7 +99,8 @@ public class WorkDirManager {
         }
 
         if (workDir == null) {
-            LOGGER.log(Level.WARNING, "Agent working directory is not specified. Some functionality introduced in Remoting 3 may be disabled");
+            // TODO: this message likely suppresses the connection setup on CI
+            // LOGGER.log(Level.WARNING, "Agent working directory is not specified. Some functionality introduced in Remoting 3 may be disabled");
             return null;
         } else {
             // Verify working directory
