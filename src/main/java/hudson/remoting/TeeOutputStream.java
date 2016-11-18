@@ -16,6 +16,9 @@
  */
 package hudson.remoting;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -27,7 +30,8 @@ import java.io.OutputStream;
  *
  * @version $Id: TeeOutputStream.java 610010 2008-01-08 14:50:59Z niallp $
  */
-class TeeOutputStream extends FilterOutputStream {
+@Restricted(NoExternalUse.class)
+public class TeeOutputStream extends FilterOutputStream {
 
     /** the second OutputStream to write to */
     protected OutputStream branch;

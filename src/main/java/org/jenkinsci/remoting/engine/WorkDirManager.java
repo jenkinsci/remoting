@@ -25,13 +25,16 @@
 
 package org.jenkinsci.remoting.engine;
 
+import hudson.remoting.TeeOutputStream;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.logging.Level;
@@ -62,8 +65,12 @@ public class WorkDirManager {
      */
     public static final String SUPPORTED_INTERNAL_DIR_NAME_MASK = "[a-zA-Z0-9._-]*";
 
+
+    // Status data
+    boolean loggingInitialized;
+
     private WorkDirManager() {
-        // Cannot be instantinated outside
+        // Cannot be instantiated outside
     }
 
     /**
@@ -136,6 +143,47 @@ public class WorkDirManager {
             }
         } else if (failIfMissing) {
             throw new IOException("The " + type + " is missing, but it is expected to exist: " + dir.getPath());
+        }
+    }
+
+    /**
+     * Sets up logging subsystem in the working directory.
+     * It the logging system is already initialized, do nothing
+     * @param internalDirPath Path to the internal remoting directory within the WorkDir.
+     *                        If this value and {@code overrideLogPath} are null, the logging subsystem woill not
+     *                        be initialized at all
+     * @param overrideLogPath Overrides the common location of the remoting log.
+     *                        If specified, logging system will be initialized in the legacy way.
+     *                        If {@code null}, the behavior is defined by {@code internalDirPath}.
+     * @throws IOException Initialization error
+     */
+    public void setupLogging(@CheckForNull Path internalDirPath, @CheckForNull File overrideLogPath) throws IOException {
+        if (loggingInitialized) {
+            // Do nothing
+            // TODO: print warning message?
+            return;
+        }
+
+        if (overrideLogPath != null) { // Legacy behavior
+            System.out.println("Using " + overrideLogPath + " as an agent Error log destination. 'Out' log won't be generated");
+            System.out.flush(); // Just in case the channel
+            System.err.flush();
+            System.setErr(new PrintStream(new TeeOutputStream(System.err, new FileOutputStream(overrideLogPath))));
+            this.loggingInitialized = true;
+        } else if (internalDirPath != null) { // New behavior
+            System.out.println("Both error and output logs will be printed to " + internalDirPath);
+            System.out.flush();
+            System.err.flush();
+
+            // TODO: Log rotation by default?
+            System.setErr(new PrintStream(new TeeOutputStream(System.err,
+                    new FileOutputStream(new File(internalDirPath.toFile(), "remoting.err.log")))));
+            System.setOut(new PrintStream(new TeeOutputStream(System.out,
+                    new FileOutputStream(new File(internalDirPath.toFile(), "remoting.out.log")))));
+            this.loggingInitialized = true;
+        } else {
+            // TODO: This message is suspected to break the CI
+            // System.err.println("WARNING: Log location is not specified (neither -workDir nor -slaveLog set)");
         }
     }
 

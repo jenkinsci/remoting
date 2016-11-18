@@ -207,18 +207,9 @@ public class Engine extends Thread {
     public synchronized void startEngine() throws IOException {
         // Prepare the working directory if required
         if (workDir != null) {
-            final Path path = WorkDirManager.getInstance().initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
-            if (path != null) {
-                System.out.println("Both error and output logs will be printed to " + path);
-                System.out.flush();
-                System.err.flush();
-
-                // TODO: Log rotation by default?
-                System.setErr(new PrintStream(new TeeOutputStream(System.err,
-                        new FileOutputStream(new File(path.toFile(), "remoting.err.log")))));
-                System.setOut(new PrintStream(new TeeOutputStream(System.out,
-                        new FileOutputStream(new File(path.toFile(), "remoting.out.log")))));
-            }
+            final WorkDirManager workDirManager = WorkDirManager.getInstance();
+            final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
+            workDirManager.setupLogging(path, null);
         }
 
         // Start the engine thread

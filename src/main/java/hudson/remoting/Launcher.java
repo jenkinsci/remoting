@@ -278,28 +278,10 @@ public class Launcher {
     @edu.umd.cs.findbugs.annotations.SuppressWarnings("DM_DEFAULT_ENCODING")    // log file, just like console output, should be in platform default encoding
     public void run() throws Exception {
 
-        // Create and verify working directory if required
-        final Path internalDirPath = WorkDirManager.getInstance().initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
-
-        if (slaveLog != null) { // Legacy behavior
-            System.out.println("Using " + slaveLog + " as an agent Error log destination. 'Out' log won't be generated");
-            System.out.flush(); // Just in case the channel
-            System.err.flush();
-            System.setErr(new PrintStream(new TeeOutputStream(System.err,new FileOutputStream(slaveLog))));
-        } else if (internalDirPath != null) { // New behavior
-            System.out.println("Both error and output logs will be printed to " + internalDirPath);
-            System.out.flush();
-            System.err.flush();
-
-            // TODO: Log rotation by default?
-            System.setErr(new PrintStream(new TeeOutputStream(System.err,
-                    new FileOutputStream(new File(internalDirPath.toFile(), "remoting.err.log")))));
-            System.setOut(new PrintStream(new TeeOutputStream(System.out,
-                    new FileOutputStream(new File(internalDirPath.toFile(), "remoting.out.log")))));
-        } else {
-            // TODO: This message is suspected to break the CI
-            // System.err.println("WARNING: Log location is not specified (neither -workDir nor -slaveLog set)");
-        }
+        // Create and verify working directory and logging
+        final WorkDirManager workDirManager = WorkDirManager.getInstance();
+        final Path internalDirPath = workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
+        workDirManager.setupLogging(internalDirPath, slaveLog);
 
         if(auth!=null) {
             final int idx = auth.indexOf(':');
