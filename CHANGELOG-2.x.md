@@ -13,6 +13,12 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 Release date: Coming soon => TBD
 
+Fixed issues:
+
+* [JENKINS-25218](https://issues.jenkins-ci.org/browse/JENKINS-25218) - 
+Hardening of FifoBuffer operation logic. The change adds additional minor fixes to the original fix in `remoting-2.54`.
+([PR #100](https://github.com/jenkinsci/remoting/pull/100))
+
 Improvements:
 
 * [JENKINS-39150](https://issues.jenkins-ci.org/browse/JENKINS-39150) - 
