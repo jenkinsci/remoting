@@ -6,6 +6,16 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.3
+
+Release date: (Coming soon) => TBD
+
+Fixed issues:
+
+* [JENKINS-25218](https://issues.jenkins-ci.org/browse/JENKINS-25218) - 
+Hardening of FifoBuffer operation logic. The change adds additional minor fixes to the original fix in `remoting-2.54`.
+([PR #100](https://github.com/jenkinsci/remoting/pull/100))
+
 ##### 3.2
 
 Release date: (Nov 13, 2016) => Jenkins 2.32
