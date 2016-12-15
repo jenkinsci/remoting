@@ -613,8 +613,10 @@ public class NioChannelHub implements Runnable, Closeable {
                                     t.swimLane.submit(new Runnable() {
                                         public void run() {
                                             // if this EOF is unexpected, report an error.
-                                            if (!t.getChannel().isInClosed())
-                                                t.getChannel().terminate(new EOFException());
+                                            if (!t.getChannel().isInClosed()) {
+                                                t.getChannel().terminate(new IOException("Unexpected EOF while receiving the data from the channel. "
+                                                        + "FIFO buffer has been already closed", t.rb.getCloseCause()));
+                                            }
                                         }
                                     });
                                 }
@@ -628,13 +630,14 @@ public class NioChannelHub implements Runnable, Closeable {
                             }
                             t.reregister();
                         } catch (IOException e) {
-                            LOGGER.log(WARNING, "Communication problem", e);
+                            // It causes the channel failure, hence it is severe
+                            LOGGER.log(SEVERE, "Communication problem in " + t + ". NIO Transport will be aborted.", e);
                             t.abort(e);
                         } catch (CancelledKeyException e) {
                             // see JENKINS-24050. I don't understand how this can happen, given that the selector
                             // thread is the only thread that cancels keys. So to better understand what's going on,
                             // report the problem.
-                            LOGGER.log(SEVERE, "Unexpected key cancellation for "+t, e);
+                            LOGGER.log(SEVERE, "Unexpected key cancellation for " + t + ". NIO Transport will be aborted.", e);
                             // to be on the safe side, abort the communication. if we don't do this, it's possible
                             // that the key never gets re-registered to the selector, and the traffic will hang
                             // on this channel.

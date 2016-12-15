@@ -9,8 +9,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnegative;
 import javax.annotation.concurrent.GuardedBy;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * FIFO buffer for a reader thread and a writer thread to collaborate.
@@ -167,6 +170,14 @@ public class FifoBuffer implements Closeable {
      */
     @GuardedBy("lock")
     private boolean closed;
+    
+    /**
+     * Contains the reason why the buffer has been closed.
+     * The cause also stores the stacktrace of the close command.
+     */
+    @CheckForNull
+    private CloseCause closeCause;
+    
     private boolean closeRequested = false;
 
     public FifoBuffer(int pageSize, int limit) {
@@ -243,6 +254,16 @@ public class FifoBuffer implements Closeable {
         return closed;
     }
 
+    /**
+     * Returns Exception with stacktrace of the command, which invoked the buffer close.
+     * @return Close cause or {@code null}
+     * @since TODO
+     */
+    @CheckForNull
+    public CloseCause getCloseCause() {
+        return closeCause;
+    }
+    
     /**
      * Read from this buffer write as much as possible to the channel until
      * the channel gets filled up.
@@ -402,6 +423,7 @@ public class FifoBuffer implements Closeable {
     public void close() {
         // Async modification of the field in order to notify other threads that we are about closing this buffer
         closeRequested = true;
+        closeCause = new CloseCause("Buffer close has been requested");
         
         // Now perform close operation
         handleCloseRequest();
@@ -592,5 +614,22 @@ public class FifoBuffer implements Closeable {
                 }
             }
         };
+    }
+    
+    /**
+     * Explains the reason of the buffer close.
+     * @since TODO
+     */
+    public static class CloseCause extends Exception {
+
+        private static final long serialVersionUID = 1L;
+
+        /*package*/ CloseCause(String message) {
+            super(message);
+        }
+        
+        /*package*/ CloseCause(String message, Throwable cause) {
+            super(message, cause);
+        }  
     }
 }
