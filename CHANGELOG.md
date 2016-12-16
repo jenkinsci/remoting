@@ -8,13 +8,25 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.3
 
-Release date: (Coming soon) => TBD
+Release date: (Dec 16, 2016) => TBD
 
 Fixed issues:
 
 * [JENKINS-25218](https://issues.jenkins-ci.org/browse/JENKINS-25218) - 
-Hardening of FifoBuffer operation logic. The change adds additional minor fixes to the original fix in `remoting-2.54`.
+Hardening of FifoBuffer operation logic. 
+The change improves the original fix in `remoting-2.54`.
 ([PR #100](https://github.com/jenkinsci/remoting/pull/100))
+* [JENKINS-39547](https://issues.jenkins-ci.org/browse/JENKINS-39547) - 
+Corrupt agent JAR cache causes agents to malfunction.
+([PR #130](https://github.com/jenkinsci/remoting/pull/130))
+
+Improvements:
+
+* [JENKINS-40491](https://issues.jenkins-ci.org/browse/JENKINS-40491) - 
+Improve diagnostincs of the preliminary FifoBuffer termination.
+([PR #138](https://github.com/jenkinsci/remoting/pull/138))
+* ProxyException now retains any suppressed exceptions.
+([PR #136](https://github.com/jenkinsci/remoting/pull/136))
 
 ##### 3.2
 
