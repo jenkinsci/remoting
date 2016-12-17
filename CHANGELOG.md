@@ -23,7 +23,7 @@ Corrupt agent JAR cache causes agents to malfunction.
 Improvements:
 
 * [JENKINS-40491](https://issues.jenkins-ci.org/browse/JENKINS-40491) - 
-Improve diagnostincs of the preliminary FifoBuffer termination.
+Improve diagnostics of the preliminary FifoBuffer termination.
 ([PR #138](https://github.com/jenkinsci/remoting/pull/138))
 * ProxyException now retains any suppressed exceptions.
 ([PR #136](https://github.com/jenkinsci/remoting/pull/136))
