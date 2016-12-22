@@ -177,15 +177,19 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                         }
                         recvKey.cancel();
                         onRecvClosed();
-                    } catch (RuntimeException e) {
+                    } catch (Throwable t) {
                         // this should *never* happen... but just in case it does we will log & close connection
-                        if (LOGGER.isLoggable(Level.WARNING)) {
-                            LogRecord record = new LogRecord(Level.WARNING, "[{0}] Uncaught {1}");
-                            record.setThrown(e);
-                            record.setParameters(new Object[]{stack().name(), e.getClass().getSimpleName()});
+                        try {
+                            if (LOGGER.isLoggable(Level.SEVERE)) {
+                                LogRecord record = new LogRecord(Level.SEVERE, "[{0}] Uncaught {1}");
+                                record.setThrown(t);
+                                record.setParameters(new Object[]{stack().name(), t.getClass().getSimpleName()});
+                            }
+                        } finally {
+                            // incase this was an OOMErr and logging caused another OOMErr
+                            recvKey.cancel();
+                            onRecvClosed();
                         }
-                        recvKey.cancel();
-                        onRecvClosed();
                     } finally {
                         release(recv);
                     }
