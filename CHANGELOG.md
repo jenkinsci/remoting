@@ -6,9 +6,20 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.4
+
+Release date: (Dec 24, 2016) => TBD
+
+Fixed issues:
+
+* [JENKINS-39835](https://issues.jenkins-ci.org/browse/JENKINS-39835) - 
+Be extra defensive about unhandled `Errors` and `Exception`s.
+In the case of such issues remoting tries to properly terminate the connection instead of just leaving the hanging channel.
+([PR #133](https://github.com/jenkinsci/remoting/pull/133))
+
 ##### 3.3
 
-Release date: (Dec 16, 2016) => TBD
+Release date: (Dec 16, 2016) => Jenkins 2.37
 
 Fixed issues:
 
