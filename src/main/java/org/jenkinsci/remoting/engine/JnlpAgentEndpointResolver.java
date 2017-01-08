@@ -427,8 +427,10 @@ public class JnlpAgentEndpointResolver {
     private static List<String> header(@Nonnull HttpURLConnection connection, String... headerNames) {
         Map<String, List<String>> headerFields = connection.getHeaderFields();
         for (String headerName : headerNames) {
-            if (headerFields.containsKey(headerName)) {
-                return headerFields.get(headerName);
+            for (String headerField : headerFields.keySet()) {
+                if (headerField.equalsIgnoreCase(headerName)) {
+                    return headerFields.get(headerName);
+                }
             }
         }
         return null;
