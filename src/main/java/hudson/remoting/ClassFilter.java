@@ -74,7 +74,9 @@ public abstract class ClassFilter {
         "^org[.]hibernate[.].*",
         "^org[.]python[.].*",
         "^org[.]springframework[.](?!(\\p{Alnum}+[.])*\\p{Alnum}*Exception$).*",
-        "^sun[.]rmi[.].*"
+        "^sun[.]rmi[.].*",
+        "^javax[.]imageio[.].*",
+        "^java[.]util[.]ServiceLoader$"
     };
 
     /**
