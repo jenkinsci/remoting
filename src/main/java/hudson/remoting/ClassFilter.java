@@ -76,7 +76,8 @@ public abstract class ClassFilter {
         "^org[.]springframework[.](?!(\\p{Alnum}+[.])*\\p{Alnum}*Exception$).*",
         "^sun[.]rmi[.].*",
         "^javax[.]imageio[.].*",
-        "^java[.]util[.]ServiceLoader$"
+        "^java[.]util[.]ServiceLoader$",
+        "^java[.]net[.]URLClassLoader$"
     };
 
     /**
