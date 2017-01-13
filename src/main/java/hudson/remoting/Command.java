@@ -55,7 +55,7 @@ abstract class Command implements Serializable {
 
     protected Command(Channel channel, Throwable cause) {
         // Command object needs to be deserializable on the other end without requiring custom classloading,
-        // so we wrap this in ProxyEkception
+        // so we wrap this in ProxyException
         this.createdAt = new Source(new ProxyException(cause));
     }
 
