@@ -1111,7 +1111,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * {@link ObjectOutputStream}, and it's the last command to be read.
      */
     private static final class CloseCommand extends Command {
-        private CloseCommand(Channel channel, Throwable cause) {
+        private CloseCommand(Channel channel, @CheckForNull Throwable cause) {
             super(channel, cause);
         }
 
@@ -1266,7 +1266,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * @since 2.8
      */
-    public synchronized void close(Throwable diagnosis) throws IOException {
+    public synchronized void close(@CheckForNull Throwable diagnosis) throws IOException {
         if(outClosed!=null)  return;  // already closed
 
         try {

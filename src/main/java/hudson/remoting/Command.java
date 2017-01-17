@@ -28,6 +28,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.concurrent.ExecutionException;
+import javax.annotation.CheckForNull;
 
 /**
  * One-way command to be sent over to the remote system and executed there.
@@ -53,10 +54,10 @@ abstract class Command implements Serializable {
         this(true);
     }
 
-    protected Command(Channel channel, Throwable cause) {
+    protected Command(Channel channel, @CheckForNull Throwable cause) {
         // Command object needs to be deserializable on the other end without requiring custom classloading,
         // so we wrap this in ProxyException
-        this.createdAt = new Source(new ProxyException(cause));
+        this.createdAt = new Source(cause != null ? new ProxyException(cause) : null);
     }
 
     /**
@@ -105,7 +106,7 @@ abstract class Command implements Serializable {
         public Source() {
         }
 
-        private Source(Throwable cause) {
+        private Source(@CheckForNull Throwable cause) {
             super(cause);
         }
 
