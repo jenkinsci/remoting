@@ -5,7 +5,9 @@ import org.jvnet.hudson.test.Bug;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.PrintWriter;
 import java.io.Serializable;
+import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.concurrent.TimeUnit;
@@ -162,5 +164,16 @@ public class ChannelTest extends RmiTestBase {
         public T call() throws RuntimeException {
             return t;
         }
+    }
+
+    @Bug(39150)
+    public void testDiagnostics() throws Exception {
+        StringWriter sw = new StringWriter();
+        Channel.dumpDiagnosticsForAll(new PrintWriter(sw));
+        System.out.println(sw);
+        assertTrue(sw.toString().contains("Channel north"));
+        assertTrue(sw.toString().contains("Channel south"));
+        assertTrue(sw.toString().contains("Commands sent=0"));
+        assertTrue(sw.toString().contains("Commands received=0"));
     }
 }

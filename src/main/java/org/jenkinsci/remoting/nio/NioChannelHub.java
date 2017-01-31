@@ -11,6 +11,8 @@ import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 import hudson.remoting.SingleLaneExecutorService;
 import org.jenkinsci.remoting.RoleChecker;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import java.io.Closeable;
 import java.io.EOFException;
@@ -472,7 +474,8 @@ public class NioChannelHub implements Runnable, Closeable {
             protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
-                if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking()) {
+                boolean disableNio = Boolean.getBoolean(NioChannelHub.class.getName()+".disabled");
+                if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking() && !disableNio) {
                     try {
                         // run() might be called asynchronously from another thread, so wait until that gets going
                         // if you see the execution hanging here forever, that means you forgot to call run()
@@ -492,9 +495,9 @@ public class NioChannelHub implements Runnable, Closeable {
                     else            t = new DualNioTransport(getName(),r,w,cap);
                     t.scheduleReregister();
                     return t;
-                }
-                else
+                } else {
                     return super.makeTransport(is, os, mode, cap);
+                }
             }
         };
     }
