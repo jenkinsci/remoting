@@ -50,7 +50,7 @@ public class FileSystemJarCache extends JarCacheSupport {
         try {
             Util.mkdirs(rootDir);
         } catch (IOException ex) {
-            throw new RuntimeException("Root directory not writable");
+            throw new RuntimeException("Root directory not writable: " + rootDir);
         }
     }
 
