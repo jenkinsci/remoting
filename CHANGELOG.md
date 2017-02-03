@@ -6,6 +6,24 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.5
+
+Release date: Coming soon
+
+Fixed issues:
+
+* [JENKINS-40710](https://issues.jenkins-ci.org/browse/JENKINS-40710) - 
+Match headers case-insensitively in `JnlpAgentEndpointResolver` in order to be compliant with HTTP2 lower-case headers.
+([PR #139](https://github.com/jenkinsci/remoting/pull/139), [PR #140](https://github.com/jenkinsci/remoting/pull/140))
+* [JENKINS-41513](https://issues.jenkins-ci.org/browse/JENKINS-41513) - 
+Prevent `NullPointerException` in `JnlpAgentEndpointResolver` when receiving a header with `null` name.
+([PR #140](https://github.com/jenkinsci/remoting/pull/140))
+
+Improvements:
+
+* Print the Filesystem Jar Cache directory location in the error message when this cache directory is not writable.
+([PR #143](https://github.com/jenkinsci/remoting/pull/143))
+
 ##### 3.4.1
 
 Release date: Feb 01, 2017 => Jenkins 2.44, 2.32.2 LTS
