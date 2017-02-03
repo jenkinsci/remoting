@@ -9,9 +9,19 @@ The file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 2.62.5
+
+Release date: Feb 01, 2017
+
+Fixed issues:
+
+* [SECURITY-383](https://wiki.jenkins-ci.org/display/SECURITY/Jenkins+Security+Advisory+2017-02-01) - 
+Blacklist classes vulnerable to a remote code execution involving the deserialization of various types in 
+`javax.imageio.*`, `java.util.ServiceLoader`, and `java.net.URLClassLoader`.
+
 ##### 2.62.4
 
-Release date: Coming soon => TBD
+Release date: Nov 21, 2016
 
 Fixed issues:
 
