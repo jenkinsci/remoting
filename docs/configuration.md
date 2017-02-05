@@ -99,10 +99,18 @@ These properties require independent configuration on both sides of the channel.
       <td>org.jenkinsci.remoting.nio.NioChannelHub.disabled</td>
       <td>false</td>
       <td>2.62.3</td>
-      <td>?</td>
+      <td>TODO</td>
       <td><a href="https://issues.jenkins-ci.org/browse/JENKINS-39290">JENKINS-39290</a></td>
       <td>Boolean flag to disable NIO-based socket connection handling, and switch back to classic IO. Used to isolate the problem.</td>
-    </tr>-
+    </tr>
+    <tr>
+      <td>org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.ignoreJenkinsAgentProtocolsHeader</td>
+      <td>false</td>
+      <td>TODO</td>    
+      <td>TODO</td>
+      <td><a href="https://issues.jenkins-ci.org/browse/JENKINS-41730">JENKINS-41730</a></td>
+      <td>If enabled, the remoting client will ignore the list of supported protocols returned by the server. Then it will try to connect by iterating through available protocols till it finds the server accepts connection.</td>
+    </tr>
     <!--Template
     <tr>
       <td></td>
