@@ -104,12 +104,12 @@ These properties require independent configuration on both sides of the channel.
       <td>Boolean flag to disable NIO-based socket connection handling, and switch back to classic IO. Used to isolate the problem.</td>
     </tr>
     <tr>
-      <td>org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.ignoreJenkinsAgentProtocolsHeader</td>
+      <td>org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry</td>
       <td>false</td>
       <td>TODO</td>    
       <td>TODO</td>
       <td><a href="https://issues.jenkins-ci.org/browse/JENKINS-41730">JENKINS-41730</a></td>
-      <td>If enabled, the remoting client will ignore the list of supported protocols returned by the server. Then it will try to connect by iterating through available protocols till it finds the server accepts connection.</td>
+      <td>If specified, only the protocols from the list will be tried during the connection. The option provides protocol names, but the order of the check is defined internally and cannot be changed.</td>
     </tr>
     <!--Template
     <tr>

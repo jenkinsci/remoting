@@ -77,15 +77,14 @@ public class JnlpAgentEndpointResolver {
     private String tunnel;
 
     /**
-     * If enabled, remoting will ignore the list of supported protocols returned by the server.
-     * This option can be used in order to workaround issues when the headers cannot be delivered
+     * If specified, only the protocols from the list will be tried during the connection.
+     * The option provides protocol names, but the order of the check is defined internally and cannot be changed.
+     * This option can be also used in order to workaround issues when the headers cannot be delivered
      * from the server due to whatever reason (e.g. JENKINS-41730).
-     * Ignoring of the supported protocol headers leads to higher connection times because remoting agent 
-     * has to try connecting protocols till it finds the supported one.
      * @since TODO
      */
-    private static final boolean IGNORE_SUPPORTED_PROTOCOL_NAMES_HEADER =
-            Boolean.getBoolean(JnlpAgentEndpointResolver.class.getName() + ".ignoreJenkinsAgentProtocolsHeader");
+    private static String PROTOCOL_NAMES_TO_TRY =
+            System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
     
     public JnlpAgentEndpointResolver(String... jenkinsUrls) {
         this.jenkinsUrls = new ArrayList<String>(Arrays.asList(jenkinsUrls));
@@ -175,16 +174,8 @@ public class JnlpAgentEndpointResolver {
                 host = defaultString(first(header(con, "X-Jenkins-JNLP-Host")), salURL.getHost());
                 List<String> protocols = header(con, "X-Jenkins-Agent-Protocols");
                 if (protocols != null) {
+                    // Take the list of protocols to try from the headers
                     agentProtocolNames = new HashSet<String>();
-                    
-                    if (protocols.isEmpty() && !IGNORE_SUPPORTED_PROTOCOL_NAMES_HEADER) {
-                        LOGGER.log(Level.WARNING, "Received the empty list of supported protocols from the server. " +
-                                "All protocols are disabled on the master side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). " +
-                                "The agent won't be able to connect, in the case of the header corruption consider using " +
-                                "'-Dorg.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.ignoreJenkinsAgentProtocolsHeader=true' " +
-                                "to disable caching of the supported protocols.");
-                    }
-                    
                     for (String names : protocols) {
                         for (String name : names.split(",")) {
                             name = name.trim();
@@ -193,7 +184,31 @@ public class JnlpAgentEndpointResolver {
                             }
                         }
                     }
+                    
+                    if (agentProtocolNames.isEmpty()) {
+                        LOGGER.log(Level.WARNING, "Received the empty list of supported protocols from the server. " +
+                                "All protocols are disabled on the master side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). " +
+                                "In the case of the header corruption as a workaround you can use the " +
+                                "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' system property " +
+                                "to define the supported protocols.");
+                    }
+                    
+                    LOGGER.log(Level.INFO, "Remoting server accepts the following protocols: {0}", agentProtocolNames);
                 }
+                
+                if (PROTOCOL_NAMES_TO_TRY != null) {
+                    // Take a list of protocols to try from the system property
+                    agentProtocolNames = new HashSet<String>();
+                    LOGGER.log(Level.INFO, "Ignoring the list of supported remoting protocols provided by the server, because the " +
+                        "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' property is defined. Will try {0}", PROTOCOL_NAMES_TO_TRY);
+                    for (String name : PROTOCOL_NAMES_TO_TRY.split(",")) {
+                        name = name.trim();
+                        if (!name.isEmpty()) {
+                            agentProtocolNames.add(name);
+                        } 
+                    }
+                }
+                
                 String idHeader = first(header(con, "X-Instance-Identity"));
                 RSAPublicKey identity = null;
                 if (idHeader != null) {
@@ -253,12 +268,9 @@ public class JnlpAgentEndpointResolver {
                     if (tokens[1].length() > 0) port = Integer.parseInt(tokens[1]);
                 }
                 
-                if (IGNORE_SUPPORTED_PROTOCOL_NAMES_HEADER) {
-                    LOGGER.log(Level.INFO, "Ignoring the cached list of remoting protocols provided by the server. " +
-                            "'-Dorg.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.ignoreJenkinsAgentProtocolsHeader' flag is set");
-                }
                 
-                return new JnlpAgentEndpoint(host, port, identity, IGNORE_SUPPORTED_PROTOCOL_NAMES_HEADER ? null : agentProtocolNames, selectedJenkinsURL);
+                
+                return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames, selectedJenkinsURL);
             } finally {
                 con.disconnect();
             }
