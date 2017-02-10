@@ -118,8 +118,19 @@ final class ExportTable {
          * (and we can still detect the problem by comparing the reference count with the magic value.
          */
         void pin() {
-            if (referenceCount<Integer.MAX_VALUE/2)
-                referenceCount += Integer.MAX_VALUE/2;
+            // only add the magic constant if we are in the range Integer.MIN_VALUE < x < 0x2000000
+            // this means that over-reference removal will still yield a referece above 0 and repeated pinning
+            // will not yield a negative reference count.
+            // e.g. if we had:
+            //   init    -> 0x00000000;
+            //   pin     -> 0x40000001;
+            //   release -> 0x39999999;
+            //   pin     -> 0x79999999;
+            //   addRef  -> 0x80000000 => BOOM
+            // By making the decision point half way, we give the maximum number of releases away from the pinned
+            // magic value
+            if (referenceCount<0x20000000)
+                referenceCount += 0x40000000;
         }
 
         void release(Throwable callSite) {
