@@ -1,6 +1,7 @@
 package hudson.remoting;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.GuardedBy;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -8,7 +9,9 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,6 +33,12 @@ public class FileSystemJarCache extends JarCacheSupport {
     private final Set<Checksum> notified = Collections.synchronizedSet(new HashSet<Checksum>());
 
     /**
+     * Cache of computer checksums for cached jars.
+     */
+    @GuardedBy("itself")
+    private final Map<String, Checksum> checksumsByPath = new HashMap<>();
+
+    /**
      * @param touch
      *      True to touch the cached jar file that's used. This enables external LRU based cache
      *      eviction at the expense of increased I/O.
@@ -43,7 +52,7 @@ public class FileSystemJarCache extends JarCacheSupport {
         try {
             Util.mkdirs(rootDir);
         } catch (IOException ex) {
-            throw new RuntimeException("Root directory not writable");
+            throw new RuntimeException("Root directory not writable: " + rootDir);
         }
     }
 
@@ -65,13 +74,24 @@ public class FileSystemJarCache extends JarCacheSupport {
 
     @Override
     protected URL retrieve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
+        Checksum expected = new Checksum(sum1, sum2);
         File target = map(sum1, sum2);
 
         if (target.exists()) {
-            // Assume its already been fetched correctly before. ie. We are not going to validate
-            // the checksum.
-            LOGGER.fine(String.format("Jar file already exists: %16X%16X", sum1, sum2));
-            return target.toURI().toURL();
+            Checksum actual = fileChecksum(target);
+            if (expected.equals(actual)) {
+                LOGGER.fine(String.format("Jar file already exists: %s", expected));
+                return target.toURI().toURL();
+            }
+
+            LOGGER.warning(String.format(
+                    "Cached file checksum mismatch: %s%nExpected: %s%n Actual: %s",
+                    target.getAbsolutePath(), expected, actual
+            ));
+            target.delete();
+            synchronized (checksumsByPath) {
+                checksumsByPath.remove(target.getCanonicalPath());
+            }
         }
 
         try {
@@ -86,7 +106,6 @@ public class FileSystemJarCache extends JarCacheSupport {
                 }
 
                 // Verify the checksum of the download.
-                Checksum expected = new Checksum(sum1, sum2);
                 Checksum actual = Checksum.forFile(tmp);
                 if (!expected.equals(actual)) {
                     throw new IOException(String.format(
@@ -98,13 +117,12 @@ public class FileSystemJarCache extends JarCacheSupport {
                     if (!target.exists()) {
                         throw new IOException("Unable to create " + target + " from " + tmp);
                     }
-
                     // Even if we fail to rename, we are OK as long as the target actually exists at
                     // this point. This can happen if two FileSystemJarCache instances share the
                     // same cache dir.
                     //
                     // Verify the checksum to be sure the target is correct.
-                    actual = Checksum.forFile(target);
+                    actual = fileChecksum(target);
                     if (!expected.equals(actual)) {
                         throw new IOException(String.format(
                                 "Incorrect checksum of previous jar: %s%nExpected: %s%nActual: %s",
@@ -112,13 +130,31 @@ public class FileSystemJarCache extends JarCacheSupport {
                     }
                 }
 
-
                 return target.toURI().toURL();
             } finally {
                 Files.deleteIfExists(tmp.toPath());
             }
         } catch (IOException e) {
             throw (IOException)new IOException("Failed to write to "+target).initCause(e);
+        }
+    }
+
+    /**
+     * Get file checksum calculating it or retrieving from cache.
+     */
+    private Checksum fileChecksum(File file) throws IOException {
+        String location = file.getCanonicalPath();
+
+        // When callers all request the checksum of a large jar, the first thread
+        // will calculate the checksum and the other treads will be blocked here
+        // until calculated to be picked up from cache right away.
+        synchronized (checksumsByPath) {
+            Checksum checksum = checksumsByPath.get(location);
+            if (checksum != null) return checksum;
+
+            checksum = Checksum.forFile(file);
+            checksumsByPath.put(location, checksum);
+            return checksum;
         }
     }
 

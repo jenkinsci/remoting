@@ -130,7 +130,16 @@ public class JnlpAgentEndpointResolver {
             if (jenkinsUrl == null) {
                 continue;
             }
-            URL salURL = toAgentListenerURL(jenkinsUrl);
+            
+            final URL selectedJenkinsURL;
+            final URL salURL;
+            try {
+                selectedJenkinsURL = new URL(jenkinsUrl);
+                salURL = toAgentListenerURL(jenkinsUrl);
+            } catch (MalformedURLException ex) {
+                LOGGER.log(Level.WARNING, String.format("Cannot parse agent endpoint URL %s. Skipping it", jenkinsUrl), ex);
+                continue;
+            }
 
             // find out the TCP port
             HttpURLConnection con =
@@ -226,7 +235,8 @@ public class JnlpAgentEndpointResolver {
                     if (tokens[0].length() > 0) host = tokens[0];
                     if (tokens[1].length() > 0) port = Integer.parseInt(tokens[1]);
                 }
-                return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames);
+                
+                return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames, selectedJenkinsURL);
             } finally {
                 con.disconnect();
             }
@@ -421,8 +431,10 @@ public class JnlpAgentEndpointResolver {
     private static List<String> header(@Nonnull HttpURLConnection connection, String... headerNames) {
         Map<String, List<String>> headerFields = connection.getHeaderFields();
         for (String headerName : headerNames) {
-            if (headerFields.containsKey(headerName)) {
-                return headerFields.get(headerName);
+            for (String headerField : headerFields.keySet()) {
+                if (headerField != null && headerField.equalsIgnoreCase(headerName)) {
+                    return headerFields.get(headerField);
+                }
             }
         }
         return null;

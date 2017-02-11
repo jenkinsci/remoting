@@ -95,6 +95,14 @@ These properties require independent configuration on both sides of the channel.
       Property example: <code>org.jenkinsci.remoting.engine.JnlpProtocol3.disabled</code>
       </td>
     </tr>
+    <tr>
+      <td>org.jenkinsci.remoting.nio.NioChannelHub.disabled</td>
+      <td>false</td>
+      <td>2.62.3</td>
+      <td>?</td>
+      <td><a href="https://issues.jenkins-ci.org/browse/JENKINS-39290">JENKINS-39290</a></td>
+      <td>Boolean flag to disable NIO-based socket connection handling, and switch back to classic IO. Used to isolate the problem.</td>
+    </tr>-
     <!--Template
     <tr>
       <td></td>
