@@ -96,11 +96,12 @@ class MultiClassLoaderSerializer {
 
             case TAG_LOCAL_CLASSLOADER:
                 Object proxyObject;
+                int oid = readInt();
                 try {
-                    proxyObject = channel.getExportedObject(readInt());
+                    proxyObject = channel.getExportedObject(oid);
                 } catch (ExecutionException ex) {
                     throw new IOException("Cannot locate RemoteClassLoader.ClassLoaderProxy(" +
-                            code + ") in the channel exported table", ex);
+                            oid + ") in the channel exported table", ex);
                 }
                 cl = ((RemoteClassLoader.ClassLoaderProxy)proxyObject).cl;
                 classLoaders.add(cl);
