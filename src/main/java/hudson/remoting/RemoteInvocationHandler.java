@@ -130,6 +130,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Wraps an OID to the typed wrapper.
      */
+    @Nonnull
     public static <T> T wrap(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller) {
         ClassLoader cl = type.getClassLoader();
         // if the type is a JDK-defined type, classloader should be for IReadResolve

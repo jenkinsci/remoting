@@ -17,6 +17,7 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
 
 /**
  * This class provides encode/decode for RFC 2045 Base64 as
@@ -101,8 +102,9 @@ public final class  Base64 {
      * Encodes hex octects into Base64
      *
      * @param binaryData Array containing binaryData
-     * @return Encoded Base64 array
+     * @return Encoded Base64 array. {@code null} if the input is null
      */
+    @Nullable
     public static String encode(byte[] binaryData) {
 
         if (binaryData == null)
