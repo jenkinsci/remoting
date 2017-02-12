@@ -26,6 +26,11 @@ Improvements:
 
 * Print the Filesystem Jar Cache directory location in the error message when this cache directory is not writable.
 ([PR #143](https://github.com/jenkinsci/remoting/pull/143))
+* Replace `MimicException` with the older `ProxyException` when serializing non-serializable exceptions thrown by the remote code.
+([PR #141](https://github.com/jenkinsci/remoting/pull/141))
+* Use OID of the `ClassLoaderProxy` in error message when the proxy cannot be located in the export table.
+([PR #147](https://github.com/jenkinsci/remoting/pull/147))
+
 
 ##### 3.4.1
 
