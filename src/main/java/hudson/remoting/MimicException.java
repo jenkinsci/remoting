@@ -8,7 +8,9 @@ package hudson.remoting;
  *
  * @author Kohsuke Kawaguchi
  * @see Capability#hasMimicException()
+ * @deprecated Use {@link ProxyException} instead.
  */
+@Deprecated
 class MimicException extends Exception {
     private final String className;
     MimicException(Throwable cause) {
