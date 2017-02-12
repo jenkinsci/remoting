@@ -18,6 +18,9 @@ Match headers case-insensitively in `JnlpAgentEndpointResolver` in order to be c
 * [JENKINS-41513](https://issues.jenkins-ci.org/browse/JENKINS-41513) - 
 Prevent `NullPointerException` in `JnlpAgentEndpointResolver` when receiving a header with `null` name.
 ([PR #140](https://github.com/jenkinsci/remoting/pull/140))
+* [JENKINS-41852](https://issues.jenkins-ci.org/browse/JENKINS-41852) - 
+Fix exported object pinning logic to prevent release due to the integer overflow.
+([PR #148](https://github.com/jenkinsci/remoting/pull/148))
 
 Improvements:
 
