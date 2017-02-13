@@ -268,8 +268,6 @@ public class JnlpAgentEndpointResolver {
                     if (tokens[1].length() > 0) port = Integer.parseInt(tokens[1]);
                 }
                 
-                
-                
                 return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames, selectedJenkinsURL);
             } finally {
                 con.disconnect();
