@@ -60,6 +60,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -613,11 +614,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@inheritDoc}
      */
+    @Override
     public <T> T export(Class<T> type, T instance) {
         return export(type, instance, true);
     }
 
     /**
+     * Exports the class instance to the remote side.
      * @param userProxy
      *      If true, the returned proxy will be capable to handle classes
      *      defined in the user classloader as parameters and return values.
@@ -626,10 +629,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      used by {@link RemoteClassLoader}.
      *
      *      To create proxies for objects inside remoting, pass in false. 
+     * @return Reference to the exported instance wrapped by {@link RemoteInvocationHandler}. 
+     *      {@code null} if the input instance is {@code null}.     
      */
-    /*package*/ <T> T export(Class<T> type, T instance, boolean userProxy) {
-        if(instance==null)
+    @Nullable
+    /*package*/ <T> T export(Class<T> type, @CheckForNull T instance, boolean userProxy) {
+        if(instance==null) {
             return null;
+        }
 
         // every so often perform GC on the remote system so that
         // unused RemoteInvocationHandler get released, which triggers
@@ -686,8 +693,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Increase reference count so much to effectively prevent de-allocation.
+     * @param instance Instance to be pinned
      */
-    public void pin(Object instance) {
+    public void pin(@Nonnull Object instance) {
         exportedObjects.pin(instance);
     }
 
@@ -1089,7 +1097,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Waits for this {@link Channel} to be closed down, but only up the given milliseconds.
-     *
+     * @param timeout TImeout in milliseconds
      * @throws InterruptedException
      *      If the current thread is interrupted while waiting for the completion.
      * @since 1.299

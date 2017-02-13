@@ -91,6 +91,7 @@ public class LocalChannel implements VirtualChannel {
         // noop
     }
 
+    @Override
     public void join(long timeout) throws InterruptedException {
         // noop
     }

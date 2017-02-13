@@ -83,6 +83,14 @@ These properties require independent configuration on both sides of the channel.
       </td>
     </tr>
     <tr>
+      <td>hudson.remoting.ExportTable.unexportLogSize</td>
+      <td>1024</td>
+      <td>2.40</td>
+      <td>?</td>
+      <td><a href="https://issues.jenkins-ci.org/browse/JENKINS-20707">JENKINS-20707</a></td>
+      <td>Defines number of entries to be stored in the unexport history, which is being analyzed during the invalid object ID analysis.</td>
+    </tr>
+    <tr>
       <td>${PROTOCOL_FULLY_QUALIFIED_NAME}.disabled, 
       where PROTOCOL_FULLY_QUALIFIED_NAME equals 
       <code>PROTOCOL_HANDLER_CLASSNAME</code> without the <code>Handler</code> suffix.</td>,
