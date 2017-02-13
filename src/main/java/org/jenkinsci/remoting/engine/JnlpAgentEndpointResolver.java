@@ -191,9 +191,9 @@ public class JnlpAgentEndpointResolver {
                                 "In the case of the header corruption as a workaround you can use the " +
                                 "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' system property " +
                                 "to define the supported protocols.");
+                    } else {
+                        LOGGER.log(Level.INFO, "Remoting server accepts the following protocols: {0}", agentProtocolNames);
                     }
-                    
-                    LOGGER.log(Level.INFO, "Remoting server accepts the following protocols: {0}", agentProtocolNames);
                 }
                 
                 if (PROTOCOL_NAMES_TO_TRY != null) {
