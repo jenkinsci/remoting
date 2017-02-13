@@ -76,6 +76,16 @@ public class JnlpAgentEndpointResolver {
 
     private String tunnel;
 
+    /**
+     * If specified, only the protocols from the list will be tried during the connection.
+     * The option provides protocol names, but the order of the check is defined internally and cannot be changed.
+     * This option can be also used in order to workaround issues when the headers cannot be delivered
+     * from the server due to whatever reason (e.g. JENKINS-41730).
+     * @since TODO
+     */
+    private static String PROTOCOL_NAMES_TO_TRY =
+            System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
+    
     public JnlpAgentEndpointResolver(String... jenkinsUrls) {
         this.jenkinsUrls = new ArrayList<String>(Arrays.asList(jenkinsUrls));
     }
@@ -164,6 +174,7 @@ public class JnlpAgentEndpointResolver {
                 host = defaultString(first(header(con, "X-Jenkins-JNLP-Host")), salURL.getHost());
                 List<String> protocols = header(con, "X-Jenkins-Agent-Protocols");
                 if (protocols != null) {
+                    // Take the list of protocols to try from the headers
                     agentProtocolNames = new HashSet<String>();
                     for (String names : protocols) {
                         for (String name : names.split(",")) {
@@ -173,7 +184,31 @@ public class JnlpAgentEndpointResolver {
                             }
                         }
                     }
+                    
+                    if (agentProtocolNames.isEmpty()) {
+                        LOGGER.log(Level.WARNING, "Received the empty list of supported protocols from the server. " +
+                                "All protocols are disabled on the master side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). " +
+                                "In the case of the header corruption as a workaround you can use the " +
+                                "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' system property " +
+                                "to define the supported protocols.");
+                    } else {
+                        LOGGER.log(Level.INFO, "Remoting server accepts the following protocols: {0}", agentProtocolNames);
+                    }
                 }
+                
+                if (PROTOCOL_NAMES_TO_TRY != null) {
+                    // Take a list of protocols to try from the system property
+                    agentProtocolNames = new HashSet<String>();
+                    LOGGER.log(Level.INFO, "Ignoring the list of supported remoting protocols provided by the server, because the " +
+                        "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' property is defined. Will try {0}", PROTOCOL_NAMES_TO_TRY);
+                    for (String name : PROTOCOL_NAMES_TO_TRY.split(",")) {
+                        name = name.trim();
+                        if (!name.isEmpty()) {
+                            agentProtocolNames.add(name);
+                        } 
+                    }
+                }
+                
                 String idHeader = first(header(con, "X-Instance-Identity"));
                 RSAPublicKey identity = null;
                 if (idHeader != null) {
