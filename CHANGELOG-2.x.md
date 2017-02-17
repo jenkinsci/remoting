@@ -9,6 +9,16 @@ The file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 2.62.6
+
+Release date: Coming Soon
+
+Fixed issues:
+
+* [JENKINS-41852](https://issues.jenkins-ci.org/browse/JENKINS-41852) - 
+Fix exported object pinning logic to prevent release due to the integer overflow.
+([PR #148](https://github.com/jenkinsci/remoting/pull/148))
+
 ##### 2.62.5
 
 Release date: Feb 01, 2017

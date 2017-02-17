@@ -3,6 +3,7 @@ package hudson.remoting;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import javax.annotation.CheckForNull;
 
 /**
  * {@link OutputStream} that's connected to an {@link InputStream} somewhere,
@@ -39,5 +40,5 @@ public interface ErrorPropagatingOutputStream {
      * @param e
      *      if null, this method behaves exactly like {@link OutputStream#close()}
      */
-    void error(Throwable e) throws IOException;
+    void error(@CheckForNull Throwable e) throws IOException;
 }

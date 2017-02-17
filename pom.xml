@@ -29,12 +29,12 @@ THE SOFTWARE.
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
     <version>1.37</version>
-    <relativePath/>
+    <relativePath />
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>3.5-SNAPSHOT</version>
+  <version>3.6-SNAPSHOT</version>
 
   <name>Jenkins remoting layer</name>
   <description>

@@ -18,11 +18,21 @@ Match headers case-insensitively in `JnlpAgentEndpointResolver` in order to be c
 * [JENKINS-41513](https://issues.jenkins-ci.org/browse/JENKINS-41513) - 
 Prevent `NullPointerException` in `JnlpAgentEndpointResolver` when receiving a header with `null` name.
 ([PR #140](https://github.com/jenkinsci/remoting/pull/140))
+* [JENKINS-41852](https://issues.jenkins-ci.org/browse/JENKINS-41852) - 
+Fix exported object pinning logic to prevent release due to the integer overflow.
+([PR #148](https://github.com/jenkinsci/remoting/pull/148))
 
 Improvements:
 
+* [JENKINS-41730](https://issues.jenkins-ci.org/browse/JENKINS-41730) -
+ Add the new `org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.ignoreJenkinsAgentProtocolsHeader` property, which allows specifying a custom list of supported protocols instead of the one returned by the Jenkins master.
+([PR #146](https://github.com/jenkinsci/remoting/pull/146))
 * Print the Filesystem Jar Cache directory location in the error message when this cache directory is not writable.
 ([PR #143](https://github.com/jenkinsci/remoting/pull/143))
+* Replace `MimicException` with the older `ProxyException` when serializing non-serializable exceptions thrown by the remote code.
+([PR #141](https://github.com/jenkinsci/remoting/pull/141))
+* Use OID of the `ClassLoaderProxy` in error message when the proxy cannot be located in the export table.
+([PR #147](https://github.com/jenkinsci/remoting/pull/147))
 
 ##### 3.4.1
 

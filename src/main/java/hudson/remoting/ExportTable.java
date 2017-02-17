@@ -74,14 +74,17 @@ final class ExportTable {
          * {@code object.getClass().getName()} kept around so that we can see the type even after it
          * gets deallocated.
          */
+        @Nonnull
         private final String objectType;
         /**
          * Where was this object first exported?
          */
+        @Nonnull
         final CreatedAt allocationTrace;
         /**
          * Where was this object unexported?
          */
+        @CheckForNull
         ReleasedAt releaseTrace;
         /**
          * Current reference count.
@@ -96,9 +99,10 @@ final class ExportTable {
          * Please note that value unset is not thread-safe.
          */
         @SuppressFBWarnings(value = "UWF_UNWRITTEN_FIELD", justification = "Old System script magic")
+        @CheckForNull
         private ReferenceCountRecorder recorder;
 
-        Entry(T object, Class<? super T>... interfaces) {
+        Entry(@Nonnull T object, Class<? super T>... interfaces) {
             this.id = iota++;
             this.interfaces = interfaces.clone();
             this.object = object;
@@ -122,11 +126,28 @@ final class ExportTable {
          * (and we can still detect the problem by comparing the reference count with the magic value.
          */
         void pin() {
-            if (referenceCount<Integer.MAX_VALUE/2)
-                referenceCount += Integer.MAX_VALUE/2;
+            // only add the magic constant if we are in the range Integer.MIN_VALUE < x < 0x2000000
+            // this means that over-reference removal will still yield a referece above 0 and repeated pinning
+            // will not yield a negative reference count.
+            // e.g. if we had:
+            //   init    -> 0x00000000;
+            //   pin     -> 0x40000001;
+            //   release -> 0x39999999;
+            //   pin     -> 0x79999999;
+            //   addRef  -> 0x80000000 => BOOM
+            // By making the decision point half way, we give the maximum number of releases away from the pinned
+            // magic value
+            if (referenceCount<0x20000000)
+                referenceCount += 0x40000000;
         }
 
-        void release(Throwable callSite) {
+        /**
+         * Releases the entry.
+         * @param callSite 
+         *      Optional location that indicates where the actual call site was that triggered the activity,
+         *      in case it was requested from the other side of the channel.
+         */
+        void release(@CheckForNull Throwable callSite) {
             if (recorder!=null)
                 recorder.onRelease(callSite);
 
@@ -208,7 +229,7 @@ final class ExportTable {
          *      Optional location that indicates where the actual call site was that triggered the activity,
          *      in case it was requested from the other side of the channel.
          */
-        Source(Throwable callSite) {
+        Source(@CheckForNull Throwable callSite) {
             super(callSite);
             // force the computation of the stack trace in a Java friendly data structure,
             // so that the call stack can be seen from the heap dump after the fact.
@@ -221,16 +242,18 @@ final class ExportTable {
             super(null);
         }
 
+        @Override
         public String toString() {
             return "  Created at "+new Date(timestamp);
         }
     }
 
     static class ReleasedAt extends Source {
-        ReleasedAt(Throwable callSite) {
+        ReleasedAt(@CheckForNull Throwable callSite) {
             super(callSite);
         }
 
+        @Override
         public String toString() {
             return "  Released at "+new Date(timestamp);
         }
@@ -292,19 +315,26 @@ final class ExportTable {
      * @return
      *      The assigned 'object ID'. If the object is already exported,
      *      it will return the ID already assigned to it.
-     * @param clazz
-     * @param t
+     *      {@code 0} if the input parameter is {@code null}.
+     * @param clazz Class of the object
+     * @param t Class instance
      */
-    synchronized <T> int export(Class<T> clazz, T t) {
+    synchronized <T> int export(@Nonnull Class<T> clazz, @CheckForNull T t) {
         return export(clazz, t,true);
     }
 
     /**
-     * @param clazz
+     * Exports the given object.
+     * @param clazz Class of the object
+     * @param t Object to be exported
      * @param notifyListener
      *      If false, listener will not be notified. This is used to
+     * @return
+     *      The assigned 'object ID'. If the object is already exported,
+     *      it will return the ID already assigned to it.
+     *      {@code 0} if the input parameter is {@code null}.
      */
-    synchronized <T> int export(Class<T> clazz, T t, boolean notifyListener) {
+    synchronized <T> int export(@Nonnull Class<T> clazz, @CheckForNull T t, boolean notifyListener) {
         if(t==null)    return 0;   // bootstrap classloader
 
         Entry e = reverse.get(t);
@@ -323,14 +353,21 @@ final class ExportTable {
         return e.id;
     }
 
-    /*package*/ synchronized void pin(Object t) {
+    /*package*/ synchronized void pin(@Nonnull Object t) {
         Entry e = reverse.get(t);
         if(e!=null)
             e.pin();
     }
 
-    synchronized @Nonnull
-    Object get(int id) throws ExecutionException {
+    /**
+     * Retrieves object by id.
+     * @param id Object ID
+     * @return Object
+     * @throws ExecutionException The requested ID cannot be found.
+     *      The root cause will be diagnosed by {@link #diagnoseInvalidObjectId(int)}.
+     */
+    @Nonnull
+    synchronized Object get(int id) throws ExecutionException {
         Entry e = table.get(id);
         if(e!=null) return e.object;
 
@@ -351,8 +388,8 @@ final class ExportTable {
         return null;
     }
     
-    synchronized @Nonnull
-    Class[] type(int id) throws ExecutionException {
+    @Nonnull
+    synchronized Class[] type(int id) throws ExecutionException {
         Entry e = table.get(id);
         if(e!=null) return e.getInterfaces();
 
@@ -366,8 +403,11 @@ final class ExportTable {
      * Exported {@link Pipe}s are vulnerable to infinite blocking
      * when the channel is lost and the sender side is cut off. The reader
      * end will not see that the writer has disappeared.
+     * 
+     * @param e Termination error
+     * 
      */
-    void abort(Throwable e) {
+    void abort(@CheckForNull Throwable e) {
         List<Entry<?>> values;
         synchronized (this) {
             values = new ArrayList<Entry<?>>(table.values());
@@ -396,6 +436,7 @@ final class ExportTable {
      * @param id Object ID
      * @return Exception to be thrown
      */
+    @Nonnull
     private synchronized ExecutionException diagnoseInvalidObjectId(int id) {
         Exception cause=null;
 
@@ -414,8 +455,10 @@ final class ExportTable {
 
     /**
      * Removes the exported object from the table.
+     * @param t Object to be unexported. {@code null} instances will be ignored.
+     * @param callSite Stacktrace of the invocation source 
      */
-    synchronized void unexport(Object t, Throwable callSite) {
+    synchronized void unexport(@CheckForNull Object t, Throwable callSite) {
         if(t==null)     return;
         Entry e = reverse.get(t);
         if(e==null) {
@@ -435,12 +478,12 @@ final class ExportTable {
     
     /**
      * Removes the exported object for the specified oid from the table.
-     * @param oid Object ID
+     * @param oid Object ID. If {@code null} the method will do nothing.
      * @param callSite Unexport command caller
      * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
      * @since TODO
      */
-    synchronized void unexportByOid(Integer oid, Throwable callSite, boolean severeErrorIfMissing) {
+    synchronized void unexportByOid(@CheckForNull Integer oid, @CheckForNull Throwable callSite, boolean severeErrorIfMissing) {
         if(oid==null)     return;
         Entry e = table.get(oid);
         if(e==null) {
@@ -455,8 +498,9 @@ final class ExportTable {
 
     /**
      * Dumps the contents of the table to a file.
+     * @throws IOException Output error
      */
-    synchronized void dump(PrintWriter w) throws IOException {
+    synchronized void dump(@Nonnull PrintWriter w) throws IOException {
         for (Entry e : table.values()) {
             e.dump(w);
         }
@@ -466,6 +510,10 @@ final class ExportTable {
         return reverse.containsKey(o);
     }
 
+    /**
+     * Defines number of entries to be stored in the unexport history.
+     * @since 2.40
+     */
     public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName()+".unexportLogSize",1024);
 
     private static final Logger LOGGER = Logger.getLogger(ExportTable.class.getName());

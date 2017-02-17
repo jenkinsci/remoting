@@ -56,6 +56,8 @@ public final class Capability implements Serializable {
         return (mask& MASK_PIPE_THROTTLING)!=0;
     }
 
+    /** @deprecated no longer used */
+    @Deprecated
     public boolean hasMimicException() {
         return (mask&MASK_MIMIC_EXCEPTION)!=0;
     }
@@ -186,6 +188,7 @@ public final class Capability implements Serializable {
     /**
      * Supports {@link MimicException}.
      */
+    @Deprecated
     private static final long MASK_MIMIC_EXCEPTION = 1L << 3;
 
     /**
