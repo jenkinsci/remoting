@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.5
 
-Release date: Coming soon
+Release date: (Feb 16, 2017) => Jenkins 2.47
 
 Fixed issues:
 
@@ -36,7 +36,7 @@ Improvements:
 
 ##### 3.4.1
 
-Release date: Feb 01, 2017 => Jenkins 2.44, 2.32.2 LTS
+Release date: (Feb 01, 2017) => Jenkins 2.44, 2.32.2 LTS
 
 Fixed issues:
 
