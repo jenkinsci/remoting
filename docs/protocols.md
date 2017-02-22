@@ -44,9 +44,15 @@ There are also some reported issues regarding the Remoting 3 stability on partic
 
 * Introduced in: Remoting 3.0, [JENKINS-36871](https://issues.jenkins-ci.org/browse/JENKINS-36871)
 
-This protocol uses <code>SSLEngine</code> to perform a TLS upgrade of the plaintext 
-  connection before any connection secrets are exchanged. 
+This protocol uses the <code>SSLEngine</code> provided by the Java Cryptography Architecture 
+  to perform a TLS upgrade of the plaintext connection before any connection secrets are exchanged. 
 The subsequent connection is then secured using TLS. 
+
+The encryption algorithms and cyphers used by the <code>SSLEngine</code> when using Oracle JDK 1.8 
+   are described in [Java Cryptography Architecture Standard Algorithm Name Documentation for JDK 8](http://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html))
+If stronger algorithms are needed (for example, AES with 256-bit keys), the [JCE Unlimited Strength Jurisdiction Policy Files](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
+  can be obtained on Oracle website and installed in the JDK/JRE.
+
 
 Protocol uses non-blocking I/O wherever possible which removes the performance bottleneck of the <code>JNLP3-connect</code> protocol.
 
