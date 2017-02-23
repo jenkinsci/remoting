@@ -156,6 +156,15 @@ public class Engine extends Thread {
     private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
 
     /**
+     * Specifies a destination for the agent log.
+     * If specified, this option overrides the default destination within {@link #workDir}.
+     * If both this options and {@link #workDir} is not set, the log will not be generated.
+     * @since TODO
+     */
+    @CheckForNull
+    private Path agentLog;
+    
+    /**
      * Specifies a default working directory of the remoting instance.
      * If specified, this directory will be used to store logs, JAR cache, etc.
      * <p>
@@ -209,7 +218,7 @@ public class Engine extends Thread {
         if (workDir != null) {
             final WorkDirManager workDirManager = WorkDirManager.getInstance();
             final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
-            workDirManager.setupLogging(path, null);
+            workDirManager.setupLogging(path, agentLog);
         }
 
         // Start the engine thread
@@ -242,6 +251,16 @@ public class Engine extends Thread {
 
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;
+    }
+
+    /**
+     * Sets the destination for agent logs.
+     * @param agentLog Path to the agent log.
+     *      If {@code null}, the engine will pick the default behavior depending on the {@link #workDir} value
+     * @since TODO
+     */
+    public void setAgentLog(@CheckForNull Path agentLog) {
+        this.agentLog = agentLog;
     }
 
     /**

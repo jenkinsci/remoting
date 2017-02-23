@@ -102,6 +102,16 @@ public class Main {
     public List<String> candidateCertificates;
 
     /**
+     * Specifies a destination for error logs.
+     * If specified, this option overrides the default destination within {@link #workDir}.
+     * If both this options and {@link #workDir} is not set, the log will not be generated.
+     * @since TODO
+     */
+    @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
+    @CheckForNull
+    public File agentLog = null;
+    
+    /**
      * Specifies a default working directory of the remoting instance.
      * If specified, this directory will be used to store logs, JAR cache, etc.
      * <p>
@@ -223,6 +233,12 @@ public class Main {
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
         engine.setKeepAlive(!noKeepAlive);
+        
+        // TODO: ideally logging should be initialized before the "Setting up slave" entry
+        if (agentLog != null) {
+            engine.setAgentLog(agentLog.toPath());
+        }
+        
         if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
             CertificateFactory factory;
             try {

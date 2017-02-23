@@ -157,7 +157,7 @@ public class WorkDirManager {
      *                        If {@code null}, the behavior is defined by {@code internalDirPath}.
      * @throws IOException Initialization error
      */
-    public void setupLogging(@CheckForNull Path internalDirPath, @CheckForNull File overrideLogPath) throws IOException {
+    public void setupLogging(@CheckForNull Path internalDirPath, @CheckForNull Path overrideLogPath) throws IOException {
         if (loggingInitialized) {
             // Do nothing
             // TODO: print warning message?
@@ -168,7 +168,7 @@ public class WorkDirManager {
             System.out.println("Using " + overrideLogPath + " as an agent Error log destination. 'Out' log won't be generated");
             System.out.flush(); // Just in case the channel
             System.err.flush();
-            System.setErr(new PrintStream(new TeeOutputStream(System.err, new FileOutputStream(overrideLogPath))));
+            System.setErr(new PrintStream(new TeeOutputStream(System.err, new FileOutputStream(overrideLogPath.toFile()))));
             this.loggingInitialized = true;
         } else if (internalDirPath != null) { // New behavior
             System.out.println("Both error and output logs will be printed to " + internalDirPath);
@@ -183,7 +183,7 @@ public class WorkDirManager {
             this.loggingInitialized = true;
         } else {
             // TODO: This message is suspected to break the CI
-            // System.err.println("WARNING: Log location is not specified (neither -workDir nor -slaveLog set)");
+            // System.err.println("WARNING: Log location is not specified (neither -workDir nor -slaveLog/-agentLog set)");
         }
     }
 

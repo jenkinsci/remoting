@@ -100,7 +100,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Entry point for running a {@link Channel}. This is the main method of the slave JVM.
+ * Entry point for running a {@link Channel}. This is the main method of the agent JVM.
  *
  * <p>
  * This class also defines several methods for
@@ -116,13 +116,12 @@ public class Launcher {
     @Option(name="-ping")
     public boolean ping = true;
 
-    //TODO: rename the option
     /**
      * Specifies a destination for error logs.
      * If specified, this option overrides the default destination within {@link #workDir}.
      * If both this options and {@link #workDir} is not set, the log will not be generated.
      */
-    @Option(name="-slaveLog", usage="Local agent error log destination (overrides workDir)")
+    @Option(name="-agentLog", aliases = {"-slaveLog"}, usage="Local agent error log destination (overrides workDir)")
     @CheckForNull
     public File slaveLog = null;
 
@@ -279,9 +278,12 @@ public class Launcher {
     public void run() throws Exception {
 
         // Create and verify working directory and logging
+        // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this parameter in
+        // consideration for other modes (TcpServer, TcpClient, etc.) to retain the legacy behavior.
+        // On the other hand, in such case there is no need to invoke WorkDirManager and handle the double initialization logic
         final WorkDirManager workDirManager = WorkDirManager.getInstance();
         final Path internalDirPath = workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
-        workDirManager.setupLogging(internalDirPath, slaveLog);
+        workDirManager.setupLogging(internalDirPath, slaveLog.toPath());
 
         if(auth!=null) {
             final int idx = auth.indexOf(':');
@@ -309,6 +311,10 @@ public class Launcher {
             }
             if (this.noKeepAlive) {
                 jnlpArgs.add("-noKeepAlive");
+            }
+            if (slaveLog != null) {
+                jnlpArgs.add("-agentLog");
+                jnlpArgs.add(slaveLog.getPath());
             }
             if (this.workDir != null) {
                 jnlpArgs.add("-workDir");
