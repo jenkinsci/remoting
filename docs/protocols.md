@@ -56,9 +56,9 @@ Protocol uses non-blocking I/O wherever possible which removes the performance b
 * For performance testing **only**, not supported for other purposes
 * Cannot be used in Jenkins
 
-This protocol was developed to allow for like for like performance comparison 
-  between the original NIO engine used by <code>JNLP2-connect</code> and the new NIO engine 
-  used by <connect>JNLP4-connect</code>. 
+This protocol was developed to allow performance comparison 
+  between the original NIO engine used by <code>JNLP2-connect</code> and the new NIO engine
+  used by <connect>JNLP4-connect</code>.
 
 The protocol is similar to <code>JNLP4-connect</code>, 
   but it does not setup the TLS encryption between agent and master.

@@ -6,9 +6,121 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.5
+
+Release date: (Feb 16, 2017) => Jenkins 2.47
+
+Fixed issues:
+
+* [JENKINS-40710](https://issues.jenkins-ci.org/browse/JENKINS-40710) - 
+Match headers case-insensitively in `JnlpAgentEndpointResolver` in order to be compliant with HTTP2 lower-case headers.
+([PR #139](https://github.com/jenkinsci/remoting/pull/139), [PR #140](https://github.com/jenkinsci/remoting/pull/140))
+* [JENKINS-41513](https://issues.jenkins-ci.org/browse/JENKINS-41513) - 
+Prevent `NullPointerException` in `JnlpAgentEndpointResolver` when receiving a header with `null` name.
+([PR #140](https://github.com/jenkinsci/remoting/pull/140))
+* [JENKINS-41852](https://issues.jenkins-ci.org/browse/JENKINS-41852) - 
+Fix exported object pinning logic to prevent release due to the integer overflow.
+([PR #148](https://github.com/jenkinsci/remoting/pull/148))
+
+Improvements:
+
+* [JENKINS-41730](https://issues.jenkins-ci.org/browse/JENKINS-41730) -
+ Add the new `org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.ignoreJenkinsAgentProtocolsHeader` property, which allows specifying a custom list of supported protocols instead of the one returned by the Jenkins master.
+([PR #146](https://github.com/jenkinsci/remoting/pull/146))
+* Print the Filesystem Jar Cache directory location in the error message when this cache directory is not writable.
+([PR #143](https://github.com/jenkinsci/remoting/pull/143))
+* Replace `MimicException` with the older `ProxyException` when serializing non-serializable exceptions thrown by the remote code.
+([PR #141](https://github.com/jenkinsci/remoting/pull/141))
+* Use OID of the `ClassLoaderProxy` in error message when the proxy cannot be located in the export table.
+([PR #147](https://github.com/jenkinsci/remoting/pull/147))
+
+##### 3.4.1
+
+Release date: (Feb 01, 2017) => Jenkins 2.44, 2.32.2 LTS
+
+Fixed issues:
+
+* [SECURITY-383](https://wiki.jenkins-ci.org/display/SECURITY/Jenkins+Security+Advisory+2017-02-01) - 
+Blacklist classes vulnerable to a remote code execution involving the deserialization of various types in 
+`javax.imageio.*`, `java.util.ServiceLoader`, and `java.net.URLClassLoader`.
+
+##### 3.4
+
+Release date: (Dec 24, 2016) => Jenkins 2.39
+
+Fixed issues:
+
+* [JENKINS-39835](https://issues.jenkins-ci.org/browse/JENKINS-39835) - 
+Be extra defensive about unhandled `Errors` and `Exception`s.
+In the case of such issues remoting tries to properly terminate the connection instead of just leaving the hanging channel.
+([PR #133](https://github.com/jenkinsci/remoting/pull/133))
+
+##### 3.3
+
+Release date: (Dec 16, 2016) => Jenkins 2.37
+
+Fixed issues:
+
+* [JENKINS-25218](https://issues.jenkins-ci.org/browse/JENKINS-25218) - 
+Hardening of FifoBuffer operation logic. 
+The change improves the original fix in `remoting-2.54`.
+([PR #100](https://github.com/jenkinsci/remoting/pull/100))
+* [JENKINS-39547](https://issues.jenkins-ci.org/browse/JENKINS-39547) - 
+Corrupt agent JAR cache causes agents to malfunction.
+([PR #130](https://github.com/jenkinsci/remoting/pull/130))
+
+Improvements:
+
+* [JENKINS-40491](https://issues.jenkins-ci.org/browse/JENKINS-40491) - 
+Improve diagnostics of the preliminary FifoBuffer termination.
+([PR #138](https://github.com/jenkinsci/remoting/pull/138))
+* ProxyException now retains any suppressed exceptions.
+([PR #136](https://github.com/jenkinsci/remoting/pull/136))
+
+##### 3.2
+
+Release date: (Nov 13, 2016) => Jenkins 2.32
+
+* [SECURITY-360](https://wiki.jenkins-ci.org/display/SECURITY/Jenkins+Security+Advisory+2016-11-16) - 
+Blacklist serialization of particular classes to close the Remote code execution vulnerability.
+([Commit #b7ac85ed4ae41482d9754a881df91d2eb86d047d](https://github.com/jenkinsci/remoting/commit/b7ac85ed4ae41482d9754a881df91d2eb86d047d))
+
+##### 3.1
+
+Release date: (Nov 10, 2016) => Jenkins 2.31
+
+Bugfixes:
+
+* [JENKINS-39596](https://issues.jenkins-ci.org/browse/JENKINS-39596) - 
+Jenkins URL in `hudson.remoting.Engine` was always `null` since `3.0`.
+It was causing connection failures of Jenkins JNLP agents when using Java Web Start.
+([PR #131](https://github.com/jenkinsci/remoting/pull/131))
+* [JENKINS-39617](https://issues.jenkins-ci.org/browse/JENKINS-39617) - 
+`hudson.remoting.Engine` was failing to establish connection if one of the URLs parameter in parameters was malformed.
+([PR #131](https://github.com/jenkinsci/remoting/pull/131))
+
+
+Improvements:
+
+* [JENKINS-39150](https://issues.jenkins-ci.org/browse/JENKINS-39150) - 
+Add logic for dumping diagnostics across all the channels.
+([PR #122](https://github.com/jenkinsci/remoting/pull/122), [PR #125](https://github.com/jenkinsci/remoting/pull/125))
+* [JENKINS-39543](https://issues.jenkins-ci.org/browse/JENKINS-39543) - 
+Improve the caller/callee correlation diagnostics in thread dumps.
+([PR #119](https://github.com/jenkinsci/remoting/pull/119))
+* [JENKINS-39290](https://issues.jenkins-ci.org/browse/JENKINS-39290) - 
+Add the `org.jenkinsci.remoting.nio.NioChannelHub.disabled` flag for disabling NIO (mostly for debugging purposes).
+([PR #123](https://github.com/jenkinsci/remoting/pull/123))
+* [JENKINS-38692](https://issues.jenkins-ci.org/browse/JENKINS-38692) - 
+Add extra logging to help diagnosing `IOHub` Thread spikes.
+([PR #116](https://github.com/jenkinsci/remoting/pull/116))
+* [JENKINS-39289](https://issues.jenkins-ci.org/browse/JENKINS-39289) - 
+ When a proxy fails, report what caused the channel to go down.
+([PR #128](https://github.com/jenkinsci/remoting/pull/128))
+
 ##### 3.0
 
-Release date:: (Oct 13, 2016) => Jenkins 2.27
+Release date: (Oct 13, 2016) => Jenkins 2.27
 
 NOTE: This is a new major release of remoting, which is not fully compatible with <code>remoting 2.x</code>.
 See (see [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)) for more info.

@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.URL;
 import java.nio.channels.SocketChannel;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collections;
@@ -65,7 +66,23 @@ public class JnlpAgentEndpoint {
      */
     @CheckForNull
     private final Set<String> protocols;
+    
+    /**
+     * Jenkins URL for the discovered endpoint.
+     * @since TODO
+     */
+    @CheckForNull
+    private final URL serviceUrl;
 
+    /**
+     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.lang.String)}
+     */
+    @Deprecated
+    public JnlpAgentEndpoint(@Nonnull String host, int port, @CheckForNull RSAPublicKey publicKey,
+                             @CheckForNull Set<String> protocols) {
+        this(host, port, publicKey, protocols, null);
+    }
+    
     /**
      * Constructor for a remote {@code Jenkins} instance.
      *
@@ -73,9 +90,12 @@ public class JnlpAgentEndpoint {
      * @param port      the port.
      * @param publicKey the {@code InstanceIdentity.getPublic()} of the remote instance (if known).
      * @param protocols The supported protocols.
+     * @param serviceURL URL of the service hosting the remoting endpoint.
+     *                   Use {@code null} if it is not a web service or if the URL cannot be determined
+     * @since TODO
      */
     public JnlpAgentEndpoint(@Nonnull String host, int port, @CheckForNull RSAPublicKey publicKey,
-                             @CheckForNull Set<String> protocols) {
+                             @CheckForNull Set<String> protocols, @CheckForNull URL serviceURL) {
         if (port <= 0 || 65536 <= port) {
             throw new IllegalArgumentException("Port " + port + " is not in the range 1-65535");
         }
@@ -83,6 +103,7 @@ public class JnlpAgentEndpoint {
         this.port = port;
         this.publicKey = publicKey;
         this.protocols = protocols == null ? null : Collections.unmodifiableSet(new LinkedHashSet<String>(protocols));
+        this.serviceUrl = serviceURL;
     }
 
     /**
@@ -95,6 +116,15 @@ public class JnlpAgentEndpoint {
         return new InetSocketAddress(host, port);
     }
 
+    /**
+     * Retrieves URL of the web service providing the remoting endpoint.
+     * @return Service URL if available. {@code null} otherwise.
+     */
+    @CheckForNull
+    public URL getServiceUrl() {
+        return serviceUrl;
+    }
+    
     /**
      * Gets the hostname.
      *

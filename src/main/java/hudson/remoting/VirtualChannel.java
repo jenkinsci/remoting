@@ -24,6 +24,9 @@
 package hudson.remoting;
 
 import java.io.IOException;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Virtualized {@link Channel} that allows different implementations.
@@ -81,7 +84,7 @@ public interface VirtualChannel {
 
     /**
      * Waits for this {@link Channel} to be closed down, but only up the given milliseconds.
-     *
+     * @param timeout Timeout in milliseconds
      * @throws InterruptedException
      *      If the current thread is interrupted while waiting for the completion.
      * @since 1.300
@@ -91,18 +94,28 @@ public interface VirtualChannel {
     /**
      * Exports an object for remoting to the other {@link Channel}
      * by creating a remotable proxy.
-     *
+     * The returned reference must be kept if there is ongoing operation on the remote side.
+     * Once it is released, the exported object will be deallocated as well.
+     * Please keep in mind that the object may be also released earlier than expected by JVM
+     * (e.g. see <a href="https://issues.jenkins-ci.org/browse/JENKINS-23271">JENKINS-23271</a>).
+     * 
+     * @param instance 
+     *      Instance to be exported.
+     *      {@code null} instances won't be exported to the remote instance.
      * <p>
      * All the parameters and return values must be serializable.
-     *
+     * @param <T> 
+     *      Type
      * @param type
      *      Interface to be remoted.
      * @return
      *      the proxy object that implements <tt>T</tt>. This object can be transfered
      *      to the other {@link Channel}, and calling methods on it from the remote side
      *      will invoke the same method on the given local <tt>instance</tt> object.
+     *      {@code null} if the input instance is {@code null}.  
      */
-    <T> T export( Class<T> type, T instance);
+    @Nullable
+    <T> T export(@Nonnull Class<T> type, @CheckForNull T instance);
 
     /**
      * Blocks until all the I/O packets sent from remote is fully locally executed, then return.

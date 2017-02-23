@@ -132,6 +132,7 @@ public class Engine extends Thread {
      * This value is determined from {@link #candidateUrls} after a successful connection.
      * Note that this URL <b>DOES NOT</b> have "tcpSlaveAgentListener" in it.
      */
+    @CheckForNull
     private URL hudsonUrl;
 
     private final String secretKey;
@@ -233,6 +234,12 @@ public class Engine extends Thread {
         this.jarCache = jarCache;
     }
 
+    /**
+     * Provides Jenkins URL if available.
+     * @return Jenkins URL. May return {@code null} if the connection is not established or if the URL cannot be determined
+     *         in the {@link JnlpAgentEndpointResolver}.
+     */
+    @CheckForNull
     public URL getHudsonUrl() {
         return hudsonUrl;
     }
@@ -437,6 +444,7 @@ public class Engine extends Thread {
                     events.status("Could not resolve server among " + candidateUrls);
                     return;
                 }
+                hudsonUrl = endpoint.getServiceUrl();
 
                 events.status(String.format("Agent discovery successful%n"
                         + "  Agent address: %s%n"

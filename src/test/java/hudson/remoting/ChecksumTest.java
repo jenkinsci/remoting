@@ -45,17 +45,6 @@ public class ChecksumTest {
         assertNotEquals(Checksum.forFile(tmpFile1), Checksum.forFile(tmpFile2));
     }
 
-    @Test
-    public void testCaching() throws Exception {
-        File tmpFile = createTmpFile("file.txt", FILE_CONTENTS1);
-        HashCode hash = Files.hash(tmpFile, Hashing.sha256());
-        assertEquals(createdExpectedChecksum(hash), Checksum.forFile(tmpFile));
-
-        tmpFile.delete();
-        assertFalse(tmpFile.exists());
-        assertEquals(createdExpectedChecksum(hash), Checksum.forFile(tmpFile));
-    }
-
     private File createTmpFile(String name, String contents) throws Exception {
         File tmpFile = tmp.newFile(name);
         Files.append(contents, tmpFile, Charsets.UTF_8);
