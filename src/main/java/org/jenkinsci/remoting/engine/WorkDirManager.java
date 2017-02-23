@@ -37,8 +37,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 
 /**
  * Performs working directory management in remoting.
@@ -148,7 +150,7 @@ public class WorkDirManager {
 
     /**
      * Sets up logging subsystem in the working directory.
-     * It the logging system is already initialized, do nothing
+     * If the logging system is already initialized, do nothing
      * @param internalDirPath Path to the internal remoting directory within the WorkDir.
      *                        If this value and {@code overrideLogPath} are null, the logging subsystem woill not
      *                        be initialized at all
@@ -180,6 +182,17 @@ public class WorkDirManager {
                     new FileOutputStream(new File(internalDirPath.toFile(), "remoting.err.log")))));
             System.setOut(new PrintStream(new TeeOutputStream(System.out,
                     new FileOutputStream(new File(internalDirPath.toFile(), "remoting.out.log")))));
+            
+            // Also redirect JUL to files
+            final Logger rootLogger = Logger.getLogger("");
+            final File julLog = new File(internalDirPath.toFile(), "remoting.log");
+            final FileHandler logHandler = new FileHandler(julLog.getAbsolutePath(), 
+                                         50*1024*1024, 5, false); 
+            logHandler.setFormatter(new SimpleFormatter()); 
+            logHandler.setLevel(Level.INFO); 
+            //TODO: remove the standard console handler 
+            rootLogger.addHandler(logHandler); 
+
             this.loggingInitialized = true;
         } else {
             // TODO: This message is suspected to break the CI
