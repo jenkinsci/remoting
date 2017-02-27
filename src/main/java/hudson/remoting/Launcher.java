@@ -376,8 +376,9 @@ public class Launcher {
             }
         }
         while (true) {
+            URLConnection con = null;
             try {
-                URLConnection con = Util.openURLConnection(slaveJnlpURL);
+                con = Util.openURLConnection(slaveJnlpURL);
                 if (con instanceof HttpURLConnection) {
                     HttpURLConnection http = (HttpURLConnection) con;
                     if  (slaveJnlpCredentials != null) {
@@ -462,6 +463,11 @@ public class Launcher {
                 System.err.println("Waiting 10 seconds before retry");
                 Thread.sleep(10*1000);
                 // retry
+            } finally {
+                if (con instanceof HttpURLConnection) {
+                    HttpURLConnection http = (HttpURLConnection) con;
+                    http.disconnect();
+                }
             }
         }
     }
