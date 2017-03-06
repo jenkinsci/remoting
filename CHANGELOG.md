@@ -204,7 +204,8 @@ Unable to load class when remote classloader gets interrupted.
 (https://github.com/jenkinsci/remoting/pull/94)
 
 Enhancements:
-* Improve diagnostics for Jar Cache write errors.
+* [JENKINS-36947](https://issues.jenkins-ci.org/browse/JENKINS-36947) - 
+Improve diagnostics for Jar Cache write errors.
 (https://github.com/jenkinsci/remoting/pull/91)
 
 ##### 2.60
