@@ -16,8 +16,11 @@
     <!-- TODO: On hold due to the discussion in PR #118 -->
     <Bug pattern="DP_DO_INSIDE_DO_PRIVILEGED"/>
   </Match>
-  
-  
+  <Match>
+    <!-- TODO: On hold due to the discussion in PR #118 -->
+    <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
+  </Match>
+    
   <!--TODO: reconsider commented filters after cleanup-->
   <!-- ignore all low-level (priority=2,3) issues except serialization problems -->
   <!--<Match>
