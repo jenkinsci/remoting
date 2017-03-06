@@ -27,9 +27,13 @@ import hudson.remoting.RemoteClassLoader.IClassLoader;
 
 import java.util.Hashtable;
 import java.util.Map;
+import javax.annotation.Nonnull;
 
 /**
+ * Imported {@link ClassLoader} table.
+ * Stores references to {@link ClassLoader} instances, which have been exported to the instance by the remote side.
  * @author Kohsuke Kawaguchi
+ * @since 2.0
  */
 final class ImportedClassLoaderTable {
     final Channel channel;
@@ -45,11 +49,19 @@ final class ImportedClassLoaderTable {
      * <p>
      * This method "consumes" the given oid for the purpose of reference counting.
      */
+    @Nonnull
     public synchronized ClassLoader get(int oid) {
         return get(RemoteInvocationHandler.wrap(channel,oid,IClassLoader.class,false,false));
     }
 
-    public synchronized ClassLoader get(IClassLoader classLoaderProxy) {
+    /**
+     * Retrieves classloader for the specified proxy class.
+     * If the classloader instance is missing in the cache, it will be created during the call.
+     * @param classLoaderProxy Proxy instance
+     * @return Classloader instance
+     */
+    @Nonnull
+    public synchronized ClassLoader get(@Nonnull IClassLoader classLoaderProxy) {
         ClassLoader r = classLoaders.get(classLoaderProxy);
         if(r==null) {
             // we need to be able to use the same hudson.remoting classes, hence delegate
