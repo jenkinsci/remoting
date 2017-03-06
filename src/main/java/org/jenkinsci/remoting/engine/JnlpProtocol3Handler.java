@@ -119,6 +119,8 @@ import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
  * Java Cryptography Extension</a> available. In the future maybe the key
  * size could be made a parameter or the implementation can check to see if
  * 256bit sizes are supported.
+ * 
+ * @deprecated Deprecated after the release of JNLP4, see {@link JnlpProtocol4Handler} 
  */
 @Deprecated
 public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3ConnectionState> {

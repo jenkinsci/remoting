@@ -29,8 +29,9 @@ The protocol supports the non-blocking I/O, which improve the performance of the
 ### JNLP3-connect
 
 * Introduced in: Remoting 2.53, [JENKINS-26580](https://issues.jenkins-ci.org/browse/JENKINS-26580)
-* The protocol has known stability issues and disabled by default in Jenkins
-* Not recommended for use since the <code>JNLP4-connect</code> release
+* The protocol has known stability issues (see the Errata section below)
+* The protocol is disabled by default in Jenkins
+* **Not recommended** for use since the <code>JNLP4-connect</code> release
 
 This protocol aims to improve security of JNLP-based slaves. 
 Both the master and the slave securely authenticate each other and then setup an encrypted channel.
@@ -39,6 +40,18 @@ The protocol does not support non-blocking IO.
 For each connection a new thread is being created, and it leads to the performance degradation or
   even Denial of Service on highly loaded Jenkins masters.
 There are also some reported issues regarding the Remoting 3 stability on particular systems.
+
+#### JNLP3-connect Errata
+
+Below you can find the list of known `JNLP3-connect` issues.
+There is no plan to fix these issues, usage of `JNLP4-connect` is the recommended approach.
+
+* [JENKINS-37302](https://issues.jenkins-ci.org/browse/JENKINS-37302) - 
+JNLP3 challenge response generates invalid string encoding, the check may fail randomly.
+* [JENKINS-33886](https://issues.jenkins-ci.org/browse/JENKINS-33886) -
+On some configurations only one JNLP3 slave per IP address can be connected.
+* [JENKINS-34121](https://issues.jenkins-ci.org/browse/JENKINS-34121) -
+JNLP3 cannot be used on IBM Java, which doesn't support AES/CTR/PKCS5Padding.
 
 ### JNLP4-connect
 
