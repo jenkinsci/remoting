@@ -88,7 +88,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                     "Cached file checksum mismatch: %s%nExpected: %s%n Actual: %s",
                     target.getAbsolutePath(), expected, actual
             ));
-            target.delete();
+            Files.delete(target.toPath());
             synchronized (checksumsByPath) {
                 checksumsByPath.remove(target.getCanonicalPath());
             }
