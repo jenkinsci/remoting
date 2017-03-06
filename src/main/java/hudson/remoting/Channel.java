@@ -602,6 +602,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * This is the lowest layer of abstraction in {@link Channel}.
      * {@link Command}s are executed on a remote system in the order they are sent.
      */
+    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT", justification = "The method is synchronized, no other usages. See https://sourceforge.net/p/findbugs/bugs/1032/")
     /*package*/ synchronized void send(Command cmd) throws IOException {
         if(outClosed!=null)
             throw new ChannelClosedException(outClosed);
