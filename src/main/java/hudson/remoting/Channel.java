@@ -876,7 +876,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     @java.lang.SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     @SuppressWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
-    public void terminate(IOException e) {
+    public void terminate(@Nonnull IOException e) {
         try {
             synchronized (this) {
                 if (e == null) throw new IllegalArgumentException();
@@ -1707,12 +1707,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * A reference for the {@link Channel} that can be cleared out on {@link #close()}/{@link #terminate(IOException)}.
      * Could probably be replaced with {@link AtomicReference} but then we would not retain the only change being
-     * from valid channel to {@code null} channel symmantics of this class.
-     * @since FIXME after merge
+     * from valid channel to {@code null} channel semantics of this class.
+     * @since 2.52
      * @see #reference
      */
     /*package*/ static final class Ref {
+        
         /**
+         * Cached name of the channel.
          * @see {@link Channel#getName()}
          */
         @Nonnull
@@ -1734,7 +1736,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param channel the {@link Channel}.
          */
         private Ref(@CheckForNull Channel channel) {
-            this.name = channel.getName();
+            this.name = channel != null ? channel.getName() : "unknown (null reference)";
             this.channel = channel;
         }
 
@@ -1749,13 +1751,19 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         /**
          * If the channel is null, return the cause of the channel termination.
+         * @return Cause or {@code null} if it is not available
+         * @since 3.1
          */
+        @CheckForNull
         public Exception cause() {
             return  cause;
         }
 
         /**
+         * Returns the cached name of the channel.
+         * @return Channel name or {@code "unknown (null reference)"} if the reference has been initialized by {@code null} {@link Channel} instance.
          * @see Channel#getName()
+         * @since 3.1
          */
         @Nonnull
         public String name() {
@@ -1765,8 +1773,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         /**
          * Clears the {@link #channel} to signify that the {@link Channel} has been closed and break any complex
          * object cycles that might prevent the full garbage collection of the channel's associated object tree.
+         * @param cause Channel termination cause
          */
-        public void clear(Exception cause) {
+        public void clear(@Nonnull Exception cause) {
             this.channel = null;
             this.cause = cause;
         }
@@ -1795,6 +1804,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         public String toString() {
             final StringBuilder sb = new StringBuilder("Channel.Ref{");
             sb.append("channel=").append(channel);
+            sb.append(",name=").append(name);
             sb.append('}');
             return sb.toString();
         }
