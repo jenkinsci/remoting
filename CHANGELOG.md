@@ -6,9 +6,24 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.7
+
+Release date: (Mar 05, 2017) => Jenkins `TODO`
+
+Fixed issues:
+
+* [JENKINS-42371](https://issues.jenkins-ci.org/browse/JENKINS-42371) - 
+Properly close the `URLConnection` when parsing connection arguments from the JNLP file.
+It was causing a descriptor leak in the case of multiple connection attempts.
+([PR #152](https://github.com/jenkinsci/remoting/pull/152))
+
+##### 3.6
+
+The release has been skipped due to the release process issue.
+
 ##### 3.5
 
-Release date: Coming soon
+Release date: (Feb 16, 2017) => Jenkins 2.47
 
 Fixed issues:
 
@@ -36,7 +51,7 @@ Improvements:
 
 ##### 3.4.1
 
-Release date: Feb 01, 2017 => Jenkins 2.44, 2.32.2 LTS
+Release date: (Feb 01, 2017) => Jenkins 2.44, 2.32.2 LTS
 
 Fixed issues:
 
