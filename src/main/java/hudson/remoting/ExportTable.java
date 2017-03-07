@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -41,6 +42,8 @@ import static java.util.logging.Level.*;
 import javax.annotation.CheckForNull;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.meta.When;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Manages unique ID for exported objects, and allows look-up from IDs.
@@ -274,10 +277,14 @@ final class ExportTable {
 
     /**
      * Captures the list of export, so that they can be unexported later.
-     *
      * This is tied to a particular thread, so it only records operations
      * on the current thread.
+     * The class is not serializable.
      */
+    @Restricted(NoExternalUse.class)
+    @SuppressFBWarnings(value = "SE_BAD_FIELD_INNER_CLASS",
+            justification = "ExportList is supposed to be serializable as ArrayList, but it is not. "
+                          + "The issue is ignored since the class does not belong to the public API")
     public final class ExportList extends ArrayList<Entry> {
         private final ExportList old;
         private ExportList() {
