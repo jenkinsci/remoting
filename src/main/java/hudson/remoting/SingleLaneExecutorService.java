@@ -8,6 +8,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 
 /**
  * Creates an {@link ExecutorService} that executes submitted tasks sequentially
@@ -43,6 +46,8 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
      * We have finished shut down. Every tasks are full executed.
      */
     private boolean shutDown;
+    
+    private static final Logger LOGGER = Logger.getLogger(SingleLaneExecutorService.class.getName());
 
     /**
      * @param base
@@ -95,18 +100,31 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
         return isTerminated();
     }
 
+    // TODO: create a new method with non-Runtime exceptions and timeout support
+    @Override
     public synchronized void execute(Runnable command) {
-        if (shuttingDown)
-            throw new RejectedExecutionException();
-
+        if (shuttingDown) {
+            throw new RejectedExecutionException("Cannot execute the command " + command +
+                    ". The executor service is shutting down");
+        }
+            
         this.tasks.add(command);
+        
+        // If we haven't been scheduled yet, do so now
         if (!scheduled) {
             scheduled = true;
-            base.submit(runner);  // if we haven't been scheduled yet, do so now
+            try {
+                // Submit task in the async mode
+                ExecutorServiceUtils.submitAsync(base, runner);
+            } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
+                // Wrap by the runtime exception since there is no other solution here
+                throw new RejectedExecutionException("Base executor service has rejected the task", ex);
+            }
         }
     }
 
     private final Runnable runner = new Runnable() {
+        @Override
         public void run() {
             try {
                 tasks.peek().run();
@@ -118,6 +136,19 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
                     if (!tasks.isEmpty()) {
                         // we have still more things to do
                         base.submit(this);
+                        try {
+                            // Submit task in the async mode
+                            ExecutorServiceUtils.submitAsync(base, this);
+                        } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
+                            // It is supposed to be a fatal error, but we cannot propagate it properly
+                            // So the code just logs the error and then throws RuntimeException as it
+                            // used to do before the code migration to ExecutorServiceUtils.
+                            // TODO: so this behavior still implies the BOOM risk, but there wil be a log entry at least
+                            LOGGER.log(Level.SEVERE, String.format(
+                                    "Base executor service %s has rejected the queue task %s. Propagating the RuntimeException to the caller.", 
+                                    ex.getExecutorServiceDisplayName(), ex.getRunnableDisplayName()), ex);
+                            throw new RejectedExecutionException("Base executor service has rejected the task from the queue", ex);
+                        }
                     } else {
                         scheduled = false;
                         if (shuttingDown) {
