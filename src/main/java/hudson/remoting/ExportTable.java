@@ -39,6 +39,8 @@ import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
 import javax.annotation.CheckForNull;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.meta.When;
 
 /**
  * Manages unique ID for exported objects, and allows look-up from IDs.
@@ -225,11 +227,26 @@ final class ExportTable {
          *      Optional location that indicates where the actual call site was that triggered the activity,
          *      in case it was requested from the other side of the channel.
          */
+        @SuppressWarnings("ResultOfMethodCallIgnored")
         Source(@CheckForNull Throwable callSite) {
             super(callSite);
-            // force the computation of the stack trace in a Java friendly data structure,
-            // so that the call stack can be seen from the heap dump after the fact.
-            getStackTrace();
+            updateOurStackTraceCache();
+        }
+        
+        // TODO: We export the objects frequently, The current approach ALWAYS leads
+        // to creation of two Stacktrace arrays in the memory: the original and the cloned one
+        // Throwable API. Throwable API allows to workaround it only by using a heavy printStackTrace() method.
+        // Approach #1: Maybe a manual implementation of getOurStackTrace() and local storage is preferable.
+        // Approach #2: Consider disabling this logic by default
+        /**
+         * Update the internal stacktrace cache.
+         * Forces the computation of the stack trace in a Java friendly data structure,
+         * so that the call stack can be seen from the heap dump after the fact.
+         * @return Cloned version of the inner cache.
+         */
+        @CheckReturnValue(when = When.NEVER)
+        protected final StackTraceElement[] updateOurStackTraceCache() {
+            return getStackTrace();
         }
     }
 
