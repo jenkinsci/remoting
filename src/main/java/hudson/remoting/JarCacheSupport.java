@@ -65,9 +65,16 @@ public abstract class JarCacheSupport extends JarCache {
                     // if nobody else caches it before.
                     inprogress.putIfAbsent(key, promise);
                 } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
-                    LOGGER.log(Level.SEVERE, "Downloader executor service has rejected the download command for checksum " + key, ex);
-                    // Prevent infinite loop, try again in 100ms to let the shyutdown logic kill this operation correctly
-                    Thread.sleep(1000);
+                    final String message = "Downloader executor service has rejected the download command for checksum " + key;
+                    LOGGER.log(Level.SEVERE, message, ex);
+                    // Retry the submission after 100 ms if the error is not fatal
+                    if (ex.isFatal()) {
+                        // downloader won't accept anything else, do not even try
+                        throw new IOException(message, ex);
+                    } else {
+                        //TODO: should we just fail? unrealistic case for the current AtmostOneThreadExecutor implementation anyway
+                        Thread.sleep(100);
+                    }
                 }
             }
         }

@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
 
 /**
  * Creates an {@link ExecutorService} that executes submitted tasks sequentially
@@ -104,7 +105,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
     @Override
     public synchronized void execute(Runnable command) {
         if (shuttingDown) {
-            throw new RejectedExecutionException("Cannot execute the command " + command +
+            throw new FatalRejectedExecutionException("Cannot execute the command " + command +
                     ". The executor service is shutting down");
         }
             
@@ -147,7 +148,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
                             LOGGER.log(Level.SEVERE, String.format(
                                     "Base executor service %s has rejected the queue task %s. Propagating the RuntimeException to the caller.", 
                                     ex.getExecutorServiceDisplayName(), ex.getRunnableDisplayName()), ex);
-                            throw new RejectedExecutionException("Base executor service has rejected the task from the queue", ex);
+                            throw ExecutorServiceUtils.createRuntimeException("Base executor service has rejected the task from the queue", ex);
                         }
                     } else {
                         scheduled = false;

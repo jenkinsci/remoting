@@ -637,6 +637,7 @@ public class NioChannelHub implements Runnable, Closeable {
                             LOGGER.log(SEVERE, "Communication problem in " + t + ". NIO Transport will be aborted.", e);
                             t.abort(e);
                         } catch (ExecutorServiceUtils.ExecutionRejectedException e) {
+                            // TODO: should we try to reschedule the task if the issue is not fatal?
                             // The swimlane has rejected the execution, e.g. due to the "shutting down" state.
                             LOGGER.log(SEVERE, "The underlying executor service rejected the task in " + t + ". NIO Transport will be aborted.", e);
                             t.abort(e);

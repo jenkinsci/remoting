@@ -64,6 +64,47 @@ public class ExecutorServiceUtils {
     }
     
     /**
+     * Creates a runtime {@link RejectedExecutionException} for {@link ExecutionRejectedException}.
+     * This version takes the {@link ExecutionRejectedException#isFatal()} value into account
+     * and creates {@link FatalRejectedExecutionException} if required.
+     * @param message Message
+     * @param cause Base non-Runtime exception
+     * @return Created Runtime exception
+     */
+    @Nonnull
+    public static RejectedExecutionException createRuntimeException(
+            @Nonnull String message, 
+            @Nonnull ExecutionRejectedException cause) {
+        if (cause.isFatal()) {
+            return new FatalRejectedExecutionException(message, cause);
+        } else {
+            return new RejectedExecutionException(message, cause);
+        }
+    }
+    
+    /**
+     * Version of {@link RejectedExecutionException}, which treats the error as fatal.
+     * It means that the Executor Service will never accept this or any other task in the future.
+     */
+    @Restricted(NoExternalUse.class)
+    public static class FatalRejectedExecutionException extends RejectedExecutionException {
+
+        private static final long serialVersionUID = 1L;
+        
+        public FatalRejectedExecutionException(String message) {
+            super(message);
+        }
+        
+        public FatalRejectedExecutionException(String message, Throwable cause) {
+            super(message, cause);
+        }
+        
+        public FatalRejectedExecutionException(Throwable cause) {
+            super(cause);
+        }
+    }
+    
+    /**
      * Wraps the runtime {@link RejectedExecutionException}.
      * The exception also caches the serializable metadata.
      */
@@ -73,17 +114,35 @@ public class ExecutorServiceUtils {
         private static final long serialVersionUID = 1L;
         private final String executorServiceDisplayName;
         private final String runnableDisplayName;
+        private final boolean fatal;
         
-        public ExecutionRejectedException(Runnable runnable, ExecutorService es, String message) {
+        /**
+         * Constructor of the new exception.
+         * @param runnable Runnable, which has been rejected
+         * @param es Executor service, which rejected the exception
+         * @param message Message
+         * @param fatal Indicates if the issue is fatal.
+         *              Fatal issue means that the {@link ExecutorService} will never accept any other task,
+         *              e.g. due to the pending shutdown.
+         */
+        public ExecutionRejectedException(Runnable runnable, ExecutorService es, String message, boolean fatal) {
             super(message);
             this.executorServiceDisplayName = es.toString();
             this.runnableDisplayName = es.toString();
+            this.fatal = fatal;
         }
         
+        /**
+         * Constructor of the new exception.
+         * @param runnable Runnable, which has been rejected
+         * @param es Executor service, which rejected the exception
+         * @param cause Cause passed as a runtime exception
+         */
         public ExecutionRejectedException(Runnable runnable, ExecutorService es, RejectedExecutionException cause) {
             super(cause);
             this.executorServiceDisplayName = es.toString();
             this.runnableDisplayName = es.toString();
+            this.fatal = cause instanceof FatalRejectedExecutionException;
         }
 
         public String getExecutorServiceDisplayName() {
@@ -93,5 +152,15 @@ public class ExecutorServiceUtils {
         public String getRunnableDisplayName() {
             return runnableDisplayName;
         }
+
+        /**
+         * Checks if the issue is fatal.
+         * @return If {@code true}, the {@link ExecutorService} will never accept any other task
+         */
+        public boolean isFatal() {
+            return fatal;
+        }
+        
+        //TODO: inject the metadata into the toString() call?
     }
 }
