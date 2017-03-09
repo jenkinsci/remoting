@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -39,6 +40,10 @@ import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
 import javax.annotation.CheckForNull;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.meta.When;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Manages unique ID for exported objects, and allows look-up from IDs.
@@ -225,11 +230,26 @@ final class ExportTable {
          *      Optional location that indicates where the actual call site was that triggered the activity,
          *      in case it was requested from the other side of the channel.
          */
+        @SuppressWarnings("ResultOfMethodCallIgnored")
         Source(@CheckForNull Throwable callSite) {
             super(callSite);
-            // force the computation of the stack trace in a Java friendly data structure,
-            // so that the call stack can be seen from the heap dump after the fact.
-            getStackTrace();
+            updateOurStackTraceCache();
+        }
+        
+        // TODO: We export the objects frequently, The current approach ALWAYS leads
+        // to creation of two Stacktrace arrays in the memory: the original and the cloned one
+        // Throwable API. Throwable API allows to workaround it only by using a heavy printStackTrace() method.
+        // Approach #1: Maybe a manual implementation of getOurStackTrace() and local storage is preferable.
+        // Approach #2: Consider disabling this logic by default
+        /**
+         * Update the internal stacktrace cache.
+         * Forces the computation of the stack trace in a Java friendly data structure,
+         * so that the call stack can be seen from the heap dump after the fact.
+         * @return Cloned version of the inner cache.
+         */
+        @CheckReturnValue(when = When.NEVER)
+        protected final StackTraceElement[] updateOurStackTraceCache() {
+            return getStackTrace();
         }
     }
 
@@ -257,10 +277,14 @@ final class ExportTable {
 
     /**
      * Captures the list of export, so that they can be unexported later.
-     *
      * This is tied to a particular thread, so it only records operations
      * on the current thread.
+     * The class is not serializable.
      */
+    @Restricted(NoExternalUse.class)
+    @SuppressFBWarnings(value = "SE_BAD_FIELD_INNER_CLASS",
+            justification = "ExportList is supposed to be serializable as ArrayList, but it is not. "
+                          + "The issue is ignored since the class does not belong to the public API")
     public final class ExportList extends ArrayList<Entry> {
         private final ExportList old;
         private ExportList() {
