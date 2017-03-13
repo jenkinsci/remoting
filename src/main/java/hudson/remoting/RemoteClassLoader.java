@@ -105,7 +105,14 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     private final Map<String,ClassReference> prefetchedClasses = Collections.synchronizedMap(new HashMap<String,ClassReference>());
 
-    public static ClassLoader create(ClassLoader parent, IClassLoader proxy) {
+    /**
+     * Creates a remotable classloader
+     * @param parent Parent classloader. Can be {@code null} if there is no delegating classloader
+     * @param proxy Classloader proxy instance
+     * @return Created classloader
+     */
+    @Nonnull
+    public static ClassLoader create(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy) {
         if(proxy instanceof ClassLoaderProxy) {
             // when the remote sends 'RemoteIClassLoader' as the proxy, on this side we get it
             // as ClassLoaderProxy. This means, the so-called remote classloader here is
@@ -115,13 +122,14 @@ final class RemoteClassLoader extends URLClassLoader {
         return new RemoteClassLoader(parent, proxy);
     }
 
-    private RemoteClassLoader(ClassLoader parent, IClassLoader proxy) {
+    private RemoteClassLoader(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy) {
         super(new URL[0],parent);
         final Channel channel = RemoteInvocationHandler.unwrap(proxy);
         this.channel = channel == null ? null : channel.ref();
         this.underlyingProxy = proxy;
-        if (channel == null || !channel.remoteCapability.supportsPrefetch() || channel.getJarCache()==null)
+        if (channel == null || !channel.remoteCapability.supportsPrefetch() || channel.getJarCache()==null) {
             proxy = new DumbClassLoaderBridge(proxy);
+        }
         this.proxy = proxy;
     }
 
@@ -712,7 +720,7 @@ final class RemoteClassLoader extends URLClassLoader {
         ResourceFile[] getResources2(String name) throws IOException;
     }
 
-    public static IClassLoader export(ClassLoader cl, Channel local) {
+    public static IClassLoader export(@Nonnull ClassLoader cl, Channel local) {
         if (cl instanceof RemoteClassLoader) {
             // check if this is a remote classloader from the channel
             final RemoteClassLoader rcl = (RemoteClassLoader) cl;
@@ -749,8 +757,8 @@ final class RemoteClassLoader extends URLClassLoader {
          */
         private final Set<String> prefetched = new HashSet<String>();
 
-        public ClassLoaderProxy(ClassLoader cl, Channel channel) {
-        	assert cl != null;
+        public ClassLoaderProxy(@Nonnull ClassLoader cl, Channel channel) {
+            assert cl != null;
 
             this.cl = cl;
             this.channel = channel;

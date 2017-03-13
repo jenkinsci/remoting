@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import javax.annotation.CheckForNull;
+
 /**
  * {@link Callable} that nominates another claassloader for serialization.
  *
@@ -37,10 +39,20 @@ package hudson.remoting;
  * In such a case, implement this interface, instead of plain {@link Callable} and
  * return a classloader that can see all the classes.
  *
- * In case of Hudson, {@code PluginManager.uberClassLoader} is a good candidate.  
+ * In case of Jenkins, {@code PluginManager.uberClassLoader} is a good candidate.  
  *
  * @author Kohsuke Kawaguchi
  */
 public interface DelegatingCallable<V,T extends Throwable> extends Callable<V,T> {
+    
+    /**
+     * Returns the class loader to be used for the callable.
+     * 
+     * @return {@link ClassLoader} to be used.
+     *         The value may be {@code null} if the classloader is not being propagated to the remote side.
+     *         If all classes in the call are primitives or {@code Void}, the value may be also {@code null}. 
+     *         In such cased  the handling code should try other possible classloaders.
+     */
+    @CheckForNull
     ClassLoader getClassLoader();
 }

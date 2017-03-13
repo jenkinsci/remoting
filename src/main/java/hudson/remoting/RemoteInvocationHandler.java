@@ -875,6 +875,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             // this callable only executes public methods exported by this side, so these methods are assumed to be safe
         }
 
+        @Override
         public ClassLoader getClassLoader() {
             if(classLoader!=null)
                 return classLoader;

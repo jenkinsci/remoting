@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import javax.annotation.CheckForNull;
 
 /**
  * Remoting-aware holder of {@link ClassLoader} that replaces ClassLoader by its {@link RemoteClassLoader}.
@@ -14,6 +15,8 @@ import java.io.Serializable;
  * @since 2.12
  */
 public class ClassLoaderHolder implements Serializable {
+    
+    @CheckForNull
     private transient ClassLoader classLoader;
 
     public ClassLoaderHolder(ClassLoader classLoader) {
@@ -23,11 +26,12 @@ public class ClassLoaderHolder implements Serializable {
     public ClassLoaderHolder() {
     }
 
+    @CheckForNull
     public ClassLoader get() {
         return classLoader;
     }
 
-    public void set(ClassLoader classLoader) {
+    public void set(@CheckForNull ClassLoader classLoader) {
         this.classLoader = classLoader;
     }
 
