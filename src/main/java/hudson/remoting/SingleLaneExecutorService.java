@@ -119,7 +119,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
                 ExecutorServiceUtils.submitAsync(base, runner);
             } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
                 // Wrap by the runtime exception since there is no other solution here
-                throw new RejectedExecutionException("Base executor service has rejected the task", ex);
+                throw new RejectedExecutionException("Base executor service " + base + " has rejected the task " + command, ex);
             }
         }
     }
