@@ -35,12 +35,12 @@ public class DiagnosedStreamCorruptionException extends StreamCorruptedException
 
     @Nonnull
     public byte[] getReadBack() {
-        return Arrays.copyOf(readBack, readBack.length);
+        return readBack.clone();
     }
   
     @Nonnull
     public byte[] getReadAhead() {
-        return Arrays.copyOf(readAhead, readAhead.length);
+        return readAhead.clone();
     }
 
     @Override
