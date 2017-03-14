@@ -10,6 +10,7 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Implements full {@link IClassLoader} from a legacy one
@@ -23,9 +24,10 @@ import javax.annotation.CheckForNull;
  * @see Capability#supportsPrefetch()
  */
 class DumbClassLoaderBridge implements IClassLoader {
+    @Nonnull
     private final IClassLoader base;
 
-    DumbClassLoaderBridge(IClassLoader base) {
+    DumbClassLoaderBridge(@Nonnull IClassLoader base) {
         this.base = base;
     }
 
