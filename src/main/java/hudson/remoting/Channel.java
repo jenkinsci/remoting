@@ -1308,6 +1308,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         // termination is done by CloseCommand when we received it.
     }
 
+    //TODO: ideally waitForProperty() methods should get rid of the notify-driven implementation
     /**
      * Gets the application specific property set by {@link #setProperty(Object, Object)}.
      * These properties are also accessible from the remote channel via {@link #getRemoteProperty(Object)}.
@@ -1320,6 +1321,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @return The property or {@code null} if there is no property for the specified key
      */
     @Override
+    @SuppressFBWarnings(value = "UG_SYNC_SET_UNSYNC_GET", 
+            justification = "setProperty() is synchronized in order to notify waitForProperty() methods" +
+                            "No problem with this method since it is a ConcurrentHashMap")
     public Object getProperty(Object key) {
         return properties.get(key);
     }
