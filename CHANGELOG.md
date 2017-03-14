@@ -215,7 +215,7 @@ Release date: (June 10, 2016) => Jenkins 2.9, 2.7.2
 Fixed issues:
 * [JENKINS-22722](https://issues.jenkins-ci.org/browse/JENKINS-22722) - 
 Make the channel reader tolerant against Socket timeouts. 
-(https://github.com/jenkinsci/remoting/pull/80)
+(https://github.com/jenkinsci/remoting/pull/86)
 * [JENKINS-32326](https://issues.jenkins-ci.org/browse/JENKINS-32326) - 
 Support no_proxy environment variable. 
 (https://github.com/jenkinsci/remoting/pull/84)
