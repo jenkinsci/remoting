@@ -54,6 +54,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -293,7 +294,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Property bag that contains application-specific stuff.
      */
-    private final HashMap<Object,Object> properties = new HashMap<>();
+    private final ConcurrentHashMap<Object,Object> properties = new ConcurrentHashMap<>();
 
     /**
      * Proxy to the remote {@link Channel} object.
@@ -1315,13 +1316,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * This mechanism can be used for one side to discover contextual objects created by the other JVM
      * (as opposed to executing {@link Callable}, which cannot have any reference to the context
      * of the remote {@link Channel}.
+     * @param key Key
+     * @return The property or {@code null} if there is no property for the specified key
      */
     @Override
-    public synchronized Object getProperty(Object key) {
+    public Object getProperty(Object key) {
         return properties.get(key);
     }
 
-    @SuppressFBWarnings(value = "UG_SYNC_SET_UNSYNC_GET", justification = "Underlying getProperty call is synchronized")
     public <T> T getProperty(ChannelProperty<T> key) {
         return key.type.cast(getProperty((Object) key));
     }
@@ -1355,10 +1357,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Sets the property value on this side of the channel.
-     * 
+     * @param key Property key
+     * @param value Value to set. {@code null} removes the existing entry without adding a new one.
+     * @return Old property value or {@code null} if it was not set
      * @see #getProperty(Object)
      */
-    public synchronized Object setProperty(Object key, Object value) {
+    @CheckForNull
+    public synchronized Object setProperty(@Nonnull Object key, @CheckForNull Object value) {
         Object old = value!=null ? properties.put(key, value) : properties.remove(key);
         notifyAll();
         return old;
