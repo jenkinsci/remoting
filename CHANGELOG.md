@@ -6,6 +6,21 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.7
+
+Release date: (Mar 05, 2017) => Jenkins `TODO`
+
+Fixed issues:
+
+* [JENKINS-42371](https://issues.jenkins-ci.org/browse/JENKINS-42371) - 
+Properly close the `URLConnection` when parsing connection arguments from the JNLP file.
+It was causing a descriptor leak in the case of multiple connection attempts.
+([PR #152](https://github.com/jenkinsci/remoting/pull/152))
+
+##### 3.6
+
+The release has been skipped due to the release process issue.
+
 ##### 3.5
 
 Release date: (Feb 16, 2017) => Jenkins 2.47
@@ -189,7 +204,8 @@ Unable to load class when remote classloader gets interrupted.
 (https://github.com/jenkinsci/remoting/pull/94)
 
 Enhancements:
-* Improve diagnostics for Jar Cache write errors.
+* [JENKINS-36947](https://issues.jenkins-ci.org/browse/JENKINS-36947) - 
+Improve diagnostics for Jar Cache write errors.
 (https://github.com/jenkinsci/remoting/pull/91)
 
 ##### 2.60
@@ -199,7 +215,7 @@ Release date: (June 10, 2016) => Jenkins 2.9, 2.7.2
 Fixed issues:
 * [JENKINS-22722](https://issues.jenkins-ci.org/browse/JENKINS-22722) - 
 Make the channel reader tolerant against Socket timeouts. 
-(https://github.com/jenkinsci/remoting/pull/80)
+(https://github.com/jenkinsci/remoting/pull/86)
 * [JENKINS-32326](https://issues.jenkins-ci.org/browse/JENKINS-32326) - 
 Support no_proxy environment variable. 
 (https://github.com/jenkinsci/remoting/pull/84)

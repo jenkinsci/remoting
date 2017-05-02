@@ -36,6 +36,8 @@ import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * {@link Request} that can take {@link Callable} whose actual implementation
@@ -50,6 +52,8 @@ import java.util.logging.Logger;
 final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<RSP,EXC>,EXC> {
 
     private final byte[] request;
+    
+    @Nonnull
     private final IClassLoader classLoaderProxy;
     private final String toString;
     /**
@@ -58,7 +62,24 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
      */
     private transient final ExportList exports;
 
+    /**
+     * Creates a user request to be executed on the remote side.
+     * @param local Channel, for which the request should be executed
+     * @param c Command to be executed
+     * @throws IOException The command cannot be serialized
+     */
     public UserRequest(Channel local, Callable<?,EXC> c) throws IOException {
+        this.toString = c.toString();
+        
+        // Before serializing anything, check that we actually have a classloader for it
+        final ClassLoader cl = getClassLoader(c);
+        if (cl == null) {
+            // If we cannot determine classloader on the local side, there is no sense to continue the request, because the proxy object won't be created
+            // It will cause failure in UserRequest#perform()
+            throw new IOException("Cannot determine classloader for the command " + toString);
+        }
+        
+        // Serialize the command to the channel
         exports = local.startExportRecording();
         try {
             request = serialize(c,local);
@@ -66,18 +87,25 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
             exports.stopRecording();
         }
 
-        this.toString = c.toString();
-        ClassLoader cl = getClassLoader(c);
-        classLoaderProxy = RemoteClassLoader.export(cl,local);
+        this.classLoaderProxy = RemoteClassLoader.export(cl, local);
     }
 
-    /*package*/ static ClassLoader getClassLoader(Callable<?,?> c) {
+    /**
+     * Retrieves classloader for the callable.
+     * For {@link DelegatingCallable} the method will try to retrieve a classloader specified there.
+     * If it is not available, a classloader from the class will be tried.
+     * If it is not available as well, {@link ClassLoader#getSystemClassLoader()} will be used
+     * @param c Callable
+     * @return Classloader from the callable. May be {@code null} if all attempts to retrieve the classloader return {@code null}.
+     */
+    @CheckForNull
+    /*package*/ static ClassLoader getClassLoader(@Nonnull Callable<?,?> c) {
     	ClassLoader result = null;
         
     	if(c instanceof DelegatingCallable) {
         	result =((DelegatingCallable)c).getClassLoader();
         }
-        else {
+        if (result == null) {
         	result = c.getClass().getClassLoader();
         }
         

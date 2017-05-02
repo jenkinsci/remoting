@@ -29,8 +29,9 @@ The protocol supports the non-blocking I/O, which improve the performance of the
 ### JNLP3-connect
 
 * Introduced in: Remoting 2.53, [JENKINS-26580](https://issues.jenkins-ci.org/browse/JENKINS-26580)
-* The protocol has known stability issues and disabled by default in Jenkins
-* Not recommended for use since the <code>JNLP4-connect</code> release
+* The protocol has known stability issues (see the Errata section below)
+* The protocol is disabled by default in Jenkins
+* **Not recommended** for use since the <code>JNLP4-connect</code> release
 
 This protocol aims to improve security of JNLP-based slaves. 
 Both the master and the slave securely authenticate each other and then setup an encrypted channel.
@@ -40,13 +41,31 @@ For each connection a new thread is being created, and it leads to the performan
   even Denial of Service on highly loaded Jenkins masters.
 There are also some reported issues regarding the Remoting 3 stability on particular systems.
 
+#### JNLP3-connect Errata
+
+Below you can find the list of known `JNLP3-connect` issues.
+There is no plan to fix these issues, usage of `JNLP4-connect` is the recommended approach.
+
+* [JENKINS-37302](https://issues.jenkins-ci.org/browse/JENKINS-37302) - 
+JNLP3 challenge response generates invalid string encoding, the check may fail randomly.
+* [JENKINS-33886](https://issues.jenkins-ci.org/browse/JENKINS-33886) -
+On some configurations only one JNLP3 slave per IP address can be connected.
+* [JENKINS-34121](https://issues.jenkins-ci.org/browse/JENKINS-34121) -
+JNLP3 cannot be used on IBM Java, which doesn't support AES/CTR/PKCS5Padding.
+
 ### JNLP4-connect
 
 * Introduced in: Remoting 3.0, [JENKINS-36871](https://issues.jenkins-ci.org/browse/JENKINS-36871)
 
-This protocol uses <code>SSLEngine</code> to perform a TLS upgrade of the plaintext 
-  connection before any connection secrets are exchanged. 
+This protocol uses the <code>SSLEngine</code> provided by the Java Cryptography Architecture 
+  to perform a TLS upgrade of the plaintext connection before any connection secrets are exchanged. 
 The subsequent connection is then secured using TLS. 
+
+The encryption algorithms and cyphers used by the <code>SSLEngine</code> when using Oracle JDK 1.8 
+   are described in [Java Cryptography Architecture Standard Algorithm Name Documentation for JDK 8](http://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html))
+If stronger algorithms are needed (for example, AES with 256-bit keys), the [JCE Unlimited Strength Jurisdiction Policy Files](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
+  can be obtained on Oracle website and installed in the JDK/JRE.
+
 
 Protocol uses non-blocking I/O wherever possible which removes the performance bottleneck of the <code>JNLP3-connect</code> protocol.
 
