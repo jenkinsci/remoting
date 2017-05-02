@@ -37,6 +37,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,6 +74,17 @@ public class WorkDirManager {
 
     // Status data
     boolean loggingInitialized;
+    
+    /**
+     * Provides a list of directories, which should not be initialized in the Work Directory.
+     */
+    private final Set<DirType> disabledDirectories = new HashSet<>();
+    
+    /**
+     * Cache of initialized directory locations.
+     */
+    private final Map<DirType, File> directories = new HashMap<>();
+    
 
     private WorkDirManager() {
         // Cannot be instantiated outside
@@ -84,7 +99,16 @@ public class WorkDirManager {
     public static WorkDirManager getInstance() {
         return INSTANCE;
     }
-
+    
+    public void disable(@Nonnull DirType dir) {
+        disabledDirectories.add(dir);
+    }
+    
+    @CheckForNull
+    public File getLocation(@Nonnull DirType type) {
+        return directories.get(type);
+    }
+    
     //TODO: New interfaces should ideally use Path instead of File
     /**
      * Initializes the working directory for the agent.
@@ -94,7 +118,7 @@ public class WorkDirManager {
      *                    The range of the supported symbols is restricted to {@link #SUPPORTED_INTERNAL_DIR_NAME_MASK}.
      * @param failIfMissing Fail the initialization if the workDir or internalDir are missing.
      *                      This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
-     *                      (e.g. if a mount gets disconnected).
+     *                      (e.g. if a mount gets disconnected).                 
      * @return Initialized directory for internal files within workDir or {@code null} if it is disabled
      * @throws IOException Workspace allocation issue (e.g. the specified directory is not writable).
      *                     In such case Remoting should not start up at all.
@@ -114,19 +138,36 @@ public class WorkDirManager {
         } else {
             // Verify working directory
             verifyDirectory(workDir, DirType.WORK_DIR, failIfMissing);
+            directories.put(DirType.WORK_DIR, workDir);
 
             // Create a subdirectory for remoting operations
             final File internalDirFile = new File(workDir, internalDir);
             verifyDirectory(internalDirFile, DirType.INTERNAL_DIR, failIfMissing);
+            directories.put(DirType.INTERNAL_DIR, internalDirFile);
 
             // Create the directory on-demand
             final Path internalDirPath = internalDirFile.toPath();
             Files.createDirectories(internalDirPath);
             LOGGER.log(Level.INFO, "Using {0} as a remoting working files directory", internalDirPath);
+            
+            // Create components of the internal directory
+            createInternalDirIfRequired(internalDirFile, DirType.JAR_CACHE_DIR);
+            
             return internalDirPath;
         }
     }
 
+    private void createInternalDirIfRequired(File internalDir, DirType type)
+            throws IOException {
+        if (!disabledDirectories.contains(type)) {
+            final File directory = new File(internalDir, type.getDefaultLocation());
+            verifyDirectory(directory, type, false);
+            directories.put(type, directory);
+        } else {
+            LOGGER.log(Level.FINE, "Skipping the disabled directory: {0}", type.getName());
+        }
+    }
+    
     /**
      * Verifies that the directory is compliant with the specified requirements.
      * The directory is expected to have {@code RWX} permissions if exists.
@@ -209,22 +250,32 @@ public class WorkDirManager {
         /**
          * Top-level entry of the working directory.
          */
-        WORK_DIR("working directory", ""),
+        WORK_DIR("working directory", "", null),
         /**
-         * Directory, which stores internal data of the remoting layer itself.
+         * Directory, which stores internal data of the Remoting layer itself.
          * This directory is located within {@link #WORK_DIR}.
          */
-        INTERNAL_DIR("remoting internal directory", "remoting");
-
+        INTERNAL_DIR("remoting internal directory", "remoting", WORK_DIR),
+        
+        /**
+         * Directory, which stores the JAR Cache.
+         */
+        JAR_CACHE_DIR("JAR Cache directory", "jarCache", INTERNAL_DIR);
+        
+        
         @Nonnull
         private final String name;
 
         @Nonnull
         private final String defaultLocation;
+        
+        @CheckForNull
+        private final DirType parentDir;
 
-        DirType(String name, String defaultLocation) {
+        DirType(String name, String defaultLocation, @CheckForNull DirType parentDir) {
             this.name = name;
             this.defaultLocation = defaultLocation;
+            this.parentDir = parentDir;
         }
 
         @Override
@@ -240,6 +291,11 @@ public class WorkDirManager {
         @Nonnull
         public String getName() {
             return name;
+        }
+
+        @CheckForNull
+        public DirType getParentDir() {
+            return parentDir;
         }
     }
 }

@@ -154,7 +154,15 @@ public class Engine extends Thread {
      */
     private boolean keepAlive = true;
 
-    private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
+    
+    /**
+     * Default JAR cache location for disabled workspace Manager.
+     */
+    private static final File DEFAULT_NOWS_JAR_CACHE_LOCATION = 
+        new File(System.getProperty("user.home"),".jenkins/cache/jars");
+    
+    @CheckForNull
+    private JarCache jarCache = null;
 
     /**
      * Specifies a destination for the agent log.
@@ -215,22 +223,47 @@ public class Engine extends Thread {
      * @since TODO
      */
     public synchronized void startEngine() throws IOException {
+        
+        @CheckForNull File jarCacheDirectory = null;
+        
         // Prepare the working directory if required
         if (workDir != null) {
             final WorkDirManager workDirManager = WorkDirManager.getInstance();
+            if (jarCache != null) {
+                // Somebody has already specificed Jar Cache, hence we do not need it in the workspace.
+                workDirManager.disable(WorkDirManager.DirType.JAR_CACHE_DIR);
+            }
+            
             final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
+            jarCacheDirectory = workDirManager.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
             workDirManager.setupLogging(path, agentLog);
+        } else if (jarCache != null) {
+            LOGGER.log(Level.WARNING, "No Working Directory. Using the legacy JAR Cache location: {0}", DEFAULT_NOWS_JAR_CACHE_LOCATION);
+            jarCacheDirectory = DEFAULT_NOWS_JAR_CACHE_LOCATION;
         }
-
+        
+        if (jarCache == null){
+            if (jarCacheDirectory == null) {
+                // Should never happen in the current code
+                throw new IOException("Cannot find the JAR Cache location");
+            }
+            LOGGER.log(Level.FINE, "Using standard File System JAR Cache. Root Directory is {0}", jarCacheDirectory);
+            jarCache = new FileSystemJarCache(jarCacheDirectory, true);
+        } else {
+            LOGGER.log(Level.INFO, "Using custom JAR Cache: {0}", jarCache);
+        }
+        
         // Start the engine thread
         this.start();
     }
 
     /**
-     * Configures JAR caching for better performance.
+     * Configures custom JAR Cache location.
+     * Starting from TODO, this option disables JAR Caching in the working directory.
+     * @param jarCache JAR Cache to be used
      * @since 2.24
      */
-    public void setJarCache(JarCache jarCache) {
+    public void setJarCache(@Nonnull JarCache jarCache) {
         this.jarCache = jarCache;
     }
 
