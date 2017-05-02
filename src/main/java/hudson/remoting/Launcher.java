@@ -283,7 +283,7 @@ public class Launcher {
         // On the other hand, in such case there is no need to invoke WorkDirManager and handle the double initialization logic
         final WorkDirManager workDirManager = WorkDirManager.getInstance();
         final Path internalDirPath = workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
-        workDirManager.setupLogging(internalDirPath, slaveLog.toPath());
+        workDirManager.setupLogging(internalDirPath, slaveLog != null ? slaveLog.toPath() : null);
 
         if(auth!=null) {
             final int idx = auth.indexOf(':');
