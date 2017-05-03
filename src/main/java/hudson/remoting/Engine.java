@@ -392,8 +392,6 @@ public class Engine extends Thread {
 
     @Override
     public void run() {
-        //
-
         // Create the engine
         try {
             IOHub hub = IOHub.create(executor);

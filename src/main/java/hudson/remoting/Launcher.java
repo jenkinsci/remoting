@@ -291,6 +291,9 @@ public class Launcher {
         // On the other hand, in such case there is no need to invoke WorkDirManager and handle the double initialization logic
         final WorkDirManager workDirManager = WorkDirManager.getInstance();
         final Path internalDirPath = workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
+        if (slaveLog != null) {
+            workDirManager.disable(WorkDirManager.DirType.LOGS_DIR);
+        }
         workDirManager.setupLogging(internalDirPath, slaveLog != null ? slaveLog.toPath() : null);
 
         if(auth!=null) {
@@ -326,15 +329,16 @@ public class Launcher {
             }
             if (loggingConfigFilePath != null) {
                 jnlpArgs.add("-loggingConfig");
-                jnlpArgs.add(loggingConfigFilePath.getPath());
+                jnlpArgs.add(loggingConfigFilePath.getAbsolutePath());
             }
             if (this.workDir != null) {
                 jnlpArgs.add("-workDir");
-                jnlpArgs.add(workDir.getPath());
+                jnlpArgs.add(workDir.getAbsolutePath());
                 jnlpArgs.add("-internalDir");
                 jnlpArgs.add(internalDir);
-                jnlpArgs.add("-failIfWorkDirIsMissing");
-                jnlpArgs.add(Boolean.toString(failIfWorkDirIsMissing));
+                if (failIfWorkDirIsMissing) {
+                    jnlpArgs.add("-failIfWorkDirIsMissing");
+                }
             }
             if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
                 for (String c: candidateCertificates) {

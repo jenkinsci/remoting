@@ -42,7 +42,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
+import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -160,10 +162,11 @@ public class WorkDirManager {
             // Create the directory on-demand
             final Path internalDirPath = internalDirFile.toPath();
             Files.createDirectories(internalDirPath);
-            LOGGER.log(Level.INFO, "Using {0} as a remoting working files directory", internalDirPath);
+            LOGGER.log(Level.INFO, "Using {0} as a remoting work directory", internalDirPath);
             
             // Create components of the internal directory
             createInternalDirIfRequired(internalDirFile, DirType.JAR_CACHE_DIR);
+            createInternalDirIfRequired(internalDirFile, DirType.LOGS_DIR);
             
             return internalDirPath;
         }
@@ -174,6 +177,7 @@ public class WorkDirManager {
         if (!disabledDirectories.contains(type)) {
             final File directory = new File(internalDir, type.getDefaultLocation());
             verifyDirectory(directory, type, false);
+            Files.createDirectories(directory.toPath());
             directories.put(type, directory);
         } else {
             LOGGER.log(Level.FINE, "Skipping the disabled directory: {0}", type.getName());
@@ -238,22 +242,32 @@ public class WorkDirManager {
             System.out.flush();
             System.err.flush();
 
-            // TODO: Log rotation by default?
-            System.setErr(new PrintStream(new TeeOutputStream(System.err,
-                    new FileOutputStream(new File(internalDirPath.toFile(), "remoting.err.log")))));
-            System.setOut(new PrintStream(new TeeOutputStream(System.out,
-                    new FileOutputStream(new File(internalDirPath.toFile(), "remoting.out.log")))));
-            
             // Also redirect JUL to files if custom logging is not specified
+            final File internalDirFile = internalDirPath.toFile();
+            createInternalDirIfRequired(internalDirFile, DirType.LOGS_DIR);
+            final File logsDir = getLocation(DirType.LOGS_DIR);
+            
+            // TODO: Forward these logs? Likely no, we do not expect something to get there
+            //System.setErr(new PrintStream(new TeeOutputStream(System.err,
+            //        new FileOutputStream(new File(logsDir, "remoting.err.log")))));
+            //System.setOut(new PrintStream(new TeeOutputStream(System.out,
+            //        new FileOutputStream(new File(logsDir, "remoting.out.log")))));
+             
             if (loggingConfigFile == null) {
                 final Logger rootLogger = Logger.getLogger("");
-                final File julLog = new File(internalDirPath.toFile(), "remoting.log");
+                final File julLog = new File(logsDir, "remoting.log");
                 final FileHandler logHandler = new FileHandler(julLog.getAbsolutePath(), 
                                          10*1024*1024, 5, false); 
                 logHandler.setFormatter(new SimpleFormatter()); 
                 logHandler.setLevel(Level.INFO); 
-                //TODO: remove the standard console handler 
                 rootLogger.addHandler(logHandler); 
+                
+                // TODO: Uncomment if there is TeeOutputStream added
+                // Remove console handler since the logs are going to the file now
+                // ConsoleHandler consoleHandler = findConsoleHandler(rootLogger);
+                // if (consoleHandler != null) {
+                //    rootLogger.removeHandler(consoleHandler);
+                // }
             }
 
             this.loggingInitialized = true;
@@ -263,6 +277,16 @@ public class WorkDirManager {
         }
     }
 
+    @CheckForNull
+    private static ConsoleHandler findConsoleHandler(Logger logger) {
+        for (Handler h : logger.getHandlers()) {
+            if (h instanceof ConsoleHandler) {
+                return (ConsoleHandler)h;
+            }
+        }
+        return null;
+    }
+    
     /**
      * Defines components of the Working directory.
      * @since TODO
@@ -282,8 +306,12 @@ public class WorkDirManager {
         /**
          * Directory, which stores the JAR Cache.
          */
-        JAR_CACHE_DIR("JAR Cache directory", "jarCache", INTERNAL_DIR);
+        JAR_CACHE_DIR("JAR Cache directory", "jarCache", INTERNAL_DIR),
         
+        /**
+         * Directory, which stores logs.
+         */
+        LOGS_DIR("Log directory", "logs", INTERNAL_DIR);
         
         @Nonnull
         private final String name;
