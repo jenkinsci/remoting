@@ -32,6 +32,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
@@ -71,9 +73,11 @@ public class WorkDirManager {
      */
     public static final String SUPPORTED_INTERNAL_DIR_NAME_MASK = "[a-zA-Z0-9._-]*";
 
-
     // Status data
     boolean loggingInitialized;
+    
+    @CheckForNull
+    private File loggingConfigFile = null;
     
     /**
      * Provides a list of directories, which should not be initialized in the Work Directory.
@@ -107,6 +111,14 @@ public class WorkDirManager {
     @CheckForNull
     public File getLocation(@Nonnull DirType type) {
         return directories.get(type);
+    }
+    
+    /**
+     * Sets path to the Logging JUL property file with logging settings.
+     * @param configFile config file
+     */
+    public void setLoggingConfig(@Nonnull File configFile) {
+        this.loggingConfigFile = configFile;   
     }
     
     //TODO: New interfaces should ideally use Path instead of File
@@ -202,11 +214,19 @@ public class WorkDirManager {
      */
     public void setupLogging(@CheckForNull Path internalDirPath, @CheckForNull Path overrideLogPath) throws IOException {
         if (loggingInitialized) {
-            // Do nothing
-            // TODO: print warning message?
+            // Do nothing, in Remoting initialization there may be two calls due to the
+            // legacy -slaveLog behavior implementation.
+            LOGGER.log(Level.CONFIG, "Logging susystem has been already initialized");
             return;
         }
 
+        if (loggingConfigFile != null) {
+            LOGGER.log(Level.FINE, "Reading Logging configuration from file: {0}", loggingConfigFile);
+            try(FileInputStream fis =  new FileInputStream(loggingConfigFile)) {
+                LogManager.getLogManager().readConfiguration(fis);
+            }
+        }
+        
         if (overrideLogPath != null) { // Legacy behavior
             System.out.println("Using " + overrideLogPath + " as an agent Error log destination. 'Out' log won't be generated");
             System.out.flush(); // Just in case the channel
@@ -224,15 +244,17 @@ public class WorkDirManager {
             System.setOut(new PrintStream(new TeeOutputStream(System.out,
                     new FileOutputStream(new File(internalDirPath.toFile(), "remoting.out.log")))));
             
-            // Also redirect JUL to files
-            final Logger rootLogger = Logger.getLogger("");
-            final File julLog = new File(internalDirPath.toFile(), "remoting.log");
-            final FileHandler logHandler = new FileHandler(julLog.getAbsolutePath(), 
-                                         50*1024*1024, 5, false); 
-            logHandler.setFormatter(new SimpleFormatter()); 
-            logHandler.setLevel(Level.INFO); 
-            //TODO: remove the standard console handler 
-            rootLogger.addHandler(logHandler); 
+            // Also redirect JUL to files if custom logging is not specified
+            if (loggingConfigFile == null) {
+                final Logger rootLogger = Logger.getLogger("");
+                final File julLog = new File(internalDirPath.toFile(), "remoting.log");
+                final FileHandler logHandler = new FileHandler(julLog.getAbsolutePath(), 
+                                         10*1024*1024, 5, false); 
+                logHandler.setFormatter(new SimpleFormatter()); 
+                logHandler.setLevel(Level.INFO); 
+                //TODO: remove the standard console handler 
+                rootLogger.addHandler(logHandler); 
+            }
 
             this.loggingInitialized = true;
         } else {

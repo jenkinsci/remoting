@@ -174,6 +174,13 @@ public class Engine extends Thread {
     private Path agentLog;
     
     /**
+     * Specified location of the property file with JUL settings.
+     * @since TODO
+     */
+    @CheckForNull
+    private Path loggingConfigFilePath = null;
+    
+    /**
      * Specifies a default working directory of the remoting instance.
      * If specified, this directory will be used to store logs, JAR cache, etc.
      * <p>
@@ -234,6 +241,10 @@ public class Engine extends Thread {
                 workDirManager.disable(WorkDirManager.DirType.JAR_CACHE_DIR);
             }
             
+            if (loggingConfigFilePath != null) {
+                workDirManager.setLoggingConfig(loggingConfigFilePath.toFile());
+            }
+            
             final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
             jarCacheDirectory = workDirManager.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
             workDirManager.setupLogging(path, agentLog);
@@ -265,6 +276,15 @@ public class Engine extends Thread {
      */
     public void setJarCache(@Nonnull JarCache jarCache) {
         this.jarCache = jarCache;
+    }
+    
+    /**
+     * Sets path to the property file with JUL settings.
+     * @param filePath JAR Cache to be used
+     * @since TODO
+     */
+    public void setLoggingConfigFile(@Nonnull Path filePath) {
+        this.loggingConfigFilePath = filePath;
     }
 
     /**

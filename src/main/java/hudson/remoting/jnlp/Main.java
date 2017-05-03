@@ -51,6 +51,7 @@ import java.io.IOException;
 
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
+import java.nio.file.Path;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -110,6 +111,14 @@ public class Main {
     @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
     @CheckForNull
     public File agentLog = null;
+    
+    /**
+     * Specified location of the property file with JUL settings.
+     * @since TODO
+     */
+    @CheckForNull
+    @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
+    public File loggingConfigFile = null;
     
     /**
      * Specifies a default working directory of the remoting instance.
@@ -237,6 +246,9 @@ public class Main {
         // TODO: ideally logging should be initialized before the "Setting up slave" entry
         if (agentLog != null) {
             engine.setAgentLog(agentLog.toPath());
+        }
+        if (loggingConfigFile != null) {
+            engine.setLoggingConfigFile(loggingConfigFile.toPath());
         }
         
         if (candidateCertificates != null && !candidateCertificates.isEmpty()) {

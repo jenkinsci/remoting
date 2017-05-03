@@ -19,12 +19,10 @@ Logging destinations:
   * Default logging level - `INFO`
   * If the legacy `-agentLog` or `-slaveLog` option is enabled, this file logging will be disabled.
 
-<!--TODO: Document the configuration file support-->
-<!--
 In order to configure logging it is possible to use an external property file, path to which can be defined using the `-loggingConfig` CLI option. 
 See details about the file format
 [in this guide](http://tutorials.jenkov.com/java-logging/configuration.html).
--->
+Note that `ConsoleHandler` won't be enabled by default if this option is specified.
 
 ### Without work directory (legacy mode)
 

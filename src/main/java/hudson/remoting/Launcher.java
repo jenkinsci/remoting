@@ -176,6 +176,14 @@ public class Launcher {
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
 
+    /**
+     * Specified location of the property file with JUL settings.
+     * @since TODO
+     */
+    @CheckForNull
+    @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
+    public File loggingConfigFilePath = null;
+    
     @Option(name = "-cert",
             usage = "Specify additional X.509 encoded PEM certificates to trust when connecting to Jenkins " +
                     "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
@@ -315,6 +323,10 @@ public class Launcher {
             if (slaveLog != null) {
                 jnlpArgs.add("-agentLog");
                 jnlpArgs.add(slaveLog.getPath());
+            }
+            if (loggingConfigFilePath != null) {
+                jnlpArgs.add("-loggingConfig");
+                jnlpArgs.add(loggingConfigFilePath.getPath());
             }
             if (this.workDir != null) {
                 jnlpArgs.add("-workDir");
