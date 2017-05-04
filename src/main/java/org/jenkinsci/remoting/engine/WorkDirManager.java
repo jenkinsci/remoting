@@ -62,7 +62,7 @@ public class WorkDirManager {
 
     private static final Logger LOGGER = Logger.getLogger(WorkDirManager.class.getName());
 
-    private static final WorkDirManager INSTANCE = new WorkDirManager();
+    private static WorkDirManager INSTANCE = new WorkDirManager();
 
     /**
      * Default value for the behavior when the requested working directory is missing.
@@ -104,6 +104,11 @@ public class WorkDirManager {
     @Nonnull
     public static WorkDirManager getInstance() {
         return INSTANCE;
+    }
+    
+    /*package*/ static void reset() {
+        INSTANCE = new WorkDirManager();
+        LogManager.getLogManager().reset();
     }
     
     public void disable(@Nonnull DirType dir) {

@@ -2,7 +2,7 @@
  *
  *  * The MIT License
  *  *
- *  * Copyright (c) 2016 CloudBees, Inc.
+ *  * Copyright (c) 2016-2017 CloudBees, Inc.
  *  *
  *  * Permission is hereby granted, free of charge, to any person obtaining a copy
  *  * of this software and associated documentation files (the "Software"), to deal
@@ -33,14 +33,22 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import org.apache.commons.io.IOUtils;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.jenkinsci.remoting.engine.WorkDirManager.DirType;
+import org.junit.After;
+import org.junit.Before;
 import org.jvnet.hudson.test.Bug;
 
 /**
@@ -52,9 +60,20 @@ public class WorkDirManagerTest {
 
     @Rule
     public TemporaryFolder tmpDir = new TemporaryFolder();
+    
+    @Before
+    public void resetWorkDirManagerBeforeTest() {
+        WorkDirManager.reset();
+    }
+    
+    @After
+    public void resetWorkDirManagerAfterTest() {
+        // Resets logging settings
+        WorkDirManager.reset();
+    }
 
     @Test
-    public void shouldInitializeCorrectlyForExisitingDirectory() throws Exception {
+    public void shouldInitializeCorrectlyForExistingDirectory() throws Exception {
         final File dir = tmpDir.newFolder("foo");
 
         // Probe files to confirm the directory does not get wiped
@@ -72,6 +91,10 @@ public class WorkDirManagerTest {
         // Ensure that the files have not been wiped
         Assert.assertTrue("Probe file in the " + DirType.WORK_DIR + " has been wiped", probeFileInWorkDir.exists());
         Assert.assertTrue("Probe file in the " + DirType.INTERNAL_DIR + " has been wiped", probeFileInInternalDir.exists());
+        
+        // Ensure that sub directories are in place
+        assertExists(DirType.JAR_CACHE_DIR);
+        assertExists(DirType.LOGS_DIR);
     }
 
     @Test
@@ -182,7 +205,90 @@ public class WorkDirManagerTest {
 
         assertAllocationFailsForMissingDir(workDir, DirType.INTERNAL_DIR);
     }
+    
+    @Test
+    public void shouldNotCreateLogsDirIfDisabled() throws Exception {
+        final File tmpDirFile = tmpDir.newFolder("foo");
+        assertDoesNotCreateDisabledDir(tmpDirFile, DirType.LOGS_DIR);
+    }
+    
+    @Test
+    public void shouldNotCreateJarCacheIfDisabled() throws Exception {
+        final File tmpDirFile = tmpDir.newFolder("foo");
+        assertDoesNotCreateDisabledDir(tmpDirFile, DirType.JAR_CACHE_DIR);
+    }
 
+    @Test
+    public void shouldCreateLogFilesOnTheDisk() throws Exception {
+        final File workDir = tmpDir.newFolder("workDir");
+        final WorkDirManager mngr = WorkDirManager.getInstance();
+        mngr.initializeWorkDir(workDir, "remoting", false);
+        mngr.setupLogging(mngr.getLocation(DirType.INTERNAL_DIR).toPath(), null);
+        
+        // Write something to logs
+        String message = String.format("Just 4 test. My Work Dir is %s", workDir);
+        Logger.getLogger(WorkDirManager.class.getName()).log(Level.INFO, message);
+        
+        // Ensure log files have been created
+        File logsDir = mngr.getLocation(DirType.LOGS_DIR);
+        assertFileLogsExist(logsDir, "remoting.log", 0);
+        
+        // Ensure the entry has been written
+        File log0 = new File(logsDir, "remoting.log.0");
+        try (FileInputStream istr = new FileInputStream(log0)) {
+            String contents = IOUtils.toString(istr);
+            assertThat("Log file " + log0 + " should contain the probe message", contents, containsString(message));
+        }
+    }
+    
+    @Test
+    public void shouldAcceptLoggingSettingsFromFile() throws Exception {
+        final File workDir = tmpDir.newFolder("workDir");
+        final File customLogDir = tmpDir.newFolder("mylogs");
+        
+        // Create config file
+        final File loggingConfigFile = new File(tmpDir.getRoot(), "julSettings.prop");
+        try (FileWriter wr = new FileWriter(loggingConfigFile)) {
+            // Init FileHandler with default XML formatter
+            wr.write("handlers= java.util.logging.FileHandler\n");
+            // TODO: It won't work well on Windows
+            wr.write("java.util.logging.FileHandler.pattern=" + customLogDir.getAbsolutePath() + "/mylog.log.%g\n");
+            wr.write("java.util.logging.FileHandler.limit=81920\n");
+            wr.write("java.util.logging.FileHandler.count=5\n");
+        }
+        
+        // Init WorkDirManager
+        final WorkDirManager mngr = WorkDirManager.getInstance();
+        mngr.setLoggingConfig(loggingConfigFile);
+        mngr.initializeWorkDir(workDir, "remoting", false);
+        mngr.setupLogging(mngr.getLocation(DirType.INTERNAL_DIR).toPath(), null);
+        
+        // Write something to logs
+        String message = String.format("Just 4 test. My Work Dir is %s", workDir);
+        Logger.getLogger(WorkDirManager.class.getName()).log(Level.INFO, message);
+        
+        // Assert that logs directory still exists, but has no default logs
+        assertExists(DirType.LOGS_DIR);
+        File defaultLog0 = new File(mngr.getLocation(DirType.LOGS_DIR), "remoting.log.0");
+        Assert.assertFalse("Log settings have been passed from the config file, the default log should not exist: " + defaultLog0, 
+                defaultLog0.exists());
+        
+        // Assert that logs have been written to the specified custom destination
+        assertFileLogsExist(customLogDir, "mylog.log", 0);
+        File log0 = new File(customLogDir, "mylog.log.0");
+        try (FileInputStream istr = new FileInputStream(log0)) {
+            String contents = IOUtils.toString(istr);
+            assertThat("Log file " + log0 + " should contain the probe message", contents, containsString(message));
+        }
+    }
+    
+    private void assertFileLogsExist(File logsDir, String prefix, int logFilesNumber) {
+        for (int i=0; i<logFilesNumber; ++i) {
+            File log = new File(logsDir, prefix + "." + i);
+            Assert.assertTrue("Log file should exist: " + log, log.exists());
+        }
+    }
+    
     private void assertAllocationFailsForMissingDir(File workDir, DirType expectedCheckFailure) {
         // Initialize and check the results
         try {
@@ -204,6 +310,25 @@ public class WorkDirManagerTest {
             return;
         }
         Assert.fail("Initialization of WorkDirManager with invalid internal directory '" + internalDirName + "' should have failed");
+    }
+    
+    private void assertExists(@Nonnull DirType type) throws AssertionError {
+        final File location = WorkDirManager.getInstance().getLocation(type);
+        Assert.assertNotNull("WorkDir Manager didn't provide location of " + type, location);
+        Assert.assertTrue("Cannot find the " + type + " directory: " + location, location.exists());
+    }
+    
+    private void assertDoesNotCreateDisabledDir(File workDir, DirType type) throws AssertionError, IOException {
+        WorkDirManager instance = WorkDirManager.getInstance();
+        instance.disable(type);
+        instance.initializeWorkDir(workDir, "remoting", false);
+        
+        // Checks
+        assertThat("Directory " + type + " has been added to the cache. Expected WirkDirManager to ignore it", 
+                instance.getLocation(type), nullValue());
+        File internalDir = instance.getLocation(DirType.INTERNAL_DIR);
+        File expectedDir = new File(internalDir, type.getDefaultLocation());
+        Assert.assertFalse("The logs directoy should not exist", expectedDir.exists());
     }
 
     private void verifyDirectoryFlag(DirType type, DirectoryFlag flag) throws IOException, AssertionError {

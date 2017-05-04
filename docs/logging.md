@@ -20,8 +20,10 @@ Logging destinations:
   * If the legacy `-agentLog` or `-slaveLog` option is enabled, this file logging will be disabled.
 
 In order to configure logging it is possible to use an external property file, path to which can be defined using the `-loggingConfig` CLI option. 
+If this option is defined, an empty `${workDir}/${internalDir}/logs` will be created if it does not exist.
 See details about the file format
-[in this guide](http://tutorials.jenkov.com/java-logging/configuration.html).
+in [Oracle documentation](https://docs.oracle.com/cd/E19717-01/819-7753/6n9m71435/index.html)
+and [this guide](http://tutorials.jenkov.com/java-logging/configuration.html).
 Note that `ConsoleHandler` won't be enabled by default if this option is specified.
 
 ### Without work directory (legacy mode)
