@@ -242,12 +242,28 @@ public class WorkDirManagerTest {
     }
     
     @Test
-    public void shouldAcceptLoggingSettingsFromFile() throws Exception {
+    public void shouldUseLoggingSettingsFromFileDefinedByAPI() throws Exception {
+        final File loggingConfigFile = new File(tmpDir.getRoot(), "julSettings.prop");
+        doTestLoggingConfig(loggingConfigFile, true);
+    }
+    
+    @Test
+    public void shouldUseLoggingSettingsFromFileDefinedBySystemProperty() throws Exception {
+        final File loggingConfigFile = new File(tmpDir.getRoot(), "julSettings.prop");
+        final String oldValue = System.setProperty(WorkDirManager.JUL_CONFIG_FILE_SYSTEM_PROPERTY_NAME, loggingConfigFile.getAbsolutePath());
+        try {
+            doTestLoggingConfig(loggingConfigFile, false);
+        } finally {
+            // TODO: Null check and setting empty string is a weird hack
+            System.setProperty(WorkDirManager.JUL_CONFIG_FILE_SYSTEM_PROPERTY_NAME, oldValue != null ? oldValue : "");
+        }
+    }
+    
+    private void doTestLoggingConfig(File loggingConfigFile, boolean passToManager) throws IOException, AssertionError{
         final File workDir = tmpDir.newFolder("workDir");
         final File customLogDir = tmpDir.newFolder("mylogs");
         
         // Create config file
-        final File loggingConfigFile = new File(tmpDir.getRoot(), "julSettings.prop");
         try (FileWriter wr = new FileWriter(loggingConfigFile)) {
             // Init FileHandler with default XML formatter
             wr.write("handlers= java.util.logging.FileHandler\n");
@@ -259,7 +275,9 @@ public class WorkDirManagerTest {
         
         // Init WorkDirManager
         final WorkDirManager mngr = WorkDirManager.getInstance();
-        mngr.setLoggingConfig(loggingConfigFile);
+        if (passToManager) {
+            mngr.setLoggingConfig(loggingConfigFile);
+        }
         mngr.initializeWorkDir(workDir, "remoting", false);
         mngr.setupLogging(mngr.getLocation(DirType.INTERNAL_DIR).toPath(), null);
         

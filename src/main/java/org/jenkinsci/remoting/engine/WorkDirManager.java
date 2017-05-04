@@ -74,6 +74,11 @@ public class WorkDirManager {
      * Regular expression, which declares restrictions of the remoting internal directory symbols
      */
     public static final String SUPPORTED_INTERNAL_DIR_NAME_MASK = "[a-zA-Z0-9._-]*";
+    
+    /**
+     * Name of the standard System Property, which points to the {@code java.util.logging} config file.
+     */
+    public static final String JUL_CONFIG_FILE_SYSTEM_PROPERTY_NAME = "java.util.logging.config.file";
 
     // Status data
     boolean loggingInitialized;
@@ -126,6 +131,27 @@ public class WorkDirManager {
      */
     public void setLoggingConfig(@Nonnull File configFile) {
         this.loggingConfigFile = configFile;   
+    }
+
+    /**
+     * Gets path to the property file with JUL settings.
+     * This method checks the value passed from {@link #setLoggingConfig(java.io.File)} first.
+     * If the value is not specified, it also checks the standard {@code java.util.logging.config.file} System property.
+     * @return Path to the logging config file.
+     *         {@code null} if it cannot be found.
+     */
+    @CheckForNull
+    public File getLoggingConfigFile() {
+        if (loggingConfigFile != null) {
+            return loggingConfigFile;
+        }
+        
+        String property = System.getProperty(JUL_CONFIG_FILE_SYSTEM_PROPERTY_NAME);
+        if (property != null && !property.trim().isEmpty()) {
+            return new File(property);
+        }
+        
+        return null;
     }
     
     //TODO: New interfaces should ideally use Path instead of File
@@ -229,9 +255,11 @@ public class WorkDirManager {
             return;
         }
 
-        if (loggingConfigFile != null) {
-            LOGGER.log(Level.FINE, "Reading Logging configuration from file: {0}", loggingConfigFile);
-            try(FileInputStream fis =  new FileInputStream(loggingConfigFile)) {
+        final File configFile = getLoggingConfigFile();
+        if (configFile != null) {
+            // TODO: There is a risk of second configuration call in the case of java.util.logging.config.file, but it's safe
+            LOGGER.log(Level.FINE, "Reading Logging configuration from file: {0}", configFile);
+            try(FileInputStream fis =  new FileInputStream(configFile)) {
                 LogManager.getLogManager().readConfiguration(fis);
             }
         }
@@ -258,7 +286,7 @@ public class WorkDirManager {
             //System.setOut(new PrintStream(new TeeOutputStream(System.out,
             //        new FileOutputStream(new File(logsDir, "remoting.out.log")))));
              
-            if (loggingConfigFile == null) {
+            if (configFile == null) {
                 final Logger rootLogger = Logger.getLogger("");
                 final File julLog = new File(logsDir, "remoting.log");
                 final FileHandler logHandler = new FileHandler(julLog.getAbsolutePath(), 
