@@ -32,6 +32,8 @@ import java.io.UnsupportedEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+
+import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
@@ -49,6 +51,10 @@ import java.io.IOException;
 
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
+import java.nio.file.Path;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Entry point to JNLP slave agent.
@@ -95,6 +101,63 @@ public class Main {
                     "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
                     "certificate file to read.")
     public List<String> candidateCertificates;
+
+    /**
+     * Specifies a destination for error logs.
+     * If specified, this option overrides the default destination within {@link #workDir}.
+     * If both this options and {@link #workDir} is not set, the log will not be generated.
+     * @since TODO
+     */
+    @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
+    @CheckForNull
+    public File agentLog = null;
+    
+    /**
+     * Specified location of the property file with JUL settings.
+     * @since TODO
+     */
+    @CheckForNull
+    @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
+    public File loggingConfigFile = null;
+    
+    /**
+     * Specifies a default working directory of the remoting instance.
+     * If specified, this directory will be used to store logs, JAR cache, etc.
+     * <p>
+     * In order to retain compatibility, the option is disabled by default.
+     * <p>
+     * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
+     * @since TODO
+     */
+    @Option(name = "-workDir",
+            usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
+    @CheckForNull
+    public File workDir = null;
+
+    /**
+     * Specifies a directory within {@link #workDir}, which stores all the remoting-internal files.
+     * <p>
+     * This option is not expected to be used frequently, but it allows remoting users to specify a custom
+     * storage directory if the default {@code remoting} directory is consumed by other stuff.
+     * @since TODO
+     */
+    @Option(name = "-internalDir",
+            usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
+            depends = "-workDir")
+    @Nonnull
+    public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
+
+    /**
+     * Fail the initialization if the workDir or internalDir are missing.
+     * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
+     * (e.g. if a filesystem mount gets disconnected).
+     * @since TODO
+     */
+    @Option(name = "-failIfWorkDirIsMissing",
+            usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
+            depends = "-workDir")
+    @Nonnull
+    public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     /**
      * @since 2.24
@@ -151,7 +214,7 @@ public class Main {
 
     public void main() throws IOException, InterruptedException {
         Engine engine = createEngine();
-        engine.start();
+        engine.startEngine();
         try {
             engine.join();
             LOGGER.fine("Engine has died");
@@ -179,6 +242,15 @@ public class Main {
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
         engine.setKeepAlive(!noKeepAlive);
+        
+        // TODO: ideally logging should be initialized before the "Setting up slave" entry
+        if (agentLog != null) {
+            engine.setAgentLog(agentLog.toPath());
+        }
+        if (loggingConfigFile != null) {
+            engine.setLoggingConfigFile(loggingConfigFile.toPath());
+        }
+        
         if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
             CertificateFactory factory;
             try {
@@ -246,6 +318,14 @@ public class Main {
             }
             engine.setCandidateCertificates(certificates);
         }
+
+        // Working directory settings
+        if (workDir != null) {
+            engine.setWorkDir(workDir.toPath());
+        }
+        engine.setInternalDir(internalDir);
+        engine.setFailIfWorkDirIsMissing(failIfWorkDirIsMissing);
+
         return engine;
     }
 

@@ -267,7 +267,7 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-jarsigner-plugin</artifactId>
-        <version>1.2</version>
+        <version>1.4</version>
         <configuration>
           <!--
             during the development, debug profile will cause
@@ -278,6 +278,10 @@ THE SOFTWARE.
           <alias>${hudson.sign.alias}</alias>
           <storepass>${hudson.sign.storepass}</storepass>
           <keystore>${hudson.sign.keystore}</keystore>
+          <storetype>${hudson.sign.storetype}</storetype>
+          <providerClass>${hudson.sign.providerClass}</providerClass>
+          <providerArg>${hudson.sign.providerArg}</providerArg>
+          <tsa>${hudson.sign.tsa}</tsa>
         </configuration>
         <executions>
           <execution>
