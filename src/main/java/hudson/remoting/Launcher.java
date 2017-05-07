@@ -27,14 +27,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.cert.CertificateFactory;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
+
+import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -95,7 +100,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * Entry point for running a {@link Channel}. This is the main method of the slave JVM.
+ * Entry point for running a {@link Channel}. This is the main method of the agent JVM.
  *
  * <p>
  * This class also defines several methods for
@@ -111,7 +116,13 @@ public class Launcher {
     @Option(name="-ping")
     public boolean ping = true;
 
-    @Option(name="-slaveLog", usage="create local slave error log")
+    /**
+     * Specifies a destination for error logs.
+     * If specified, this option overrides the default destination within {@link #workDir}.
+     * If both this options and {@link #workDir} is not set, the log will not be generated.
+     */
+    @Option(name="-agentLog", aliases = {"-slaveLog"}, usage="Local agent error log destination (overrides workDir)")
+    @CheckForNull
     public File slaveLog = null;
 
     @Option(name="-text",usage="encode communication with the master with base64. " +
@@ -165,6 +176,14 @@ public class Launcher {
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
 
+    /**
+     * Specified location of the property file with JUL settings.
+     * @since TODO
+     */
+    @CheckForNull
+    @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
+    public File loggingConfigFilePath = null;
+    
     @Option(name = "-cert",
             usage = "Specify additional X.509 encoded PEM certificates to trust when connecting to Jenkins " +
                     "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
@@ -210,6 +229,45 @@ public class Launcher {
             usage = "Disable TCP socket keep alive on connection to the master.")
     public boolean noKeepAlive = false;
 
+    /**
+     * Specifies a default working directory of the remoting instance.
+     * If specified, this directory will be used to store logs, JAR cache, etc.
+     * <p>
+     * In order to retain compatibility, the option is disabled by default.
+     * <p>
+     * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
+     * @since TODO
+     */
+    @Option(name = "-workDir",
+            usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
+    @CheckForNull
+    public File workDir = null;
+
+    /**
+     * Specifies a directory within {@link #workDir}, which stores all the remoting-internal files.
+     * <p>
+     * This option is not expected to be used frequently, but it allows remoting users to specify a custom
+     * storage directory if the default {@code remoting} directory is consumed by other stuff.
+     * @since TODO
+     */
+    @Option(name = "-internalDir",
+            usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
+            depends = "-workDir")
+    @Nonnull
+    public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
+
+    /**
+     * Fail the initialization if the workDir or internalDir are missing.
+     * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
+     * (e.g. if a filesystem mount gets disconnected).
+     * @since TODO
+     */
+    @Option(name = "-failIfWorkDirIsMissing",
+            usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
+            depends = "-workDir")
+    @Nonnull
+    public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
+
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
@@ -226,9 +284,18 @@ public class Launcher {
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings("DM_DEFAULT_ENCODING")    // log file, just like console output, should be in platform default encoding
     public void run() throws Exception {
-        if (slaveLog!=null) {
-            System.setErr(new PrintStream(new TeeOutputStream(System.err,new FileOutputStream(slaveLog))));
+
+        // Create and verify working directory and logging
+        // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this parameter in
+        // consideration for other modes (TcpServer, TcpClient, etc.) to retain the legacy behavior.
+        // On the other hand, in such case there is no need to invoke WorkDirManager and handle the double initialization logic
+        final WorkDirManager workDirManager = WorkDirManager.getInstance();
+        final Path internalDirPath = workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
+        if (slaveLog != null) {
+            workDirManager.disable(WorkDirManager.DirType.LOGS_DIR);
         }
+        workDirManager.setupLogging(internalDirPath, slaveLog != null ? slaveLog.toPath() : null);
+
         if(auth!=null) {
             final int idx = auth.indexOf(':');
             if(idx<0)   throw new CmdLineException(null, "No ':' in the -auth option");
@@ -255,6 +322,23 @@ public class Launcher {
             }
             if (this.noKeepAlive) {
                 jnlpArgs.add("-noKeepAlive");
+            }
+            if (slaveLog != null) {
+                jnlpArgs.add("-agentLog");
+                jnlpArgs.add(slaveLog.getPath());
+            }
+            if (loggingConfigFilePath != null) {
+                jnlpArgs.add("-loggingConfig");
+                jnlpArgs.add(loggingConfigFilePath.getAbsolutePath());
+            }
+            if (this.workDir != null) {
+                jnlpArgs.add("-workDir");
+                jnlpArgs.add(workDir.getAbsolutePath());
+                jnlpArgs.add("-internalDir");
+                jnlpArgs.add(internalDir);
+                if (failIfWorkDirIsMissing) {
+                    jnlpArgs.add("-failIfWorkDirIsMissing");
+                }
             }
             if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
                 for (String c: candidateCertificates) {

@@ -53,6 +53,8 @@ User documentation:
 * [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)
 * [Remoting Protocols](docs/protocols.md) - Overview of protocols integrated with Jenkins
 * [Remoting Configuration](docs/configuration.md) - Configuring remoting agents
+* [Logging](docs/logging.md) - Logging
+* [Work Directory](docs/workDir.md) - Remoting work directory (new in Remoting `TODO`)
 * [Jenkins Specifics](docs/jenkins-specifics.md) - Notes on using remoting in Jenkins
 * [Troubleshooting](docs/troubleshooting.md) - Investigating and solving common remoting issues
 

@@ -37,11 +37,15 @@ public class FileSystemJarCache extends JarCacheSupport {
     private final Map<String, Checksum> checksumsByPath = new HashMap<>();
 
     /**
+     * @param rootDir  
+     *      Root directory.
      * @param touch
      *      True to touch the cached jar file that's used. This enables external LRU based cache
      *      eviction at the expense of increased I/O.
+     * @throws IllegalArgumentException
+     *      Root directory is {@code null} or not writable.
      */
-    public FileSystemJarCache(File rootDir, boolean touch) {
+    public FileSystemJarCache(@Nonnull File rootDir, boolean touch) {
         this.rootDir = rootDir;
         this.touch = touch;
         if (rootDir==null)
@@ -54,6 +58,11 @@ public class FileSystemJarCache extends JarCacheSupport {
         }
     }
 
+    @Override
+    public String toString() {
+        return String.format("FileSystem JAR Cache: path=%s, touch=%s", rootDir, Boolean.toString(touch));
+    }
+    
     @Override
     protected URL lookInCache(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         File jar = map(sum1, sum2);
