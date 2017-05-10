@@ -6,9 +6,46 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.8
+
+Release date: Coming soon
+
+This version of Remoting introduces support of [Work Directories](./docs/workDir.md) ([JENKINS-39370](https://issues.jenkins-ci.org/browse/JENKINS-39370)). 
+This feature has been implemented as a part of the [JENKINS-44108](https://issues.jenkins-ci.org/browse/JENKINS-44108) EPIC, which is devoted to better diagnosability of Jenkins agents.
+
+Work Directory mode is disabled by default.
+It can be enabled via the `-workDir` argument in the command line.
+Once enabled, the following issues are addressed:
+
+* [JENKINS-39369](https://issues.jenkins-ci.org/browse/JENKINS-39369) -
+Write Remoting agent logs to the disk by default.
+* [JENKINS-18578](https://issues.jenkins-ci.org/browse/JENKINS-18578) -
+Change the default JAR Cache location from `~/.jenkins/cache/jars` to `${WORK_DIR}/remoting/jarCache`.
+* [JENKINS-39130](https://issues.jenkins-ci.org/browse/JENKINS-39130) - 
+If the work directory is not writable, fail the agent initialization.
+* [JENKINS-39130](https://issues.jenkins-ci.org/browse/JENKINS-39130) - 
+Add the `-failIfWorkDirIsMissing` flag to CLI. 
+It may be useful to prevent startup in the case if the shared directory is not mounted.
+
+See the [Work Directories page](./docs/workDir.md) for more information and migration guidelines.
+
+Other changes:
+
+* [JENKINS-37567](https://issues.jenkins-ci.org/browse/JENKINS-37567) -
+Starting from the `3.8` release, [@oleg-nenashev](https://github.com/oleg-nenashev) will be releasing Remoting JARs signed with his certificate.
+  * The certificate should be trusted by all Java versions by default. 
+  Please create an issue to Remoting if it's not. 
+* [PR #129](https://github.com/jenkinsci/remoting/pull/129) -
+Allow configuring `java.util.logging` settings via a property file (`-loggingConfig` or system property). 
+See the [Logging page](./docs/logging.md) for more details.
+* [PR #157](https://github.com/jenkinsci/remoting/pull/157) - 
+Cleanup FindBugs-reported issues in ExportTable implementation (regression in 2.40).
+* [PR #153](https://github.com/jenkinsci/remoting/pull/153) -
+Prevent `NullPointerException` in `hudson.remoting.Channel.Ref()` when creating a reference to a `null` channel.
+
 ##### 3.7
 
-Release date: (Mar 05, 2017) => Jenkins `TODO`
+Release date: (Mar 05, 2017) => Jenkins 2.50, 2.46.1 LTS
 
 Fixed issues:
 
@@ -16,6 +53,8 @@ Fixed issues:
 Properly close the `URLConnection` when parsing connection arguments from the JNLP file.
 It was causing a descriptor leak in the case of multiple connection attempts.
 ([PR #152](https://github.com/jenkinsci/remoting/pull/152))
+
+
 
 ##### 3.6
 
