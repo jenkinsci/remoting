@@ -256,7 +256,7 @@ public class Engine extends Thread {
             final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
             jarCacheDirectory = workDirManager.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
             workDirManager.setupLogging(path, agentLog);
-        } else if (jarCache != null) {
+        } else if (jarCache == null) {
             LOGGER.log(Level.WARNING, "No Working Directory. Using the legacy JAR Cache location: {0}", DEFAULT_NOWS_JAR_CACHE_LOCATION);
             jarCacheDirectory = DEFAULT_NOWS_JAR_CACHE_LOCATION;
         }
