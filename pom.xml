@@ -199,6 +199,13 @@ THE SOFTWARE.
       <type>jar</type>
       <optional>true</optional><!-- no need to have this at runtime -->
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci</groupId>
+      <artifactId>test-annotations</artifactId>
+      <version>1.2</version>
+      <scope>test</scope>
+      <type>jar</type>
+    </dependency>
   </dependencies>
 
   <build>
