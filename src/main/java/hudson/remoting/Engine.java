@@ -158,7 +158,7 @@ public class Engine extends Thread {
     /**
      * Default JAR cache location for disabled workspace Manager.
      */
-    private static final File DEFAULT_NOWS_JAR_CACHE_LOCATION = 
+    /*package*/ static final File DEFAULT_NOWS_JAR_CACHE_LOCATION = 
         new File(System.getProperty("user.home"),".jenkins/cache/jars");
     
     @CheckForNull
@@ -230,7 +230,15 @@ public class Engine extends Thread {
      * @since TODO
      */
     public synchronized void startEngine() throws IOException {
-        
+        startEngine(false);
+    }
+     
+    /**
+     * Starts engine.
+     * @param dryRun If {@code true}, do not actually start the engine.
+     *               This method can be used for testing startup logic.
+     */
+    /*package*/ void startEngine(boolean dryRun) throws IOException {
         @CheckForNull File jarCacheDirectory = null;
         
         // Prepare the working directory if required
@@ -265,7 +273,9 @@ public class Engine extends Thread {
         }
         
         // Start the engine thread
-        this.start();
+        if (!dryRun) {
+            this.start();
+        }
     }
 
     /**
