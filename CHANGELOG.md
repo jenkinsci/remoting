@@ -6,9 +6,18 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.9
+
+Release date: (May 19, 2017)
+
+Fixed issues:
+
+* [JENKINS-44290](https://issues.jenkins-ci.org/browse/JENKINS-44290) -
+Prevent crash when starting Remoting agents in the default mode (regression in 3.8).
+
 ##### 3.8
 
-Release date: Coming soon
+Release date: (May 12, 2017)
 
 This version of Remoting introduces support for [Work Directories](./docs/workDir.md) ([JENKINS-39370](https://issues.jenkins-ci.org/browse/JENKINS-39370)). 
 This feature has been implemented as a part of the [JENKINS-44108](https://issues.jenkins-ci.org/browse/JENKINS-44108) EPIC, which is devoted to better diagnosability of Jenkins agents.
