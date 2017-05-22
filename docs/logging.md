@@ -4,6 +4,9 @@ Logging
 In Remoting logging is powered by the standard `java.util.logging` engine. 
 The default behavior depends on the [Work Directory](workDir.md) mode.
 
+:exclamation: Note that `-loggingConfig` option and [Work directories](workDir.md) are available starting from [Remoting 3.8](../CHANGELOG.md#38). 
+Before this release you have to use the `-slaveLog` option or to redirect STDOUT/STDERR streams.
+
 ### Configuration
 
 In order to configure logging it is possible to use an external property file, path to which can be defined using the `-loggingConfig` CLI option or the `java.util.logging.config.file` system property. 
