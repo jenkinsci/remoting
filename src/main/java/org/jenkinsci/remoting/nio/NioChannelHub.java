@@ -560,7 +560,7 @@ public class NioChannelHub implements Runnable, Closeable {
                         final NioTransport t = (NioTransport) a;
 
                         try {
-                            if (key.isReadable()) {
+                            if (key.isValid() && key.isReadable()) {
                                 if (t.rb.receive(t.rr()) == -1) {
                                     t.closeR();
                                 }
@@ -629,6 +629,8 @@ public class NioChannelHub implements Runnable, Closeable {
                                 }
                             }
                             t.reregister();
+                        } catch (CancelledKeyException e) {
+			    LOGGER.log(WARNING, "Key cancelled", e);
                         } catch (IOException e) {
                             // It causes the channel failure, hence it is severe
                             LOGGER.log(SEVERE, "Communication problem in " + t + ". NIO Transport will be aborted.", e);
