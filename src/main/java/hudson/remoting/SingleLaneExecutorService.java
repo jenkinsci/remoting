@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 /**
  * Creates an {@link ExecutorService} that executes submitted tasks sequentially
@@ -101,15 +102,20 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
 
         this.tasks.add(command);
         if (!scheduled) {
+            LOGGER.info(this+": Submitting "+command+" to "+base);
             scheduled = true;
             base.submit(runner);  // if we haven't been scheduled yet, do so now
+        } else {
+            LOGGER.info(this+": Queueing up "+command);
         }
     }
 
     private final Runnable runner = new Runnable() {
         public void run() {
             try {
-                tasks.peek().run();
+                Runnable t = tasks.peek();
+                LOGGER.info(this+": Executing "+t);
+                t.run();
             } finally {
                 synchronized (SingleLaneExecutorService.this) {
                     tasks.remove();// completed. this is needed because shutdown() looks at tasks.isEmpty()
@@ -129,4 +135,6 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
             }
         }
     };
+
+    private static final Logger LOGGER = Logger.getLogger(SingleLaneExecutorService.class.getName());
 }
