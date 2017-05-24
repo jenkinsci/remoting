@@ -26,7 +26,7 @@ for (int i = 0; i < platforms.size(); ++i) {
                         "PATH+MVN=${tool 'mvn'}/bin",
                         'PATH+JDK=$JAVA_HOME/bin',
                     ]) {
-                        timeout(30) {
+                        timeout(60) {
                             String command = 'mvn --batch-mode clean install -Dmaven.test.failure.ignore=true'
                             if (isUnix()) {
                                 sh command
