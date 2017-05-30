@@ -1225,7 +1225,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that are made but not returned yet. If you have the remoting diagnostics of the other side, you
      * can compare this number with "pending incoming calls" on the other side to see how many RPC
-     * calls are executing vs in flight. "one side's incoming calls" < "the other side's outgoing calls"
+     * calls are executing vs in flight. "one side's incoming calls" &lt; "the other side's outgoing calls"
      * indicates some RPC requests or responses are passing through the network layer, and mismatch
      * between "# of commands sent" vs "# of commands received" can give some indication of whether
      * it is request or response that's in flight.
@@ -1235,7 +1235,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * The reverse of "pending outgoing calls".
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that the other side has made to us but not yet returned yet.
-     *
+     * </dl>
      * @param w Output destination
      * @throws IOException Error while creating or writing the channel information
      * 
@@ -1576,7 +1576,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * TODO: this is not safe against clock skew and is called from jenkins core (and potentially plugins)
-     * @see #lastHeard
+     * @see #lastCommandReceivedAt
      */
     public long getLastHeard() {
         // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)

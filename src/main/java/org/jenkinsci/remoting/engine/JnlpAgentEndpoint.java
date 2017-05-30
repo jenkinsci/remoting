@@ -75,7 +75,7 @@ public class JnlpAgentEndpoint {
     private final URL serviceUrl;
 
     /**
-     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.lang.String)}
+     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.net.URL)}
      */
     @Deprecated
     public JnlpAgentEndpoint(@Nonnull String host, int port, @CheckForNull RSAPublicKey publicKey,
