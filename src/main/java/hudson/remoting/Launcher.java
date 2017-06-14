@@ -174,7 +174,7 @@ public class Launcher {
      * @since 2.24
      */
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
-    public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
+    public File jarCache = null;
 
     /**
      * Specified location of the property file with JUL settings.
