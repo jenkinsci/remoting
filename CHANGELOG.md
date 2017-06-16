@@ -6,6 +6,19 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.10
+
+Release date: Coming soon
+
+Enhancements:
+
+* [JENKINS-18578](https://issues.jenkins-ci.org/browse/JENKINS-18578) -
+Do not use the old cache when starting agents from CLI with work directory.
+  * It is a follow-up fix to the `3.8` version.
+* [PR #165](https://github.com/jenkinsci/remoting/pull/165) -
+Suppress `ClosedSelectorException` when it happens in `IOHub`'s Selector.keys.
+  * This issue impacts Jenkins test suites, there should be no user-visible impact.
+
 ##### 3.9
 
 Release date: (May 19, 2017)
