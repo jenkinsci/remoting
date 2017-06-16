@@ -17,7 +17,10 @@ Fixed issues:
 
 * [JENKINS-41852](https://issues.jenkins-ci.org/browse/JENKINS-41852) - 
 Fix exported object pinning logic to prevent release due to the integer overflow.
-[PR #148](https://github.com/jenkinsci/remoting/pull/148)
+([PR #148](https://github.com/jenkinsci/remoting/pull/148))
+* [JENKINS-43623](https://issues.jenkins-ci.org/browse/JENKINS-43623) -
+Change scope of `o.g.c.findbugs.annotations` to provided.
+([PR #163](https://github.com/jenkinsci/remoting/pull/163))
 
 ##### 2.62.5
 
