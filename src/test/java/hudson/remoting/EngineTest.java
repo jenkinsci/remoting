@@ -66,8 +66,8 @@ public class EngineTest {
         engine.startEngine(true);
         
         // Cache will go to ~/.jenkins , we do not want to worry anbout this repo
-        Assert.assertTrue("Default JarCache should be touched: " + Engine.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath(), 
-                Engine.DEFAULT_NOWS_JAR_CACHE_LOCATION.exists());
+        Assert.assertTrue("Default JarCache should be touched: " + JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath(), 
+                JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.exists());
     }
     
     @Test

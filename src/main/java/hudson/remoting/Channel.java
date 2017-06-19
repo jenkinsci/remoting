@@ -317,6 +317,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     /*package*/ final ClassLoader baseClassLoader;
 
+    @Nonnull
     private JarCache jarCache;
 
     /*package*/ final JarLoaderImpl jarLoader;
@@ -490,14 +491,21 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @since TODO
      */
-    protected Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
+    protected Channel(@Nonnull ChannelBuilder settings, @Nonnull CommandTransport transport) throws IOException {
         this.name = settings.getName();
         this.reference = new Ref(this);
         this.executor = new InterceptingExecutorService(settings.getExecutors(),decorators);
         this.arbitraryCallableAllowed = settings.isArbitraryCallableAllowed();
         this.remoteClassLoadingAllowed = settings.isRemoteClassLoadingAllowed();
         this.underlyingOutput = transport.getUnderlyingStream();
-        this.jarCache = settings.getJarCache();
+        
+        // JAR Cache resolution
+        JarCache effectiveJarCache = settings.getJarCache();
+        if (effectiveJarCache == null) {
+            effectiveJarCache = JarCache.getDefault();
+            logger.log(Level.CONFIG, "Using the default JAR Cache: {0}", effectiveJarCache);
+        }
+        this.jarCache = effectiveJarCache;
 
         this.baseClassLoader = settings.getBaseLoader();
         this.classFilter = settings.getClassFilter();
@@ -781,6 +789,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * If this channel is built with jar file caching, return the object that manages this cache.
      * @since 2.24
      */
+    @Nonnull
     public JarCache getJarCache() {
         return jarCache;
     }
@@ -793,7 +802,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * unless your call sequence guarantees that you call this method before remote classes are loaded.
      * @since 2.24
      */
-    public void setJarCache(JarCache jarCache) {
+    public void setJarCache(@Nonnull JarCache jarCache) {
         this.jarCache = jarCache;
     }
 
