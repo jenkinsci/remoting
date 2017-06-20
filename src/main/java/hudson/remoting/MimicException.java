@@ -1,5 +1,9 @@
 package hudson.remoting;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 /**
  * Exception that prints like the specified exception.
  *
@@ -29,7 +33,8 @@ class MimicException extends Exception {
         return (message != null) ? (s + ": " + message) : s;
     }
 
-    public static Throwable make(Channel ch, Throwable cause) {
+    @Nullable
+    public static Throwable make(@Nonnull Channel ch, @CheckForNull Throwable cause) {
         if (cause == null)  return null;
 
         // make sure the remoting layer of the other end supports this

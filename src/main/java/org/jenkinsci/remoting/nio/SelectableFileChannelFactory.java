@@ -22,6 +22,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
 
 /**
  * Extracts out {@link SelectableChannel} from {@link InputStream} or {@link OutputStream}.
@@ -43,6 +44,8 @@ import java.util.logging.Logger;
  * @since 2.38
  */
 public class SelectableFileChannelFactory {
+    
+    @CheckForNull
     protected FileInputStream unwrap(InputStream i) {
         if (i instanceof BufferedInputStream) {
             try {
@@ -63,6 +66,7 @@ public class SelectableFileChannelFactory {
         return null;    // unknown type
     }
 
+    @CheckForNull
     protected FileOutputStream unwrap(OutputStream i) {
         if (i instanceof BufferedOutputStream) {
             try {
@@ -83,24 +87,36 @@ public class SelectableFileChannelFactory {
         return null;    // unknown type
     }
 
+    @CheckForNull
     public SocketChannel create(InputStream in) throws IOException {
         return create(unwrap(in));
     }
 
+    @CheckForNull
     public SocketChannel create(OutputStream out) throws IOException {
         return create(unwrap(out));
     }
 
+    @CheckForNull
     public SocketChannel create(FileInputStream in) throws IOException {
         if (in==null)   return null;
         return create(in.getFD());
     }
 
+    @CheckForNull
     public SocketChannel create(FileOutputStream out) throws IOException {
         if (out==null)   return null;
         return create(out.getFD());
     }
 
+    /**
+     * Create channel using the specified file descriptor.
+     * 
+     * @param fd File Descriptor
+     * @return {@code null} if the platform does not support it (e.g. Windows) OR the socket channel cannot be created.
+     *         In the latter case the error message will be printed to {@link  #LOGGER} then.
+     */
+    @CheckForNull
     public SocketChannel create(FileDescriptor fd) {
         if (File.pathSeparatorChar==';')
             return null; // not selectable on Windows
