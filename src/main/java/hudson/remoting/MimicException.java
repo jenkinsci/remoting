@@ -3,6 +3,8 @@ package hudson.remoting;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 
 /**
  * Exception that prints like the specified exception.
@@ -15,6 +17,7 @@ import javax.annotation.Nullable;
  * @deprecated Use {@link ProxyException} instead.
  */
 @Deprecated
+@Restricted(DoNotUse.class)
 class MimicException extends Exception {
     private final String className;
     MimicException(Throwable cause) {
