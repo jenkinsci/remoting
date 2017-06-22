@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.concurrent.ExecutionException;
+import javax.annotation.Nonnull;
 
 /**
  * {@link ResourceImageRef} that points to a resource inside a jar file.
@@ -65,6 +66,7 @@ class ResourceImageInJar extends ResourceImageRef {
         };
     }
 
+    @Nonnull
     private URL toResourceURL(URL jar, String resourcePath) throws IOException {
         if (path!=null)
             resourcePath = path;

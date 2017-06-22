@@ -5,7 +5,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Something that's effectively URL.
@@ -19,12 +18,16 @@ import javax.annotation.Nullable;
 abstract class URLish {
     private URLish() {}
 
+    /**
+     * Converts URLish to the standard {@link URL} type.
+     * @return URL or {@code null} if the target destination is known to be non-existent.
+     * @throws MalformedURLException URL cannot be constructed
+     */
     @CheckForNull
     abstract URL toURL() throws MalformedURLException;
 
-    @Nullable
-    static URLish from(@CheckForNull final URL url) {
-        if (url==null)  return null;
+    @Nonnull
+    static URLish from(@Nonnull final URL url) {
         
         return new URLish() {
             @Override
@@ -35,9 +38,8 @@ abstract class URLish {
         };
     }
 
-    @Nullable
-    static URLish from(@CheckForNull final File f) {
-        if (f==null)  return null;
+    @Nonnull
+    static URLish from(@Nonnull final File f) {
         return new URLish() {
             @Override
             URL toURL() throws MalformedURLException {
