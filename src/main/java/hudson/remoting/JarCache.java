@@ -40,9 +40,10 @@ public abstract class JarCache {
      * This method must be concurrency-safe.
      *
      * @param channel
-     *      Channel that needs this jar file. Never null.
+     *      Channel that needs this jar file.
      * @return
-     *      URL of the jar file. Must not be null.
+     *      URL of the jar file.
      */
-    public abstract Future<URL> resolve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException;
+    @Nonnull
+    public abstract Future<URL> resolve(@Nonnull Channel channel, long sum1, long sum2) throws IOException, InterruptedException;
 }
