@@ -8,7 +8,8 @@ properties([[$class: 'BuildDiscarderProperty',
 /* These platforms correspond to labels in ci.jenkins.io, see:
  *  https://github.com/jenkins-infra/documentation/blob/master/ci.adoc
  */
-List platforms = ['linux', 'windows']
+// TODO: Restore Windows once https://issues.jenkins-ci.org/browse/INFRA-1248 is fixed
+List platforms = ['linux']
 Map branches = [:]
 
 for (int i = 0; i < platforms.size(); ++i) {
