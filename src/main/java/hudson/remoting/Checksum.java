@@ -74,8 +74,10 @@ final class Checksum {
     static Checksum forURL(URL url) throws IOException {
         try {
             MessageDigest md = MessageDigest.getInstance(JarLoaderImpl.DIGEST_ALGORITHM);
-            Util.copy(url.openStream(), new DigestOutputStream(new NullOutputStream(), md));
-            return new Checksum(md.digest(), md.getDigestLength() / 8);
+            try(OutputStream ostream = new DigestOutputStream(new NullOutputStream(), md)) {
+                Util.copy(url.openStream(), ostream);
+                return new Checksum(md.digest(), md.getDigestLength() / 8);
+            }
         } catch (NoSuchAlgorithmException e) {
             throw new AssertionError(e);
         }
