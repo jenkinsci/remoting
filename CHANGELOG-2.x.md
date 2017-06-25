@@ -11,7 +11,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 2.62.6
 
-Release date: Coming Soon
+Release date: Can be released on-demand
 
 Fixed issues:
 

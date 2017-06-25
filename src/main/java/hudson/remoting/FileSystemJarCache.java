@@ -51,7 +51,7 @@ public class FileSystemJarCache extends JarCacheSupport {
         this.rootDir = rootDir;
         this.touch = touch;
         if (rootDir==null)
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Root directory is null");
 
         try {
             Util.mkdirs(rootDir);

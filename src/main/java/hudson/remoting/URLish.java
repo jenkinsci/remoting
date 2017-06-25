@@ -3,6 +3,8 @@ package hudson.remoting;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Something that's effectively URL.
@@ -16,20 +18,28 @@ import java.net.URL;
 abstract class URLish {
     private URLish() {}
 
+    /**
+     * Converts URLish to the standard {@link URL} type.
+     * @return URL or {@code null} if the target destination is known to be non-existent.
+     * @throws MalformedURLException URL cannot be constructed
+     */
+    @CheckForNull
     abstract URL toURL() throws MalformedURLException;
 
-    static URLish from(final URL url) {
-        if (url==null)  return null;
+    @Nonnull
+    static URLish from(@Nonnull final URL url) {
+        
         return new URLish() {
             @Override
+            @Nonnull
             URL toURL() {
                 return url;
             }
         };
     }
 
-    static URLish from(final File f) {
-        if (f==null)  return null;
+    @Nonnull
+    static URLish from(@Nonnull final File f) {
         return new URLish() {
             @Override
             URL toURL() throws MalformedURLException {

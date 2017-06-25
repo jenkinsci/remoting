@@ -173,8 +173,9 @@ public class Launcher {
     /**
      * @since 2.24
      */
+    @CheckForNull
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
-    public File jarCache = new File(System.getProperty("user.home"),".jenkins/cache/jars");
+    public File jarCache = null;
 
     /**
      * Specified location of the property file with JUL settings.
@@ -622,7 +623,7 @@ public class Launcher {
         s.setTcpNoDelay(true);
         main(new BufferedInputStream(SocketChannelStream.in(s)),
              new BufferedOutputStream(SocketChannelStream.out(s)), mode,ping,
-             new FileSystemJarCache(jarCache,true));
+             jarCache != null ? new FileSystemJarCache(jarCache,true) : null);
     }
 
     /**
@@ -676,7 +677,7 @@ public class Launcher {
 
         // System.in/out appear to be already buffered (at least that was the case in Linux and Windows as of Java6)
         // so we are not going to double-buffer these.
-        main(System.in, os, mode, ping, new FileSystemJarCache(jarCache,true));
+        main(System.in, os, mode, ping, jarCache != null ? new FileSystemJarCache(jarCache,true) : null);
     }
 
     private static void ttyCheck() {
@@ -719,13 +720,15 @@ public class Launcher {
      */
     @Deprecated
     public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing) throws IOException, InterruptedException {
-        main(is, os, mode, performPing,
-                new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true));
+        main(is, os, mode, performPing, null);
     }
     /**
+     * 
+     * @param cache JAR cache to be used.
+     *              If {@code null}, a default value will be used.
      * @since 2.24
      */
-    public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing, JarCache cache) throws IOException, InterruptedException {
+    public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing, @CheckForNull JarCache cache) throws IOException, InterruptedException {
         ExecutorService executor = Executors.newCachedThreadPool();
         ChannelBuilder cb = new ChannelBuilder("channel", executor)
                 .withMode(mode)

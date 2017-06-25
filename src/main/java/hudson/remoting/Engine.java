@@ -155,11 +155,7 @@ public class Engine extends Thread {
     private boolean keepAlive = true;
 
     
-    /**
-     * Default JAR cache location for disabled workspace Manager.
-     */
-    private static final File DEFAULT_NOWS_JAR_CACHE_LOCATION = 
-        new File(System.getProperty("user.home"),".jenkins/cache/jars");
+    
     
     @CheckForNull
     private JarCache jarCache = null;
@@ -230,7 +226,15 @@ public class Engine extends Thread {
      * @since TODO
      */
     public synchronized void startEngine() throws IOException {
-        
+        startEngine(false);
+    }
+     
+    /**
+     * Starts engine.
+     * @param dryRun If {@code true}, do not actually start the engine.
+     *               This method can be used for testing startup logic.
+     */
+    /*package*/ void startEngine(boolean dryRun) throws IOException {
         @CheckForNull File jarCacheDirectory = null;
         
         // Prepare the working directory if required
@@ -248,9 +252,9 @@ public class Engine extends Thread {
             final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
             jarCacheDirectory = workDirManager.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
             workDirManager.setupLogging(path, agentLog);
-        } else if (jarCache != null) {
-            LOGGER.log(Level.WARNING, "No Working Directory. Using the legacy JAR Cache location: {0}", DEFAULT_NOWS_JAR_CACHE_LOCATION);
-            jarCacheDirectory = DEFAULT_NOWS_JAR_CACHE_LOCATION;
+        } else if (jarCache == null) {
+            LOGGER.log(Level.WARNING, "No Working Directory. Using the legacy JAR Cache location: {0}", JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION);
+            jarCacheDirectory = JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION;
         }
         
         if (jarCache == null){
@@ -265,7 +269,9 @@ public class Engine extends Thread {
         }
         
         // Start the engine thread
-        this.start();
+        if (!dryRun) {
+            this.start();
+        }
     }
 
     /**

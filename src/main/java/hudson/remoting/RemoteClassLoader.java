@@ -441,6 +441,11 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
+    /**
+     * @return {@code null} if one of the URLs cannot be converted.
+     *         E.g. when the referenced file does not exist.
+     */
+    @CheckForNull
     private static Vector<URL> toURLs(Vector<URLish> src) throws MalformedURLException {
         Vector<URL> r = new Vector<URL>(src.size());
         for (URLish s : src) {
@@ -485,7 +490,12 @@ final class RemoteClassLoader extends URLClassLoader {
             }
         resourcesMap.put(name,v);
 
-        return toURLs(v).elements();
+        Vector<URL> resURLs = toURLs(v);
+        if (resURLs == null) {
+            // TODO: Better than NPE, but ideally needs correct error propagation from URLish
+            throw new IOException("One of the URLish objects cannot be converted to URL");
+        }
+        return resURLs.elements();
     }
 
     /**

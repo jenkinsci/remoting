@@ -61,16 +61,8 @@ public class WorkDirManagerTest {
     @Rule
     public TemporaryFolder tmpDir = new TemporaryFolder();
     
-    @Before
-    public void resetWorkDirManagerBeforeTest() {
-        WorkDirManager.reset();
-    }
-    
-    @After
-    public void resetWorkDirManagerAfterTest() {
-        // Resets logging settings
-        WorkDirManager.reset();
-    }
+    @Rule
+    public WorkDirManagerRule mgr = new WorkDirManagerRule();
 
     @Test
     public void shouldInitializeCorrectlyForExistingDirectory() throws Exception {

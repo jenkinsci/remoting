@@ -320,6 +320,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     /*package*/ final ClassLoader baseClassLoader;
 
+    @Nonnull
     private JarCache jarCache;
 
     /*package*/ final JarLoaderImpl jarLoader;
@@ -493,14 +494,21 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @since TODO
      */
-    protected Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
+    protected Channel(@Nonnull ChannelBuilder settings, @Nonnull CommandTransport transport) throws IOException {
         this.name = settings.getName();
         this.reference = new Ref(this);
         this.executor = new InterceptingExecutorService(settings.getExecutors(),decorators);
         this.arbitraryCallableAllowed = settings.isArbitraryCallableAllowed();
         this.remoteClassLoadingAllowed = settings.isRemoteClassLoadingAllowed();
         this.underlyingOutput = transport.getUnderlyingStream();
-        this.jarCache = settings.getJarCache();
+        
+        // JAR Cache resolution
+        JarCache effectiveJarCache = settings.getJarCache();
+        if (effectiveJarCache == null) {
+            effectiveJarCache = JarCache.getDefault();
+            logger.log(Level.CONFIG, "Using the default JAR Cache: {0}", effectiveJarCache);
+        }
+        this.jarCache = effectiveJarCache;
 
         this.baseClassLoader = settings.getBaseLoader();
         this.classFilter = settings.getClassFilter();
@@ -785,6 +793,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * If this channel is built with jar file caching, return the object that manages this cache.
      * @since 2.24
      */
+    @Nonnull
     public JarCache getJarCache() {
         return jarCache;
     }
@@ -797,7 +806,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * unless your call sequence guarantees that you call this method before remote classes are loaded.
      * @since 2.24
      */
-    public void setJarCache(JarCache jarCache) {
+    public void setJarCache(@Nonnull JarCache jarCache) {
         this.jarCache = jarCache;
     }
 
@@ -1229,7 +1238,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that are made but not returned yet. If you have the remoting diagnostics of the other side, you
      * can compare this number with "pending incoming calls" on the other side to see how many RPC
-     * calls are executing vs in flight. "one side's incoming calls" < "the other side's outgoing calls"
+     * calls are executing vs in flight. "one side's incoming calls" &lt; "the other side's outgoing calls"
      * indicates some RPC requests or responses are passing through the network layer, and mismatch
      * between "# of commands sent" vs "# of commands received" can give some indication of whether
      * it is request or response that's in flight.
@@ -1239,7 +1248,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * The reverse of "pending outgoing calls".
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that the other side has made to us but not yet returned yet.
-     *
+     * </dl>
      * @param w Output destination
      * @throws IOException Error while creating or writing the channel information
      * 
@@ -1589,7 +1598,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * TODO: this is not safe against clock skew and is called from jenkins core (and potentially plugins)
-     * @see #lastHeard
+     * @see #lastCommandReceivedAt
      */
     public long getLastHeard() {
         // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)

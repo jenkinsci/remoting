@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import javax.annotation.CheckForNull;
 
 /**
  * Factory for {@link Channel}, including hand-shaking between two sides
@@ -47,6 +48,7 @@ public class ChannelBuilder {
     private Mode mode = Mode.NEGOTIATE;
     private Capability capability = new Capability();
     private OutputStream header;
+    @CheckForNull
     private JarCache jarCache;
     private List<CallableDecorator> decorators = new ArrayList<CallableDecorator>();
     private boolean arbitraryCallableAllowed = true;
@@ -189,11 +191,22 @@ public class ChannelBuilder {
         return remoteClassLoadingAllowed;
     }
 
-    public ChannelBuilder withJarCache(JarCache jarCache) {
+    /**
+     * Sets the JAR cache storage.
+     * @param jarCache JAR Cache to be used. If {@code null}, a default value will be used by the {@link Channel}
+     * @return {@code this}
+     */
+    public ChannelBuilder withJarCache(@CheckForNull JarCache jarCache) {
         this.jarCache = jarCache;
         return this;
     }
 
+    /**
+     * Gets the JAR Cache storage.
+     * @return {@code null} if it is not defined.
+     *         {@link Channel} implementation should use a default cache value then.
+     */
+    @CheckForNull
     public JarCache getJarCache() {
         return jarCache;
     }

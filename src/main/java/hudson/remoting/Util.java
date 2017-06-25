@@ -55,6 +55,7 @@ class Util {
         }
     }
 
+    @Nonnull
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
         File resource = new File(tmpDir.toFile(), name);
