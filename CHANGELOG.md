@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.10
 
-Release date: Coming soon
+Release date: Jun 26, 2017
 
 Enhancements:
 
@@ -18,6 +18,13 @@ Do not use the old cache when starting agents from CLI with work directory.
 * [PR #165](https://github.com/jenkinsci/remoting/pull/165) -
 Suppress `ClosedSelectorException` when it happens in `IOHub`'s Selector.keys.
   * This issue impacts Jenkins test suites, there should be no user-visible impact.
+  
+Fixed issues:
+
+* [PR #169](https://github.com/jenkinsci/remoting/pull/169) - 
+Prevent `NullPointerException` in ResourceImageBoth if cannot initialize JAR retrieval.
+* [PR #170](https://github.com/jenkinsci/remoting/pull/170) - 
+Prevent `NullPointerException` in Remote ClassLoader when not all sources can be converted to URLs.
 
 ##### 3.9
 
