@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.security.DigestOutputStream;
@@ -74,8 +75,8 @@ final class Checksum {
     static Checksum forURL(URL url) throws IOException {
         try {
             MessageDigest md = MessageDigest.getInstance(JarLoaderImpl.DIGEST_ALGORITHM);
-            try(OutputStream ostream = new DigestOutputStream(new NullOutputStream(), md)) {
-                Util.copy(url.openStream(), ostream);
+            try(InputStream istsream = url.openStream(); OutputStream ostream = new DigestOutputStream(new NullOutputStream(), md)) {
+                Util.copy(istsream, ostream);
                 return new Checksum(md.digest(), md.getDigestLength() / 8);
             }
         } catch (NoSuchAlgorithmException e) {
