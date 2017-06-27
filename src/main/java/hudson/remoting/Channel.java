@@ -1377,13 +1377,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Gets the property set on the remote peer.
      *
-     * @return null
+     * @return {@code null}
      *      if the property of the said key isn't set.
      */
+    @CheckForNull
     public Object getRemoteProperty(Object key) {
         return remoteChannel.getProperty(key);
     }
 
+    @CheckForNull
     public <T> T getRemoteProperty(ChannelProperty<T> key) {
         return key.type.cast(getRemoteProperty((Object) key));
     }
@@ -1607,9 +1609,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * objects when they are transferred to the remote {@link Channel},
      * as well as during {@link Callable#call()} is invoked. 
      *
-     * @return null
+     * @return {@code null}
      *      if the calling thread is not performing serialization.
      */
+    @CheckForNull
     public static Channel current() {
         return CURRENT.get();
     }

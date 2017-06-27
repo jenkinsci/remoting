@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
 
 /**
  * {@link ObjectInputStream}/{@link ObjectOutputStream} pair that can handle object graph that spans across
@@ -87,6 +88,7 @@ class MultiClassLoaderSerializer {
             this.channel = channel;
         }
 
+        @CheckForNull
         private ClassLoader readClassLoader() throws IOException, ClassNotFoundException {
             ClassLoader cl;
             int code = readInt();
@@ -122,6 +124,7 @@ class MultiClassLoaderSerializer {
             channel.classFilter.check(name);
             try {
                 ClassLoader cl = readClassLoader();
+                // TODO: handle null classloader as a System one?
                 Class<?> c = Class.forName(name, false, cl);
                 channel.classFilter.check(c);
                 return c;
@@ -136,6 +139,7 @@ class MultiClassLoaderSerializer {
 
             Class[] classes = new Class[interfaces.length];
             for (int i = 0; i < interfaces.length; i++)
+                // TODO: handle null classloader as a System one?
                 classes[i] = Class.forName(interfaces[i], false, cl);
 
             /*
