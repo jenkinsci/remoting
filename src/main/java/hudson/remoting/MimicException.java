@@ -37,7 +37,7 @@ class MimicException extends Exception {
     }
 
     @Nullable
-    public static Throwable make(@Nonnull Channel ch, @CheckForNull Throwable cause) {
+    public static Throwable make(@Nonnull Channel ch, @Nullable Throwable cause) {
         if (cause == null)  return null;
 
         // make sure the remoting layer of the other end supports this
