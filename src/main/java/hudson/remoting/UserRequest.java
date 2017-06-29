@@ -34,6 +34,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
+import java.time.Duration;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -63,12 +64,29 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
     private transient final ExportList exports;
 
     /**
+     * Constructs a user request with default timeouts.
+     * 
+     * @param local Channel, for which the request should be executed
+     * @param c Command to be executed
+     */
+    public UserRequest(Channel local, Callable<?,EXC> c) throws IOException {
+        this(local, c, DEFAULT_PERFORM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT);
+    }
+    
+    /**
      * Creates a user request to be executed on the remote side.
      * @param local Channel, for which the request should be executed
      * @param c Command to be executed
+     * @param performTimeout Timeout for {@link Request#perform(hudson.remoting.Channel)}.
+     *                       If not {@code null}, it will be controlled on the remote side
+     * @param executionTimeout Timeout for the entire request execution.
+     *                         If not {@code null}, it will be controlled on both local and remote sides.
      * @throws IOException The command cannot be serialized
+     * @since TODO
      */
-    public UserRequest(Channel local, Callable<?,EXC> c) throws IOException {
+    public UserRequest(@Nonnull Channel local, @Nonnull Callable<?,EXC> c, 
+            @CheckForNull Duration performTimeout, @CheckForNull Duration executionTimeout) throws IOException {
+        super(performTimeout, executionTimeout);
         this.toString = c.toString();
         
         // Before serializing anything, check that we actually have a classloader for it

@@ -45,6 +45,7 @@ import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
@@ -61,6 +62,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
+import org.jenkinsci.remoting.util.Timeout;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -530,8 +532,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 commandsReceived++;
                 lastCommandReceivedAt = System.currentTimeMillis();
                 if (logger.isLoggable(Level.FINE))
-                    logger.fine("Received " + cmd);
-                try {
+                    logger.fine("Received " + cmd);   
+                try(Timeout t = Timeout.optLimit(cmd.getExecutionTimeout())) {
                     cmd.execute(Channel.this);
                 } catch (Throwable t) {
                     logger.log(Level.SEVERE, "Failed to execute command " + cmd + " (channel " + Channel.this.name + ")", t);
@@ -832,9 +834,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public <V,T extends Throwable>
     V call(Callable<V,T> callable) throws IOException, T, InterruptedException {
+        return call(callable, UserRequest.DEFAULT_PERFORM_TIMEOUT, UserRequest.DEFAULT_EXECUTION_TIMEOUT);
+    }
+    
+    public <V,T extends Throwable>
+    V call(@Nonnull Callable<V,T> callable, @CheckForNull Duration performTimeout, @CheckForNull Duration executionTimeout) 
+            throws IOException, T, InterruptedException {
         UserRequest<V,T> request=null;
-        try {
-            request = new UserRequest<V, T>(this, callable);
+        try(Timeout t = Timeout.optLimit(executionTimeout)) {
+            request = new UserRequest<V, T>(this, callable, performTimeout, executionTimeout);
             UserResponse<V,T> r = request.call(this);
             return r.retrieve(this, UserRequest.getClassLoader(callable));
 

@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -175,5 +176,46 @@ public class ChannelTest extends RmiTestBase {
         assertTrue(sw.toString().contains("Channel south"));
         assertTrue(sw.toString().contains("Commands sent=0"));
         assertTrue(sw.toString().contains("Commands received=0"));
+    }
+    
+    @Bug(44785)
+    public void testDoesNotFailWithoutDefaultTimeout() throws Exception {
+        channel.call(new Sleep(5000));
+    }
+    
+    @Bug(44785)
+    public void testExecutionTimeout() throws Exception {
+        try {
+            channel.call(new Sleep(5000), null, Duration.ofMillis(100));
+        } catch(InterruptedException ex) {
+            return;
+        }
+        fail("Expected execution timeout to happen");
+    }
+    
+    @Bug(44785)
+    public void testPerformTimeout() throws Exception {
+        try {
+            channel.call(new Sleep(5000), Duration.ofMillis(100), null);
+        } catch(InterruptedException ex) {
+            return;
+        }
+        fail("Expected perform timeout to happen");
+    }
+    
+    private static class Sleep extends CallableBase<Void, InterruptedException> {
+
+        private static final long serialVersionUID = 1L;
+        private final int sleepTimeMs;
+
+        Sleep(int sleepTimeMs) {
+            this.sleepTimeMs = sleepTimeMs;
+        }
+
+        @Override
+        public Void call() throws InterruptedException {
+            Thread.sleep(sleepTimeMs);
+            return null;
+        }
     }
 }

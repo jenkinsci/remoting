@@ -35,6 +35,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -52,6 +53,7 @@ import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.util.Timeout;
 
 /**
  * Sits behind a proxy object and implements the proxy logic.
@@ -850,10 +852,16 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         private transient ClassLoader classLoader;
 
         public RPCRequest(int oid, Method m, Object[] arguments) {
-            this(oid,m,arguments,null);
+            this(oid, m, arguments, null, DEFAULT_PERFORM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT);
         }
 
         public RPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl) {
+            this(oid, m, arguments, cl, DEFAULT_PERFORM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT);
+        }
+        
+        public RPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl, 
+                @CheckForNull Duration performTimeout, @CheckForNull Duration executionTimeout) {
+            super(performTimeout, executionTimeout);
             this.oid = oid;
             this.arguments = arguments;
             this.methodName = m.getName();
@@ -867,7 +875,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         }
 
         public Serializable call() throws Throwable {
-            return perform(Channel.current());
+            try (Timeout t = Timeout.optLimit(this.getPerformTimeout())) {
+                return perform(Channel.current());
+            }
         }
 
         @Override

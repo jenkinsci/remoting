@@ -127,6 +127,8 @@ final class ProxyInputStream extends InputStream {
         private final int len;
 
         public Chunk(int oid, int len) {
+            // TODO: Another default? It is not a part of public API
+            super(DEFAULT_PERFORM_TIMEOUT, DEFAULT_EXECUTION_TIMEOUT);
             this.oid = oid;
             this.len = len;
         }

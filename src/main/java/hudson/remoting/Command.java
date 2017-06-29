@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import javax.annotation.CheckForNull;
 
@@ -48,31 +49,61 @@ abstract class Command implements Serializable {
      * This is useful for diagnosing the error when command fails to execute on the remote peer. 
      */
     public final Exception createdAt;
-
+    
+    @CheckForNull
+    private final Duration executionTimeout;
 
     protected Command() {
-        this(true);
+        this(true, null);
+    }
+    
+    protected Command(@CheckForNull Duration executionTimeout) {
+        this(true, executionTimeout);
     }
 
     protected Command(Channel channel, @CheckForNull Throwable cause) {
         // Command object needs to be deserializable on the other end without requiring custom classloading,
         // so we wrap this in ProxyException
         this.createdAt = new Source(cause != null ? new ProxyException(cause) : null);
+        //TODO: add constructor with a timeout? it does not seem to be actually required
+        this.executionTimeout = null;
     }
 
+    protected Command(boolean recordCreatedAt) {
+        this(recordCreatedAt, null);
+    }
+    
     /**
      * @param recordCreatedAt
      *      If false, skip the recording of where the command is created. This makes the trouble-shooting
      *      and cause/effect correlation hard in case of a failure, but it will reduce the amount of the data
      *      transferred.
+     * @param executionTimeout 
+     *      Execution timeout. If {@code null}, the operation will not be aborted
+     * @since TODO
      */
-    protected Command(boolean recordCreatedAt) {
-        if(recordCreatedAt)
+    protected Command(boolean recordCreatedAt, @CheckForNull Duration executionTimeout) {
+        if(recordCreatedAt) {
             this.createdAt = new Source();
-        else
+        } else {
             this.createdAt = null;
+        }
+        this.executionTimeout = executionTimeout;
     }
 
+    /**
+     * Gets execution timeout of the command.
+     * This timeout includes the entire execution time on the {@link Channel}
+     * side, including waiting in the {@link Request} queues.
+     * 
+     * @return Execution timeout or {@code null} if it is disabled.
+     * @since TODO
+     */
+    @CheckForNull
+    public Duration getExecutionTimeout() {
+        return executionTimeout;
+    }
+    
     /**
      * Called on a remote system to perform this command.
      *
