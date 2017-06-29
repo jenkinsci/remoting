@@ -327,6 +327,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /*package*/ @Nonnull final ClassFilter classFilter;
 
     /**
+     * Indicates that close of the channel has been requested.
+     * After it it does not make sense to execute new user-space commands.
+     */
+    private boolean closeRequested = false;
+    
+    /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
      * 
      * @since 1.161
@@ -580,11 +586,27 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
     
     /**
+     * Get why the sender side of the channel has been closed.
+     * @return Close cause or {@code null} if the sender side is active.
+     *         {@code null} result does not guarantee that the channel is actually operational.
+     * @since TODO
+     */
+    @CheckForNull
+    public final Throwable getSenderCloseCause() {
+        return outClosed;
+    }
+    
+    /**
      * Returns {@code true} if the channel is either in the process of closing down or has closed down.
+     * 
+     * If the result is {@code true}, it means that the channel will be closed at some point by Remoting,
+     * and that it makes no sense to send any new {@link UserRequest}s to the remote side.
+     * Invocations like {@link #call(hudson.remoting.Callable)} and {@link #callAsync(hudson.remoting.Callable)} 
+     * will just fail as well.
      * @since 2.33
      */
     public boolean isClosingOrClosed() {
-        return inClosed != null || outClosed != null;
+        return closeRequested || inClosed != null || outClosed != null;
     }
 
     /**
@@ -832,6 +854,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public <V,T extends Throwable>
     V call(Callable<V,T> callable) throws IOException, T, InterruptedException {
+        if (isClosingOrClosed()) {
+            // No reason to even try performing a user request
+            throw new IOException("Remote call on " + name + " failed. The channel is closing down or has closed down");
+        }
+        
         UserRequest<V,T> request=null;
         try {
             request = new UserRequest<V, T>(this, callable);
@@ -862,6 +889,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public <V,T extends Throwable>
     Future<V> callAsync(final Callable<V,T> callable) throws IOException {
+        if (isClosingOrClosed()) {
+            // No reason to even try performing a user request
+            throw new IOException("Remote call on " + name + " failed. The channel is closing down or has closed down");
+        }
+        
         final Future<UserResponse<V,T>> f = new UserRequest<V,T>(this, callable).callAsync(this);
         return new FutureAdapter<V,UserResponse<V,T>>(f) {
             protected V adapt(UserResponse<V,T> r) throws ExecutionException {
@@ -1268,12 +1300,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@inheritDoc}
      */
-    public synchronized void close() throws IOException {
+    public void close() throws IOException {
         close(null);
     }
 
     /**
      * Closes the channel.
+     * 
+     * If the channel is not closed, the 
      *
      * @param diagnosis
      *      If someone (either this side or the other side) tries to use a channel that's already closed,
@@ -1283,32 +1317,40 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * @since 2.8
      */
-    public synchronized void close(@CheckForNull Throwable diagnosis) throws IOException {
+    public void close(@CheckForNull Throwable diagnosis) throws IOException {
         if(outClosed!=null)  return;  // already closed
-
-        try {
-            send(new CloseCommand(this, diagnosis));
-        } catch (ChannelClosedException e) {
-            logger.log(Level.FINEST, "Channel is already closed", e);
-            terminate(e);
-            return;
-        } catch (IOException e) {
-            // send should only ever - worst case - throw an IOException so we'll just catch that and not Throwable
-            logger.log(Level.WARNING, "Having to terminate early", e);
-            terminate(e);
-            return;
-        }
-        outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
-        notifyAll();
-        try {
-            transport.closeWrite();
-        } catch (IOException e) {
-            // there's a race condition here.
-            // the remote peer might have already responded to the close command
-            // and closed the connection, in which case our close invocation
-            // could fail with errors like
-            // "java.io.IOException: The pipe is being closed"
-            // so let's ignore this error.
+        closeRequested = true;
+        
+        synchronized(this) {
+            if(outClosed!=null) {
+                // It has been closed while we were waiting for the lock
+                return;
+            }
+            
+            try {
+                send(new CloseCommand(this, diagnosis));
+            } catch (ChannelClosedException e) {
+                logger.log(Level.FINEST, "Channel is already closed", e);
+                terminate(e);
+                return;
+            } catch (IOException e) {
+                // send should only ever - worst case - throw an IOException so we'll just catch that and not Throwable
+                logger.log(Level.WARNING, "Having to terminate early", e);
+                terminate(e);
+                return;
+            }
+            outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
+            notifyAll();
+            try {
+                transport.closeWrite();
+            } catch (IOException e) {
+                // there's a race condition here.
+                // the remote peer might have already responded to the close command
+                // and closed the connection, in which case our close invocation
+                // could fail with errors like
+                // "java.io.IOException: The pipe is being closed"
+                // so let's ignore this error.
+            }
         }
 
         // termination is done by CloseCommand when we received it.

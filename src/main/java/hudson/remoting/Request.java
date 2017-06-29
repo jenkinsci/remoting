@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 
 /**
  * Request/response pattern over {@link Channel}, the layer-1 service.
@@ -103,6 +104,21 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
     }
 
     /**
+     * Checks if the request can be executed on the channel.
+     * 
+     * @param channel Channel
+     * @throws IOException Error with explanation if the request cannot be executed. 
+     * @since TODO
+     */
+    public void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
+        final Throwable senderCloseCause = channel.getSenderCloseCause();
+        if (senderCloseCause != null) {
+            // Sender is closed, we won't be able to send anything
+            throw new ChannelClosedException(senderCloseCause);
+        }
+    }
+    
+    /**
      * Sends this request to a remote system, and blocks until we receives a response.
      *
      * @param channel
@@ -117,6 +133,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      If the {@link #perform(Channel)} throws an exception.
      */
     public final RSP call(Channel channel) throws EXC, InterruptedException, IOException {
+        checkIfCanBeExecutedOnChannel(channel);
         lastIoId = channel.lastIoId();
 
         // Channel.send() locks channel, and there are other call sequences
@@ -198,6 +215,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      If there's an error during the communication.
      */
     public final hudson.remoting.Future<RSP> callAsync(final Channel channel) throws IOException {
+        checkIfCanBeExecutedOnChannel(channel);
+        
         response=null;
         lastIoId = channel.lastIoId();
 
