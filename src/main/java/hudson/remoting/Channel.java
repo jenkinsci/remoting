@@ -328,7 +328,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Indicates that close of the channel has been requested.
-     * After it it does not make sense to execute new user-space commands.
+     * When the value is {@code true}, it does not make sense to execute new user-space commands like {@link UserRequest}.
      */
     private boolean closeRequested = false;
     
@@ -1307,7 +1307,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Closes the channel.
      * 
-     * If the channel is not closed, the 
+     * Once the call is called {@link #closeRequested} will be set immediately to prevent further executions
+     * of {@link UserRequest}s.
      *
      * @param diagnosis
      *      If someone (either this side or the other side) tries to use a channel that's already closed,
