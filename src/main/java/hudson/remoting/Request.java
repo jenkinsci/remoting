@@ -346,9 +346,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                     if(chainCause)
                         rsp.createdAt.initCause(createdAt);
 
-                    synchronized (channel) {// expand the synchronization block of the send() method to a check
-                        channel.send(rsp);
-                    }
+                    channel.send(rsp);
                 } catch (IOException e) {
                     // communication error.
                     // this means the caller will block forever
