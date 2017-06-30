@@ -528,11 +528,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
                 commandsReceived++;
-                lastCommandReceivedAt = System.currentTimeMillis();
-                if (logger.isLoggable(Level.FINE))
+                long receivedAt = System.currentTimeMillis();
+                lastCommandReceivedAt = receivedAt;
+                if (logger.isLoggable(Level.FINE)) {
                     logger.fine("Received " + cmd);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "Received command " + cmd, cmd.createdAt);
+                }
                 try {
                     cmd.execute(Channel.this);
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.log(Level.FINE, "Completed command {0}. It took {1}ms", new Object[] {cmd, System.currentTimeMillis() - receivedAt});
+                    }
                 } catch (Throwable t) {
                     logger.log(Level.SEVERE, "Failed to execute command " + cmd + " (channel " + Channel.this.name + ")", t);
                     logger.log(Level.SEVERE, "This command is created here", cmd.createdAt);
