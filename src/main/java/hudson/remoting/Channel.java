@@ -911,6 +911,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * This is an SPI for {@link CommandTransport} implementation to notify
      * {@link Channel} when the underlying connection is severed.
+     * 
+     * Once the call is called {@link #closeRequested} will be set immediately to prevent further executions
+     * of {@link UserRequest}s.
      *
      * @param e
      *      The error that caused the connection to be aborted. Never null.
@@ -918,9 +921,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     @java.lang.SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     @SuppressWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
     public void terminate(@Nonnull IOException e) {
+        
+        if (e == null) {
+            throw new IllegalArgumentException("Cause is null. Channel cannot be closed properly in such case");
+        }
+        closeRequested = true;
+        
         try {
-            synchronized (this) {
-                if (e == null) throw new IllegalArgumentException();
+            synchronized (this) {  
                 outClosed = inClosed = e;
                 // we need to clear these out early in order to ensure that a GC operation while
                 // proceding with the close does not result in a batch of UnexportCommand instances
