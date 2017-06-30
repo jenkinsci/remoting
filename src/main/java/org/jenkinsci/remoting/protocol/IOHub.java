@@ -63,7 +63,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 /**
  * A hub for performing I/O. The hub has a selector thread and an executor service.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
 
