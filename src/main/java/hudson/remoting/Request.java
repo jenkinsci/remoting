@@ -25,6 +25,7 @@ package hudson.remoting;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -346,13 +347,17 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                         rsp.createdAt.initCause(createdAt);
 
                     synchronized (channel) {// expand the synchronization block of the send() method to a check
-                        if(!channel.isOutClosed())
+                        if(!channel.isOutClosed()) {
                             channel.send(rsp);
+                        } else {
+                            // Propagate exception to the catch clause instead of supressing it
+                            throw new ClosedChannelException();
+                        }
                     }
                 } catch (IOException e) {
                     // communication error.
                     // this means the caller will block forever
-                    logger.log(Level.SEVERE, "Failed to send back a reply",e);
+                    logger.log(Level.SEVERE, "Failed to send back a reply to the request " + this, e);
                 } finally {
                     channel.executingCalls.remove(id);
                     Thread.currentThread().setName(oldThreadName);
