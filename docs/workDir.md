@@ -7,13 +7,13 @@ Remoting work directory is available starting from Remoting `3.8`.
 Before this version there was no working directory concept in the library itself;
 all operations were managed by library users (e.g. Jenkins agent workspaces).
 
-### Before Remoting TODO
+### Before Remoting 3.8 (Jenkins 2.68)
 
 * There is no work directory management in Remoting itself
 * Logs are not being persisted to the disk unless `-slaveLog` option is specified
 * JAR Cache is being stored in `${user.home}/.jenkins` unless `-jarCache` option is specified
 
-### After Remoting TODO
+### After Remoting 3.8 (Jenkins 2.68)
 
 Due to compatibility reasons, Remoting retains the legacy behavior by default.
 Work directory can be enabled using the `-workDir` option in CLI.
