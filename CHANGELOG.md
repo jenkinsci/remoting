@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.10
 
-Release date: Jun 26, 2017
+Release date: (Jun 26, 2017) => Jenkins 2.68
 
 Enhancements:
 
@@ -28,7 +28,7 @@ Prevent `NullPointerException` in Remote ClassLoader when not all sources can be
 
 ##### 3.9
 
-Release date: (May 19, 2017)
+Release date: (May 19, 2017) => Jenkins 2.68
 
 Fixed issues:
 
@@ -37,7 +37,7 @@ Prevent crash when starting Remoting agents in the default mode (regression in 3
 
 ##### 3.8
 
-Release date: (May 12, 2017)
+Release date: (May 12, 2017) => Jenkins 2.68
 
 This version of Remoting introduces support for [Work Directories](./docs/workDir.md) ([JENKINS-39370](https://issues.jenkins-ci.org/browse/JENKINS-39370)). 
 This feature has been implemented as a part of the [JENKINS-44108](https://issues.jenkins-ci.org/browse/JENKINS-44108) EPIC, which is devoted to better diagnosability of Jenkins agents.
