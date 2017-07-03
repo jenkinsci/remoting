@@ -97,7 +97,8 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
         
         // We also do not want to run UserRequests when the channel is being closed
         if (channel.isClosingOrClosed()) {
-            throw new IOException("The request cannot be executed on channel " + channel + ". The channel is closing down or has closed down");
+            throw new ChannelClosedException("The request cannot be executed on channel " + channel + ". "
+                    + "The channel is closing down or has closed down", channel.getCloseRequestCause());
         }
     }
     

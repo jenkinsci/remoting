@@ -333,6 +333,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     private boolean closeRequested = false;
     
     /**
+     * Stores cause of the close Request.
+     * 
+     * In the case of race condition between multiple close operations, 
+     * this field stores just one of them.
+     */
+    @CheckForNull
+    private Throwable closeRequestCause = null;
+    
+    /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
      * 
      * @since 1.161
@@ -610,6 +619,19 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
+     * Gets cause of the close request.
+     * 
+     * @return {@link #outClosed} if not {@code null}, value of the transient cache
+     *         {@link #closeRequestCause} otherwise. 
+     *         The latter one may show random cause in the case of race conditions.
+     * @since TODO
+     */
+    @CheckForNull
+    public Throwable getCloseRequestCause() {
+        return outClosed != null ? outClosed : closeRequestCause;
+    }
+    
+    /**
      * Creates the {@link ExecutorService} for writing to pipes.
      *
      * <p>
@@ -856,7 +878,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     V call(Callable<V,T> callable) throws IOException, T, InterruptedException {
         if (isClosingOrClosed()) {
             // No reason to even try performing a user request
-            throw new IOException("Remote call on " + name + " failed. The channel is closing down or has closed down");
+            throw new ChannelClosedException("Remote call on " + name + " failed. "
+                    + "The channel is closing down or has closed down", getCloseRequestCause());
         }
         
         UserRequest<V,T> request=null;
@@ -891,7 +914,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     Future<V> callAsync(final Callable<V,T> callable) throws IOException {
         if (isClosingOrClosed()) {
             // No reason to even try performing a user request
-            throw new IOException("Remote call on " + name + " failed. The channel is closing down or has closed down");
+            throw new ChannelClosedException("Remote call on " + name + " failed. "
+                    + "The channel is closing down or has closed down", getCloseRequestCause());
         }
         
         final Future<UserResponse<V,T>> f = new UserRequest<V,T>(this, callable).callAsync(this);
@@ -926,6 +950,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             throw new IllegalArgumentException("Cause is null. Channel cannot be closed properly in such case");
         }
         closeRequested = true;
+        if (closeRequestCause == null) {
+            // Cache the cause value just in case it takes long to acquire the lock
+            closeRequestCause = e;
+        }
         
         try {
             synchronized (this) {  
@@ -1329,6 +1357,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public void close(@CheckForNull Throwable diagnosis) throws IOException {
         if(outClosed!=null)  return;  // already closed
         closeRequested = true;
+        if (closeRequestCause == null) {
+            // Cache the cause value just in case it takes long to acquire the lock
+            // TODO: This IOException wrapper is copy-pasted from the original logic, but do we actually need it when diagnosis is non-null?
+            closeRequestCause = new IOException(diagnosis);
+        }
         
         synchronized(this) {
             if(outClosed!=null) {
@@ -1348,7 +1381,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 terminate(e);
                 return;
             }
-            outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
+            outClosed = new IOException(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
             notifyAll();
             try {
                 transport.closeWrite();
