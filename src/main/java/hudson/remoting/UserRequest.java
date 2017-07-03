@@ -70,6 +70,16 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
      */
     public UserRequest(Channel local, Callable<?,EXC> c) throws IOException {
         this.toString = c.toString();
+        if (local.isClosingOrClosed()) {
+            Throwable createdAtValue = createdAt;
+            if (createdAtValue == null) {
+                // If Command API changes, the cause may be null here (e.g. if it stops recording cause by default)
+                createdAtValue = new IllegalStateException("Command is created for the channel being interrupted");
+            }
+            throw new ChannelClosedException("Cannot create UserRequest for channel " + local + 
+                    ". The channel is closed or being closed.", createdAtValue);
+        }
+        
         
         // Before serializing anything, check that we actually have a classloader for it
         final ClassLoader cl = getClassLoader(c);
