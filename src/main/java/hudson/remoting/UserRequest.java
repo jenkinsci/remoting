@@ -70,6 +70,16 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
      */
     public UserRequest(Channel local, Callable<?,EXC> c) throws IOException {
         this.toString = c.toString();
+        if (local.isClosingOrClosed()) {
+            Throwable createdAtValue = createdAt;
+            if (createdAtValue == null) {
+                // If Command API changes, the cause may be null here (e.g. if it stops recording cause by default)
+                createdAtValue = new IllegalStateException("Command is created for the channel being interrupted");
+            }
+            throw new ChannelClosedException("Cannot create UserRequest for channel " + local + 
+                    ". The channel is closed or being closed.", createdAtValue);
+        }
+        
         
         // Before serializing anything, check that we actually have a classloader for it
         final ClassLoader cl = getClassLoader(c);
@@ -90,6 +100,18 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
         this.classLoaderProxy = RemoteClassLoader.export(cl, local);
     }
 
+    @Override
+    public void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
+        // Default check for all requests
+        super.checkIfCanBeExecutedOnChannel(channel);
+        
+        // We also do not want to run UserRequests when the channel is being closed
+        if (channel.isClosingOrClosed()) {
+            throw new ChannelClosedException("The request cannot be executed on channel " + channel + ". "
+                    + "The channel is closing down or has closed down", channel.getCloseRequestCause());
+        }
+    }
+    
     /**
      * Retrieves classloader for the callable.
      * For {@link DelegatingCallable} the method will try to retrieve a classloader specified there.

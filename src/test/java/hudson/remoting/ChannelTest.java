@@ -8,9 +8,16 @@ import java.io.ObjectInputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
+import static junit.framework.TestCase.assertFalse;
+import static junit.framework.TestCase.assertTrue;
+import org.jenkinsci.remoting.RoleChecker;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -175,5 +182,157 @@ public class ChannelTest extends RmiTestBase {
         assertTrue(sw.toString().contains("Channel south"));
         assertTrue(sw.toString().contains("Commands sent=0"));
         assertTrue(sw.toString().contains("Commands received=0"));
+    }
+    
+    /**
+     * Checks if {@link UserRequest}s can be executed during the pending close operation.
+     * @throws Exception Test Error
+     */
+    @Bug(45023)
+    public void testShouldNotAcceptUserRequestsWhenIsBeingClosed() throws Exception {
+        
+        // Create a sample request to the channel
+        final Callable<Void, Exception> testPayload = new NeverEverCallable();
+        UserRequest<Void, Exception> delayedRequest = new UserRequest<>(channel, testPayload);
+        
+        try (ChannelCloseLock lock = new ChannelCloseLock(channel)) {
+            // Call Async
+            assertFailsWithChannelClosedException(TestRunnable.forChannel_call(testPayload));
+            assertFailsWithChannelClosedException(TestRunnable.forChannel_callAsync(testPayload));
+            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_constructor(testPayload));
+
+            // Check if the previously created command also fails to execute
+            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_call(delayedRequest, testPayload));
+            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_callAsync(delayedRequest, testPayload));
+        }
+    }
+    
+    private static final class NeverEverCallable implements Callable<Void, Exception> {
+
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public Void call() throws Exception {
+            throw new AssertionError("This method should be never executed");
+        }
+
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+            throw new AssertionError("This method should be never executed");
+        }
+    }
+    
+    /**
+     * Auto-closable wrapper, which puts the {@link Channel} into the pending close state.
+     * This state is achieved by a deadlock of the customer request, which blocks {@link Channel#close()}.
+     * Within this wrapper all methods requiring the Channel instance lock will hang till the timeout.
+     */
+    private static final class ChannelCloseLock implements AutoCloseable {
+
+        final ExecutorService svc;
+        final Channel channel;
+
+        public ChannelCloseLock(final @Nonnull Channel channel) throws AssertionError, InterruptedException {
+            this.svc = Executors.newFixedThreadPool(2);
+            this.channel = channel;
+            
+            // Lock channel
+            java.util.concurrent.Future<Void> lockChannel = svc.submit(new java.util.concurrent.Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    synchronized (channel) {
+                        System.out.println("All your channel belongs to us");
+                        Thread.sleep(Long.MAX_VALUE);
+                        return null;
+                    }
+                }
+            });
+
+            // Try to close the channel in another task
+            java.util.concurrent.Future<Void> closeChannel = svc.submit(new java.util.concurrent.Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    System.out.println("Trying to close the channel");
+                    channel.close();
+                    System.out.println("Channel is closed");
+                    return null;
+                }
+            });
+
+            // Check the state
+            Thread.sleep(1000);
+            System.out.println("Running the tests");
+            assertTrue("Channel should be closing", channel.isClosingOrClosed());
+            assertFalse("Channel should not be closed due to the lock", channel.isOutClosed());
+        }
+        
+        @Override
+        public void close() throws Exception {
+            svc.shutdownNow();
+        }
+        
+    }
+    
+    private abstract static class TestRunnable {
+        public abstract void run(Channel channel) throws Exception, AssertionError;
+        
+        private static final TestRunnable forChannel_call(final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    channel.call(payload);
+                }
+            };
+        }
+        
+        private static final TestRunnable forChannel_callAsync(final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    channel.callAsync(payload);
+                }
+            };
+        }
+        
+        private static final TestRunnable forUserRequest_constructor(final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    new UserRequest<Void, Exception>(channel, payload);
+                }
+            };
+        }
+        
+        private static final TestRunnable forUserRequest_call(final UserRequest<Void, Exception> req, final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    req.call(channel);
+                }
+            };
+        }
+        
+        private static final TestRunnable forUserRequest_callAsync(final UserRequest<Void, Exception> req, final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    req.callAsync(channel);
+                }
+            };
+        }
+    }
+    
+    private void assertFailsWithChannelClosedException(TestRunnable call) throws AssertionError {
+        try {
+            call.run(channel);
+        } catch(Exception ex) {
+            if (ex instanceof ChannelClosedException) {
+                // Fine
+                return;
+            } else {
+                throw new AssertionError("Expected ChannelClosedException, but got another exception", ex);
+            }
+        }
+        fail("Expected ChannelClosedException, but the call has completed without any exception");
     }
 }

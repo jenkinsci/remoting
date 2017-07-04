@@ -39,14 +39,19 @@ public interface VirtualChannel {
      *
      * <p>
      * Sends {@link Callable} to the remote system, executes it, and returns its result.
-     *
+     * Such calls will be considered as user-space requests.
+     * If the channel cannot execute the requests (e.g. when it is being closed),
+     * the operations may be rejected even if the channel is still active.
+     * 
+     * @param callable Callable to be executed
      * @throws InterruptedException
      *      If the current thread is interrupted while waiting for the completion.
      * @throws IOException
      *      If there's any error in the communication between {@link Channel}s.
+     * @throws T User exception defined by the callable
      */
     <V,T extends Throwable>
-    V call(Callable<V,T> callable) throws IOException, T, InterruptedException;
+    V call(@Nonnull Callable<V,T> callable) throws IOException, T, InterruptedException;
 
     /**
      * Makes an asynchronous remote procedure call.
@@ -54,6 +59,9 @@ public interface VirtualChannel {
      * <p>
      * Similar to {@link #call(Callable)} but returns immediately.
      * The result of the {@link Callable} can be obtained through the {@link Future} object.
+     * Such calls will be considered as user-space requests.
+     * If the channel cannot execute the requests (e.g. when it is being closed),
+     * the operations may be rejected even if the channel is still active.
      *
      * @return
      *      The {@link Future} object that can be used to wait for the completion.
@@ -61,7 +69,7 @@ public interface VirtualChannel {
      *      If there's an error during the communication.
      */
     <V,T extends Throwable>
-    Future<V> callAsync(final Callable<V,T> callable) throws IOException;
+    Future<V> callAsync(@Nonnull final Callable<V,T> callable) throws IOException;
 
     /**
      * Performs an orderly shut down of this channel (and the remote peer.)
