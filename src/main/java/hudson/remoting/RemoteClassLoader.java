@@ -402,6 +402,7 @@ final class RemoteClassLoader extends URLClassLoader {
         definePackage(packageName, null, null, null, null, null, null, null);
     }
 
+    @CheckForNull
     public URL findResource(String name) {
         // first attempt to load from locally fetched jars
         URL url = super.findResource(name);
@@ -896,6 +897,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return all;
         }
 
+        @CheckForNull
         private URL getResourceURL(String name) throws IOException {
             URL resource = cl.getResource(name);
            	if (resource == null) {
@@ -912,6 +914,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return resource;
         }
 
+        @CheckForNull
         public ResourceFile getResource2(String name) throws IOException {
             URL resource = getResourceURL(name);
             if (resource == null) return null;
@@ -940,6 +943,7 @@ final class RemoteClassLoader extends URLClassLoader {
         @Override
         @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS", 
                 justification = "Null return value is a part of the public interface")
+        @CheckForNull
         public byte[] getResource(String name) throws IOException {
         	URL resource = getResourceURL(name);
         	if (resource == null)   return null;

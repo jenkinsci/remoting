@@ -52,6 +52,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.jenkinsci.remoting.RoleChecker;
 
 /**
@@ -216,6 +217,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * If the given object is a proxy object, return the {@link Channel}
      * object that it's associated with. Otherwise null.
      */
+    @CheckForNull
     public static Channel unwrap(Object proxy) {
         InvocationHandler h = Proxy.getInvocationHandler(proxy);
         if (h instanceof RemoteInvocationHandler) {
@@ -225,6 +227,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         return null;
     }
 
+    @Nullable
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if(method.getDeclaringClass()==IReadResolve.class) {
             // readResolve on the proxy.

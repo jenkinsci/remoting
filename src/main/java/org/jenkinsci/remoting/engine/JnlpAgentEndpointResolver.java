@@ -134,6 +134,7 @@ public class JnlpAgentEndpointResolver {
         this.tunnel = tunnel;
     }
 
+    @CheckForNull
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
         for (String jenkinsUrl : jenkinsUrls) {
