@@ -7,10 +7,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -87,6 +87,17 @@ public abstract class ClassFilter {
      * unless the context guarantees the trust between two channels.
      */
     public static final ClassFilter DEFAULT = createDefaultInstance();
+
+    /**
+     * Adds an additional exclusion to {@link #DEFAULT}.
+     * Does nothing if the default list has already been customized via {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
+     * @param filter a regular expression for {@link Class#getName} which, if matched according to {@link Matcher#matches}, will blacklist the class
+     */
+    public static void appendDefaultFilter(Pattern filter) {
+        if (System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY) == null) {
+            ((RegExpClassFilter) DEFAULT).add(filter.toString());
+        }
+    }
 
     /**
      * No filtering whatsoever.
@@ -174,31 +185,30 @@ public abstract class ClassFilter {
          */
         private static final Pattern OPTIMIZE2 = Pattern.compile("^\\^\\Q[^\\\\]+\\\\E\\.\\*$");
 
-        private final Object[] blacklistPatterns;
+        private final List<Object> blacklistPatterns;
 
-        public RegExpClassFilter(List<Pattern> blacklistPatterns) {
-            this.blacklistPatterns = blacklistPatterns.toArray(new Pattern[blacklistPatterns.size()]);
+        RegExpClassFilter(String[] patterns) throws PatternSyntaxException {
+            blacklistPatterns = new ArrayList<>(patterns.length);
+            for (String pattern : patterns) {
+                add(pattern);
+            }
         }
 
-        RegExpClassFilter(String[] patterns) {
-            blacklistPatterns = new Object[patterns.length];
-            for (int i = 0, patternsLength = patterns.length; i < patternsLength; i++) {
-                if (OPTIMIZE1.matcher(patterns[i]).matches()) {
-                    // this is a simple startsWith test, no need to slow things down with a regex
-                    blacklistPatterns[i] = patterns[i].substring(1,patterns[i].length()-2).replace("[.]",".");
-                } else  if (OPTIMIZE2.matcher(patterns[i]).matches()) {
-                    // this is a simple startsWith test, no need to slow things down with a regex
-                    blacklistPatterns[i] = patterns[i].substring(3,patterns[i].length()-4);
-                } else {
-                    blacklistPatterns[i] = Pattern.compile(patterns[i]);
-                }
+        void add(String pattern) throws PatternSyntaxException {
+            if (OPTIMIZE1.matcher(pattern).matches()) {
+                // this is a simple startsWith test, no need to slow things down with a regex
+                blacklistPatterns.add(pattern.substring(1, pattern.length() - 2).replace("[.]", "."));
+            } else if (OPTIMIZE2.matcher(pattern).matches()) {
+                // this is a simple startsWith test, no need to slow things down with a regex
+                blacklistPatterns.add(pattern.substring(3, pattern.length() - 4));
+            } else {
+                blacklistPatterns.add(Pattern.compile(pattern));
             }
         }
 
         @Override
         protected boolean isBlacklisted(String name) {
-            for (int i = 0; i < blacklistPatterns.length; i++) {
-                Object p = blacklistPatterns[i];
+            for (Object p : blacklistPatterns) {
                 if (p instanceof Pattern && ((Pattern)p).matcher(name).matches()) {
                     return true;
                 } else if (p instanceof String && name.startsWith((String)p)) {
@@ -214,74 +224,7 @@ public abstract class ClassFilter {
          */
         @Override
         public String toString() {
-            return Arrays.toString(blacklistPatterns);
+            return blacklistPatterns.toString();
         }
     }
 }
-
-/*
-    Publicized attack payload:
-
-		ObjectInputStream.readObject()
-			PriorityQueue.readObject()
-				Comparator.compare() (Proxy)
-					ConvertedClosure.invoke()
-						MethodClosure.call()
-							...
-						  		Method.invoke()
-									Runtime.exec()
-
-
-		ObjectInputStream.readObject()
-			AnnotationInvocationHandler.readObject()
-				Map(Proxy).entrySet()
-					AnnotationInvocationHandler.invoke()
-						LazyMap.get()
-							ChainedTransformer.transform()
-								ConstantTransformer.transform()
-								InvokerTransformer.transform()
-									Method.invoke()
-										Class.getMethod()
-								InvokerTransformer.transform()
-									Method.invoke()
-										Runtime.getRuntime()
-								InvokerTransformer.transform()
-									Method.invoke()
-										Runtime.exec()
-
-
-		ObjectInputStream.readObject()
-			PriorityQueue.readObject()
-				...
-					TransformingComparator.compare()
-						InvokerTransformer.transform()
-							Method.invoke()
-								Runtime.exec()
-
-
-		ObjectInputStream.readObject()
-			SerializableTypeWrapper.MethodInvokeTypeProvider.readObject()
-				SerializableTypeWrapper.TypeProvider(Proxy).getType()
-					AnnotationInvocationHandler.invoke()
-						HashMap.get()
-				ReflectionUtils.findMethod()
-				SerializableTypeWrapper.TypeProvider(Proxy).getType()
-					AnnotationInvocationHandler.invoke()
-						HashMap.get()
-				ReflectionUtils.invokeMethod()
-					Method.invoke()
-						Templates(Proxy).newTransformer()
-							AutowireUtils.ObjectFactoryDelegatingInvocationHandler.invoke()
-								ObjectFactory(Proxy).getObject()
-									AnnotationInvocationHandler.invoke()
-										HashMap.get()
-								Method.invoke()
-									TemplatesImpl.newTransformer()
-										TemplatesImpl.getTransletInstance()
-											TemplatesImpl.defineTransletClasses()
-												TemplatesImpl.TransletClassLoader.defineClass()
-													Pwner*(Javassist-generated).<static init>
-														Runtime.exec()
-
- */
-
