@@ -76,13 +76,8 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         ResourceImageInJar.DISABLE_FILE_CACHING_IN_JAR_CONNECTION = oldCachingValue;
         cl.cleanup();
         super.tearDown();
-
-        // TODO: Add to RMI base?
-        if (Boolean.getBoolean("remoting.test.interactive")) {
-            
-        }
         
-        // Clenup the temporary cache and ensure we have no locked files left
+        // Cleanup the temporary cache and ensure we have no locked files left
         FileUtils.deleteDirectory(dir);
     }
 
