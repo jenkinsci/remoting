@@ -28,11 +28,19 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
     // checksum of the jar files to force loading
     private Checksum sum1,sum2;
+    
+    // TODO: Rework to Rule once RmiTestBase is updated to JUnit 4/5
+    private boolean oldCachingValue;
 
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-
+        oldCachingValue = ResourceImageInJar.DISABLE_FILE_CACHING_IN_JAR_CONNECTION;
+        if (Launcher.isWindows()) {
+            // On Windows the test relies on the file locks cleanup when removing the temporary directory
+            ResourceImageInJar.DISABLE_FILE_CACHING_IN_JAR_CONNECTION = true;
+        }
+        
         URL jar1 = getClass().getClassLoader().getResource("remoting-test-client.jar");
         URL jar2 = getClass().getClassLoader().getResource("remoting-test-client-tests.jar");
 
@@ -65,20 +73,17 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
     @Override
     protected void tearDown() throws Exception {
+        ResourceImageInJar.DISABLE_FILE_CACHING_IN_JAR_CONNECTION = oldCachingValue;
         cl.cleanup();
         super.tearDown();
 
-        // because the dir is used by FIleSystemJarCache to asynchronously load stuff
-        // we might fail to shut it down right away
-        for (int i=0; ; i++) {
-            try {
-                FileUtils.deleteDirectory(dir);
-                return;
-            } catch (IOException e) {
-                if (i==3)   throw e;
-                Thread.sleep(1000);
-            }
+        // TODO: Add to RMI base?
+        if (Boolean.getBoolean("remoting.test.interactive")) {
+            
         }
+        
+        // Clenup the temporary cache and ensure we have no locked files left
+        FileUtils.deleteDirectory(dir);
     }
 
     /**
