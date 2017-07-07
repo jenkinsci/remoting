@@ -170,7 +170,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@link ClassLoader}s that are proxies of the remote classloaders.
      */
-    /*package*/ final ImportedClassLoaderTable importedClassLoaders = new ImportedClassLoaderTable(this);
+    /*package*/ final ImportedClassLoaderTable importedClassLoaders;
 
     /**
      * Objects exported via {@link #export(Class, Object)}.
@@ -498,6 +498,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.arbitraryCallableAllowed = settings.isArbitraryCallableAllowed();
         this.remoteClassLoadingAllowed = settings.isRemoteClassLoadingAllowed();
         this.underlyingOutput = transport.getUnderlyingStream();
+        this.importedClassLoaders = new ImportedClassLoaderTable(this, settings.isCacheFilesInJarURLConnections());
         
         // JAR Cache resolution
         JarCache effectiveJarCache = settings.getJarCache();
@@ -506,7 +507,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             logger.log(Level.CONFIG, "Using the default JAR Cache: {0}", effectiveJarCache);
         }
         this.jarCache = effectiveJarCache;
-
+                
         this.baseClassLoader = settings.getBaseLoader();
         this.classFilter = settings.getClassFilter();
 

@@ -4,10 +4,15 @@ import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 
 import java.nio.channels.Pipe;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.nio.NioChannelBuilder;
+import org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer.ChannelDecorator;
 
 /**
  * Runs a channel over NIO {@link java.nio.channels.Pipe}.
@@ -19,6 +24,13 @@ import java.util.logging.Logger;
  * @author Kohsuke Kawaguchi
  */
 public class NioPipeRunner extends AbstractNioChannelRunner {
+    
+    private final List<ChannelDecorator> channelDecorators = new ArrayList<>();
+    
+    public void addChannnelDecorator(ChannelDecorator decorator) {
+        channelDecorators.add(decorator);
+    }
+    
     public Channel start() throws Exception {
         final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<Channel>();
 
@@ -41,8 +53,11 @@ public class NioPipeRunner extends AbstractNioChannelRunner {
         executor.submit(new Runnable() {
             public void run() {
                 try {
-                    Channel south = nio.newChannelBuilder("south",executor).withMode(Mode.NEGOTIATE)
-                            .build(n2s.source(), s2n.sink());
+                    NioChannelBuilder southBuilder = nio.newChannelBuilder("south",executor).withMode(Mode.NEGOTIATE);
+                    for (ChannelDecorator d : channelDecorators) {
+                        southBuilder = (NioChannelBuilder)d.decorate(southBuilder);
+                    } 
+                    Channel south = southBuilder.build(n2s.source(), s2n.sink());
                     southHandoff.put(south);
                     south.join();
                     System.out.println("south completed");
@@ -54,8 +69,11 @@ public class NioPipeRunner extends AbstractNioChannelRunner {
         });
 
         // create a client channel that connects to the same hub
-        Channel north = nio.newChannelBuilder("north", executor).withMode(Mode.BINARY)
-                .build(s2n.source(), n2s.sink());
+        NioChannelBuilder northBuilder = nio.newChannelBuilder("north", executor).withMode(Mode.BINARY);
+        for (ChannelDecorator d : channelDecorators) {
+            northBuilder = (NioChannelBuilder)d.decorate(northBuilder);
+        }
+        Channel north = northBuilder.build(s2n.source(), n2s.sink());
         south = southHandoff.poll(10, TimeUnit.SECONDS);
         return north;
     }

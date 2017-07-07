@@ -26,6 +26,7 @@ package hudson.remoting;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer;
 
 /**
  * Base class for remoting tests.
@@ -43,9 +44,32 @@ import junit.framework.TestSuite;
 public abstract class RmiTestBase extends TestCase {
 
     protected transient Channel channel;
-    protected transient ChannelRunner channelRunner = new NioPipeRunner();
+    protected transient ChannelRunner channelRunner;
     protected String testSuffix="";
+    protected boolean cacheFilesInJarURLConnections = true;
 
+    public RmiTestBase() {
+        this(true);
+    }
+    
+    public RmiTestBase(boolean useFileCachingInJarURLConnections) {
+        NioPipeRunner runner = new NioPipeRunner();
+        if (!useFileCachingInJarURLConnections) {
+            runner.addChannnelDecorator(new ChannelApplicationLayer.ChannelDecorator() {
+                @Override
+                public ChannelBuilder decorate(ChannelBuilder builder) {
+                    return builder.withFileCachingInJarURLConnections(false);
+                }
+
+                @Override
+                public void onChannel(Channel channel) {
+                    // Do nothing
+                }
+            });
+        }
+        channelRunner = runner;
+    }
+    
     protected void setUp() throws Exception {
         System.out.println("Starting "+getName());
         channel = channelRunner.start();

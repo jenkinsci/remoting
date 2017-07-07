@@ -10,9 +10,15 @@ import org.junit.Assert;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.Field;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.concurrent.ExecutionException;
+import java.util.jar.JarFile;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.core.StringContains.containsString;
@@ -28,6 +34,11 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
     // checksum of the jar files to force loading
     private Checksum sum1,sum2;
+    
+    public PrefetchingTest() {
+        // On Windows do not do caching of files in JarURLConnections
+        super(!Launcher.isWindows());
+    }
 
     @Override
     protected void setUp() throws Exception {
@@ -36,7 +47,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         URL jar1 = getClass().getClassLoader().getResource("remoting-test-client.jar");
         URL jar2 = getClass().getClassLoader().getResource("remoting-test-client-tests.jar");
 
-        cl = new AntClassLoader(this.getClass().getClassLoader(),true);
+        cl = new ErrorPropagatingAntClassloader(this.getClass().getClassLoader(),true);
         cl.addPathComponent(toFile(jar1));
         cl.addPathComponent(toFile(jar2));
 
@@ -67,7 +78,6 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     protected void tearDown() throws Exception {
         cl.cleanup();
         super.tearDown();
-
         // because the dir is used by FIleSystemJarCache to asynchronously load stuff
         // we might fail to shut it down right away
         for (int i=0; ; i++) {
@@ -78,7 +88,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 if (i==3)   throw e;
                 Thread.sleep(1000);
             }
-        }
+        }    
     }
 
     /**
@@ -221,6 +231,48 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 throw new IOException(e);
             } catch (ExecutionException e) {
                 throw new IOException(e);
+            }
+        }
+    }
+    
+    private static class ErrorPropagatingAntClassloader extends AntClassLoader {
+        
+        private static final Logger LOGGER = Logger.getLogger(ErrorPropagatingAntClassloader.class.getName());
+        
+        public ErrorPropagatingAntClassloader(final ClassLoader parent, final boolean parentFirst) {
+            super(parent, parentFirst);
+        }
+
+        @Override
+        public synchronized void cleanup() {
+            final Hashtable<File, JarFile> jarFiles;
+            final Field field;
+            
+            try {
+                field = AntClassLoader.class.getField("jarFiles");
+                field.setAccessible(true);
+                jarFiles = (Hashtable<File, JarFile>)field.get((AntClassLoader)this);
+            } catch(Exception ex) {
+                LOGGER.log(Level.WARNING, "Failed to override the dafault classloader cleanup logic", ex);
+                super.cleanup();
+                return;
+            }
+            
+            for (final Enumeration<JarFile> e = jarFiles.elements(); e.hasMoreElements();) {
+                final JarFile jarFile = e.nextElement();
+                try {
+                    jarFile.close();
+                } catch (final IOException ioe) {
+                    throw new IllegalStateException("Failed to cleanup JarFile " + jarFile, ioe);
+                }
+            }
+            
+            try {
+                field.set((AntClassLoader)this, new Hashtable<File, JarFile>());
+            } catch (IllegalArgumentException ex) {
+                LOGGER.log(Level.WARNING, "Failed to invalidate the cache value", ex);
+            } catch (IllegalAccessException ex) {
+                LOGGER.log(Level.WARNING, "Failed to invalidate the cache value", ex);
             }
         }
     }

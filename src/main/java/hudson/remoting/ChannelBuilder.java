@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.net.JarURLConnection;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
@@ -54,6 +55,11 @@ public class ChannelBuilder {
     private boolean remoteClassLoadingAllowed = true;
     private final Hashtable<Object,Object> properties = new Hashtable<Object,Object>();
     private ClassFilter filter = ClassFilter.DEFAULT;
+    /**
+     * Manages caching of Files in {@link JarURLConnection}s.
+     * @since TODO
+     */
+    private boolean cacheFilesInJarURLConnections = true;
 
     /**
      * Specify the minimum mandatory parameters.
@@ -112,11 +118,34 @@ public class ChannelBuilder {
         this.capability = capability;
         return this;
     }
-
+    
     public Capability getCapability() {
         return capability;
     }
+    
+    /**
+     * Optionally disables file caching in {@link JarURLConnection}s.
+     * It may be useful for tests and concurrent caches in Windows where the file locks may block cache modification otherwise.
+     * 
+     * @param cacheJarURLConnections {@code false} to disable caching of files in {@link JarURLConnection}s in JAR resources.
+     * @return {@code this}
+     * @since TODO
+     */
+    public ChannelBuilder withFileCachingInJarURLConnections(boolean cacheJarURLConnections) {
+        this.cacheFilesInJarURLConnections = cacheJarURLConnections;
+        return this;
+    }
 
+    /**
+     * Check if files should be cached in {@link JarURLConnection}s.
+     * 
+     * @return {@code true} if files should be cached (default behavior).
+     * @since TODO
+     */
+    public boolean isCacheFilesInJarURLConnections() {
+        return cacheFilesInJarURLConnections;
+    }
+    
     /**
      * If non-null, receive the portion of data in <tt>is</tt> before
      * the data goes into the "binary mode". This is useful

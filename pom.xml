@@ -105,7 +105,8 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.apache.ant</groupId>
       <artifactId>ant</artifactId>
-      <version>1.8.3</version>
+      <!--TODO: bump to 1.10.x when Remoting updates to Java8-->
+      <version>1.9.9</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -324,6 +325,14 @@ THE SOFTWARE.
                   <outputDirectory>target/test-classes</outputDirectory>
                   <destFileName>remoting-test-client-tests.jar</destFileName>
                 </artifactItem>
+                <artifactItem>
+                  <groupId>org.kohsuke</groupId>
+                  <artifactId>file-leak-detector</artifactId>
+                  <version>1.8</version>
+                  <classifier>jar-with-dependencies</classifier>
+                  <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                  <destFileName>file-leak-detector.jar</destFileName>
+                </artifactItem>
               </artifactItems>
             </configuration>
           </execution>
@@ -494,6 +503,7 @@ THE SOFTWARE.
         <configuration>
           <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
+          <argLine>-javaagent:${project.build.directory}\agents\file-leak-detector.jar=http=19999</argLine>
         </configuration>
       </plugin>
       <plugin>

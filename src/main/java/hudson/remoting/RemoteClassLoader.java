@@ -50,6 +50,7 @@ import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
 import javax.annotation.CheckForNull;
 
 import static hudson.remoting.Util.*;
+import java.net.JarURLConnection;
 import static java.util.logging.Level.*;
 import javax.annotation.Nonnull;
 
@@ -105,6 +106,8 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     private final Map<String,ClassReference> prefetchedClasses = Collections.synchronizedMap(new HashMap<String,ClassReference>());
 
+    private final boolean cacheFilesInJarURLConnections;
+    
     /**
      * Creates a remotable classloader
      * @param parent Parent classloader. Can be {@code null} if there is no delegating classloader
@@ -113,17 +116,34 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     @Nonnull
     public static ClassLoader create(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy) {
+        return create(parent, proxy, true);
+    }
+    
+    /**
+     * Creates a remotable classloader.
+     * 
+     * @param parent Parent classloader. Can be {@code null} if there is no delegating classloader
+     * @param proxy Classloader proxy instance
+     * @param cacheFilesInJarURLConnections If {@code true}, Files will be cached in {@link JarURLConnection}s.
+     *              It greatly increases performance of resource loading, but it may cause unstable resource locking on platforms like Windows.
+     *              Enabling this option is recommended in production instances.
+     * @return Created classloader
+     * @since TODO
+     */
+    @Nonnull
+    public static ClassLoader create(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy, boolean cacheFilesInJarURLConnections) {
         if(proxy instanceof ClassLoaderProxy) {
             // when the remote sends 'RemoteIClassLoader' as the proxy, on this side we get it
             // as ClassLoaderProxy. This means, the so-called remote classloader here is
             // actually our classloader that we exported to the other side.
             return ((ClassLoaderProxy)proxy).cl;
         }
-        return new RemoteClassLoader(parent, proxy);
+        return new RemoteClassLoader(parent, proxy, cacheFilesInJarURLConnections);
     }
 
-    private RemoteClassLoader(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy) {
+    private RemoteClassLoader(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy, boolean cacheFilesInJarURLConnections) {
         super(new URL[0],parent);
+        this.cacheFilesInJarURLConnections = cacheFilesInJarURLConnections;
         final Channel channel = RemoteInvocationHandler.unwrap(proxy);
         this.channel = channel == null ? null : channel.ref();
         this.underlyingProxy = proxy;
@@ -732,47 +752,62 @@ final class RemoteClassLoader extends URLClassLoader {
     }
 
     public static IClassLoader export(@Nonnull ClassLoader cl, Channel local) {
+        boolean cacheFilesInJarURLConnections = true;
         if (cl instanceof RemoteClassLoader) {
             // check if this is a remote classloader from the channel
             final RemoteClassLoader rcl = (RemoteClassLoader) cl;
+            cacheFilesInJarURLConnections = rcl.cacheFilesInJarURLConnections;
             int oid = RemoteInvocationHandler.unwrap(rcl.underlyingProxy, local);
             if(oid!=-1) {
                 return new RemoteIClassLoader(oid,rcl.proxy);
             }
         }
-        return local.export(IClassLoader.class, new ClassLoaderProxy(cl,local), false);
+        return local.export(IClassLoader.class, new ClassLoaderProxy(cl, local, cacheFilesInJarURLConnections), false);
     }
 
     public static void pin(ClassLoader cl, Channel local) {
+        boolean cacheFilesInJarURLConnections = true;
         if (cl instanceof RemoteClassLoader) {
             // check if this is a remote classloader from the channel
             final RemoteClassLoader rcl = (RemoteClassLoader) cl;
+            cacheFilesInJarURLConnections = rcl.cacheFilesInJarURLConnections;
             int oid = RemoteInvocationHandler.unwrap(rcl.proxy, local);
             if(oid!=-1) return;
         }
-        local.pin(new ClassLoaderProxy(cl,local));
+        local.pin(new ClassLoaderProxy(cl, local, cacheFilesInJarURLConnections));
     }
 
     /**
      * Exports and just returns the object ID, instead of obtaining the proxy.
      */
     static int exportId(ClassLoader cl, Channel local) {
-        return local.internalExport(IClassLoader.class, new ClassLoaderProxy(cl, local), false);
+        boolean cacheFilesInJarURLConnections = true;
+        if (cl instanceof RemoteClassLoader) {
+            cacheFilesInJarURLConnections = ((RemoteClassLoader)cl).cacheFilesInJarURLConnections;
+        }
+        return local.internalExport(IClassLoader.class, new ClassLoaderProxy(cl, local, cacheFilesInJarURLConnections), false);
     }
 
     /*package*/ static final class ClassLoaderProxy implements IClassLoader {
         final ClassLoader cl;
         final Channel channel;
+        private final boolean cacheFilesInJarURLConnections;
+        
         /**
          * Class names that we've already sent to the other side as pre-fetch.
          */
         private final Set<String> prefetched = new HashSet<String>();
 
         public ClassLoaderProxy(@Nonnull ClassLoader cl, Channel channel) {
+            this(cl, channel, true);
+        }
+        
+        public ClassLoaderProxy(@Nonnull ClassLoader cl, Channel channel, boolean cacheFilesInJarURLConnections) {
             assert cl != null;
 
             this.cl = cl;
             this.channel = channel;
+            this.cacheFilesInJarURLConnections = cacheFilesInJarURLConnections;
         }
 
         public byte[] fetchJar(URL url) throws IOException {
@@ -848,9 +883,9 @@ final class RemoteClassLoader extends URLClassLoader {
                         if (referer==null && !channel.jarLoader.isPresentOnRemote(sum))
                             // for the class being requested, if the remote doesn't have the jar yet
                             // send the image as well, so as not to require another call to get this class loaded
-                            imageRef = new ResourceImageBoth(urlOfClassFile,sum);
+                            imageRef = new ResourceImageBoth(urlOfClassFile,sum,cacheFilesInJarURLConnections);
                         else // otherwise just send the checksum and save space
-                            imageRef = new ResourceImageInJar(sum,null /* TODO: we need to check if the URL of c points to the expected location of the file */);
+                            imageRef = new ResourceImageInJar(sum,null /* TODO: we need to check if the URL of c points to the expected location of the file */, cacheFilesInJarURLConnections);
 
                         return new ClassFile2(exportId(ecl,channel), imageRef, referer, c, urlOfClassFile);
                     }
@@ -927,9 +962,9 @@ final class RemoteClassLoader extends URLClassLoader {
                     Checksum sum = channel.jarLoader.calcChecksum(jar);
                     ResourceImageRef ir;
                     if (!channel.jarLoader.isPresentOnRemote(sum))
-                        ir = new ResourceImageBoth(resource,sum);   // remote probably doesn't have
+                        ir = new ResourceImageBoth(resource, sum, cacheFilesInJarURLConnections);   // remote probably doesn't have
                     else
-                        ir = new ResourceImageInJar(sum,null);
+                        ir = new ResourceImageInJar(sum, null, cacheFilesInJarURLConnections);
                     return new ResourceFile(ir,resource);
                 }
             } catch (IllegalArgumentException e) {

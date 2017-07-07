@@ -11,11 +11,17 @@ import javax.annotation.Nonnull;
  */
 class ResourceImageBoth extends ResourceImageDirect {
     final long sum1,sum2;
+    final boolean useFileCachesInJarUrlConnection;
 
     public ResourceImageBoth(URL resource, Checksum sum) throws IOException {
+        this(resource, sum, true);
+    }
+    
+    public ResourceImageBoth(URL resource, Checksum sum, boolean useFileCachesInJarUrlConnection) throws IOException {
         super(resource);
         this.sum1 = sum.sum1;
         this.sum2 = sum.sum2;
+        this.useFileCachesInJarUrlConnection = useFileCachesInJarUrlConnection;
     }
 
     @Override
@@ -28,7 +34,7 @@ class ResourceImageBoth extends ResourceImageDirect {
     Future<URLish> resolveURL(Channel channel, String resourcePath) throws IOException, InterruptedException {
         Future<URL> f = initiateJarRetrieval(channel);
         if (f.isDone()) // prefer using the jar URL if the stuff is already available
-            return new ResourceImageInJar(sum1,sum2,null).resolveURL(channel,resourcePath);
+            return new ResourceImageInJar(sum1,sum2,null,useFileCachesInJarUrlConnection).resolveURL(channel,resourcePath);
         else
             return super.resolveURL(channel, resourcePath);
     }

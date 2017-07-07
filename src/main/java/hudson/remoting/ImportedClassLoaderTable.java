@@ -38,9 +38,15 @@ import javax.annotation.Nonnull;
 final class ImportedClassLoaderTable {
     final Channel channel;
     final Map<IClassLoader,ClassLoader> classLoaders = new Hashtable<IClassLoader,ClassLoader>();
+    private final boolean cacheFilesInJarURLConnections;
 
     ImportedClassLoaderTable(Channel channel) {
+        this(channel, true);
+    }
+    
+    ImportedClassLoaderTable(Channel channel, boolean cacheFilesInJarURLConnections) {
         this.channel = channel;
+        this.cacheFilesInJarURLConnections = cacheFilesInJarURLConnections;
     }
 
     /**
@@ -66,7 +72,7 @@ final class ImportedClassLoaderTable {
         if(r==null) {
             // we need to be able to use the same hudson.remoting classes, hence delegate
             // to this class loader.
-            r = RemoteClassLoader.create(channel.baseClassLoader,classLoaderProxy);
+            r = RemoteClassLoader.create(channel.baseClassLoader,classLoaderProxy,cacheFilesInJarURLConnections);
             classLoaders.put(classLoaderProxy,r);
         }
         return r;
