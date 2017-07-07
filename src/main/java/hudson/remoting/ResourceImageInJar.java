@@ -1,8 +1,10 @@
 package hudson.remoting;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLConnection;
 import java.util.concurrent.ExecutionException;
 import javax.annotation.Nonnull;
 
@@ -27,6 +29,14 @@ class ResourceImageInJar extends ResourceImageRef {
      * the exact path inside the jar file of the resource.
      */
     final String path;
+    
+    /**
+     * Disables JAR Caching in {@link JarURLConnection}.
+     * @since TODO
+     */
+    /*package*/ static boolean DISABLE_FILE_CACHING_IN_JAR_CONNECTION = 
+            Boolean.getBoolean(ResourceImageBoth.class.getName() + ".disableFileCachingInJARConnection");
+    
 
     ResourceImageInJar(long sum1, long sum2, String path) {
         this.sum1 = sum1;
@@ -43,11 +53,24 @@ class ResourceImageInJar extends ResourceImageRef {
         return new FutureAdapter<byte[],URL>(_resolveJarURL(channel)) {
             @Override
             protected byte[] adapt(URL jar) throws ExecutionException {
+                final URLConnection c;
                 try {
-                    return Util.readFully(toResourceURL(jar,resourcePath).openStream());
+                    URL url = toResourceURL(jar,resourcePath);
+                    c = url.openConnection();
+                    if (DISABLE_FILE_CACHING_IN_JAR_CONNECTION) {
+                        // Disable caching if requested
+                        c.setUseCaches(false);
+                    }
+                } catch (IOException ex) {
+                    throw new ExecutionException(ex);
+                }
+                
+                try(InputStream istream = c.getInputStream()) {
+                    return Util.readFully(istream);
                 } catch (IOException e) {
                     throw new ExecutionException(e);
                 }
+
             }
         };
     }
@@ -76,6 +99,10 @@ class ResourceImageInJar extends ResourceImageRef {
                 open jar file (see sun.net.www.protocol.jar.JarURLConnection.JarURLInputStream.close())
                 and leave it open. During unit test, this pins the file, and it prevents the test tear down code
                 from deleting the file.
+             Oleg Nenashev:
+                In newer versions there is a system property, which allows disable JAR File caching
+                in JARUrlConnection. It should not be used in production instances, but it helps tests to pass at least.
+                See JENKINS-38696 for more info
          */
         return new URL("jar:"+ jar +"!/"+resourcePath);
     }
