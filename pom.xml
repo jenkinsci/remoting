@@ -494,6 +494,7 @@ THE SOFTWARE.
         <configuration>
           <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
+          <argLine>${maven-surefire-plugin.agent}</argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -574,6 +575,43 @@ THE SOFTWARE.
                 <argument>http://timestamp.comodoca.com/rfc3161</argument>
               </arguments>
             </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>surefire-with-fileleak-detector</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <maven-surefire-plugin.agent>-javaagent:${project.build.directory}\agents\file-leak-detector.jar=http=20000</maven-surefire-plugin.agent>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>copy-fileleak-detector</id>
+                <phase>process-test-classes</phase>
+                <goals>
+                  <goal>copy</goal>
+                </goals>
+                <configuration>
+                  <artifactItems>
+                    <artifactItem>
+                      <groupId>org.kohsuke</groupId>
+                      <artifactId>file-leak-detector</artifactId>
+                      <version>1.8</version>
+                      <classifier>jar-with-dependencies</classifier>
+                      <outputDirectory>${project.build.directory}/agents</outputDirectory>
+                      <destFileName>file-leak-detector.jar</destFileName>
+                    </artifactItem>
+                  </artifactItems>
+                </configuration>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
