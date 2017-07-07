@@ -53,6 +53,14 @@ public abstract class RmiTestBase extends TestCase {
 
     protected void tearDown() throws Exception {
         channelRunner.stop(channel);
+        
+        // If we run with File Leak Detector, it allows stopping the test and checking the detector's web UI
+        // TODO: Make it a part of the Generic remoting Test framework?
+        if (Boolean.getBoolean("remoting.test.interactive")) {
+            System.out.println("Interactive flag is set. Waiting til somebody interrupts the test. "
+                    + "If File Leak Detector Profile is enabled, you can find its UI in http://localhost:20000");
+            Thread.sleep(Long.MAX_VALUE);
+        }
     }
 
     /*package*/ void setChannelRunner(Class<? extends ChannelRunner> runner) {
