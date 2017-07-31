@@ -39,14 +39,20 @@ but confirmed protocol-specific issues will be closed and added to Errata.
 
 ### JNLP1-connect
 
-* Legacy remoting protocol
-* Not recommended for use since in Modern Jenkins versions
+* Status: Replaced by `JNLP2-connect`
 
 The slave sends the master the slave name it wants to register as and the computed HMAC of the slave name.
 If accepted the master will reply with a confirmation response.
 Then the channel gets established.
 
+#### JNLP1-connect Errata
+
+* NIO is not supported by the protocol.
+It may cause performance issues on large-scale instances.
+
 ### JNLP2-connect
+
+* Status: Replaced by `JNLP4-connect`
 
 This is the advanced versions of the <code>JNLP1-connect</code> protocol. 
 On successful connection to the master the slave will receive a cookie from the master, which the slave stores.
@@ -57,10 +63,18 @@ The master can use the cookie to determine if the incoming request is an initial
   
 The protocol supports the non-blocking I/O, which improve the performance of the communication channel.
 
+#### JNLP2-connect Errata
+
+* [JENKINS-31735](https://issues.jenkins-ci.org/browse/JENKINS-31735), [JENKINS-24155](https://issues.jenkins-ci.org/browse/JENKINS-24155) - `NioChannelHub` thread dies sometimes without obvious reason
+* ...
+
+The list is not complete. 
+Check the bugtracker for more issues. 
+
 ### JNLP3-connect
 
+* Status: Replaced by `JNLP4-connect`
 * Introduced in: Remoting 2.53, [JENKINS-26580](https://issues.jenkins-ci.org/browse/JENKINS-26580)
-* The protocol has known stability issues (see the Errata section below)
 * The protocol is disabled by default in Jenkins
 * **Not recommended** for use since the <code>JNLP4-connect</code> release
 
