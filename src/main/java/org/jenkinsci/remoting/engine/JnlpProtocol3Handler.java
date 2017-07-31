@@ -121,6 +121,8 @@ import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
  * 256bit sizes are supported.
  * 
  * @deprecated Deprecated after the release of JNLP4, see {@link JnlpProtocol4Handler} 
+ * @since 3.0
+ * @see JnlpProtocol4Handler
  */
 @Deprecated
 public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3ConnectionState> {

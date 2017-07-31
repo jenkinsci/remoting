@@ -45,7 +45,7 @@ import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
 /**
  * Represents a {@code TcpSlaveAgentListener} endpoint details.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class JnlpAgentEndpoint {
     /**
