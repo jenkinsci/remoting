@@ -60,6 +60,7 @@ import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
 
 /**
  * @author Stephen Connolly
+ * @since 3.0
  */
 public class JnlpAgentEndpointResolver {
 
