@@ -61,7 +61,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <java.level>7</java.level>
+    <java.level>8</java.level>
     <build.type>private</build.type>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
@@ -233,7 +233,7 @@ THE SOFTWARE.
           <!--rulesets>
             <ruleset>ruleset.xml</ruleset>
           </rulesets-->
-          <targetJdk>1.6</targetJdk>
+          <targetJdk>1.${java.level}</targetJdk>
         </configuration>
       </plugin>
       <plugin>
@@ -431,7 +431,7 @@ THE SOFTWARE.
         <configuration>
           <signature>
             <groupId>org.codehaus.mojo.signature</groupId>
-            <artifactId>java17</artifactId>
+            <artifactId>java1${java.level}</artifactId>
             <version>1.0</version>
           </signature>
           <ignores>
