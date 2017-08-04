@@ -494,7 +494,7 @@ THE SOFTWARE.
         <configuration>
           <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
-          <argLine>${maven-surefire-plugin.agent}</argLine>
+          <argLine>${argLine} ${maven-surefire-plugin.agent}</argLine>
         </configuration>
       </plugin>
       <plugin>
