@@ -582,7 +582,7 @@ THE SOFTWARE.
     <profile>
       <id>surefire-with-fileleak-detector</id>
       <properties>
-        <maven-surefire-plugin.agent>-javaagent:${project.build.directory}\agents\file-leak-detector.jar=http=20000</maven-surefire-plugin.agent>
+        <maven-surefire-plugin.agent>-javaagent:${project.build.directory}/agents/file-leak-detector.jar=http=20000</maven-surefire-plugin.agent>
       </properties>
       <build>
         <plugins>
