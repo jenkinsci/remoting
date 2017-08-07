@@ -93,13 +93,15 @@ public abstract class ClassFilter {
             DEFAULT = createDefaultInstance();
         } catch (ClassFilterException ex) {
             LOGGER.log(Level.SEVERE, "Default class filter cannot be initialized. Remoting will not start", ex);
-            throw new IllegalStateException("Default class filter cannot be initialized", ex);
+            throw new ExceptionInInitializerError(ex);
         }
     }
 
     /**
      * Adds an additional exclusion to {@link #DEFAULT}.
+     * 
      * Does nothing if the default list has already been customized via {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
+     * This API is not supposed to be used anywhere outside Jenkins core, calls for other sources may be rejected later.
      * @param filter a regular expression for {@link Class#getName} which, if matched according to {@link Matcher#matches}, will blacklist the class
      * @throws ClassFilterException Filter pattern cannot be applied.
      *                              It means either unexpected processing error or rejection by the internal logic.
