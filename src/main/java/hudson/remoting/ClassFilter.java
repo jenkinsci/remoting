@@ -86,14 +86,26 @@ public abstract class ClassFilter {
      * A set of sensible default filtering rules to apply,
      * unless the context guarantees the trust between two channels.
      */
-    public static final ClassFilter DEFAULT = createDefaultInstance();
+    public static final ClassFilter DEFAULT;
+
+    static {
+        try {
+            DEFAULT = createDefaultInstance();
+        } catch (ClassFilterException ex) {
+            LOGGER.log(Level.SEVERE, "Default class filter cannot be initialized. Remoting will not start", ex);
+            throw new IllegalStateException("Default class filter cannot be initialized", ex);
+        }
+    }
 
     /**
      * Adds an additional exclusion to {@link #DEFAULT}.
      * Does nothing if the default list has already been customized via {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
      * @param filter a regular expression for {@link Class#getName} which, if matched according to {@link Matcher#matches}, will blacklist the class
+     * @throws ClassFilterException Filter pattern cannot be applied.
+     *                              It means either unexpected processing error or rejection by the internal logic.
+     * @since TODO
      */
-    public static void appendDefaultFilter(Pattern filter) {
+    public static void appendDefaultFilter(Pattern filter) throws ClassFilterException {
         if (System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY) == null) {
             ((RegExpClassFilter) DEFAULT).add(filter.toString());
         }
@@ -109,7 +121,7 @@ public abstract class ClassFilter {
      * The default filtering rules to apply, unless the context guarantees the trust between two channels. The defaults
      * values provide for user specified overrides - see {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
      */
-    /*package*/ static ClassFilter createDefaultInstance() {
+    /*package*/ static ClassFilter createDefaultInstance() throws ClassFilterException {
         try {
             List<String> patternOverride = loadPatternOverride();
             if (patternOverride != null) {
@@ -187,14 +199,15 @@ public abstract class ClassFilter {
 
         private final List<Object> blacklistPatterns;
 
-        RegExpClassFilter(String[] patterns) throws PatternSyntaxException {
+        RegExpClassFilter(String[] patterns) throws ClassFilterException {
             blacklistPatterns = new ArrayList<>(patterns.length);
             for (String pattern : patterns) {
                 add(pattern);
             }
         }
 
-        void add(String pattern) throws PatternSyntaxException {
+        void add(String pattern) throws ClassFilterException {
+
             if (OPTIMIZE1.matcher(pattern).matches()) {
                 // this is a simple startsWith test, no need to slow things down with a regex
                 blacklistPatterns.add(pattern.substring(1, pattern.length() - 2).replace("[.]", "."));
@@ -202,6 +215,11 @@ public abstract class ClassFilter {
                 // this is a simple startsWith test, no need to slow things down with a regex
                 blacklistPatterns.add(pattern.substring(3, pattern.length() - 4));
             } else {
+                try {
+                    Pattern regex = Pattern.compile(pattern);
+                } catch (PatternSyntaxException ex) {
+                    throw new ClassFilterException("Cannot add RegExp class filter", ex);
+                }
                 blacklistPatterns.add(Pattern.compile(pattern));
             }
         }
@@ -225,6 +243,39 @@ public abstract class ClassFilter {
         @Override
         public String toString() {
             return blacklistPatterns.toString();
+        }
+    }
+
+    /**
+     * Class for propagating exceptions in {@link ClassFilter}.
+     * @since TODO
+     */
+    public static class ClassFilterException extends Exception {
+
+        @CheckForNull
+        final String pattern;
+
+        public ClassFilterException(String message, PatternSyntaxException ex) {
+            this(message, ex, ex.getPattern());
+        }
+
+        public ClassFilterException(String message, @CheckForNull String pattern) {
+            this(message, new IllegalStateException(message), pattern);
+        }
+
+        public ClassFilterException(String message, Throwable cause, @CheckForNull String pattern) {
+            super(message, cause);
+            this.pattern = pattern;
+        }
+
+        @CheckForNull
+        public String getPattern() {
+            return pattern;
+        }
+
+        @Override
+        public String getMessage() {
+            return super.getMessage() + ". Pattern: " + pattern;
         }
     }
 }
