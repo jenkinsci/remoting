@@ -1644,16 +1644,16 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Decorates the stack elements of the given {@link Throwable} by adding the call site information.
      */
     /*package*/ void attachCallSiteStackTrace(Throwable t) {
-        Exception e = new Exception();
-        StackTraceElement[] callSite = e.getStackTrace();
-        StackTraceElement[] original = t.getStackTrace();
+        t.addSuppressed(new CallSiteStackTrace(name));
+    }
 
-        StackTraceElement[] combined = new StackTraceElement[original.length+1+callSite.length];
-        System.arraycopy(original,0,combined,0,original.length); // original stack trace at the top
-        combined[original.length] = new StackTraceElement(".....","remote call to "+name,null,-2);
-        System.arraycopy(callSite,0,combined,original.length+1,callSite.length);
-
-        t.setStackTrace(combined);
+    /**
+     * Dummy exception indicating the stacktrace on calling side of channel for remote exception for ease of debugging.
+     */
+    private static final class CallSiteStackTrace extends Exception {
+        public CallSiteStackTrace(String message) {
+            super("Remote call to " + message);
+        }
     }
 
     public String getName() {
