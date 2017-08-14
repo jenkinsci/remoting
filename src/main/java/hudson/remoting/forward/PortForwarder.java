@@ -57,6 +57,14 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
         // mark as a daemon thread by default.
         // the caller can explicitly cancel this by doing "setDaemon(false)"
         setDaemon(true);
+        setUncaughtExceptionHandler((t, e) -> {
+            LOGGER.log(SEVERE, "Uncaught exception in PortForwarder thread " + t, e);
+            try {
+                socket.close();
+            } catch (IOException e1) {
+                LOGGER.log(SEVERE, "Could not close socket after uncaught exception");
+            }
+        });
     }
 
     public int getPort() {

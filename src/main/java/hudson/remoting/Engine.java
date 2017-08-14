@@ -217,6 +217,10 @@ public class Engine extends Thread {
         this.slaveName = slaveName;
         if(candidateUrls.isEmpty())
             throw new IllegalArgumentException("No URLs given");
+        setUncaughtExceptionHandler((t, e) -> {
+            LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
+            interrupt();
+        });
     }
 
     /**

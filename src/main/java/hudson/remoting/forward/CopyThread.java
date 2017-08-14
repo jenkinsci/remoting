@@ -20,6 +20,9 @@ final class CopyThread extends Thread {
         super(threadName);
         this.in = in;
         this.out = out;
+        setUncaughtExceptionHandler((t, e) -> {
+            LOGGER.log(Level.WARNING, "Uncaught exception in CopyThread " + t, e);
+        });
     }
 
     public void run() {
