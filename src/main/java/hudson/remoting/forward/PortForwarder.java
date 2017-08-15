@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
@@ -78,11 +79,23 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
                 while(true) {
                     final Socket s = socket.accept();
                     new Thread("Port forwarding session from "+s.getRemoteSocketAddress()) {
+                        {
+                            setUncaughtExceptionHandler(
+                                    (t, e) -> LOGGER.log(Level.SEVERE, "Unhandled exception in port forwarding session " + t, e));
+                        }
                         public void run() {
-                            try {
-                                final OutputStream out = forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)));
-                                new CopyThread("Copier for "+s.getRemoteSocketAddress(),
-                                        SocketChannelStream.in(s), out).start();
+                            try (OutputStream out = forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)))) {
+                                new CopyThread(
+                                        "Copier for " + s.getRemoteSocketAddress(),
+                                        SocketChannelStream.in(s),
+                                        out,
+                                        () -> {
+                                            try {
+                                                s.close();
+                                            } catch (IOException e) {
+                                                LOGGER.log(Level.WARNING, "Failed to close socket", e);
+                                            }
+                                        }).start();
                             } catch (IOException e) {
                                 // this happens if the socket connection is terminated abruptly.
                                 LOGGER.log(FINE,"Port forwarding session was shut down abnormally",e);

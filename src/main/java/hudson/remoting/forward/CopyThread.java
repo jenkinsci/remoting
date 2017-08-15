@@ -16,12 +16,22 @@ final class CopyThread extends Thread {
     private final InputStream in;
     private final OutputStream out;
 
-    public CopyThread(String threadName, InputStream in, OutputStream out) {
+    public CopyThread(String threadName, InputStream in, OutputStream out, Runnable termination) {
+        this(threadName, in, out, termination, 0);
+    }
+
+    private CopyThread(String threadName, InputStream in, OutputStream out, Runnable termination, int previousTries) {
         super(threadName);
         this.in = in;
         this.out = out;
         setUncaughtExceptionHandler((t, e) -> {
-            LOGGER.log(Level.WARNING, "Uncaught exception in CopyThread " + t, e);
+            if (previousTries < 5) {
+                LOGGER.log(Level.FINE, "Uncaught exception in CopyThread " + t + ", retrying copy", e);
+                new CopyThread(threadName, in, out, termination, previousTries + 1).run();
+            } else {
+                LOGGER.log(Level.SEVERE, "Uncaught exception in CopyThread " + t + ", out of retries", e);
+                termination.run();
+            }
         });
     }
 
