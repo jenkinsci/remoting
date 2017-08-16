@@ -16,6 +16,9 @@ final class CopyThread extends Thread {
     private final InputStream in;
     private final OutputStream out;
 
+    /**
+     * Callers are responsible for closing the input and output streams.
+     */
     public CopyThread(String threadName, InputStream in, OutputStream out, Runnable termination) {
         this(threadName, in, out, termination, 0);
     }
@@ -37,15 +40,10 @@ final class CopyThread extends Thread {
 
     public void run() {
         try {
-            try {
-                byte[] buf = new byte[8192];
-                int len;
-                while ((len = in.read(buf)) > 0)
-                    out.write(buf, 0, len);
-            } finally {
-                in.close();
-                out.close();
-            }
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = in.read(buf)) > 0)
+                out.write(buf, 0, len);
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Exception while copying in thread: " + getName(), e);
         }

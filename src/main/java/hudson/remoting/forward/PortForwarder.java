@@ -33,6 +33,7 @@ import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -84,10 +85,11 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
                                     (t, e) -> LOGGER.log(Level.SEVERE, "Unhandled exception in port forwarding session " + t, e));
                         }
                         public void run() {
-                            try (OutputStream out = forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)))) {
+                            try (InputStream in = SocketChannelStream.in(s);
+                                    OutputStream out = forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)))) {
                                 new CopyThread(
                                         "Copier for " + s.getRemoteSocketAddress(),
-                                        SocketChannelStream.in(s),
+                                        in,
                                         out,
                                         () -> {
                                             try {
