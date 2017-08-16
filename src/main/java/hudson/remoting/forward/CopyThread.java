@@ -27,7 +27,7 @@ final class CopyThread extends Thread {
         setUncaughtExceptionHandler((t, e) -> {
             if (previousTries < 5) {
                 LOGGER.log(Level.FINE, "Uncaught exception in CopyThread " + t + ", retrying copy", e);
-                new CopyThread(threadName, in, out, termination, previousTries + 1).run();
+                new CopyThread(threadName, in, out, termination, previousTries + 1).start();
             } else {
                 LOGGER.log(Level.SEVERE, "Uncaught exception in CopyThread " + t + ", out of retries", e);
                 termination.run();
@@ -42,6 +42,7 @@ final class CopyThread extends Thread {
                 int len;
                 while ((len = in.read(buf)) > 0)
                     out.write(buf, 0, len);
+                throw new IllegalArgumentException();
             } finally {
                 in.close();
                 out.close();
