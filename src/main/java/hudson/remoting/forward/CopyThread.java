@@ -42,7 +42,6 @@ final class CopyThread extends Thread {
                 int len;
                 while ((len = in.read(buf)) > 0)
                     out.write(buf, 0, len);
-                throw new IllegalArgumentException();
             } finally {
                 in.close();
                 out.close();
