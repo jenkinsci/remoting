@@ -67,6 +67,8 @@ THE SOFTWARE.
     <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <findbugs.failOnError>false</findbugs.failOnError>
+    <!-- TODO: Required to override by a version with certchain support (MJARSIGNER-53) on @oleg-nenashev's machine. Remove once it's in upstream -->
+    <maven-jarsigner-plugin.version>1.4</maven-jarsigner-plugin.version>
   </properties>
 
   <repositories>
@@ -274,7 +276,7 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-jarsigner-plugin</artifactId>
-        <version>1.4</version>
+        <version>${maven-jarsigner-plugin.version}</version>
         <configuration>
           <!--
             during the development, debug profile will cause
@@ -289,11 +291,18 @@ THE SOFTWARE.
           <providerClass>${hudson.sign.providerClass}</providerClass>
           <providerArg>${hudson.sign.providerArg}</providerArg>
           <tsa>${hudson.sign.tsa}</tsa>
+          <!-- 
+            This option is required for JENKINS-37567, not required on any release machine.
+            In order to take effect, a version with MJARSIGNER-53 should be used.
+            See the "maven-jarsigner-plugin.version" parameter.
+          -->
+          <certchain>${hudson.sign.certchain}</certchain>
         </configuration>
         <executions>
           <execution>
             <goals>
               <goal>sign</goal>
+              <goal>verify</goal>
             </goals>
           </execution>
         </executions>
@@ -568,12 +577,39 @@ THE SOFTWARE.
           </plugin>
           <plugin>
             <artifactId>maven-jarsigner-plugin</artifactId>
-            <configuration>
-              <arguments>
-                <argument>-tsa</argument>
-                <argument>http://timestamp.comodoca.com/rfc3161</argument>
-              </arguments>
-            </configuration>
+            <executions>
+              <execution>
+                <id>add-tsa</id>
+                <!-- Phase and goal are the default ones -->
+                <!-- TODO: Does it cause conflict with signing parameters in the build? Seems "no". Should also use ${hudson.sign.tsa} -->
+                <configuration>
+                    <arguments>
+                        <argument>-tsa</argument>
+                        <argument>http://timestamp.comodoca.com/rfc3161</argument>
+                    </arguments>
+                </configuration>
+              </execution>
+              <execution>
+                <id>verify-signature</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>verify</goal>
+                </goals>
+                <configuration>
+                  <processMainArtifact>true</processMainArtifact>
+                  <processAttachedArtifacts>false</processAttachedArtifacts>
+                  <certs>true</certs>
+                  <errorWhenNotSigned>true</errorWhenNotSigned>
+                  <arguments>-strict</arguments> <!--otherwise certificate chains will be ignored-->
+                  <alias>${hudson.sign.alias}</alias>
+                  <storepass>${hudson.sign.storepass}</storepass>
+                  <keystore>${hudson.sign.keystore}</keystore>
+                  <storetype>${hudson.sign.storetype}</storetype>
+                  <providerClass>${hudson.sign.providerClass}</providerClass>
+                  <providerArg>${hudson.sign.providerArg}</providerArg> 
+                </configuration>
+              </execution>
+            </executions>
           </plugin>
         </plugins>
       </build>
