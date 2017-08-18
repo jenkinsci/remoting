@@ -146,7 +146,7 @@ public class DefaultClassFilterTest {
             return new BlackListMatcher();
         }
 
-        public boolean matches(Object item)  {
+        public boolean matches(Object item) {
             try {
                 ClassFilter.createDefaultInstance().check(item.toString());
                 return Boolean.FALSE;
