@@ -32,7 +32,7 @@ THE SOFTWARE.
   </parent>
 
   <artifactId>remoting-test-client</artifactId>
-  <version>1.1</version>
+  <version>1.2-SNAPSHOT</version>
 
   <name>Client code that uses remoting for tests</name>
   <description>
@@ -56,7 +56,7 @@ THE SOFTWARE.
     <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
     <url>https://github.com/jenkinsci/remoting</url>
-    <tag>remoting-test-client-1.1</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <build>
