@@ -39,7 +39,7 @@ THE SOFTWARE.
     This module is separate because some of the tests
     require code in a jar file not available in the default classpath.
   </description>
-  
+
   <properties>
     <java.level>7</java.level>
   </properties>
@@ -109,5 +109,12 @@ THE SOFTWARE.
       <version>2.17</version>
       <scope>provided</scope>
     </dependency>
+    <plugin>
+      <artifactId>maven-release-plugin</artifactId>
+      <version>2.5.2</version>
+      <configuration>
+        <releaseProfiles>release</releaseProfiles>
+      </configuration>
+    </plugin>
   </dependencies>
 </project>
