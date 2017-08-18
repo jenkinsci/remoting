@@ -150,6 +150,8 @@ public class DefaultClassFilterTest {
             try {
                 ClassFilter.createDefaultInstance().check(item.toString());
                 return Boolean.FALSE;
+            } catch (ClassFilter.ClassFilterException ex) {
+                throw new IllegalStateException("Failed to initialize the default class filter", ex);
             } catch (SecurityException sex) {
                 return Boolean.TRUE;
             }
