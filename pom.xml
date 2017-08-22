@@ -28,8 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.37</version>
-    <relativePath />
+    <version>1.38</version>
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
@@ -172,12 +171,6 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
-      <artifactId>jsr305</artifactId>
-      <version>2.0.1</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.findbugs</groupId>
       <artifactId>annotations</artifactId>
       <version>3.0.1</version>
       <scope>provided</scope>
@@ -204,9 +197,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.jenkins-ci</groupId>
       <artifactId>test-annotations</artifactId>
-      <version>1.2</version>
       <scope>test</scope>
-      <type>jar</type>
     </dependency>
   </dependencies>
 
@@ -424,33 +415,6 @@ THE SOFTWARE.
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <!-- make sure our code doesn't have 1.6 dependencies except where we know it -->
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <version>1.15</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <signature>
-            <groupId>org.codehaus.mojo.signature</groupId>
-            <artifactId>java1${java.level}</artifactId>
-            <version>1.0</version>
-          </signature>
-          <ignores>
-            <!--
-                 this reference comes from args4j. animal-sniffer doesn't seem to let me specify
-                 the classes not to scan, and instead only let me ignore references.
-            -->
-            <ignore>java.nio.file.Paths</ignore>
-          </ignores>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-release-plugin</artifactId>
