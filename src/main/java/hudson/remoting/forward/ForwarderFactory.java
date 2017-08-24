@@ -80,8 +80,7 @@ public class ForwarderFactory {
 
         public OutputStream connect(OutputStream out) throws IOException {
             Socket s = new Socket(remoteHost, remotePort);
-            InputStream in = SocketChannelStream.in(s);
-            try {
+            try (InputStream in = SocketChannelStream.in(s)) {
                 new CopyThread(
                         String.format("Copier to %s:%d", remoteHost, remotePort),
                         in,
@@ -93,9 +92,6 @@ public class ForwarderFactory {
                                 LOGGER.log(Level.WARNING, "Problem closing socket for ForwardingFactory", e);
                             }
                         }).start();
-            } finally {
-               in.close();
-               out.close();
             }
             return new RemoteOutputStream(SocketChannelStream.out(s));
         }
