@@ -44,6 +44,9 @@ import java.util.logging.Logger;
  * @author Kohsuke Kawaguchi
  */
 public class ForwarderFactory {
+
+    private static final Logger LOGGER = Logger.getLogger(ForwarderFactory.class.getName());
+
     /**
      * Creates a connector on the remote side that connects to the speicied host and port.
      */
@@ -111,6 +114,4 @@ public class ForwarderFactory {
      * Role that's willing to open a socket to arbitrary node nad forward that to the other side.
      */
     public static final Role ROLE = new Role(ForwarderFactory.class);
-
-    private static final Logger LOGGER = Logger.getLogger(ForwarderFactory.class.getName());
 }
