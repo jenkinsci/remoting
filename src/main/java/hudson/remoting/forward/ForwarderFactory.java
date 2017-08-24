@@ -84,7 +84,7 @@ public class ForwarderFactory {
             try {
                 new CopyThread(
                         String.format("Copier to %s:%d", remoteHost, remotePort),
-                        SocketChannelStream.in(s),
+                        in,
                         out,
                         () -> {
                             try {
