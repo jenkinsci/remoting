@@ -25,11 +25,10 @@ public abstract class JarCache {
      * Default JAR cache location for disabled workspace Manager.
      */
     /*package*/ static final File DEFAULT_NOWS_JAR_CACHE_LOCATION = 
-        new File(System.getProperty("user.home"),".jenkins/cache/jars");
+        new File(System.getProperty("user.dir"),".jenkins/cache/jars");
     
     @Nonnull
     /*package*/ static JarCache getDefault() {
-        DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsoluteFile()
         return new FileSystemJarCache(DEFAULT_NOWS_JAR_CACHE_LOCATION, true);
     }
     
