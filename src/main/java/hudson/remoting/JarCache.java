@@ -29,6 +29,7 @@ public abstract class JarCache {
     
     @Nonnull
     /*package*/ static JarCache getDefault() {
+        DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsoluteFile()
         return new FileSystemJarCache(DEFAULT_NOWS_JAR_CACHE_LOCATION, true);
     }
     
