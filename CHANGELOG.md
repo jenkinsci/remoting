@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.11
 
-Release date: Coming Soon
+Release date: Aug 18, 2017 => [Jenkins 2.76](https://jenkins.io/changelog/#v2.76)
 
 :exclamation: **Warning!** Starting from this release, Jenkins Remoting requires Java 8 to run.
 In edge cases it may require manual actions during the upgrade.
