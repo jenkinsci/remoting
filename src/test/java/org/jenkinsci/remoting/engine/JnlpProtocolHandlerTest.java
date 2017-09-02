@@ -8,7 +8,10 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -700,7 +703,27 @@ public class JnlpProtocolHandlerTest {
 
     @DataPoints
     public static Factory[] protocols() {
-        return new Factory[]{
+        List<Factory> factories = new ArrayList<>();
+
+        factories.add( new Factory() {
+            @Override
+            public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
+                                                                             ExecutorService svc,
+                                                                             IOHub selector, NioChannelHub hub,
+                                                                             SSLContext ctx,
+                                                                             boolean preferNio) {
+                return new JnlpProtocol4Handler(db, svc, selector, ctx, false, preferNio);
+
+            }
+
+            @Override
+            public String toString() {
+                return "JNLP4-connect";
+            }
+        });
+
+
+        Factory[] extraFactories = new Factory[]{
                 new Factory() {
                     @Override
                     public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
@@ -753,22 +776,6 @@ public class JnlpProtocolHandlerTest {
                                                                                      IOHub selector, NioChannelHub hub,
                                                                                      SSLContext ctx,
                                                                                      boolean preferNio) {
-                        return new JnlpProtocol4Handler(db, svc, selector, ctx, false, preferNio);
-
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "JNLP4-connect";
-                    }
-                },
-                new Factory() {
-                    @Override
-                    public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
-                                                                                     ExecutorService svc,
-                                                                                     IOHub selector, NioChannelHub hub,
-                                                                                     SSLContext ctx,
-                                                                                     boolean preferNio) {
                         return new JnlpProtocol4PlainHandler(db, svc, selector, preferNio);
 
                     }
@@ -779,6 +786,13 @@ public class JnlpProtocolHandlerTest {
                     }
                 }
         };
+
+        if (false) {
+            for (Factory f : extraFactories) {
+                factories.add(f);
+            }
+        }
+        return factories.toArray(new Factory[factories.size()]);
     }
 
 
