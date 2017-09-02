@@ -28,6 +28,7 @@ package org.jenkinsci.remoting.engine;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -374,19 +375,26 @@ public class WorkDirManagerTest {
         NOT_EXECUTABLE;
 
         public void modifyFile(File file) throws AssertionError {
+            boolean success = false;
             switch (this) {
                 case NOT_EXECUTABLE:
-                    file.setExecutable(false);
+                    success = file.setExecutable(false);
+                    Assume.assumeFalse("Cannot make the file " + file + " not-writable", file.canExecute());
                     break;
                 case NOT_WRITABLE:
-                    file.setWritable(false);
+                    success = file.setWritable(false);
+                    Assume.assumeFalse("Cannot make the file " + file + " not-executable", file.canWrite());
                     break;
                 case NOT_READABLE:
-                    file.setReadable(false);
+                    success = file.setReadable(false);
+                    Assume.assumeFalse("Cannot make the file " + file + " not-readable", file.canRead());
                     break;
                 default:
                     Assert.fail("Unsupported file mode " + this);
             }
+
+            // It appears that in Docker it's not enough, hence the checks above
+            Assume.assumeTrue("Failed to set " + this + " on " + file, success);
         }
     }
 
