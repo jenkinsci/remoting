@@ -68,6 +68,7 @@ THE SOFTWARE.
     <findbugs.failOnError>false</findbugs.failOnError>
     <!-- TODO: Required to override by a version with certchain support (MJARSIGNER-53) on @oleg-nenashev's machine. Remove once it's in upstream -->
     <maven-jarsigner-plugin.version>1.4</maven-jarsigner-plugin.version>
+    <argline>-Xmx1024M</argline>
   </properties>
 
   <repositories>
