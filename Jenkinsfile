@@ -49,7 +49,7 @@ def doRemotingBuild() {
 for (int i = 0; i < platforms.size(); ++i) {
     String label = platforms[i]
 
-    if (label === "docker") {
+    if (label.equals("docker")) {
         branches[label] = {
             docker.image("onenashev/remoting-builder").inside() {
                 doRemotingBuild()
