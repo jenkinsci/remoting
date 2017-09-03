@@ -12,18 +12,18 @@ properties([[$class: 'BuildDiscarderProperty',
 List platforms = ['docker']
 Map branches = [:]
 
-def doRemotingBuild() {
+def doRemotingBuild(boolean setupTools) {
     timestamps {
         stage('Checkout') {
             checkout scm
         }
 
         stage('Build') {
-            withEnv([
+            withEnv(setupTools ? [
                 "JAVA_HOME=${tool 'jdk8'}",
                 "PATH+MVN=${tool 'mvn'}/bin",
                 'PATH+JDK=$JAVA_HOME/bin',
-            ]) {
+            ] : []) {
                 timeout(30) {
                     String command = 'mvn --batch-mode clean install -Dmaven.test.failure.ignore=true'
                     if (isUnix()) {
@@ -52,13 +52,13 @@ for (int i = 0; i < platforms.size(); ++i) {
     if (label.equals("docker")) {
         branches[label] = {
             docker.image("onenashev/remoting-builder").inside() {
-                doRemotingBuild()
+                doRemotingBuild(false)
             }
         }
     } else {
         branches[label] = {
             node(label) {
-                doRemotingBuild()
+                doRemotingBuild(true)
             }
         }
     }
