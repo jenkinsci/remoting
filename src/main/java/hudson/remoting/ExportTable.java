@@ -398,7 +398,6 @@ final class ExportTable {
      * Retrieves object by id.
      * @param oid Object ID
      * @return Object or {@code null} if the ID is missing in the {@link ExportTable}.
-     * @since TODO
      */
     @CheckForNull
     synchronized Object getOrNull(int oid) {
