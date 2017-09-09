@@ -500,7 +500,7 @@ final class ExportTable {
      * Removes the exported object for the specified oid from the table.
      * @param oid Object ID. If {@code null} the method will do nothing.
      * @param callSite Unexport command caller
-     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
+     * @param severeErrorIfMissing Consider missing object as {@code SEVERE} error. {@code FINE} otherwise
      * @since TODO
      */
     synchronized void unexportByOid(@CheckForNull Integer oid, @CheckForNull Throwable callSite, boolean severeErrorIfMissing) {

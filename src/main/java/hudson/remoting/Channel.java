@@ -743,7 +743,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Unexports object.
      * @param id Object ID
      * @param cause Stacktrace pf the object creation call
-     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
+     * @param severeErrorIfMissing Consider missing object as {@code SEVERE} error. {@code FINE} otherwise
      * @since TODO
      */
     /*package*/ void unexport(int id, Throwable cause, boolean severeErrorIfMissing) {
@@ -1809,7 +1809,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * A reference for the {@link Channel} that can be cleared out on {@link #close()}/{@link #terminate(IOException)}.
-     * Could probably be replaced with {@link AtomicReference} but then we would not retain the only change being
+     * Could probably be replaced with {@link java.util.concurrent.atomic.AtomicReference} but then we would not retain the only change being
      * from valid channel to {@code null} channel semantics of this class.
      * @since 2.52
      * @see #reference
@@ -1818,7 +1818,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         
         /**
          * Cached name of the channel.
-         * @see {@link Channel#getName()}
+         * @see Channel#getName()
          */
         @Nonnull
         private final String name;
