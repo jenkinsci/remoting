@@ -17,6 +17,8 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+
 import org.jenkinsci.remoting.RoleChecker;
 
 /**
@@ -182,6 +184,39 @@ public class ChannelTest extends RmiTestBase {
         assertTrue(sw.toString().contains("Channel south"));
         assertTrue(sw.toString().contains("Commands sent=0"));
         assertTrue(sw.toString().contains("Commands received=0"));
+    }
+
+    public void testCallSiteStacktrace() throws Exception {
+        try {
+            failRemotelyToBeWrappedLocally();
+            fail();
+        } catch (Exception e) {
+            assertEquals("Local Nested", e.getMessage());
+            assertEquals(Exception.class, e.getClass());
+            Throwable cause = e.getCause();
+            assertEquals("Node Nested", cause.getMessage());
+            assertEquals(IOException.class, cause.getClass());
+            Throwable rootCause = cause.getCause();
+            assertEquals("Node says hello!", rootCause.getMessage());
+            assertEquals(RuntimeException.class, rootCause.getClass());
+            Throwable callSite = cause.getSuppressed()[0];
+            assertEquals("Remote call to north", callSite.getMessage());
+            assertEquals("hudson.remoting.Channel$CallSiteStackTrace", callSite.getClass().getName());
+        }
+    }
+
+    private void failRemotelyToBeWrappedLocally() throws Exception {
+        try {
+            channel.call(new ThrowingCallable());
+        } catch (IOException e) {
+            throw new Exception("Local Nested", e);
+        }
+    }
+
+    private static class ThrowingCallable extends CallableBase<Void, IOException> {
+        @Override public Void call() throws IOException {
+            throw new IOException("Node Nested", new RuntimeException("Node says hello!"));
+        }
     }
     
     /**

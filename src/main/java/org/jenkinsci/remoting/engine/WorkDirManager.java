@@ -55,7 +55,7 @@ import java.util.logging.SimpleFormatter;
  * Using this manager remoting can initialize its working directory and put the data there.
  * The structure of the directory is described in {@link DirType}.
  * @author Oleg Nenashev
- * @since TODO
+ * @since 3.8
  */
 @Restricted(NoExternalUse.class)
 public class WorkDirManager {

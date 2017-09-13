@@ -46,7 +46,7 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
  * <li>{@link #afterDisconnect(JnlpConnectionState)}</li>
  * </ol>
  *
- * @since FIXME
+ * @since 3.0
  */
 public abstract class JnlpConnectionStateListener {
     /**

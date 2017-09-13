@@ -42,7 +42,7 @@ import org.jenkinsci.remoting.util.Charsets;
 /**
  * Base class for {@link LegacyJnlpProtocolHandler} based protocols.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class LegacyJnlpConnectionState extends JnlpConnectionState {
     /**

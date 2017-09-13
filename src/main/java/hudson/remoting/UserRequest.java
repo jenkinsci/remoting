@@ -52,6 +52,8 @@ import javax.annotation.Nonnull;
  */
 final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<RSP,EXC>,EXC> {
 
+    private static final Logger LOGGER = Logger.getLogger(UserRequest.class.getName());
+
     private final byte[] request;
     
     @Nonnull
@@ -182,7 +184,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
                 try {
                     o = deserialize(channel,request,cl);
                 } catch (ClassNotFoundException e) {
-                    throw new ClassNotFoundException("Failed to deserialize the Callable object. Perhaps you needed to implement DelegatingCallable?",e);
+                    throw new ClassNotFoundException("Failed to deserialize the Callable object. Perhaps you needed to implement DelegatingCallable?", e);
                 } catch (RuntimeException e) {
                     // if the error is during deserialization, throw it in one of the types Channel.call will
                     // capture its call site stack trace. See 
@@ -206,6 +208,9 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
                 } finally {
                     Thread.currentThread().setContextClassLoader(old);
                 }
+            } catch (LinkageError e) {
+                LOGGER.log(Level.WARNING, "LinkageError while performing " + toString(), e);
+                throw e;
             } finally {
                 Channel.setCurrent(oldc);
             }

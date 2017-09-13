@@ -33,7 +33,7 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 /**
  * Represents the connection state for a {@link JnlpProtocol4Handler} connection.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class Jnlp4ConnectionState extends JnlpConnectionState {
 

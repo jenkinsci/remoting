@@ -58,7 +58,7 @@ import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
  * implementation uses the {@link IOHub} for non-blocking I/O wherever possible which removes the bottleneck of
  * the selector thread being used for linearization and I/O that creates a throughput limit with {@link NioChannelHub}.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class JnlpProtocol4PlainHandler extends JnlpProtocolHandler<JnlpConnectionState> {
     /**
