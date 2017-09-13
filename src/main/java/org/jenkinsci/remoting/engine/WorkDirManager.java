@@ -322,7 +322,7 @@ public class WorkDirManager {
     
     /**
      * Defines components of the Working directory.
-     * @since TODO
+     * @since 3.8
      */
     @Restricted(NoExternalUse.class)
     public enum DirType {

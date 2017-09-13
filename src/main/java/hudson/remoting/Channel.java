@@ -504,7 +504,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * @since TODO
+     * @since 2.38
      */
     protected Channel(@Nonnull ChannelBuilder settings, @Nonnull CommandTransport transport) throws IOException {
         this.name = settings.getName();
@@ -605,7 +605,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Get why the sender side of the channel has been closed.
      * @return Close cause or {@code null} if the sender side is active.
      *         {@code null} result does not guarantee that the channel is actually operational.
-     * @since TODO
+     * @since 3.11
      */
     @CheckForNull
     public final Throwable getSenderCloseCause() {
@@ -631,7 +631,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @return {@link #outClosed} if not {@code null}, value of the transient cache
      *         {@link #closeRequestCause} otherwise. 
      *         The latter one may show random cause in the case of race conditions.
-     * @since TODO
+     * @since 3.11
      */
     @CheckForNull
     public Throwable getCloseRequestCause() {
@@ -743,8 +743,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Unexports object.
      * @param id Object ID
      * @param cause Stacktrace pf the object creation call
-     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
-     * @since TODO
+     * @param severeErrorIfMissing Consider missing object as {@code SEVERE} error. {@code FINE} otherwise
      */
     /*package*/ void unexport(int id, Throwable cause, boolean severeErrorIfMissing) {
         exportedObjects.unexportByOid(id, cause, severeErrorIfMissing);
@@ -1115,7 +1114,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public boolean isRemoteClassLoadingAllowed() {
         return remoteClassLoadingAllowed;
@@ -1124,14 +1123,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Controls whether or not this channel is willing to load classes from the other side.
      * The default is on.
-     * @since TODO
+     * @since 2.47
      */
     public void setRemoteClassLoadingAllowed(boolean b) {
         this.remoteClassLoadingAllowed = b;
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public boolean isArbitraryCallableAllowed() {
         return arbitraryCallableAllowed;
@@ -1139,7 +1138,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * @see ChannelBuilder#withArbitraryCallableAllowed(boolean)
-     * @since TODO
+     * @since 2.47
      */
     public void setArbitraryCallableAllowed(boolean b) {
         this.arbitraryCallableAllowed = b;
@@ -1809,7 +1808,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * A reference for the {@link Channel} that can be cleared out on {@link #close()}/{@link #terminate(IOException)}.
-     * Could probably be replaced with {@link AtomicReference} but then we would not retain the only change being
+     * Could probably be replaced with {@link java.util.concurrent.atomic.AtomicReference} but then we would not retain the only change being
      * from valid channel to {@code null} channel semantics of this class.
      * @since 2.52
      * @see #reference
@@ -1818,7 +1817,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         
         /**
          * Cached name of the channel.
-         * @see {@link Channel#getName()}
+         * @see Channel#getName()
          */
         @Nonnull
         private final String name;

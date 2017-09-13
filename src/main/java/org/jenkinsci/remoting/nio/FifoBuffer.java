@@ -257,7 +257,7 @@ public class FifoBuffer implements Closeable {
     /**
      * Returns Exception with stacktrace of the command, which invoked the buffer close.
      * @return Close cause or {@code null}
-     * @since TODO
+     * @since 3.3
      */
     @CheckForNull
     public CloseCause getCloseCause() {
@@ -618,7 +618,7 @@ public class FifoBuffer implements Closeable {
     
     /**
      * Explains the reason of the buffer close.
-     * @since TODO
+     * @since 3.3
      */
     public static class CloseCause extends Exception {
 
