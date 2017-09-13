@@ -85,6 +85,11 @@ public abstract class NioChannelBuilder extends ChannelBuilder {
     }
 
     @Override
+    public NioChannelBuilder withoutJarCache() {
+        return (NioChannelBuilder) super.withoutJarCache();
+    }
+
+    @Override
     public NioChannelBuilder withClassFilter(ClassFilter filter) {
         return (NioChannelBuilder)super.withClassFilter(filter);
     }
