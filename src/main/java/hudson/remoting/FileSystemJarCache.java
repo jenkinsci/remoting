@@ -55,7 +55,7 @@ public class FileSystemJarCache extends JarCacheSupport {
         try {
             Util.mkdirs(rootDir);
         } catch (IOException ex) {
-            throw new IllegalArgumentException("Root directory not writable: " + rootDir);
+            throw new IllegalArgumentException("Root directory not writable: " + rootDir, ex);
         }
     }
 
