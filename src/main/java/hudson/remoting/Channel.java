@@ -317,7 +317,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     /*package*/ final ClassLoader baseClassLoader;
 
-    @Nonnull
+    /**
+     * JAR Resolution Cache.
+     * Can be {@code null} if caching disabled for this channel.
+     * In such case some classloading operations may be rejected.
+     */
+    @CheckForNull
     private JarCache jarCache;
 
     /*package*/ final JarLoaderImpl jarLoader;
@@ -515,12 +520,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.underlyingOutput = transport.getUnderlyingStream();
         
         // JAR Cache resolution
-        JarCache effectiveJarCache = settings.getJarCache();
-        if (effectiveJarCache == null) {
-            effectiveJarCache = JarCache.getDefault();
-            logger.log(Level.CONFIG, "Using the default JAR Cache: {0}", effectiveJarCache);
+        this.jarCache = settings.getJarCache();
+        if (this.jarCache == null) {
+            logger.log(Level.CONFIG, "JAR Cache is not defined for channel {0}", name);
         }
-        this.jarCache = effectiveJarCache;
 
         this.baseClassLoader = settings.getBaseLoader();
         this.classFilter = settings.getClassFilter();
@@ -837,9 +840,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * If this channel is built with jar file caching, return the object that manages this cache.
+     * @return JAR Cache object. {@code null} if JAR caching is disabled
      * @since 2.24
+     * @since 3.10 JAR Cache is Nonnull
+     * @since 3.12 JAR Cache made nullable again due to <a href="https://issues.jenkins-ci.org/browse/JENKINS-45755">JENKINS-45755</a>
      */
-    @Nonnull
+    @CheckForNull
     public JarCache getJarCache() {
         return jarCache;
     }
@@ -850,6 +856,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
      * unless your call sequence guarantees that you call this method before remote classes are loaded.
+     *
+     * @param jarCache New JAR Cache to be used.
+     *                 Cannot be {@code null}, JAR Cache disabling on a running channel is not supported.
      * @since 2.24
      */
     public void setJarCache(@Nonnull JarCache jarCache) {
