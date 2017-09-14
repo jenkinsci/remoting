@@ -9,7 +9,7 @@ properties([[$class: 'BuildDiscarderProperty',
  *  https://github.com/jenkins-infra/documentation/blob/master/ci.adoc
  */
 //TODO: Enable Windows once JENKINS-38696 is fixed. No sense to spend CPU cycles before that
-List platforms = ['docker']
+List platforms = ['linux']
 Map branches = [:]
 
 def doRemotingBuild(String label) {
