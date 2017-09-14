@@ -449,9 +449,6 @@ THE SOFTWARE.
         <configuration>
           <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
-          <reuseForks>false</reuseForks>
-          <!-- Remoting is not really designed for concurrent tests -->
-          <forkCount>1</forkCount>
           <systemPropertyVariables>
             <io.jenkinci.ci.skipTestsUnstableOnCI>${skipTestsUnstableOnCI}</io.jenkinci.ci.skipTestsUnstableOnCI>
           </systemPropertyVariables>
