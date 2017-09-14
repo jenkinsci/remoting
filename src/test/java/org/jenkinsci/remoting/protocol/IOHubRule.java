@@ -59,6 +59,7 @@ public class IOHubRule implements TestRule {
      * The {@link IOHub} for the current test.
      */
     private IOHub selector;
+    private String selectorName = null;
 
     private Throwable selectorCloseCause = null;
 
@@ -99,7 +100,7 @@ public class IOHubRule implements TestRule {
     public IOHub hub() throws AssertionError {
         final IOHub hub = hubOrNull();
         if (hub == null) {
-            throw new AssertionError("Selector IOHub is not started or stopped", selectorCloseCause);
+            throw new AssertionError("Selector IOHub is not started or stopped. Associated IOHub Name: " + selectorName, selectorCloseCause);
         }
         return hub;
     }
@@ -133,7 +134,8 @@ public class IOHubRule implements TestRule {
                             }
                         });
                 selector = IOHub.create(executorService);
-                LOGGER.log(Level.INFO, "Created IOHub {0} for {1}, number of threads: {2}", new Object[] {selector, base, nThreads});
+                selectorName = selector.toString();
+                LOGGER.log(Level.INFO, String.format("Created IOHub %s for %s, number of threads: %d", selector, base, nThreads), new IllegalStateException());
                 try {
                     base.evaluate();
                 } catch (Exception ex) {
@@ -141,7 +143,7 @@ public class IOHubRule implements TestRule {
                     throw ex;
                 } finally {
                     //TODO: maybe the error should be propagated upstairs to the test
-                    LOGGER.log(Level.INFO, "Closing IOHub {0} for {1}, number of threads: {2}", new Object[] {selector, base, nThreads});
+                    LOGGER.log(Level.INFO, String.format("Closing IOHub %s for %s, number of threads: %d", selector, base, nThreads), new IllegalStateException());
                     IOUtils.closeQuietly(selector);
                     selector = null;
                     if (selectorCloseCause == null) {
