@@ -70,6 +70,7 @@ THE SOFTWARE.
     <!-- TODO: Required to override by a version with certchain support (MJARSIGNER-53) on @oleg-nenashev's machine. Remove once it's in upstream -->
     <maven-jarsigner-plugin.version>1.4</maven-jarsigner-plugin.version>
     <argline>-Xmx1024M</argline>
+    <skipTestsUnstableOnCI>false</skipTestsUnstableOnCI>
   </properties>
 
   <repositories>
@@ -451,6 +452,9 @@ THE SOFTWARE.
           <reuseForks>false</reuseForks>
           <!-- Remoting is not really designed for concurrent tests -->
           <forkCount>1</forkCount>
+          <systemPropertyVariables>
+            <io.jenkinci.ci.skipTestsUnstableOnCI>${skipTestsUnstableOnCI}</io.jenkinci.ci.skipTestsUnstableOnCI>
+          </systemPropertyVariables>
         </configuration>
       </plugin>
       <plugin>
@@ -587,6 +591,12 @@ THE SOFTWARE.
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>ci</id>
+      <properties>
+        <skipTestsUnstableOnCI>true</skipTestsUnstableOnCI>
+      </properties>
     </profile>
   </profiles>
 </project>

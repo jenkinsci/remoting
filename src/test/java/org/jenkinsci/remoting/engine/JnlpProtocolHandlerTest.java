@@ -16,6 +16,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 import javax.net.ssl.SSLContext;
+
+import io.jenkins.ci.CITestHelper;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.protocol.IOHub;
@@ -116,12 +118,15 @@ public class JnlpProtocolHandlerTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
+        CITestHelper.skipIfRunningOnCI("Test is unstable on CI (JENKINS-46341)");
         executorService = Executors.newCachedThreadPool();
     }
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        executorService.shutdownNow();
+        if (executorService != null) {
+            executorService.shutdownNow();
+        }
     }
 
 
