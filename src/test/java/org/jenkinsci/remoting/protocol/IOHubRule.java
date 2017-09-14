@@ -92,7 +92,7 @@ public class IOHubRule implements TestRule {
 
     /**
      * Returns the current IOHub or fails the test.
-     * @return IOHub
+     * @return IOHub associated with the test rule
      * @throws AssertionError test failure.
      *                        {@link #selectorCloseCause} will be attached if possible.
      */
