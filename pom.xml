@@ -88,7 +88,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.codehaus.mojo</groupId>
       <artifactId>animal-sniffer-annotations</artifactId>
-      <version>1.15</version>
       <scope>provided</scope>
     </dependency>
     <!-- test dependencies -->
@@ -446,7 +445,6 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.4</version>
         <configuration>
           <xmlOutput>true</xmlOutput>
           <effort>Max</effort>
