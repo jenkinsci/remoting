@@ -30,7 +30,7 @@ public class ChannelClosedException extends IOException {
      * @param message Message
      * @param cause Cause of the channel close/termination. 
      *              May be {@code null} if it cannot be determined when the exception is constructed.
-     * @since TODO
+     * @since 3.11
      */
     public ChannelClosedException(@Nonnull String message, @CheckForNull Throwable cause) {
         super(message, cause);

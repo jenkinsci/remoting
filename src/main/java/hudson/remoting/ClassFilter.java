@@ -105,7 +105,7 @@ public abstract class ClassFilter {
      * @param filter a regular expression for {@link Class#getName} which, if matched according to {@link Matcher#matches}, will blacklist the class
      * @throws ClassFilterException Filter pattern cannot be applied.
      *                              It means either unexpected processing error or rejection by the internal logic.
-     * @since TODO
+     * @since 3.11
      */
     public static void appendDefaultFilter(Pattern filter) throws ClassFilterException {
         if (System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY) == null) {
@@ -250,7 +250,7 @@ public abstract class ClassFilter {
 
     /**
      * Class for propagating exceptions in {@link ClassFilter}.
-     * @since TODO
+     * @since 3.11
      */
     public static class ClassFilterException extends Exception {
 

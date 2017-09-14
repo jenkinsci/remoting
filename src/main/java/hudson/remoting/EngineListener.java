@@ -61,7 +61,7 @@ public interface EngineListener {
 
     /**
      * Called when a re-connection is about to be attempted.
-     * @since TODO
+     * @since 2.0
      */
     void onReconnect();
 }

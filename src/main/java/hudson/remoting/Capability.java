@@ -208,7 +208,7 @@ public final class Capability implements Serializable {
     /**
      * Supports chunked encoding.
      *
-     * @sine 2.38
+     * @since 2.38
      */
     private static final long MASK_CHUNKED_ENCODING = 1L << 7;
 

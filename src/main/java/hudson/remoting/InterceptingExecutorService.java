@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.CallableDecorator;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -13,6 +15,8 @@ import java.util.concurrent.TimeoutException;
 /**
  * {@link ExecutorService} that runs all the tasks in a given set of {@link CallableDecorator}s.
  * @author Kohsuke Kawaguchi
+ * @see CallableDecorator
+ * @see CallableDecoratorList
  */
 class InterceptingExecutorService extends DelegatingExecutorService {
     private final CallableDecoratorList decorators;

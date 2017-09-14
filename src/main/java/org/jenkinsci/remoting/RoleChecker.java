@@ -13,7 +13,7 @@ import java.util.Collections;
  *
  * @author Kohsuke Kawaguchi
  * @see ChannelBuilder#withRoleChecker(RoleChecker)
- * @since TODO
+ * @since 2.47
  */
 public abstract class RoleChecker {
     /**

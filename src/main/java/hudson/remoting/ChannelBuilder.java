@@ -159,7 +159,7 @@ public class ChannelBuilder {
      * but not {@link Channel#call(Callable)} (and its family of methods.)
      *
      * The default is {@code true}.
-     * @since TODO
+     * @since 2.47
      */
     public ChannelBuilder withArbitraryCallableAllowed(boolean b) {
         this.arbitraryCallableAllowed = b;
@@ -167,7 +167,7 @@ public class ChannelBuilder {
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public boolean isArbitraryCallableAllowed() {
         return arbitraryCallableAllowed;
@@ -176,7 +176,7 @@ public class ChannelBuilder {
     /**
      * Controls whether or not this channel is willing to load classes from the other side.
      * The default is {@code true}.
-     * @since TODO
+     * @since 2.47
      */
     public ChannelBuilder withRemoteClassLoadingAllowed(boolean b) {
         this.remoteClassLoadingAllowed = b;
@@ -184,7 +184,7 @@ public class ChannelBuilder {
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public boolean isRemoteClassLoadingAllowed() {
         return remoteClassLoadingAllowed;
@@ -192,18 +192,47 @@ public class ChannelBuilder {
 
     /**
      * Sets the JAR cache storage.
-     * @param jarCache JAR Cache to be used. If {@code null}, a default value will be used by the {@link Channel}
+     * @param jarCache JAR Cache to be used. If a deprecated {@code null} value is passed,
+     *                 the behavior will be determined by the {@link Channel} implementation.
      * @return {@code this}
+     * @since 2.38
+     * @since 3.12 {@code null} parameter value is deprecated.
+     *        {@link #withoutJarCache()} or {@link #withJarCacheOrDefault(JarCache)} should be used instead.
      */
-    public ChannelBuilder withJarCache(@CheckForNull JarCache jarCache) {
+    public ChannelBuilder withJarCache(@Nonnull JarCache jarCache) {
         this.jarCache = jarCache;
+        return this;
+    }
+
+    /**
+     * Sets the JAR cache storage.
+     * @param jarCache JAR Cache to be used.
+     *                 If {@code null}, value of {@link JarCache#getDefault()} will be used.
+     * @return {@code this}
+     * @since 3.12
+     * @throws IOException Default JAR Cache location cannot be initialized
+     */
+    public ChannelBuilder withJarCacheOrDefault(@CheckForNull JarCache jarCache) throws IOException {
+        this.jarCache = jarCache != null ? jarCache : JarCache.getDefault();
+        return this;
+    }
+
+    /**
+     * Resets JAR Cache setting to the default.
+     * The behavior will be determined by the {@link Channel} implementation.
+     *
+     * @since 3.12
+     */
+    public ChannelBuilder withoutJarCache() {
+        this.jarCache = null;
         return this;
     }
 
     /**
      * Gets the JAR Cache storage.
      * @return {@code null} if it is not defined.
-     *         {@link Channel} implementation should use a default cache value then.
+     *         {@link Channel} implementation defines the behavior in such case.
+     * @since 2.38
      */
     @CheckForNull
     public JarCache getJarCache() {
@@ -221,7 +250,7 @@ public class ChannelBuilder {
 
     /**
      * Convenience method to install {@link RoleChecker} that verifies against the fixed set of roles.
-     * @since TODO
+     * @since 2.47
      */
     public ChannelBuilder withRoles(Role... roles) {
         return withRoles(Arrays.asList(roles));
@@ -229,7 +258,7 @@ public class ChannelBuilder {
 
     /**
      * Convenience method to install {@link RoleChecker} that verifies against the fixed set of roles.
-     * @since TODO
+     * @since 2.47
      */
     public ChannelBuilder withRoles(final Collection<? extends Role> actual) {
         return withRoleChecker(new RoleChecker() {
@@ -246,7 +275,7 @@ public class ChannelBuilder {
 
     /**
      * Installs another {@link RoleChecker}.
-     * @since TODO
+     * @since 2.47
      */
     public ChannelBuilder withRoleChecker(final RoleChecker checker) {
         return with(new CallableDecorator() {
@@ -269,7 +298,7 @@ public class ChannelBuilder {
      * Properties are modifiable after {@link Channel} is created, but a property set
      * during channel building is guaranteed to be visible to the other side as soon
      * as the channel is established.
-     * @since TODO
+     * @since 2.47
      */
     public ChannelBuilder withProperty(Object key, Object value) {
         properties.put(key,value);
@@ -277,14 +306,14 @@ public class ChannelBuilder {
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public <T> ChannelBuilder withProperty(ChannelProperty<T> key, T value) {
         return withProperty((Object) key, value);
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public Map<Object,Object> getProperties() {
         return properties;

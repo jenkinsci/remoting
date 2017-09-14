@@ -82,7 +82,6 @@ public class JnlpAgentEndpointResolver {
      * The option provides protocol names, but the order of the check is defined internally and cannot be changed.
      * This option can be also used in order to workaround issues when the headers cannot be delivered
      * from the server due to whatever reason (e.g. JENKINS-41730).
-     * @since TODO
      */
     private static String PROTOCOL_NAMES_TO_TRY =
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");

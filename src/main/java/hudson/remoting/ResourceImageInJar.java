@@ -82,7 +82,10 @@ class ResourceImageInJar extends ResourceImageRef {
 
     Future<URL> _resolveJarURL(Channel channel) throws IOException, InterruptedException {
         JarCache c = channel.getJarCache();
-        assert c !=null : "we don't advertise jar caching to the other side unless we have a cache with us";
+        if (c == null) {
+            throw new IOException(String.format("Failed to resolve a jar %016x%016x. JAR Cache is disabled for the channel %s",
+                    sum1, sum2, channel.getName()));
+        }
 
         return c.resolve(channel, sum1, sum2);
 //            throw (IOException)new IOException(String.format("Failed to resolve a jar %016x%016x",sum1,sum2)).initCause(e);

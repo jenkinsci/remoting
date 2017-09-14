@@ -36,6 +36,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     @GuardedBy("itself")
     private final Map<String, Checksum> checksumsByPath = new HashMap<>();
 
+    //TODO: Create new IOException constructor
     /**
      * @param rootDir  
      *      Root directory.
@@ -54,7 +55,7 @@ public class FileSystemJarCache extends JarCacheSupport {
         try {
             Util.mkdirs(rootDir);
         } catch (IOException ex) {
-            throw new RuntimeException("Root directory not writable: " + rootDir);
+            throw new IllegalArgumentException("Root directory not writable: " + rootDir, ex);
         }
     }
 

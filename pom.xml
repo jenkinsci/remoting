@@ -28,12 +28,13 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.38</version>
+    <version>1.39</version>
+    <relativePath />
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>3.12-SNAPSHOT</version>
+  <version>3.13-SNAPSHOT</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -88,7 +89,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.codehaus.mojo</groupId>
       <artifactId>animal-sniffer-annotations</artifactId>
-      <version>1.15</version>
       <scope>provided</scope>
     </dependency>
     <!-- test dependencies -->
@@ -427,7 +427,6 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.4</version>
         <configuration>
           <xmlOutput>true</xmlOutput>
           <effort>Max</effort>

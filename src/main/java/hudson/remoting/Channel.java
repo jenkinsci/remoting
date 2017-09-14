@@ -317,7 +317,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     /*package*/ final ClassLoader baseClassLoader;
 
-    @Nonnull
+    /**
+     * JAR Resolution Cache.
+     * Can be {@code null} if caching disabled for this channel.
+     * In such case some classloading operations may be rejected.
+     */
+    @CheckForNull
     private JarCache jarCache;
 
     /*package*/ final JarLoaderImpl jarLoader;
@@ -504,7 +509,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * @since TODO
+     * @since 2.38
      */
     protected Channel(@Nonnull ChannelBuilder settings, @Nonnull CommandTransport transport) throws IOException {
         this.name = settings.getName();
@@ -515,12 +520,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.underlyingOutput = transport.getUnderlyingStream();
         
         // JAR Cache resolution
-        JarCache effectiveJarCache = settings.getJarCache();
-        if (effectiveJarCache == null) {
-            effectiveJarCache = JarCache.getDefault();
-            logger.log(Level.CONFIG, "Using the default JAR Cache: {0}", effectiveJarCache);
+        this.jarCache = settings.getJarCache();
+        if (this.jarCache == null) {
+            logger.log(Level.CONFIG, "JAR Cache is not defined for channel {0}", name);
         }
-        this.jarCache = effectiveJarCache;
 
         this.baseClassLoader = settings.getBaseLoader();
         this.classFilter = settings.getClassFilter();
@@ -605,7 +608,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Get why the sender side of the channel has been closed.
      * @return Close cause or {@code null} if the sender side is active.
      *         {@code null} result does not guarantee that the channel is actually operational.
-     * @since TODO
+     * @since 3.11
      */
     @CheckForNull
     public final Throwable getSenderCloseCause() {
@@ -631,7 +634,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @return {@link #outClosed} if not {@code null}, value of the transient cache
      *         {@link #closeRequestCause} otherwise. 
      *         The latter one may show random cause in the case of race conditions.
-     * @since TODO
+     * @since 3.11
      */
     @CheckForNull
     public Throwable getCloseRequestCause() {
@@ -743,8 +746,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Unexports object.
      * @param id Object ID
      * @param cause Stacktrace pf the object creation call
-     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
-     * @since TODO
+     * @param severeErrorIfMissing Consider missing object as {@code SEVERE} error. {@code FINE} otherwise
      */
     /*package*/ void unexport(int id, Throwable cause, boolean severeErrorIfMissing) {
         exportedObjects.unexportByOid(id, cause, severeErrorIfMissing);
@@ -838,9 +840,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * If this channel is built with jar file caching, return the object that manages this cache.
+     * @return JAR Cache object. {@code null} if JAR caching is disabled
      * @since 2.24
+     * @since 3.10 JAR Cache is Nonnull
+     * @since 3.12 JAR Cache made nullable again due to <a href="https://issues.jenkins-ci.org/browse/JENKINS-45755">JENKINS-45755</a>
      */
-    @Nonnull
+    @CheckForNull
     public JarCache getJarCache() {
         return jarCache;
     }
@@ -851,6 +856,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
      * unless your call sequence guarantees that you call this method before remote classes are loaded.
+     *
+     * @param jarCache New JAR Cache to be used.
+     *                 Cannot be {@code null}, JAR Cache disabling on a running channel is not supported.
      * @since 2.24
      */
     public void setJarCache(@Nonnull JarCache jarCache) {
@@ -1115,7 +1123,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public boolean isRemoteClassLoadingAllowed() {
         return remoteClassLoadingAllowed;
@@ -1124,14 +1132,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Controls whether or not this channel is willing to load classes from the other side.
      * The default is on.
-     * @since TODO
+     * @since 2.47
      */
     public void setRemoteClassLoadingAllowed(boolean b) {
         this.remoteClassLoadingAllowed = b;
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public boolean isArbitraryCallableAllowed() {
         return arbitraryCallableAllowed;
@@ -1139,7 +1147,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * @see ChannelBuilder#withArbitraryCallableAllowed(boolean)
-     * @since TODO
+     * @since 2.47
      */
     public void setArbitraryCallableAllowed(boolean b) {
         this.arbitraryCallableAllowed = b;
@@ -1644,16 +1652,16 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Decorates the stack elements of the given {@link Throwable} by adding the call site information.
      */
     /*package*/ void attachCallSiteStackTrace(Throwable t) {
-        Exception e = new Exception();
-        StackTraceElement[] callSite = e.getStackTrace();
-        StackTraceElement[] original = t.getStackTrace();
+        t.addSuppressed(new CallSiteStackTrace(name));
+    }
 
-        StackTraceElement[] combined = new StackTraceElement[original.length+1+callSite.length];
-        System.arraycopy(original,0,combined,0,original.length); // original stack trace at the top
-        combined[original.length] = new StackTraceElement(".....","remote call to "+name,null,-2);
-        System.arraycopy(callSite,0,combined,original.length+1,callSite.length);
-
-        t.setStackTrace(combined);
+    /**
+     * Dummy exception indicating the stacktrace on calling side of channel for remote exception for ease of debugging.
+     */
+    private static final class CallSiteStackTrace extends Exception {
+        public CallSiteStackTrace(String message) {
+            super("Remote call to " + message);
+        }
     }
 
     public String getName() {
@@ -1809,7 +1817,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * A reference for the {@link Channel} that can be cleared out on {@link #close()}/{@link #terminate(IOException)}.
-     * Could probably be replaced with {@link AtomicReference} but then we would not retain the only change being
+     * Could probably be replaced with {@link java.util.concurrent.atomic.AtomicReference} but then we would not retain the only change being
      * from valid channel to {@code null} channel semantics of this class.
      * @since 2.52
      * @see #reference
@@ -1818,7 +1826,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         
         /**
          * Cached name of the channel.
-         * @see {@link Channel#getName()}
+         * @see Channel#getName()
          */
         @Nonnull
         private final String name;

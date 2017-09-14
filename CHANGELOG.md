@@ -6,6 +6,18 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.12
+
+Release date: Sep 14, 2017
+
+* [JENKINS-45755](https://issues.jenkins-ci.org/browse/JENKINS-45755) -
+Prevent channel initialization failure when JAR Cache directory is not writable and the channel does not need this cache
+(regression in 3.10).
+  * This issue causes a regression in Jenkins LTS 2.73.1
+  See the [upgrade guide](https://jenkins.io/doc/upgrade-guide/2.73/#known-issue-agent-connection-failures-involving-jenkins-masters-with-undefined-or-non-writable-home-directory) for more info.
+* [JENKINS-46140](https://issues.jenkins-ci.org/browse/JENKINS-46140) -
+Improve representation of remote operation exceptions in logs.
+
 ##### 3.11
 
 Release date: Aug 18, 2017 => [Jenkins 2.76](https://jenkins.io/changelog/#v2.76)
