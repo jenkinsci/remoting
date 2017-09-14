@@ -32,6 +32,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.apache.commons.io.IOUtils;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -44,6 +47,9 @@ import javax.annotation.Nonnull;
  * Creates an destroys {@link IOHub} instances for tests.
  */
 public class IOHubRule implements TestRule {
+
+    private static final Logger LOGGER = Logger.getLogger(IOHubRule.class.getName());
+
     private final String id;
     /**
      * The {@link ExecutorService} for the current test.
@@ -127,7 +133,7 @@ public class IOHubRule implements TestRule {
                             }
                         });
                 selector = IOHub.create(executorService);
-                System.out.println(String.format("Created IOHub for %s, number of threads: %d", base, nThreads));
+                LOGGER.log(Level.INFO, "Created IOHub {0} for {1}, number of threads: {2}", new Object[] {selector, base, nThreads});
                 try {
                     base.evaluate();
                 } catch (Exception ex) {
@@ -135,7 +141,7 @@ public class IOHubRule implements TestRule {
                     throw ex;
                 } finally {
                     //TODO: maybe the error should be propagated upstairs to the test
-                    System.out.println(String.format("Closing IOHub for %s, number of threads: %d", base, nThreads));
+                    LOGGER.log(Level.INFO, "Closing IOHub {0} for {1}, number of threads: {2}", new Object[] {selector, base, nThreads});
                     IOUtils.closeQuietly(selector);
                     selector = null;
                     if (selectorCloseCause == null) {
