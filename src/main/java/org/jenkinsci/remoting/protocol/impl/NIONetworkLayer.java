@@ -92,8 +92,8 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
      * @param in    the source of data.
      * @param out   the sink for data.
      */
-    public NIONetworkLayer(IOHub ioHub, ReadableByteChannel in,
-                           WritableByteChannel out) {
+    public NIONetworkLayer(@Nonnull IOHub ioHub, @Nonnull ReadableByteChannel in,
+                           @Nonnull WritableByteChannel out) {
         super(ioHub);
         if (!(in instanceof SelectableChannel)) {
             throw new IllegalArgumentException("Input channel must be a SelectableChannel");

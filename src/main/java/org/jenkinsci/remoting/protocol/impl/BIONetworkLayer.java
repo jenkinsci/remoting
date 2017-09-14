@@ -86,7 +86,7 @@ public class BIONetworkLayer extends NetworkLayer {
      * @param in    the source of data.
      * @param out   the sink for data.
      */
-    public BIONetworkLayer(IOHub ioHub, ReadableByteChannel in, WritableByteChannel out) {
+    public BIONetworkLayer(@Nonnull IOHub ioHub, @Nonnull ReadableByteChannel in, @Nonnull WritableByteChannel out) {
         super(ioHub);
         this.in = in;
         this.out = out;

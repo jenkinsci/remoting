@@ -28,12 +28,14 @@ import java.nio.channels.WritableByteChannel;
 import org.jenkinsci.remoting.protocol.impl.BIONetworkLayer;
 import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
 
+import javax.annotation.Nonnull;
+
 public interface NetworkLayerFactory {
 
     NetworkLayerFactory[] ALL = new NetworkLayerFactory[]{new NIO(), new BIO()};
 
-    NetworkLayer create(IOHub selector, ReadableByteChannel in,
-                        WritableByteChannel out);
+    NetworkLayer create(@Nonnull IOHub selector, @Nonnull ReadableByteChannel in,
+                        @Nonnull WritableByteChannel out);
 
     class NIO implements NetworkLayerFactory {
 

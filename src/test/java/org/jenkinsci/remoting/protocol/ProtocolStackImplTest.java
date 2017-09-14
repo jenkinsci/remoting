@@ -51,7 +51,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 import org.junit.ClassRule;

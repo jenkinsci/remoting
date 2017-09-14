@@ -59,14 +59,14 @@ public class IOHubTest {
     @IOHubRule.Skip
     public void noHub() throws Exception {
         assertThat(hub.executorService(), nullValue());
-        assertThat(hub.hub(), nullValue());
+        assertThat(hub.hubOrNull(), nullValue());
     }
 
     @Test
     @IOHubRule.Skip("foo")
     public void hubForDifferentId() throws Exception {
         assertThat(hub.executorService(), notNullValue());
-        assertThat(hub.hub(), notNullValue());
+        assertThat(hub.hubOrNull(), notNullValue());
     }
 
     @Test
@@ -197,7 +197,7 @@ public class IOHubTest {
         } catch (SocketTimeoutException e) {
             assertThat(e.getMessage(), containsString("timed out"));
         }
-        hub.hub().addInterestAccept(key.get());
+        hub.hubOrNull().addInterestAccept(key.get());
         assertThat(IOUtils.toString(client.getInputStream()), is("Go away #2"));
         assertThat("Only ever called ready with accept true", oops.get(), is(false));
     }

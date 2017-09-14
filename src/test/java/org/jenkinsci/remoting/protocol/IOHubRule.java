@@ -37,6 +37,9 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+
 /**
  * Creates an destroys {@link IOHub} instances for tests.
  */
@@ -50,6 +53,8 @@ public class IOHubRule implements TestRule {
      * The {@link IOHub} for the current test.
      */
     private IOHub selector;
+
+    private Throwable selectorCloseCause = null;
 
     public IOHubRule() {
         this("");
@@ -71,10 +76,26 @@ public class IOHubRule implements TestRule {
     /**
      * Retrieves the {@link IOHub} for this test.
      *
-     * @return the {@link IOHub} for this test or {@code null} if the test is annotated with {@link Skip}
+     * @return the {@link IOHub} for this test or {@code null} if the test is annotated with {@link Skip} or if the IOHub cannot be started.
      */
-    public IOHub hub() {
+    @CheckForNull
+    public IOHub hubOrNull() {
         return selector;
+    }
+
+    /**
+     * Returns the current IOHub or fails the test.
+     * @return IOHub
+     * @throws AssertionError test failure.
+     *                        {@link #selectorCloseCause} will be attached if possible.
+     */
+    @Nonnull
+    public IOHub hub() throws AssertionError {
+        final IOHub hub = hubOrNull();
+        if (hub == null) {
+            throw new AssertionError("Selector IOHub is not started or stopped", selectorCloseCause);
+        }
+        return hub;
     }
 
     /**
@@ -107,9 +128,16 @@ public class IOHubRule implements TestRule {
                 selector = IOHub.create(executorService);
                 try {
                     base.evaluate();
+                } catch (Exception ex) {
+                    selectorCloseCause = ex;
+                    throw ex;
                 } finally {
+                    //TODO: maybe the error should be propagated upstairs to the test
                     IOUtils.closeQuietly(selector);
                     selector = null;
+                    if (selectorCloseCause == null) {
+                        selectorCloseCause = new IllegalStateException("IOHub Rule evaluation completed");
+                    }
                     executorService.shutdownNow();
                     executorService = null;
                 }
