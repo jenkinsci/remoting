@@ -111,7 +111,8 @@ public class IOHubRule implements TestRule {
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
-                executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 - 1,
+                int nThreads = Runtime.getRuntime().availableProcessors() * 2 - 1;
+                executorService = Executors.newFixedThreadPool(nThreads,
                         new ThreadFactory() {
                             @Override
                             public Thread newThread(Runnable r) {
@@ -126,6 +127,7 @@ public class IOHubRule implements TestRule {
                             }
                         });
                 selector = IOHub.create(executorService);
+                System.out.println(String.format("Created IOHub for %s, number of threads: %d", base, nThreads));
                 try {
                     base.evaluate();
                 } catch (Exception ex) {
@@ -133,6 +135,7 @@ public class IOHubRule implements TestRule {
                     throw ex;
                 } finally {
                     //TODO: maybe the error should be propagated upstairs to the test
+                    System.out.println(String.format("Closing IOHub for %s, number of threads: %d", base, nThreads));
                     IOUtils.closeQuietly(selector);
                     selector = null;
                     if (selectorCloseCause == null) {
