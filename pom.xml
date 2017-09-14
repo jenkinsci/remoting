@@ -284,7 +284,7 @@ THE SOFTWARE.
           <providerClass>${hudson.sign.providerClass}</providerClass>
           <providerArg>${hudson.sign.providerArg}</providerArg>
           <tsa>${hudson.sign.tsa}</tsa>
-          <!-- 
+          <!--
             This option is required for JENKINS-37567, not required on any release machine.
             In order to take effect, a version with MJARSIGNER-53 should be used.
             See the "maven-jarsigner-plugin.version" parameter.
@@ -419,13 +419,6 @@ THE SOFTWARE.
         </executions>
       </plugin>
       <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.2</version>
-        <configuration>
-          <releaseProfiles>release</releaseProfiles>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
         <configuration>
@@ -445,7 +438,6 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.19.1</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
@@ -459,9 +451,9 @@ THE SOFTWARE.
         <executions>
           <execution>
             <id>run-javadoc</id>
+            <phase>package</phase>
             <goals>
               <goal>jar</goal>
-              <goal>javadoc</goal>
             </goals>
           </execution>
         </executions>
@@ -555,7 +547,7 @@ THE SOFTWARE.
                   <keystore>${hudson.sign.keystore}</keystore>
                   <storetype>${hudson.sign.storetype}</storetype>
                   <providerClass>${hudson.sign.providerClass}</providerClass>
-                  <providerArg>${hudson.sign.providerArg}</providerArg> 
+                  <providerArg>${hudson.sign.providerArg}</providerArg>
                 </configuration>
               </execution>
             </executions>
