@@ -283,7 +283,7 @@ THE SOFTWARE.
           <providerClass>${hudson.sign.providerClass}</providerClass>
           <providerArg>${hudson.sign.providerArg}</providerArg>
           <tsa>${hudson.sign.tsa}</tsa>
-          <!-- 
+          <!--
             This option is required for JENKINS-37567, not required on any release machine.
             In order to take effect, a version with MJARSIGNER-53 should be used.
             See the "maven-jarsigner-plugin.version" parameter.
@@ -475,9 +475,9 @@ THE SOFTWARE.
         <executions>
           <execution>
             <id>run-javadoc</id>
+            <phase>package</phase>
             <goals>
               <goal>jar</goal>
-              <goal>javadoc</goal>
             </goals>
           </execution>
         </executions>
@@ -571,7 +571,7 @@ THE SOFTWARE.
                   <keystore>${hudson.sign.keystore}</keystore>
                   <storetype>${hudson.sign.storetype}</storetype>
                   <providerClass>${hudson.sign.providerClass}</providerClass>
-                  <providerArg>${hudson.sign.providerArg}</providerArg> 
+                  <providerArg>${hudson.sign.providerArg}</providerArg>
                 </configuration>
               </execution>
             </executions>
