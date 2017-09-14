@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.jenkins.ci.CITestHelper;
 import org.apache.commons.io.IOUtils;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -53,9 +54,13 @@ import static org.junit.Assert.fail;
 
 public class IOHubTest {
 
-
     @Rule
     public IOHubRule hub = new IOHubRule();
+
+    @BeforeClass
+    public static void skipOnCI() {
+        CITestHelper.skipIfRunningOnCI("Hangs");
+    }
 
     @Test
     @IOHubRule.Skip
@@ -73,7 +78,6 @@ public class IOHubTest {
 
     @Test
     public void hubCanRunTasks() throws Exception {
-        CITestHelper.skipIfRunningOnCI("hangs?");
         final CountDownLatch started = new CountDownLatch(1);
         final CountDownLatch finish = new CountDownLatch(1);
         final CountDownLatch finished = new CountDownLatch(1);
@@ -99,7 +103,6 @@ public class IOHubTest {
 
     @Test
     public void canAcceptSocketConnections() throws Exception {
-        CITestHelper.skipIfRunningOnCI("hangs?");
         final ServerSocketChannel srv = ServerSocketChannel.open();
         srv.bind(new InetSocketAddress(0));
         srv.configureBlocking(false);
@@ -150,7 +153,6 @@ public class IOHubTest {
 
     @Test
     public void afterReadyInterestIsCleared() throws Exception {
-        CITestHelper.skipIfRunningOnCI("hangs?");
         final ServerSocketChannel srv = ServerSocketChannel.open();
         srv.bind(new InetSocketAddress(0));
         srv.configureBlocking(false);
@@ -209,7 +211,6 @@ public class IOHubTest {
 
     @Test
     public void noReadyCallbackIfInterestRemoved() throws Exception {
-        CITestHelper.skipIfRunningOnCI("hangs?");
         final ServerSocketChannel srv = ServerSocketChannel.open();
         srv.bind(new InetSocketAddress(0));
         srv.configureBlocking(false);
