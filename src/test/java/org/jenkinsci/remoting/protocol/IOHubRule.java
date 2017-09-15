@@ -135,7 +135,7 @@ public class IOHubRule implements TestRule {
                         });
                 selector = IOHub.create(executorService);
                 selectorName = selector.toString();
-                LOGGER.log(Level.INFO, String.format("Created IOHub %s for %s, number of threads: %d", selector, base, nThreads), new IllegalStateException());
+                LOGGER.log(Level.INFO, String.format("Created IOHub %s for test %s#%s, number of threads: %d", selector, description.getClassName(), description.getMethodName(), nThreads), new IllegalStateException());
                 try {
                     base.evaluate();
                 } catch (Exception ex) {
@@ -143,7 +143,7 @@ public class IOHubRule implements TestRule {
                     throw ex;
                 } finally {
                     //TODO: maybe the error should be propagated upstairs to the test
-                    LOGGER.log(Level.INFO, String.format("Closing IOHub %s for %s, number of threads: %d", selector, base, nThreads), new IllegalStateException());
+                    LOGGER.log(Level.INFO, String.format("Closing IOHub %s for test %s#%s, number of threads: %d", selector, description.getClassName(), description.getMethodName(), nThreads), new IllegalStateException());
                     IOUtils.closeQuietly(selector);
                     selector = null;
                     if (selectorCloseCause == null) {
