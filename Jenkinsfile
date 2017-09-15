@@ -26,9 +26,9 @@ def doRemotingBuild(String label) {
                 'PATH+JDK=$JAVA_HOME/bin',
             ]) {
                 timeout(240) {
-                    String command = 'mvn --batch-mode clean install -Dmaven.test.failure.ignore=true -Pci'
+                    String command = 'mvn --batch-mode clean install -Dmaven.test.failure.ignore=true \"-DargLine=-Djava.security.egd=file:/dev/./urandom\" -Pci'
                     if (isDocker) {
-                        sh "docker run --rm -e JAVA_OPTIONS=\"-Djava.security.egd=file:/dev/./urandom\" -v ${workspace}:/root/src onenashev/remoting-builder ${command}"
+                        sh "docker run --rm -e JAVA_OPTIONS=\"-Djava.security.egd=file:/dev/./urandom\" -v ${workspace}:/root/src onenashev/remoting-builder ${command} "
                     }
                     else if (isUnix()) {
                         sh command
