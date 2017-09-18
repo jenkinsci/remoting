@@ -19,33 +19,34 @@ def doRemotingBuild(String label) {
             checkout scm
         }
 
-        stage('Build') {
-            withEnv(isDocker ? [] : [
-                "JAVA_HOME=${tool 'jdk8'}",
-                "PATH+MVN=${tool 'mvn'}/bin",
-                'PATH+JDK=$JAVA_HOME/bin',
-            ]) {
-                timeout(240) {
-                    String command = 'mvn --batch-mode clean install -Dmaven.test.failure.ignore=true \"-DargLine=-Djava.security.egd=file:/dev/./urandom\" -Pci'
-                    if (isDocker) {
-                        sh "docker run --rm -e JAVA_OPTIONS=\"-Djava.security.egd=file:/dev/./urandom\" -v ${workspace}:/root/src onenashev/remoting-builder ${command} "
-                    }
-                    else if (isUnix()) {
-                        sh command
-                    }
-                    else {
-                        bat command
+        try {
+            stage('Build') {
+                withEnv(isDocker ? [] : [
+                    "JAVA_HOME=${tool 'jdk8'}",
+                    "PATH+MVN=${tool 'mvn'}/bin",
+                    'PATH+JDK=$JAVA_HOME/bin',
+                ]) {
+                    timeout(240) {
+                        String command = "mvn --batch-mode clean install -Dmaven.test.failure.ignore=true \"-DargLine=-Djava.security.egd=file:/dev/./urandom\" -Pci"
+                        if (isDocker) {
+                            sh "docker run --rm -e JAVA_OPTIONS=\"-Djava.security.egd=file:/dev/./urandom\" -v ${workspace}:/root/src onenashev/remoting-builder ${command} "
+                        } else if (isUnix()) {
+                            sh command
+                        } else {
+                            bat command
+                        }
                     }
                 }
             }
-        }
+        } finally {
+            // Try to archive artifacts even if the build stage fails
+            stage('Archive') {
+                /* Archive the test results */
+                junit '**/target/surefire-reports/TEST-*.xml'
 
-        stage('Archive') {
-            /* Archive the test results */
-            junit '**/target/surefire-reports/TEST-*.xml'
-
-            /* Archive the build artifacts */
-            archiveArtifacts artifacts: 'target/**/*.jar'
+                /* Archive the build artifacts */
+                archiveArtifacts artifacts: 'target/**/*.jar'
+            }
         }
     }
 }
