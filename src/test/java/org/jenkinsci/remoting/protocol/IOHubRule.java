@@ -135,7 +135,9 @@ public class IOHubRule implements TestRule {
                         });
                 selector = IOHub.create(executorService);
                 selectorName = selector.toString();
-                LOGGER.log(Level.INFO, String.format("Created IOHub %s for test %s#%s, number of threads: %d", selector, description.getClassName(), description.getMethodName(), nThreads), new IllegalStateException());
+                LOGGER.log(Level.INFO, String.format("Created IOHub %s for test %s#%s, number of threads: %d, egd: %s",
+                        selector, description.getClassName(), description.getMethodName(), nThreads, System.getProperty("java.security.egd")),
+                        new IllegalStateException());
                 try {
                     base.evaluate();
                 } catch (Exception ex) {
