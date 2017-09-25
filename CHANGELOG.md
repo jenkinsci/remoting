@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.12
 
-Release date: Sep 14, 2017
+Release date: Sep 14, 2017 => [Jenkins 2.79](https://jenkins.io/changelog/#v2.79)
 
 * [JENKINS-45755](https://issues.jenkins-ci.org/browse/JENKINS-45755) -
 Prevent channel initialization failure when JAR Cache directory is not writable and the channel does not need this cache
