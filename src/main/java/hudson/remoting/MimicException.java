@@ -1,11 +1,5 @@
 package hudson.remoting;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.DoNotUse;
-
 /**
  * Exception that prints like the specified exception.
  *
@@ -17,7 +11,6 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
  * @deprecated Use {@link ProxyException} instead.
  */
 @Deprecated
-@Restricted(DoNotUse.class)
 class MimicException extends Exception {
     private final String className;
     MimicException(Throwable cause) {
@@ -36,8 +29,7 @@ class MimicException extends Exception {
         return (message != null) ? (s + ": " + message) : s;
     }
 
-    @Nullable
-    public static Throwable make(@Nonnull Channel ch, @Nullable Throwable cause) {
+    public static Throwable make(Channel ch, Throwable cause) {
         if (cause == null)  return null;
 
         // make sure the remoting layer of the other end supports this

@@ -27,7 +27,6 @@ import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
-import javax.annotation.CheckForNull;
 
 /**
  * Manages unique ID for classloaders.
@@ -55,7 +54,6 @@ final class ExportedClassLoaderTable {
         return id;
     }
 
-    @CheckForNull
     public synchronized ClassLoader get(int id) {
         WeakReference<ClassLoader> ref = table.get(id);
         if(ref==null)   return null;
