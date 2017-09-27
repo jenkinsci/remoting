@@ -23,6 +23,9 @@
  */
 package hudson.remoting;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.channels.ClosedChannelException;
@@ -111,6 +114,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * @throws IOException Error with explanation if the request cannot be executed. 
      * @since TODO
      */
+    @Restricted(NoExternalUse.class)
     public void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
         final Throwable senderCloseCause = channel.getSenderCloseCause();
         if (senderCloseCause != null) {

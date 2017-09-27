@@ -7,6 +7,8 @@ import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.RoleSensitive;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
@@ -199,7 +201,7 @@ public class ChannelBuilder {
      * @since 3.12 {@code null} parameter value is deprecated.
      *        {@link #withoutJarCache()} or {@link #withJarCacheOrDefault(JarCache)} should be used instead.
      */
-    public ChannelBuilder withJarCache(@Nonnull JarCache jarCache) {
+    public ChannelBuilder withJarCache(@CheckForNull JarCache jarCache) {
         this.jarCache = jarCache;
         return this;
     }
@@ -212,6 +214,7 @@ public class ChannelBuilder {
      * @since 3.12
      * @throws IOException Default JAR Cache location cannot be initialized
      */
+    @Restricted(NoExternalUse.class)
     public ChannelBuilder withJarCacheOrDefault(@CheckForNull JarCache jarCache) throws IOException {
         this.jarCache = jarCache != null ? jarCache : JarCache.getDefault();
         return this;
@@ -223,6 +226,7 @@ public class ChannelBuilder {
      *
      * @since 3.12
      */
+    @Restricted(NoExternalUse.class)
     public ChannelBuilder withoutJarCache() {
         this.jarCache = null;
         return this;

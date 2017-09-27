@@ -608,9 +608,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Get why the sender side of the channel has been closed.
      * @return Close cause or {@code null} if the sender side is active.
      *         {@code null} result does not guarantee that the channel is actually operational.
-     * @since TODO
      */
     @CheckForNull
+    @Restricted(NoExternalUse.class)
     public final Throwable getSenderCloseCause() {
         return outClosed;
     }
@@ -634,9 +634,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @return {@link #outClosed} if not {@code null}, value of the transient cache
      *         {@link #closeRequestCause} otherwise. 
      *         The latter one may show random cause in the case of race conditions.
-     * @since TODO
      */
     @CheckForNull
+    @Restricted(NoExternalUse.class)
     public Throwable getCloseRequestCause() {
         return outClosed != null ? outClosed : closeRequestCause;
     }

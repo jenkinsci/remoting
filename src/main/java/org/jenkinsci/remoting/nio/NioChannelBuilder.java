@@ -6,6 +6,8 @@ import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.ClassFilter;
 import hudson.remoting.JarCache;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -85,6 +87,7 @@ public abstract class NioChannelBuilder extends ChannelBuilder {
     }
 
     @Override
+    @Restricted(NoExternalUse.class)
     public NioChannelBuilder withoutJarCache() {
         return (NioChannelBuilder) super.withoutJarCache();
     }

@@ -1,5 +1,8 @@
 package hudson.remoting;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import java.io.IOException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -31,7 +34,7 @@ public class ChannelClosedException extends IOException {
      * @param cause Cause of the channel close/termination. 
      *              May be {@code null} if it cannot be determined when the exception is constructed.
      * @since TODO
-     */
+     */@Restricted(NoExternalUse.class)
     public ChannelClosedException(@Nonnull String message, @CheckForNull Throwable cause) {
         super(message, cause);
     }

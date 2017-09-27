@@ -26,6 +26,8 @@ package hudson.remoting;
 import hudson.remoting.RemoteClassLoader.IClassLoader;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.RemoteInvocationHandler.RPCRequest;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -103,6 +105,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
     }
 
     @Override
+    @Restricted(NoExternalUse.class)
     public void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
         // Default check for all requests
         super.checkIfCanBeExecutedOnChannel(channel);
