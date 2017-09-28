@@ -31,6 +31,7 @@ import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -317,6 +318,9 @@ public class JnlpAgentEndpointResolver {
                     LOGGER.log(Level.INFO,
                             "Master isn't ready to talk to us on {0}. Will retry again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
+                } catch (SocketTimeoutException e) {
+                    LOGGER.log(INFO, "Failed to connect to the master. Will retry again: {0} {1}",
+                            new String[] { e.getClass().getName(), e.getMessage() });
                 } catch (IOException e) {
                     // report the failure
                     LOGGER.log(INFO, "Failed to connect to the master. Will retry again", e);
