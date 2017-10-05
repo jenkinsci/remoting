@@ -200,7 +200,15 @@ THE SOFTWARE.
       <version>1.7</version>
       <type>jar</type>
       <optional>true</optional><!-- no need to have this at runtime -->
+    </dependency> 
+    <dependency>
+      <groupId>org.jenkins-ci</groupId>
+      <artifactId>annotation-indexer</artifactId>
+      <version>1.12</version>
+      <type>jar</type>
+      <optional>true</optional><!-- no need to have this at runtime, just bumps accmod dependency -->
     </dependency>
+    
     <dependency>
       <groupId>org.jenkins-ci</groupId>
       <artifactId>test-annotations</artifactId>
