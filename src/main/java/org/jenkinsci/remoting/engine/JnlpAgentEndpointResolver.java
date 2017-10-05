@@ -315,7 +315,7 @@ public class JnlpAgentEndpointResolver {
                         return;
                     }
                     LOGGER.log(Level.INFO,
-                            "Master isn't ready to talk to us on {0}. Will retry again: response code={1}",
+                            "Master isn''t ready to talk to us on {0}. Will retry again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
                 } catch (IOException e) {
                     // report the failure
