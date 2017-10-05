@@ -6,6 +6,22 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.13
+
+Release date: Oct 05, 2017
+
+Improvements:
+
+* [JENKINS-38711](https://issues.jenkins-ci.org/browse/JENKINS-38711) -
+Add uncaught exception handling logic to remoting threads.
+Threads now either have failover or proper termination.
+
+Fixed issues:
+
+* [JENKINS-47132](https://issues.jenkins-ci.org/browse/JENKINS-47132) -
+When an agent is waiting for master to be ready, 
+the port was not filled in the `Master isnt ready to talk to us on {0}. Will retry again` log message.
+
 ##### 3.12
 
 Release date: Sep 14, 2017 => [Jenkins 2.79](https://jenkins.io/changelog/#v2.79)
@@ -61,6 +77,8 @@ Remoting build was failing when user name contained metacharacters.
 Enforce code signing verification when building Remoting with the `release` profile.
 
 ##### 3.10.2
+
+Release date: Oct 05, 2017
 
 :exclamation: This is a backport release for Jenkins 2.73.2, 
 which integrates changes from 3.11 and 3.12.
