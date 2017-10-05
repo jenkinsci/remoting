@@ -60,6 +60,32 @@ Remoting build was failing when user name contained metacharacters.
 * [PR #190](https://github.com/jenkinsci/remoting/pull/190) -
 Enforce code signing verification when building Remoting with the `release` profile.
 
+##### 3.10.2
+
+:exclamation: This is a backport release for Jenkins 2.73.2, 
+which integrates changes from 3.11 and 3.12.
+
+* [JENKINS-45755](https://issues.jenkins-ci.org/browse/JENKINS-45755) -
+Prevent channel initialization failure when JAR Cache directory is not writable and the channel does not need this cache
+(regression in 3.10).
+* [JENKINS-45023](https://issues.jenkins-ci.org/browse/JENKINS-45023) -
+Prevent execution of `UserRequest`s when the channel is closed or being closed.
+It prevents hanging of the channel in some cases.
+* [JENKINS-46259](https://issues.jenkins-ci.org/browse/JENKINS-46259) -
+ Log all linkage errors when executing `UserRequest`s (generic remote operations started from API).
+* [JENKINS-45233](https://issues.jenkins-ci.org/browse/JENKINS-45233) -
+ Log errors when Response message cannot be delivered due to the closed channel.
+
+Build Flow:
+
+* [JENKINS-37567](https://issues.jenkins-ci.org/browse/JENKINS-37567) -
+Code signing: [@oleg-nenashev](https://github.com/oleg-nenashev) will be releasing Remoting JARs signed with his certificate 
+for the next 3.10.x releases.
+
+##### 3.10.1
+
+This release is burned.
+
 ##### 3.10
 
 Release date: (Jun 26, 2017) => Jenkins 2.68
