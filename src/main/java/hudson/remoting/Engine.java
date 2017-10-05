@@ -263,7 +263,11 @@ public class Engine extends Thread {
                 throw new IOException("Cannot find the JAR Cache location");
             }
             LOGGER.log(Level.FINE, "Using standard File System JAR Cache. Root Directory is {0}", jarCacheDirectory);
-            jarCache = new FileSystemJarCache(jarCacheDirectory, true);
+            try {
+                jarCache = new FileSystemJarCache(jarCacheDirectory, true);
+            } catch (IllegalArgumentException ex) {
+                throw new IOException("Failed to initialize FileSystem JAR Cache in " + jarCacheDirectory, ex);
+            }
         } else {
             LOGGER.log(Level.INFO, "Using custom JAR Cache: {0}", jarCache);
         }
@@ -567,7 +571,10 @@ public class Engine extends Thread {
 
                                 @Override
                                 public void beforeChannel(@Nonnull JnlpConnectionState event) {
-                                    event.getChannelBuilder().withJarCache(jarCache).withMode(Mode.BINARY);
+                                    ChannelBuilder bldr = event.getChannelBuilder().withMode(Mode.BINARY);
+                                    if (jarCache != null) {
+                                        bldr.withJarCache(jarCache);
+                                    }
                                 }
 
                                 @Override

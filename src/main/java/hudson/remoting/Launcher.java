@@ -732,7 +732,7 @@ public class Launcher {
         ExecutorService executor = Executors.newCachedThreadPool();
         ChannelBuilder cb = new ChannelBuilder("channel", executor)
                 .withMode(mode)
-                .withJarCache(cache);
+                .withJarCacheOrDefault(cache);
 
         // expose StandardOutputStream as a channel property, which is a better way to make this available
         // to the user of Channel than Channel#getUnderlyingOutput()

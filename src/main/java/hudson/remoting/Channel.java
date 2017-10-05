@@ -317,7 +317,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     /*package*/ final ClassLoader baseClassLoader;
 
-    @Nonnull
+    /**
+     * JAR Resolution Cache.
+     * Can be {@code null} if caching disabled for this channel.
+     * In such case some classloading operations may be rejected.
+     */
+    @CheckForNull
     private JarCache jarCache;
 
     /*package*/ final JarLoaderImpl jarLoader;
@@ -326,6 +331,21 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /*package*/ @Nonnull final ClassFilter classFilter;
 
+    /**
+     * Indicates that close of the channel has been requested.
+     * When the value is {@code true}, it does not make sense to execute new user-space commands like {@link UserRequest}.
+     */
+    private boolean closeRequested = false;
+    
+    /**
+     * Stores cause of the close Request.
+     * 
+     * In the case of race condition between multiple close operations, 
+     * this field stores just one of them.
+     */
+    @CheckForNull
+    private Throwable closeRequestCause = null;
+    
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
      * 
@@ -500,12 +520,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.underlyingOutput = transport.getUnderlyingStream();
         
         // JAR Cache resolution
-        JarCache effectiveJarCache = settings.getJarCache();
-        if (effectiveJarCache == null) {
-            effectiveJarCache = JarCache.getDefault();
-            logger.log(Level.CONFIG, "Using the default JAR Cache: {0}", effectiveJarCache);
+        this.jarCache = settings.getJarCache();
+        if (this.jarCache == null) {
+            logger.log(Level.CONFIG, "JAR Cache is not defined for channel {0}", name);
         }
-        this.jarCache = effectiveJarCache;
 
         this.baseClassLoader = settings.getBaseLoader();
         this.classFilter = settings.getClassFilter();
@@ -528,11 +546,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
                 commandsReceived++;
-                lastCommandReceivedAt = System.currentTimeMillis();
-                if (logger.isLoggable(Level.FINE))
+                long receivedAt = System.currentTimeMillis();
+                lastCommandReceivedAt = receivedAt;
+                if (logger.isLoggable(Level.FINE)) {
                     logger.fine("Received " + cmd);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "Received command " + cmd, cmd.createdAt);
+                }
                 try {
                     cmd.execute(Channel.this);
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.log(Level.FINE, "Completed command {0}. It took {1}ms", new Object[] {cmd, System.currentTimeMillis() - receivedAt});
+                    }
                 } catch (Throwable t) {
                     logger.log(Level.SEVERE, "Failed to execute command " + cmd + " (channel " + Channel.this.name + ")", t);
                     logger.log(Level.SEVERE, "This command is created here", cmd.createdAt);
@@ -580,13 +605,42 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
     
     /**
+     * Get why the sender side of the channel has been closed.
+     * @return Close cause or {@code null} if the sender side is active.
+     *         {@code null} result does not guarantee that the channel is actually operational.
+     */
+    @CheckForNull
+    @Restricted(NoExternalUse.class)
+    public final Throwable getSenderCloseCause() {
+        return outClosed;
+    }
+    
+    /**
      * Returns {@code true} if the channel is either in the process of closing down or has closed down.
+     * 
+     * If the result is {@code true}, it means that the channel will be closed at some point by Remoting,
+     * and that it makes no sense to send any new {@link UserRequest}s to the remote side.
+     * Invocations like {@link #call(hudson.remoting.Callable)} and {@link #callAsync(hudson.remoting.Callable)} 
+     * will just fail as well.
      * @since 2.33
      */
     public boolean isClosingOrClosed() {
-        return inClosed != null || outClosed != null;
+        return closeRequested || inClosed != null || outClosed != null;
     }
 
+    /**
+     * Gets cause of the close request.
+     * 
+     * @return {@link #outClosed} if not {@code null}, value of the transient cache
+     *         {@link #closeRequestCause} otherwise. 
+     *         The latter one may show random cause in the case of race conditions.
+     */
+    @CheckForNull
+    @Restricted(NoExternalUse.class)
+    public Throwable getCloseRequestCause() {
+        return outClosed != null ? outClosed : closeRequestCause;
+    }
+    
     /**
      * Creates the {@link ExecutorService} for writing to pipes.
      *
@@ -787,9 +841,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * If this channel is built with jar file caching, return the object that manages this cache.
+     * @return JAR Cache object. {@code null} if JAR caching is disabled
      * @since 2.24
+     * @since 3.10 JAR Cache is Nonnull
+     * @since 3.12 JAR Cache made nullable again due to <a href="https://issues.jenkins-ci.org/browse/JENKINS-45755">JENKINS-45755</a>
      */
-    @Nonnull
+    @CheckForNull
     public JarCache getJarCache() {
         return jarCache;
     }
@@ -800,6 +857,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
      * unless your call sequence guarantees that you call this method before remote classes are loaded.
+     *
+     * @param jarCache New JAR Cache to be used.
+     *                 Cannot be {@code null}, JAR Cache disabling on a running channel is not supported.
      * @since 2.24
      */
     public void setJarCache(@Nonnull JarCache jarCache) {
@@ -832,6 +892,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public <V,T extends Throwable>
     V call(Callable<V,T> callable) throws IOException, T, InterruptedException {
+        if (isClosingOrClosed()) {
+            // No reason to even try performing a user request
+            throw new ChannelClosedException("Remote call on " + name + " failed. "
+                    + "The channel is closing down or has closed down", getCloseRequestCause());
+        }
+        
         UserRequest<V,T> request=null;
         try {
             request = new UserRequest<V, T>(this, callable);
@@ -862,6 +928,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public <V,T extends Throwable>
     Future<V> callAsync(final Callable<V,T> callable) throws IOException {
+        if (isClosingOrClosed()) {
+            // No reason to even try performing a user request
+            throw new ChannelClosedException("Remote call on " + name + " failed. "
+                    + "The channel is closing down or has closed down", getCloseRequestCause());
+        }
+        
         final Future<UserResponse<V,T>> f = new UserRequest<V,T>(this, callable).callAsync(this);
         return new FutureAdapter<V,UserResponse<V,T>>(f) {
             protected V adapt(UserResponse<V,T> r) throws ExecutionException {
@@ -879,6 +951,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * This is an SPI for {@link CommandTransport} implementation to notify
      * {@link Channel} when the underlying connection is severed.
+     * 
+     * Once the call is called {@link #closeRequested} will be set immediately to prevent further executions
+     * of {@link UserRequest}s.
      *
      * @param e
      *      The error that caused the connection to be aborted. Never null.
@@ -886,9 +961,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     @java.lang.SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     @SuppressWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
     public void terminate(@Nonnull IOException e) {
+        
+        if (e == null) {
+            throw new IllegalArgumentException("Cause is null. Channel cannot be closed properly in such case");
+        }
+        closeRequested = true;
+        if (closeRequestCause == null) {
+            // Cache the cause value just in case it takes long to acquire the lock
+            closeRequestCause = e;
+        }
+        
         try {
-            synchronized (this) {
-                if (e == null) throw new IllegalArgumentException();
+            synchronized (this) {  
                 outClosed = inClosed = e;
                 // we need to clear these out early in order to ensure that a GC operation while
                 // proceding with the close does not result in a batch of UnexportCommand instances
@@ -1268,12 +1352,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@inheritDoc}
      */
-    public synchronized void close() throws IOException {
+    public void close() throws IOException {
         close(null);
     }
 
     /**
      * Closes the channel.
+     * 
+     * Once the call is called {@link #closeRequested} will be set immediately to prevent further executions
+     * of {@link UserRequest}s.
      *
      * @param diagnosis
      *      If someone (either this side or the other side) tries to use a channel that's already closed,
@@ -1283,32 +1370,45 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * @since 2.8
      */
-    public synchronized void close(@CheckForNull Throwable diagnosis) throws IOException {
+    public void close(@CheckForNull Throwable diagnosis) throws IOException {
         if(outClosed!=null)  return;  // already closed
-
-        try {
-            send(new CloseCommand(this, diagnosis));
-        } catch (ChannelClosedException e) {
-            logger.log(Level.FINEST, "Channel is already closed", e);
-            terminate(e);
-            return;
-        } catch (IOException e) {
-            // send should only ever - worst case - throw an IOException so we'll just catch that and not Throwable
-            logger.log(Level.WARNING, "Having to terminate early", e);
-            terminate(e);
-            return;
+        closeRequested = true;
+        if (closeRequestCause == null) {
+            // Cache the cause value just in case it takes long to acquire the lock
+            // TODO: This IOException wrapper is copy-pasted from the original logic, but do we actually need it when diagnosis is non-null?
+            closeRequestCause = new IOException(diagnosis);
         }
-        outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
-        notifyAll();
-        try {
-            transport.closeWrite();
-        } catch (IOException e) {
-            // there's a race condition here.
-            // the remote peer might have already responded to the close command
-            // and closed the connection, in which case our close invocation
-            // could fail with errors like
-            // "java.io.IOException: The pipe is being closed"
-            // so let's ignore this error.
+        
+        synchronized(this) {
+            if(outClosed!=null) {
+                // It has been closed while we were waiting for the lock
+                return;
+            }
+            
+            try {
+                send(new CloseCommand(this, diagnosis));
+            } catch (ChannelClosedException e) {
+                logger.log(Level.FINEST, "Channel is already closed", e);
+                terminate(e);
+                return;
+            } catch (IOException e) {
+                // send should only ever - worst case - throw an IOException so we'll just catch that and not Throwable
+                logger.log(Level.WARNING, "Having to terminate early", e);
+                terminate(e);
+                return;
+            }
+            outClosed = new IOException(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
+            notifyAll();
+            try {
+                transport.closeWrite();
+            } catch (IOException e) {
+                // there's a race condition here.
+                // the remote peer might have already responded to the close command
+                // and closed the connection, in which case our close invocation
+                // could fail with errors like
+                // "java.io.IOException: The pipe is being closed"
+                // so let's ignore this error.
+            }
         }
 
         // termination is done by CloseCommand when we received it.

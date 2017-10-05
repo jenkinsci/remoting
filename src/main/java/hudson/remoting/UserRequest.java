@@ -26,6 +26,8 @@ package hudson.remoting;
 import hudson.remoting.RemoteClassLoader.IClassLoader;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.RemoteInvocationHandler.RPCRequest;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -51,6 +53,8 @@ import javax.annotation.Nonnull;
  */
 final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<RSP,EXC>,EXC> {
 
+    private static final Logger LOGGER = Logger.getLogger(UserRequest.class.getName());
+
     private final byte[] request;
     
     @Nonnull
@@ -70,6 +74,16 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
      */
     public UserRequest(Channel local, Callable<?,EXC> c) throws IOException {
         this.toString = c.toString();
+        if (local.isClosingOrClosed()) {
+            Throwable createdAtValue = createdAt;
+            if (createdAtValue == null) {
+                // If Command API changes, the cause may be null here (e.g. if it stops recording cause by default)
+                createdAtValue = new IllegalStateException("Command is created for the channel being interrupted");
+            }
+            throw new ChannelClosedException("Cannot create UserRequest for channel " + local + 
+                    ". The channel is closed or being closed.", createdAtValue);
+        }
+        
         
         // Before serializing anything, check that we actually have a classloader for it
         final ClassLoader cl = getClassLoader(c);
@@ -90,6 +104,19 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
         this.classLoaderProxy = RemoteClassLoader.export(cl, local);
     }
 
+    @Override
+    @Restricted(NoExternalUse.class)
+    public void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
+        // Default check for all requests
+        super.checkIfCanBeExecutedOnChannel(channel);
+        
+        // We also do not want to run UserRequests when the channel is being closed
+        if (channel.isClosingOrClosed()) {
+            throw new ChannelClosedException("The request cannot be executed on channel " + channel + ". "
+                    + "The channel is closing down or has closed down", channel.getCloseRequestCause());
+        }
+    }
+    
     /**
      * Retrieves classloader for the callable.
      * For {@link DelegatingCallable} the method will try to retrieve a classloader specified there.
@@ -158,7 +185,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
                 try {
                     o = deserialize(channel,request,cl);
                 } catch (ClassNotFoundException e) {
-                    throw new ClassNotFoundException("Failed to deserialize the Callable object. Perhaps you needed to implement DelegatingCallable?",e);
+                    throw new ClassNotFoundException("Failed to deserialize the Callable object. Perhaps you needed to implement DelegatingCallable?", e);
                 } catch (RuntimeException e) {
                     // if the error is during deserialization, throw it in one of the types Channel.call will
                     // capture its call site stack trace. See 
@@ -182,6 +209,9 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
                 } finally {
                     Thread.currentThread().setContextClassLoader(old);
                 }
+            } catch (LinkageError e) {
+                LOGGER.log(Level.WARNING, "LinkageError while performing " + toString(), e);
+                throw e;
             } finally {
                 Channel.setCurrent(oldc);
             }
