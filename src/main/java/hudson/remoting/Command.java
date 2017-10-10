@@ -41,20 +41,24 @@ import javax.annotation.CheckForNull;
  * need to have the definition of {@link Command}-implementation.
  * 
  * @author Kohsuke Kawaguchi
+ * @see hudson.remoting.Channel.Listener#read
+ * @see hudson.remoting.Channel.Listener#write
+ * @since FIXME
  */
-abstract class Command implements Serializable {
+public abstract class Command implements Serializable {
     /**
      * This exception captures the stack trace of where the Command object is created.
      * This is useful for diagnosing the error when command fails to execute on the remote peer. 
      */
-    public final Exception createdAt;
+    @CheckForNull
+    final Exception createdAt;
 
-
-    protected Command() {
+    // Prohibited to subclass outside of this package.
+    Command() {
         this(true);
     }
 
-    protected Command(Channel channel, @CheckForNull Throwable cause) {
+    Command(Channel channel, @CheckForNull Throwable cause) {
         // Command object needs to be deserializable on the other end without requiring custom classloading,
         // so we wrap this in ProxyException
         this.createdAt = new Source(cause != null ? new ProxyException(cause) : null);
@@ -66,7 +70,7 @@ abstract class Command implements Serializable {
      *      and cause/effect correlation hard in case of a failure, but it will reduce the amount of the data
      *      transferred.
      */
-    protected Command(boolean recordCreatedAt) {
+    Command(boolean recordCreatedAt) {
         if(recordCreatedAt)
             this.createdAt = new Source();
         else
@@ -80,7 +84,7 @@ abstract class Command implements Serializable {
      *      The {@link Channel} of the remote system.
      * @throws ExecutionException Execution error
      */
-    protected abstract void execute(Channel channel) throws ExecutionException;
+    abstract void execute(Channel channel) throws ExecutionException;
 
     /** Consider calling {@link Channel#notifyWrite} afterwards. */
     void writeTo(Channel channel, ObjectOutputStream oos) throws IOException {
@@ -101,6 +105,23 @@ abstract class Command implements Serializable {
             Channel.setCurrent(old);
         }
     }
+
+    /**
+     * Obtains a diagnostic stack trace recording the point at which the command was created.
+     * This is not necessarily the point at which the command was delivered or run.
+     * Part of the stack trace might have been produced on a remote machine,
+     * in which case {@link ProxyException} may be used in place of the original.
+     * @return an information stack trace, or null if not recorded
+     */
+    public @CheckForNull Throwable getCreationStackTrace() {
+        return createdAt;
+    }
+
+    /**
+     * Should provide concise information useful for {@link hudson.remoting.Channel.Listener}.
+     */
+    @Override
+    public abstract String toString();
 
     private static final long serialVersionUID = 1L;
 

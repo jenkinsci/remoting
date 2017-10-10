@@ -601,15 +601,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         /**
          * Called when a command is successfully received by a channel.
-         * From outside Remoting, commands are of generally opaque type (beyond being {@link Serializable}),
-         * so listeners can only tally by {@link Object#getClass}.
-         * However {@link Object#toString} will usually be meaningful.
          * @param channel a channel
          * @param cmd a command
          * @param blockSize the number of bytes used to read this command
          * @since FIXME
          */
-        public void read(Channel channel, Object cmd, long blockSize) {}
+        public void read(Channel channel, Command cmd, long blockSize) {}
 
         /**
          * Called when a command is successfully written to a channel.
@@ -619,7 +616,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param blockSize the number of bytes used to write this command
          * @since FIXME
          */
-        public void write(Channel channel, Object cmd, long blockSize) {}
+        public void write(Channel channel, Command cmd, long blockSize) {}
 
     }
 

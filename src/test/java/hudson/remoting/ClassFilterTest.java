@@ -266,6 +266,11 @@ public class ClassFilterTest implements Serializable {
         protected void execute(Channel channel) {
             // nothing to do here
         }
+
+        @Override
+        public String toString() {
+            return "Security218";
+        }
     }
 
     private String getAttack() {
