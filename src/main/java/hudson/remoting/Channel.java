@@ -42,16 +42,18 @@ import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Vector;
 import java.util.WeakHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -207,7 +209,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Registered listeners. 
      */
-    private final Vector<Listener> listeners = new Vector<Listener>();
+    private final List<Listener> listeners = new CopyOnWriteArrayList<>();
     private int gcCounter;
 
     /**
@@ -345,7 +347,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     @CheckForNull
     private Throwable closeRequestCause = null;
-    
+
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
      * 
@@ -586,6 +588,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Callback "interface" for changes in the state of {@link Channel}.
      */
     public static abstract class Listener {
+
         /**
          * When the channel was closed normally or abnormally due to an error.
          *
@@ -595,6 +598,29 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          *      Otherwise null.
          */
         public void onClosed(Channel channel, IOException cause) {}
+
+        /**
+         * Called when a command is successfully received by a channel.
+         * From outside Remoting, commands are of generally opaque type (beyond being {@link Serializable}),
+         * so listeners can only tally by {@link Object#getClass}.
+         * However {@link Object#toString} will usually be meaningful.
+         * @param channel a channel
+         * @param cmd a command
+         * @param blockSize the number of bytes used to read this command
+         * @since FIXME
+         */
+        public void read(Channel channel, Object cmd, long blockSize) {}
+
+        /**
+         * Called when a command is successfully written to a channel.
+         * See {@link #read} for general usage guidelines.
+         * @param channel a channel
+         * @param cmd a command
+         * @param blockSize the number of bytes used to write this command
+         * @since FIXME
+         */
+        public void write(Channel channel, Object cmd, long blockSize) {}
+
     }
 
     /**
@@ -1004,7 +1030,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             } // JENKINS-14909: leave synch block
         } finally {
             if (e instanceof OrderlyShutdown) e = null;
-            for (Listener l : listeners.toArray(new Listener[0])) {
+            for (Listener l : listeners) {
                 try {
                     l.onClosed(this, e);
                 } catch (Throwable t) {
@@ -1758,6 +1784,30 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 }
             }
             processedCount++;
+        }
+    }
+
+    /**
+     * Notification that {@link Command#readFrom} has succeeded.
+     * @param cmd the resulting command
+     * @param blockSize the serialized size of the command
+     * @see CommandListener
+     */
+    void notifyRead(Command cmd, long blockSize) {
+        for (Listener listener : listeners) {
+            listener.read(this, cmd, blockSize);
+        }
+    }
+
+    /**
+     * Notification that {@link Command#writeTo} has succeeded.
+     * @param cmd the command passed in
+     * @param blockSize the serialized size of the command
+     * @see CommandListener
+     */
+    void notifyWrite(Command cmd, long blockSize) {
+        for (Listener listener : listeners) {
+            listener.write(this, cmd, blockSize);
         }
     }
 

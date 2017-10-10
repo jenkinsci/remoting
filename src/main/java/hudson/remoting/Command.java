@@ -81,7 +81,8 @@ abstract class Command implements Serializable {
      * @throws ExecutionException Execution error
      */
     protected abstract void execute(Channel channel) throws ExecutionException;
-      
+
+    /** Consider calling {@link Channel#notifyWrite} afterwards. */
     void writeTo(Channel channel, ObjectOutputStream oos) throws IOException {
         Channel old = Channel.setCurrent(channel);
         try {
@@ -91,6 +92,7 @@ abstract class Command implements Serializable {
         }
     }
     
+    /** Consider calling {@link Channel#notifyRead} afterwards. */
     static Command readFrom(Channel channel, ObjectInputStream ois) throws IOException, ClassNotFoundException {
         Channel old = Channel.setCurrent(channel);
         try {

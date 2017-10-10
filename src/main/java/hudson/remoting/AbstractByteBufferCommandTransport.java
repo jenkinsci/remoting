@@ -199,7 +199,9 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
             FastByteBufferQueueInputStream is = new FastByteBufferQueueInputStream(receiveQueue, readCommandSizes[0]);
             try {
                 ObjectInputStreamEx ois = new ObjectInputStreamEx(is, channel.baseClassLoader, channel.classFilter);
-                receiver.handle(Command.readFrom(channel, ois));
+                Command cmd = Command.readFrom(channel, ois);
+                receiver.handle(cmd);
+                channel.notifyRead(cmd, readCommandSizes[0]);
             } catch (IOException e1) {
                 LOGGER.log(Level.WARNING, "Failed to construct Command", e1);
             } catch (ClassNotFoundException e11) {
@@ -290,6 +292,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
             oos.close();
         }
         long remaining = sendStaging.remaining();
+        channel.notifyWrite(cmd, remaining);
         while (remaining > 0L) {
             int frame = remaining > transportFrameSize
                     ? transportFrameSize
