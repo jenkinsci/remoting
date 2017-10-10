@@ -41,8 +41,8 @@ import javax.annotation.CheckForNull;
  * need to have the definition of {@link Command}-implementation.
  * 
  * @author Kohsuke Kawaguchi
- * @see hudson.remoting.Channel.Listener#read
- * @see hudson.remoting.Channel.Listener#write
+ * @see hudson.remoting.Channel.Listener#onRead
+ * @see hudson.remoting.Channel.Listener#onWrite
  * @since FIXME
  */
 public abstract class Command implements Serializable {

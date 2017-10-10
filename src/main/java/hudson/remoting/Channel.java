@@ -606,17 +606,17 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param blockSize the number of bytes used to read this command
          * @since FIXME
          */
-        public void read(Channel channel, Command cmd, long blockSize) {}
+        public void onRead(Channel channel, Command cmd, long blockSize) {}
 
         /**
          * Called when a command is successfully written to a channel.
-         * See {@link #read} for general usage guidelines.
+         * See {@link #onRead} for general usage guidelines.
          * @param channel a channel
          * @param cmd a command
          * @param blockSize the number of bytes used to write this command
          * @since FIXME
          */
-        public void write(Channel channel, Command cmd, long blockSize) {}
+        public void onWrite(Channel channel, Command cmd, long blockSize) {}
 
     }
 
@@ -1792,7 +1792,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     void notifyRead(Command cmd, long blockSize) {
         for (Listener listener : listeners) {
-            listener.read(this, cmd, blockSize);
+            listener.onRead(this, cmd, blockSize);
         }
     }
 
@@ -1804,7 +1804,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     void notifyWrite(Command cmd, long blockSize) {
         for (Listener listener : listeners) {
-            listener.write(this, cmd, blockSize);
+            listener.onWrite(this, cmd, blockSize);
         }
     }
 
