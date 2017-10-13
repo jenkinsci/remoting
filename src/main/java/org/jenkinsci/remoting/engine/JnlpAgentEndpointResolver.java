@@ -318,14 +318,14 @@ public class JnlpAgentEndpointResolver {
                         return;
                     }
                     LOGGER.log(Level.INFO,
-                            "Master isn't ready to talk to us on {0}. Will retry again: response code={1}",
+                            "Master isn't ready to talk to us on {0}. Will try again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
                 } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
-                    LOGGER.log(INFO, "Failed to connect to the master. Will retry again: {0} {1}",
+                    LOGGER.log(INFO, "Failed to connect to the master. Will try again: {0} {1}",
                             new String[] { e.getClass().getName(), e.getMessage() });
                 } catch (IOException e) {
                     // report the failure
-                    LOGGER.log(INFO, "Failed to connect to the master. Will retry again", e);
+                    LOGGER.log(INFO, "Failed to connect to the master. Will try again", e);
                 }
             }
         } finally {
