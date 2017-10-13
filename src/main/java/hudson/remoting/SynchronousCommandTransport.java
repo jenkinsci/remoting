@@ -47,6 +47,10 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
         public ReaderThread(CommandReceiver receiver) {
             super("Channel reader thread: "+channel.getName());
             this.receiver = receiver;
+            setUncaughtExceptionHandler((t, e) -> {
+                LOGGER.log(Level.SEVERE, "Uncaught exception in SynchronousCommandTransport.ReaderThread " + t, e);
+                channel.terminate((IOException) new IOException("Unexpected reader termination").initCause(e));
+            });
         }
 
         @Override
