@@ -25,9 +25,11 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Base64;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.NoRouteToHostException;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.SocketAddress;
@@ -318,7 +320,7 @@ public class JnlpAgentEndpointResolver {
                     LOGGER.log(Level.INFO,
                             "Master isn't ready to talk to us on {0}. Will retry again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
-                } catch (SocketTimeoutException e) {
+                } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
                     LOGGER.log(INFO, "Failed to connect to the master. Will retry again: {0} {1}",
                             new String[] { e.getClass().getName(), e.getMessage() });
                 } catch (IOException e) {
