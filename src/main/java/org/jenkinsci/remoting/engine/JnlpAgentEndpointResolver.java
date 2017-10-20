@@ -38,7 +38,10 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.KeyFactory;
+import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
@@ -57,6 +60,12 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import static java.util.logging.Level.INFO;
 import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
@@ -79,6 +88,8 @@ public class JnlpAgentEndpointResolver {
     private String proxyCredentials;
 
     private String tunnel;
+
+    private boolean insecure;
 
     /**
      * If specified, only the protocols from the list will be tried during the connection.
@@ -137,6 +148,25 @@ public class JnlpAgentEndpointResolver {
         this.tunnel = tunnel;
     }
 
+    /**
+     *  Determine if certificate checking should be ignored for JNLP endpoint
+     *
+     * @return if insecure, endpoint check is ignored
+     */
+
+    public boolean isInsecure() {
+        return insecure;
+    }
+
+    /**
+     * Sets if insecure mode of endpoint should be used.
+     *
+     * @param insecure
+     */
+    public void setInsecure(boolean insecure) {
+        this.insecure = insecure;
+    }
+
     @CheckForNull
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
@@ -154,7 +184,7 @@ public class JnlpAgentEndpointResolver {
 
             // find out the TCP port
             HttpURLConnection con =
-                    (HttpURLConnection) openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory);
+                    (HttpURLConnection) openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory, insecure);
             try {
                 try {
                     con.setConnectTimeout(30000);
@@ -310,7 +340,7 @@ public class JnlpAgentEndpointResolver {
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
 
                     HttpURLConnection con =
-                            (HttpURLConnection) openURLConnection(url, credentials, proxyCredentials, sslSocketFactory);
+                            (HttpURLConnection) openURLConnection(url, credentials, proxyCredentials, sslSocketFactory, insecure);
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
@@ -331,7 +361,6 @@ public class JnlpAgentEndpointResolver {
         } finally {
             t.setName(oldName);
         }
-
     }
 
     @CheckForNull
@@ -378,7 +407,7 @@ public class JnlpAgentEndpointResolver {
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      */
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
-                                           SSLSocketFactory sslSocketFactory) throws IOException {
+                                           SSLSocketFactory sslSocketFactory, boolean insecure) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
         if (System.getProperty("http.proxyHost") == null) {
@@ -407,8 +436,54 @@ public class JnlpAgentEndpointResolver {
             String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
-        if (con instanceof HttpsURLConnection && sslSocketFactory != null) {
+
+        if (insecure && con instanceof HttpsURLConnection) {
+            System.out.println(String.format("Insecure Status: %s", insecure));
+            try {
+                SSLContext ctx = SSLContext.getInstance("TLS");
+
+                ctx.init(null, new TrustManager[]{new X509TrustManager() {
+                    @Override
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
+
+                    @Override
+                    public void checkClientTrusted(X509Certificate[] certs,
+                            String authType) {
+                    }
+
+                    @Override
+                    public void checkServerTrusted(X509Certificate[] certs,
+                            String authType) {
+                    }
+
+                }}, new SecureRandom());
+                sslSocketFactory = ctx.getSocketFactory();
+
+                HostnameVerifier allHostsValid = new HostnameVerifier() {
+                    @Override
+                    public boolean verify(String hostname, SSLSession session) {
+                        return true;
+                    }
+                };
+
+                ((HttpsURLConnection) con).setHostnameVerifier(allHostsValid);
             ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
+            } catch (KeyManagementException | NoSuchAlgorithmException ex) {
+                 System.err.println(String.format("Error setting insecure; %s", ex.getMessage()));
+            }
+
+        }
+        else if (con instanceof HttpsURLConnection && sslSocketFactory != null) {
+            ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
+            HostnameVerifier allHostsValid = new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            };
+            ((HttpsURLConnection) con).setHostnameVerifier(allHostsValid);
         }
         return con;
     }

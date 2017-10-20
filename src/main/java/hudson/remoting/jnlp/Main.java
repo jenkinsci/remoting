@@ -27,14 +27,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.FileSystemJarCache;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
-import org.jenkinsci.remoting.util.IOUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Argument;
@@ -51,7 +49,6 @@ import java.io.IOException;
 
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
-import java.nio.file.Path;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -91,6 +88,10 @@ public class Main {
     @Option(name="-noreconnect",
             usage="If the connection ends, don't retry and just exit.")
     public boolean noReconnect = false;
+
+    @Option(name="-insecure",
+        usage="Ignore SSL validation errors - use as a last resort only.")
+    public boolean insecure = false;
 
     @Option(name="-noKeepAlive",
             usage="Disable TCP socket keep alive on connection to the master.")
@@ -242,6 +243,9 @@ public class Main {
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
         engine.setKeepAlive(!noKeepAlive);
+        LOGGER.log(INFO, "Insecure Status: {0}", insecure);
+        engine.setInsecure(insecure);
+
         
         // TODO: ideally logging should be initialized before the "Setting up slave" entry
         if (agentLog != null) {

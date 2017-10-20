@@ -23,15 +23,11 @@
  */
 package hudson.remoting;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Path;
@@ -134,7 +130,6 @@ public class Engine extends Thread {
      */
     @CheckForNull
     private URL hudsonUrl;
-
     private final String secretKey;
     public final String slaveName;
     private String credentials;
@@ -144,6 +139,8 @@ public class Engine extends Thread {
      * See Main#tunnel in the jnlp-agent module for the details.
      */
     private String tunnel;
+
+    private boolean insecure;
 
     private boolean noReconnect;
 
@@ -156,6 +153,23 @@ public class Engine extends Thread {
 
     
     
+    /**
+     * Determines if JNLPAgentEndpointResolver will not perform certificate validation
+     * @return
+     */
+    public boolean isInsecure() {
+        return insecure;
+    }
+
+    /**
+     * Sets if JNLPAgentEndpointResolver will not perform certificate validation
+     *
+     * @param insecure
+     */
+
+    public void setInsecure(boolean insecure) {
+        this.insecure = insecure;
+    }
     
     @CheckForNull
     private JarCache jarCache = null;
@@ -327,6 +341,8 @@ public class Engine extends Thread {
         this.noReconnect = noReconnect;
     }
 
+
+
     /**
      * Sets the destination for agent logs.
      * @param agentLog Path to the agent log.
@@ -482,6 +498,7 @@ public class Engine extends Thread {
         resolver.setTunnel(tunnel);
         try {
             resolver.setSslSocketFactory(getSSLSocketFactory());
+            resolver.setInsecure(insecure);
         } catch (Exception e) {
             events.error(e);
         }
@@ -809,8 +826,8 @@ public class Engine extends Thread {
             trustManagerFactory.init(keyStore);
             // prepare the SSL context
             SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
             // now we have our custom socket factory
+            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
             sslSocketFactory = ctx.getSocketFactory();
         }
         return sslSocketFactory;
