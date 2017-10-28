@@ -25,12 +25,15 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Base64;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.NoRouteToHostException;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -82,7 +85,6 @@ public class JnlpAgentEndpointResolver {
      * The option provides protocol names, but the order of the check is defined internally and cannot be changed.
      * This option can be also used in order to workaround issues when the headers cannot be delivered
      * from the server due to whatever reason (e.g. JENKINS-41730).
-     * @since TODO
      */
     private static String PROTOCOL_NAMES_TO_TRY =
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
@@ -320,11 +322,14 @@ public class JnlpAgentEndpointResolver {
                         return;
                     }
                     LOGGER.log(Level.INFO,
-                            "Master isn't ready to talk to us on {0}. Will retry again: response code={1}",
+                            "Master isn''t ready to talk to us on {0}. Will try again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
+                } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
+                    LOGGER.log(INFO, "Failed to connect to the master. Will try again: {0} {1}",
+                            new String[] { e.getClass().getName(), e.getMessage() });
                 } catch (IOException e) {
                     // report the failure
-                    LOGGER.log(INFO, "Failed to connect to the master. Will retry again", e);
+                    LOGGER.log(INFO, "Failed to connect to the master. Will try again", e);
                 }
             }
         } finally {

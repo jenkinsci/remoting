@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Filter input stream that records the content as it's read, so that it can be reported
@@ -13,6 +15,7 @@ import java.util.Arrays;
  * @author Kohsuke Kawaguchi
  */
 class FlightRecorderInputStream extends InputStream {
+    private static final Logger LOGGER = Logger.getLogger(FlightRecorderInputStream.class.getName());
 
     /**
      * Size (in bytes) of the flight recorder ring buffer used for debugging remoting issues.
@@ -62,6 +65,8 @@ class FlightRecorderInputStream extends InputStream {
                 }
             }
         };
+        diagnosisThread.setUncaughtExceptionHandler(
+                (t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in diagnosis thread " + t, e));
 
         // wait up to 1 sec to grab as much data as possible
         diagnosisThread.start();

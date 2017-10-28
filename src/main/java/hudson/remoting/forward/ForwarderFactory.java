@@ -32,8 +32,11 @@ import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Creates {@link Forwarder}.
@@ -41,6 +44,9 @@ import java.net.Socket;
  * @author Kohsuke Kawaguchi
  */
 public class ForwarderFactory {
+
+    private static final Logger LOGGER = Logger.getLogger(ForwarderFactory.class.getName());
+
     /**
      * Creates a connector on the remote side that connects to the speicied host and port.
      */
@@ -74,8 +80,19 @@ public class ForwarderFactory {
 
         public OutputStream connect(OutputStream out) throws IOException {
             Socket s = new Socket(remoteHost, remotePort);
-            new CopyThread(String.format("Copier to %s:%d", remoteHost, remotePort),
-                SocketChannelStream.in(s), out).start();
+            try (InputStream in = SocketChannelStream.in(s)) {
+                new CopyThread(
+                        String.format("Copier to %s:%d", remoteHost, remotePort),
+                        in,
+                        out,
+                        () -> {
+                            try {
+                                s.close();
+                            } catch (IOException e) {
+                                LOGGER.log(Level.WARNING, "Problem closing socket for ForwardingFactory", e);
+                            }
+                        }).start();
+            }
             return new RemoteOutputStream(SocketChannelStream.out(s));
         }
 

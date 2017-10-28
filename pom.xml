@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>3.12-SNAPSHOT</version>
+  <version>3.14-SNAPSHOT</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -88,7 +88,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.codehaus.mojo</groupId>
       <artifactId>animal-sniffer-annotations</artifactId>
-      <version>1.15</version>
       <scope>provided</scope>
     </dependency>
     <!-- test dependencies -->
@@ -283,7 +282,7 @@ THE SOFTWARE.
           <providerClass>${hudson.sign.providerClass}</providerClass>
           <providerArg>${hudson.sign.providerArg}</providerArg>
           <tsa>${hudson.sign.tsa}</tsa>
-          <!-- 
+          <!--
             This option is required for JENKINS-37567, not required on any release machine.
             In order to take effect, a version with MJARSIGNER-53 should be used.
             See the "maven-jarsigner-plugin.version" parameter.
@@ -418,13 +417,6 @@ THE SOFTWARE.
         </executions>
       </plugin>
       <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.2</version>
-        <configuration>
-          <releaseProfiles>release</releaseProfiles>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>0.7.0.201403182114</version>
@@ -446,7 +438,6 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.4</version>
         <configuration>
           <xmlOutput>true</xmlOutput>
           <effort>Max</effort>
@@ -464,7 +455,6 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.19.1</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
@@ -475,9 +465,9 @@ THE SOFTWARE.
         <executions>
           <execution>
             <id>run-javadoc</id>
+            <phase>package</phase>
             <goals>
               <goal>jar</goal>
-              <goal>javadoc</goal>
             </goals>
           </execution>
         </executions>
@@ -571,7 +561,7 @@ THE SOFTWARE.
                   <keystore>${hudson.sign.keystore}</keystore>
                   <storetype>${hudson.sign.storetype}</storetype>
                   <providerClass>${hudson.sign.providerClass}</providerClass>
-                  <providerArg>${hudson.sign.providerArg}</providerArg> 
+                  <providerArg>${hudson.sign.providerArg}</providerArg>
                 </configuration>
               </execution>
             </executions>

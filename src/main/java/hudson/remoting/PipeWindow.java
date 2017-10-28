@@ -84,6 +84,7 @@ abstract class PipeWindow {
      * @return
      *      The available window size >= min.
      * @param min
+     *      Minimum size of the window to retrieve
      */
     abstract int get(int min) throws InterruptedException, IOException;
 

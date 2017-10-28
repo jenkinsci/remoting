@@ -150,7 +150,7 @@ public class Engine extends Thread {
     /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
      *
-     * @since TODO
+     * @since 2.62.1
      */
     private boolean keepAlive = true;
 
@@ -164,14 +164,14 @@ public class Engine extends Thread {
      * Specifies a destination for the agent log.
      * If specified, this option overrides the default destination within {@link #workDir}.
      * If both this options and {@link #workDir} is not set, the log will not be generated.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     private Path agentLog;
     
     /**
      * Specified location of the property file with JUL settings.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     private Path loggingConfigFilePath = null;
@@ -183,7 +183,7 @@ public class Engine extends Thread {
      * In order to retain compatibility, the option is disabled by default.
      * <p>
      * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     public Path workDir = null;
@@ -193,7 +193,7 @@ public class Engine extends Thread {
      * <p>
      * This option is not expected to be used frequently, but it allows remoting users to specify a custom
      * storage directory if the default {@code remoting} directory is consumed by other stuff.
-     * @since TODO
+     * @since 3.8
      */
     @Nonnull
     public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
@@ -202,7 +202,7 @@ public class Engine extends Thread {
      * Fail the initialization if the workDir or internalDir are missing.
      * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
      * (e.g. if a filesystem mount gets disconnected).
-     * @since TODO
+     * @since 3.8
      */
     @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
@@ -217,13 +217,17 @@ public class Engine extends Thread {
         this.slaveName = slaveName;
         if(candidateUrls.isEmpty())
             throw new IllegalArgumentException("No URLs given");
+        setUncaughtExceptionHandler((t, e) -> {
+            LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
+            interrupt();
+        });
     }
 
     /**
      * Starts the engine.
      * The procedure initializes the working directory and all the required environment
      * @throws IOException Initialization error
-     * @since TODO
+     * @since 3.9
      */
     public synchronized void startEngine() throws IOException {
         startEngine(false);
@@ -263,7 +267,11 @@ public class Engine extends Thread {
                 throw new IOException("Cannot find the JAR Cache location");
             }
             LOGGER.log(Level.FINE, "Using standard File System JAR Cache. Root Directory is {0}", jarCacheDirectory);
-            jarCache = new FileSystemJarCache(jarCacheDirectory, true);
+            try {
+                jarCache = new FileSystemJarCache(jarCacheDirectory, true);
+            } catch (IllegalArgumentException ex) {
+                throw new IOException("Failed to initialize FileSystem JAR Cache in " + jarCacheDirectory, ex);
+            }
         } else {
             LOGGER.log(Level.INFO, "Using custom JAR Cache: {0}", jarCache);
         }
@@ -287,7 +295,7 @@ public class Engine extends Thread {
     /**
      * Sets path to the property file with JUL settings.
      * @param filePath JAR Cache to be used
-     * @since TODO
+     * @since 3.8
      */
     public void setLoggingConfigFile(@Nonnull Path filePath) {
         this.loggingConfigFilePath = filePath;
@@ -323,7 +331,7 @@ public class Engine extends Thread {
      * Sets the destination for agent logs.
      * @param agentLog Path to the agent log.
      *      If {@code null}, the engine will pick the default behavior depending on the {@link #workDir} value
-     * @since TODO
+     * @since 3.8
      */
     public void setAgentLog(@CheckForNull Path agentLog) {
         this.agentLog = agentLog;
@@ -333,7 +341,7 @@ public class Engine extends Thread {
      * Specified a path to the work directory.
      * @param workDir Path to the working directory of the remoting instance.
      *                {@code null} Disables the working directory.
-     * @since TODO
+     * @since 3.8
      */
     public void setWorkDir(@CheckForNull Path workDir) {
         this.workDir = workDir;
@@ -342,7 +350,7 @@ public class Engine extends Thread {
     /**
      * Specifies name of the internal data directory within {@link #workDir}.
      * @param internalDir Directory name
-     * @since TODO
+     * @since 3.8
      */
     public void setInternalDir(@Nonnull String internalDir) {
         this.internalDir = internalDir;
@@ -353,7 +361,7 @@ public class Engine extends Thread {
      * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
      * (e.g. if a filesystem mount gets disconnected).
      * @param failIfWorkDirIsMissing Flag
-     * @since TODO
+     * @since 3.8
      */
     public void setFailIfWorkDirIsMissing(boolean failIfWorkDirIsMissing) { this.failIfWorkDirIsMissing = failIfWorkDirIsMissing; }
 
@@ -567,7 +575,10 @@ public class Engine extends Thread {
 
                                 @Override
                                 public void beforeChannel(@Nonnull JnlpConnectionState event) {
-                                    event.getChannelBuilder().withJarCache(jarCache).withMode(Mode.BINARY);
+                                    ChannelBuilder bldr = event.getChannelBuilder().withMode(Mode.BINARY);
+                                    if (jarCache != null) {
+                                        bldr.withJarCache(jarCache);
+                                    }
                                 }
 
                                 @Override

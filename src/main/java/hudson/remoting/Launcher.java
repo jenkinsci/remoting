@@ -179,7 +179,7 @@ public class Launcher {
 
     /**
      * Specified location of the property file with JUL settings.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
@@ -237,7 +237,7 @@ public class Launcher {
      * In order to retain compatibility, the option is disabled by default.
      * <p>
      * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-workDir",
             usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
@@ -249,7 +249,7 @@ public class Launcher {
      * <p>
      * This option is not expected to be used frequently, but it allows remoting users to specify a custom
      * storage directory if the default {@code remoting} directory is consumed by other stuff.
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-internalDir",
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
@@ -261,7 +261,7 @@ public class Launcher {
      * Fail the initialization if the workDir or internalDir are missing.
      * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
      * (e.g. if a filesystem mount gets disconnected).
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
@@ -732,7 +732,7 @@ public class Launcher {
         ExecutorService executor = Executors.newCachedThreadPool();
         ChannelBuilder cb = new ChannelBuilder("channel", executor)
                 .withMode(mode)
-                .withJarCache(cache);
+                .withJarCacheOrDefault(cache);
 
         // expose StandardOutputStream as a channel property, which is a better way to make this available
         // to the user of Channel than Channel#getUnderlyingOutput()

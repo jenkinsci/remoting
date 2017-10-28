@@ -34,6 +34,8 @@ import java.io.ObjectInputStream;
 import java.io.StringWriter;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static hudson.remoting.RemoteInputStream.Flag.*;
 
@@ -46,6 +48,7 @@ import static hudson.remoting.RemoteInputStream.Flag.*;
  * @author Kohsuke Kawaguchi
  */
 public class RemoteInputStream extends InputStream implements Serializable {
+    private static final Logger LOGGER = Logger.getLogger(RemoteInputStream.class.getName());
     private transient InputStream core;
     private boolean autoUnexport;
     private transient Greedy greedyAt;
@@ -115,6 +118,8 @@ public class RemoteInputStream extends InputStream implements Serializable {
 
                 new Thread("RemoteInputStream greedy pump thread: " + greedyAt.print()) {
                     {
+                        setUncaughtExceptionHandler(
+                                (t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in RemoteInputStream pump thread " + t, e));
                         setDaemon(true);
                     }
 

@@ -33,9 +33,11 @@ import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
@@ -57,6 +59,14 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
         // mark as a daemon thread by default.
         // the caller can explicitly cancel this by doing "setDaemon(false)"
         setDaemon(true);
+        setUncaughtExceptionHandler((t, e) -> {
+            LOGGER.log(SEVERE, "Uncaught exception in PortForwarder thread " + t, e);
+            try {
+                socket.close();
+            } catch (IOException e1) {
+                LOGGER.log(SEVERE, "Could not close socket after uncaught exception");
+            }
+        });
     }
 
     public int getPort() {
@@ -70,11 +80,24 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
                 while(true) {
                     final Socket s = socket.accept();
                     new Thread("Port forwarding session from "+s.getRemoteSocketAddress()) {
+                        {
+                            setUncaughtExceptionHandler(
+                                    (t, e) -> LOGGER.log(Level.SEVERE, "Unhandled exception in port forwarding session " + t, e));
+                        }
                         public void run() {
-                            try {
-                                final OutputStream out = forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)));
-                                new CopyThread("Copier for "+s.getRemoteSocketAddress(),
-                                        SocketChannelStream.in(s), out).start();
+                            try (InputStream in = SocketChannelStream.in(s);
+                                    OutputStream out = forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)))) {
+                                new CopyThread(
+                                        "Copier for " + s.getRemoteSocketAddress(),
+                                        in,
+                                        out,
+                                        () -> {
+                                            try {
+                                                s.close();
+                                            } catch (IOException e) {
+                                                LOGGER.log(Level.WARNING, "Failed to close socket", e);
+                                            }
+                                        }).start();
                             } catch (IOException e) {
                                 // this happens if the socket connection is terminated abruptly.
                                 LOGGER.log(FINE,"Port forwarding session was shut down abnormally",e);

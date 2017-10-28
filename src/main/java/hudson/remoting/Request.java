@@ -109,7 +109,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * 
      * @param channel Channel
      * @throws IOException Error with explanation if the request cannot be executed. 
-     * @since TODO
+     * @since 3.11
      */
     public void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
         final Throwable senderCloseCause = channel.getSenderCloseCause();
