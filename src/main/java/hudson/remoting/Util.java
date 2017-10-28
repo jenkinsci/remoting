@@ -1,7 +1,5 @@
 package hudson.remoting;
 
-import org.jvnet.animal_sniffer.IgnoreJRERequirement;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -20,8 +18,8 @@ import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.Iterator;
 
 /**
  * Misc. I/O utilities
@@ -59,8 +57,8 @@ class Util {
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
         File resource = new File(tmpDir.toFile(), name);
-        Files.createDirectories(resource.getParentFile().toPath());
-        Files.createFile(resource.toPath());
+        Files.createDirectories(fileToPath(resource.getParentFile()));
+        Files.createFile(fileToPath(resource));
 
         try(FileOutputStream fos = new FileOutputStream(resource)) {
             fos.write(image);
@@ -205,6 +203,21 @@ class Util {
     @Deprecated
     static void mkdirs(@Nonnull File file) throws IOException {
         if (file.isDirectory()) return;
-        Files.createDirectories(file.toPath());
+        Files.createDirectories(fileToPath(file));
+    }
+
+    /**
+     * Converts {@link File} to {@link Path} and checks runtime exceptions.
+     * @param file File
+     * @return Resulting path
+     * @throws IOException Conversion error caused by {@link InvalidPathException}
+     */
+    @Nonnull
+    private static Path fileToPath(@Nonnull File file) throws IOException {
+        try {
+            return file.toPath();
+        } catch (InvalidPathException ex) {
+            throw new IOException(ex);
+        }
     }
 }
