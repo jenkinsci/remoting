@@ -136,7 +136,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
             public ListeningPort call() throws IOException {
                 PortForwarder t = new PortForwarder(acceptingPort, proxy);
                 t.start();
-                return Channel.current().export(ListeningPort.class,t);
+                return Channel.currentOrIllegalState().export(ListeningPort.class,t);
             }
 
             @Override

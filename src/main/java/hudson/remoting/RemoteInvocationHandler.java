@@ -53,12 +53,13 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.jenkinsci.remoting.RoleChecker;
-
 /**
  * Sits behind a proxy object and implements the proxy logic.
  *
  * @author Kohsuke Kawaguchi
  */
+//TODO: Likely should be serializable over Remoting logic, but this class has protection logic
+// Use-cases need to be investigated
 final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Our logger.
@@ -231,7 +232,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         if(method.getDeclaringClass()==IReadResolve.class) {
             // readResolve on the proxy.
             // if we are going back to where we came from, replace the proxy by the real object
-            if(goingHome)   return Channel.current().getExportedObject(oid);
+            if(goingHome)   return Channel.currentOrIllegalState().getExportedObject(oid);
             else            return proxy;
         }
 
@@ -870,7 +871,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         }
 
         public Serializable call() throws Throwable {
-            return perform(Channel.current());
+            return perform(Channel.currentOrIllegalState());
         }
 
         @Override
@@ -886,7 +887,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 return getClass().getClassLoader();
         }
 
-        protected Serializable perform(Channel channel) throws Throwable {
+        protected Serializable perform(@Nonnull Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
             Class[] clazz = channel.getExportedTypes(oid);
             try {

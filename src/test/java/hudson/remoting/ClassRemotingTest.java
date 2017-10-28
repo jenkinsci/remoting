@@ -204,7 +204,7 @@ public class ClassRemotingTest extends RmiTestBase {
 
     private static class RemotePropertyVerifier extends CallableBase<Object, IOException> {
         public Object call() throws IOException {
-            Object o = Channel.current().getRemoteProperty("test");
+            Object o = Channel.currentOrIllegalState().getRemoteProperty("test");
             assertEquals(o.getClass().getName(), CLASSNAME);
             assertTrue(Channel.class.getClassLoader() != o.getClass().getClassLoader());
             assertTrue(o.getClass().getClassLoader() instanceof RemoteClassLoader);

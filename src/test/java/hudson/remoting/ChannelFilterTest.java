@@ -86,7 +86,7 @@ public class ChannelFilterTest extends RmiTestBase {
 
     static class ReverseGunImporter extends CallableBase<String, Exception> {
         public String call() throws Exception {
-            return Channel.current().call(new GunImporter());
+            return Channel.currentOrIllegalState().call(new GunImporter());
         }
     }
 }

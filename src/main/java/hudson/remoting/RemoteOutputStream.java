@@ -23,11 +23,12 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.Serializable;
 
 /**
  * {@link OutputStream} that can be sent over to the remote {@link Channel},
@@ -62,7 +63,7 @@ import java.io.Serializable;
  * @see RemoteInputStream
  * @author Kohsuke Kawaguchi
  */
-public final class RemoteOutputStream extends OutputStream implements Serializable {
+public final class RemoteOutputStream extends OutputStream implements SerializableOnlyOverRemoting {
     /**
      * On local machine, this points to the {@link OutputStream} where
      * the data will be sent ultimately.
@@ -79,15 +80,12 @@ public final class RemoteOutputStream extends OutputStream implements Serializab
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        int id = Channel.current().internalExport(OutputStream.class, core, false); // this export is unexported in ProxyOutputStream.finalize()
+        int id = getChannelForSerDes().internalExport(OutputStream.class, core, false); // this export is unexported in ProxyOutputStream.finalize()
         oos.writeInt(id);
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        final Channel channel = Channel.current();
-        assert channel !=null;
-
-        this.core = new ProxyOutputStream(channel, ois.readInt());
+        this.core = new ProxyOutputStream(getChannelForSerDes(), ois.readInt());
     }
 
     private static final long serialVersionUID = 1L;

@@ -23,11 +23,12 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.Serializable;
 import java.io.ObjectOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -47,7 +48,7 @@ import static hudson.remoting.RemoteInputStream.Flag.*;
  *
  * @author Kohsuke Kawaguchi
  */
-public class RemoteInputStream extends InputStream implements Serializable {
+public class RemoteInputStream extends InputStream implements SerializableOnlyOverRemoting {
     private static final Logger LOGGER = Logger.getLogger(RemoteInputStream.class.getName());
     private transient InputStream core;
     private boolean autoUnexport;
@@ -107,7 +108,7 @@ public class RemoteInputStream extends InputStream implements Serializable {
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        Channel ch = Channel.current();
+        final Channel ch = getChannelForSerDes();
         if (ch.remoteCapability.supportsGreedyRemoteInputStream()) {
             oos.writeBoolean(greedy);
 
@@ -175,9 +176,7 @@ public class RemoteInputStream extends InputStream implements Serializable {
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        final Channel channel = Channel.current();
-        assert channel !=null;
-
+        final Channel channel = getChannelForSerDes();
         if (channel.remoteCapability.supportsGreedyRemoteInputStream()) {
             boolean greedy = ois.readBoolean();
             if (greedy) {

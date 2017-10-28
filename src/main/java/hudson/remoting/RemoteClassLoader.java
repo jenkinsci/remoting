@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -46,6 +47,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 import javax.annotation.CheckForNull;
 
@@ -1031,7 +1033,7 @@ final class RemoteClassLoader extends URLClassLoader {
      * to work (which will be the remote instance.) Once transferred to the other side,
      * resolve back to the instance on the server.
      */
-    private static class RemoteIClassLoader implements IClassLoader, Serializable {
+    private static class RemoteIClassLoader implements IClassLoader, SerializableOnlyOverRemoting {
         private transient final IClassLoader proxy;
         private final int oid;
 
@@ -1076,9 +1078,9 @@ final class RemoteClassLoader extends URLClassLoader {
             return proxy.getResources2(name);
         }
 
-        private Object readResolve() {
+        private Object readResolve() throws ObjectStreamException {
             try {
-                return Channel.current().getExportedObject(oid);
+                return getChannelForSerDes().getExportedObject(oid);
             } catch (ExecutionException ex) {
                 //TODO: Implement something better?
                 throw new IllegalStateException("Cannot resolve remoting classloader", ex);
