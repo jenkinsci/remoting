@@ -47,7 +47,7 @@ public class ClassFilterTest implements Serializable {
 
     private static class TestFilter extends ClassFilter {
         @Override
-        protected boolean isBlacklisted(String name) {
+        public boolean isBlacklisted(String name) {
             return name.contains("Security218");
         }
     }

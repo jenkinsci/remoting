@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Restricts what classes can be received through remoting.
@@ -24,20 +25,22 @@ import javax.annotation.CheckForNull;
  */
 public abstract class ClassFilter {
     /**
-     * Property to set to <b>override</b> the blacklist used by {{@link #DEFAULT} with a different set.
+     * Property to set to <b>override</b> the blacklist used by {@link #STANDARD} with a different set.
      * The location should point to a a file containing regular expressions (one per line) of classes to blacklist.
      * If this property is set but the file can not be read the default blacklist will be used.
      * @since 2.53.2
+     * @deprecated use {@link #setDefault} as needed
      */
+    @Deprecated
     public static final String FILE_OVERRIDE_LOCATION_PROPERTY = "hudson.remoting.ClassFilter.DEFAULTS_OVERRIDE_LOCATION";
 
     private static final Logger LOGGER = Logger.getLogger(ClassFilter.class.getName());
 
-    protected boolean isBlacklisted(String name) {
+    public boolean isBlacklisted(String name) {
         return false;
     }
 
-    protected boolean isBlacklisted(Class c) {
+    public boolean isBlacklisted(Class c) {
         return false;
     }
 
@@ -62,11 +65,13 @@ public abstract class ClassFilter {
         "^com[.]sun[.]javafx[.].*",
         "^com[.]sun[.]org[.]apache[.]regex[.]internal[.].*",
         "^java[.]awt[.].*",
+        "^java[.]lang[.]reflect[.]Method$",
         "^java[.]rmi[.].*",
         "^javax[.]management[.].*",
         "^javax[.]naming[.].*",
         "^javax[.]script[.].*",
         "^javax[.]swing[.].*",
+        "^net[.]sf[.]json[.].*",
         "^org[.]apache[.]commons[.]beanutils[.].*",
         "^org[.]apache[.]commons[.]collections[.]functors[.].*",
         "^org[.]apache[.]myfaces[.].*",
@@ -79,26 +84,52 @@ public abstract class ClassFilter {
         "^sun[.]rmi[.].*",
         "^javax[.]imageio[.].*",
         "^java[.]util[.]ServiceLoader$",
-        "^java[.]net[.]URLClassLoader$"
+        "^java[.]net[.]URLClassLoader$",
+        "^java[.]security[.]SignedObject$"
     };
 
     /**
-     * A set of sensible default filtering rules to apply,
-     * unless the context guarantees the trust between two channels.
+     * The currently used default.
+     * Defaults to {@link #STANDARD}.
      */
-    public static final ClassFilter DEFAULT;
+    public static final ClassFilter DEFAULT = new ClassFilter() {
+        @Override
+        public boolean isBlacklisted(Class c) {
+            return CURRENT_DEFAULT.isBlacklisted(c);
+        }
+        @Override
+        public boolean isBlacklisted(String name) {
+            return CURRENT_DEFAULT.isBlacklisted(name);
+        }
+    };
+
+    private static @Nonnull ClassFilter CURRENT_DEFAULT;
+
+    /**
+     * Changes the effective value of {@link #DEFAULT}.
+     * @param filter a new default to set; may or may not delegate to {@link STANDARD}
+     */
+    public static void setDefault(@Nonnull ClassFilter filter) {
+        CURRENT_DEFAULT = filter;
+    }
+
+    /**
+     * A set of sensible default filtering rules to apply, based on a configurable blacklist.
+     */
+    public static final ClassFilter STANDARD;
 
     static {
         try {
-            DEFAULT = createDefaultInstance();
+            STANDARD = createDefaultInstance();
         } catch (ClassFilterException ex) {
             LOGGER.log(Level.SEVERE, "Default class filter cannot be initialized. Remoting will not start", ex);
             throw new ExceptionInInitializerError(ex);
         }
+        CURRENT_DEFAULT = STANDARD;
     }
 
     /**
-     * Adds an additional exclusion to {@link #DEFAULT}.
+     * Adds an additional exclusion to {@link #STANDARD}.
      * 
      * Does nothing if the default list has already been customized via {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
      * This API is not supposed to be used anywhere outside Jenkins core, calls for other sources may be rejected later.
@@ -106,10 +137,12 @@ public abstract class ClassFilter {
      * @throws ClassFilterException Filter pattern cannot be applied.
      *                              It means either unexpected processing error or rejection by the internal logic.
      * @since 3.11
+     * @deprecated use {@link #setDefault} as needed
      */
+    @Deprecated
     public static void appendDefaultFilter(Pattern filter) throws ClassFilterException {
         if (System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY) == null) {
-            ((RegExpClassFilter) DEFAULT).add(filter.toString());
+            ((RegExpClassFilter) STANDARD).add(filter.toString());
         }
     }
 
@@ -227,7 +260,7 @@ public abstract class ClassFilter {
         }
 
         @Override
-        protected boolean isBlacklisted(String name) {
+        public boolean isBlacklisted(String name) {
             for (Object p : blacklistPatterns) {
                 if (p instanceof Pattern && ((Pattern)p).matcher(name).matches()) {
                     return true;
@@ -251,7 +284,9 @@ public abstract class ClassFilter {
     /**
      * Class for propagating exceptions in {@link ClassFilter}.
      * @since 3.11
+     * @deprecated Only used by deprecated {@link #appendDefaultFilter}.
      */
+    @Deprecated
     public static class ClassFilterException extends Exception {
 
         @CheckForNull
