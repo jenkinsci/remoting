@@ -530,7 +530,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         if(internalExport(IChannel.class, this, false)!=1)
             throw new AssertionError(); // export number 1 is reserved for the channel itself
-        remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false);
+        remoteChannel = RemoteInvocationHandler.wrapSystem(this,1,IChannel.class,true,false);
 
         this.remoteCapability = transport.getRemoteCapability();
         this.pipeWriter = new PipeWriter(createPipeWriterExecutor());
@@ -678,7 +678,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     @Override
     public <T> T export(Class<T> type, T instance) {
-        return export(type, instance, true);
+        return export(type, instance, true, true);
     }
 
     /**
@@ -695,7 +695,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      {@code null} if the input instance is {@code null}.     
      */
     @Nullable
-    /*package*/ <T> T export(Class<T> type, @CheckForNull T instance, boolean userProxy) {
+    /*package*/ <T> T export(Class<T> type, @CheckForNull T instance, boolean userProxy, boolean userScope) {
         if(instance==null) {
             return null;
         }
@@ -714,7 +714,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         // either local side will auto-unexport, or the remote side will unexport when it's GC-ed
         boolean autoUnexportByCaller = exportedObjects.isRecording();
         final int id = internalExport(type, instance, autoUnexportByCaller);
-        return RemoteInvocationHandler.wrap(null, id, type, userProxy, autoUnexportByCaller);
+        return userScope
+                ? RemoteInvocationHandler.wrapUser(null, id, type, userProxy, autoUnexportByCaller)
+                : RemoteInvocationHandler.wrapSystem(null, id, type, userProxy, autoUnexportByCaller);
     }
 
     /*package*/ <T> int internalExport(Class<T> clazz, T instance) {
