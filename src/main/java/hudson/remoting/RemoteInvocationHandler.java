@@ -289,7 +289,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         // delegate the rest of the methods to the remote object
 
         boolean async = method.isAnnotationPresent(Asynchronous.class);
-        RPCRequest req = new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null);
+        RPCRequest req = userSpace
+                ? new UserRPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null)
+                : new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null);
         try {
             if(userProxy) {
                 if (async)  channelOrFail().callAsync(req);
