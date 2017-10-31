@@ -31,6 +31,8 @@ import java.io.Writer;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -52,10 +54,16 @@ final class ProxyWriter extends Writer {
     private CharArrayWriter tmp;
 
     /**
-     * Set to true if the stream is closed.
+     * Keeps the close request cause.
+     * If the field is not {@code null}, it means that the writer is being closed and hence not writable anymore.
      */
-    @GuardedBy("this")
-    private boolean closed;
+    @CheckForNull
+    private Throwable closeCause;
+    /**
+     * Indicates that the object does not longer hold the channel instance.
+     * This is asynchronous toggle flag.
+     */
+    private volatile boolean channelReleased;
 
     /**
      * Creates unconnected {@link ProxyWriter}.
@@ -72,14 +80,14 @@ final class ProxyWriter extends Writer {
      * @param oid
      *      The object id of the exported {@link Writer}.
      */
-    public ProxyWriter(Channel channel, int oid) throws IOException {
+    public ProxyWriter(@Nonnull Channel channel, int oid) throws IOException {
         connect(channel,oid);
     }
 
     /**
      * Connects this stream to the specified remote object.
      */
-    synchronized void connect(Channel channel, int oid) throws IOException {
+    synchronized void connect(@Nonnull Channel channel, int oid) throws IOException {
         if(this.channel!=null)
             throw new IllegalStateException("Cannot connect twice");
         if(oid==0)
@@ -95,17 +103,19 @@ final class ProxyWriter extends Writer {
             tmp = null;
             _write(b, 0, b.length);
         }
-        if(closed)  // already marked closed?
+        if(closeCause != null) { // already closed asynchronously?
             close();
+        }
     }
 
     public void write(int c) throws IOException {
         write(new char[]{(char)c},0,1);
     }
 
-    public synchronized void write(char[] cbuf, int off, int len) throws IOException {
-        if (closed)
+    public void write(char[] cbuf, int off, int len) throws IOException {
+        if (closeCause != null) {
             throw new IOException("stream is already closed");
+        }
         _write(cbuf, off, len);
     }
 
@@ -177,16 +187,55 @@ final class ProxyWriter extends Writer {
         error(null);
     }
 
-    public synchronized void error(Throwable e) throws IOException {
-        if (!closed) {
-            closed = true;
-//            error = e;
+    /**
+     * Gets the close cause.
+     *
+     * @return Close cause. {@code null} if the writer close has not been requested yet.
+     *         Nonnull values indicate that the writer may be still active, but it won't accept new write commands in such case.
+     * @since TODO
+     */
+    @CheckForNull
+    public Throwable getCloseCause() {
+        return closeCause;
+    }
+
+    /**
+     * Reports error and immediately terminates the writer.
+     * @param cause Cause
+     * @throws IOException if failed to send the {@link EOF} command to the remote side.
+     *                     The writer will be considered as closed even in such case.
+     */
+    public void error(@CheckForNull Throwable cause) throws IOException {
+        Throwable terminationCause = cause != null ? cause : new IOException("ProxyWriter close has been requested");
+        if (channelReleased) {
+            // Channel is already closed, do nothing
+            if (LOGGER.isLoggable(Level.FINE)) {
+                final IOException ex;
+                if (closeCause != null) {
+                    ex = new IOException("Writer is already closed", closeCause);
+                    ex.addSuppressed(terminationCause);
+                } else {
+                    ex = new IOException("Writer is already closed", terminationCause);
+                }
+                LOGGER.log(Level.FINE, "Trying to close the already closed writer", ex);
+            }
+            return;
         }
-        if(channel!=null) {
-            // Close the channel
-            channel.send(new EOF(channel.newIoId(),oid/*,error*/));
-            channel = null;
-            oid = -1;
+
+        if (closeCause == null) {
+            this.closeCause = terminationCause;
+        }
+
+        synchronized (this) {
+            //TODO: Bug. If the channel cannot send the command, the channel object will be never released and garbage collected
+            if (channel != null) {
+                // Close the writer on the remote side. This call may be invoked multiple times intil the channel is released
+                //TODO: send cause over the channel
+                channel.send(new EOF(channel.newIoId(), oid/*,error*/));
+                channel = null;
+                channelReleased = true;
+                oid = -1;
+            }
         }
     }
 
