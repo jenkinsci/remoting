@@ -74,7 +74,7 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
      * When sent to the remote node, send a proxy.
      */
     private Object writeReplace() throws NotSerializableException {
-        return getChannelForSerDes().export(JarLoader.class, this);
+        return getChannelForSerialization().export(JarLoader.class, this);
     }
 
     public static final String DIGEST_ALGORITHM = System.getProperty(JarLoaderImpl.class.getName()+".algorithm","SHA-256");

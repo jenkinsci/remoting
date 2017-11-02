@@ -80,12 +80,12 @@ public final class RemoteOutputStream extends OutputStream implements Serializab
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        int id = getChannelForSerDes().internalExport(OutputStream.class, core, false); // this export is unexported in ProxyOutputStream.finalize()
+        int id = getChannelForSerialization().internalExport(OutputStream.class, core, false); // this export is unexported in ProxyOutputStream.finalize()
         oos.writeInt(id);
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        this.core = new ProxyOutputStream(getChannelForSerDes(), ois.readInt());
+        this.core = new ProxyOutputStream(getChannelForSerialization(), ois.readInt());
     }
 
     private static final long serialVersionUID = 1L;

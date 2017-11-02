@@ -50,7 +50,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         }
 
         private Object writeReplace() throws ObjectStreamException {
-            return getChannelForSerDes().export(Contract.class, this);
+            return getChannelForSerialization().export(Contract.class, this);
         }
     }
 

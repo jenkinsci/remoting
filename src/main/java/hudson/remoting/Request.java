@@ -33,8 +33,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Request/response pattern over {@link Channel}, the layer-1 service.
@@ -60,7 +60,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      The exception will be forwarded to the calling process.
      *      If no checked exception is supposed to be thrown, use {@link RuntimeException}.
      */
-    @CheckForNull
+    @Nullable
     protected abstract RSP perform(@Nonnull Channel channel) throws EXC;
 
     /**

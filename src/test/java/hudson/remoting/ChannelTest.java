@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectStreamException;
 import java.io.PrintWriter;
-import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -124,7 +123,7 @@ public class ChannelTest extends RmiTestBase {
     private static class WaitForRemotePropertyCallable extends CallableBase<Void, Exception> {
         public Void call() throws Exception {
             Thread.sleep(500);
-            Channel.currentOrIllegalState().setProperty("foo","bar");
+            Channel.currentOrFail().setProperty("foo","bar");
             return null;
         }
     }
@@ -140,7 +139,7 @@ public class ChannelTest extends RmiTestBase {
         }
 
         private Object writeReplace() throws ObjectStreamException {
-            return getChannelForSerDes().export(Greeter.class,this);
+            return getChannelForSerialization().export(Greeter.class,this);
         }
     }
 

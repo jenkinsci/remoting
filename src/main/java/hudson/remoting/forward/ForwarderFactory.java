@@ -101,7 +101,7 @@ public class ForwarderFactory {
          * When sent to the remote node, send a proxy.
          */
         private Object writeReplace() throws ObjectStreamException {
-            return getChannelForSerDes().export(Forwarder.class, this);
+            return getChannelForSerialization().export(Forwarder.class, this);
         }
 
         private static final long serialVersionUID = 8382509901649461466L;

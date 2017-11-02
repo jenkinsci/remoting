@@ -37,14 +37,14 @@ public class ClassLoaderHolder implements SerializableOnlyOverRemoting {
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         IClassLoader proxy = (IClassLoader)ois.readObject();
-        classLoader = proxy==null ? null : getChannelForSerDes().importedClassLoaders.get(proxy);
+        classLoader = proxy==null ? null : getChannelForSerialization().importedClassLoaders.get(proxy);
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
         if (classLoader==null)
             oos.writeObject(null);
         else {
-            IClassLoader proxy = RemoteClassLoader.export(classLoader, getChannelForSerDes());
+            IClassLoader proxy = RemoteClassLoader.export(classLoader, getChannelForSerialization());
             oos.writeObject(proxy);
         }
     }

@@ -260,7 +260,7 @@ public class ClassFilterTest implements Serializable {
 
         private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
             ois.defaultReadObject();
-            System.setProperty("attack", attack + ">" + getChannelForSerDes().getName());
+            System.setProperty("attack", attack + ">" + getChannelForSerialization().getName());
         }
 
         @Override

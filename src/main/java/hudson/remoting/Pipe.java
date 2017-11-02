@@ -150,7 +150,7 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        final Channel ch = getChannelForSerDes();
+        final Channel ch = getChannelForSerialization();
 
         // TODO: there's a discrepancy in the pipe window size and FastPipedInputStream buffer size.
         // The former uses 1M, while the latter uses 64K, so if the sender is too fast, it'll cause
@@ -174,7 +174,7 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        final Channel channel = getChannelForSerDes();
+        final Channel channel = getChannelForSerialization();
 
         if(ois.readBoolean()) {
             // local will write to remote

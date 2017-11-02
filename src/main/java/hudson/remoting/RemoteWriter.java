@@ -28,7 +28,6 @@ import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.io.Writer;
 
 /**
@@ -65,12 +64,12 @@ public final class RemoteWriter extends Writer implements SerializableOnlyOverRe
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        int id = getChannelForSerDes().internalExport(Writer.class, core, false);  // this export is unexported in ProxyWriter.finalize()
+        int id = getChannelForSerialization().internalExport(Writer.class, core, false);  // this export is unexported in ProxyWriter.finalize()
         oos.writeInt(id);
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        final Channel channel = getChannelForSerDes();
+        final Channel channel = getChannelForSerialization();
         this.core = new ProxyWriter(channel, ois.readInt());
     }
 

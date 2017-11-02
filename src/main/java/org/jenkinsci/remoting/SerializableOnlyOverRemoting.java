@@ -27,13 +27,15 @@
 package org.jenkinsci.remoting;
 
 import hudson.remoting.Channel;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.ProtectedExternally;
 
 import javax.annotation.Nonnull;
 import java.io.NotSerializableException;
 import java.io.Serializable;
 
 /**
- * This interface indicates objects, which are {@link Serializable} only for sending over the Remoting {@link Channel}.
+ * This interface indicates objects which are {@link Serializable} only for sending over the Remoting {@link Channel}.
  *
  * Usually it means that the object requires export of the class via {@link Channel}
  * and {@code hudson.remoting.ExportTable}.
@@ -44,8 +46,6 @@ import java.io.Serializable;
  */
 public interface SerializableOnlyOverRemoting extends Serializable {
 
-
-
     /**
      * Gets current channel or fails with {@link NotSerializableException}.
      *
@@ -55,7 +55,8 @@ public interface SerializableOnlyOverRemoting extends Serializable {
      *      In such case the object cannot be serialized.
      */
     @Nonnull
-    default Channel getChannelForSerDes() throws NotSerializableException {
+    @Restricted(ProtectedExternally.class)
+    default Channel getChannelForSerialization() throws NotSerializableException {
         final Channel ch = Channel.current();
         if (ch == null) {
             // This logic does not prevent from improperly serializing objects within Remoting calls.

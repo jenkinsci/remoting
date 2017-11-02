@@ -232,7 +232,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         if(method.getDeclaringClass()==IReadResolve.class) {
             // readResolve on the proxy.
             // if we are going back to where we came from, replace the proxy by the real object
-            if(goingHome)   return Channel.currentOrIllegalState().getExportedObject(oid);
+            if(goingHome)   return Channel.currentOrFail().getExportedObject(oid);
             else            return proxy;
         }
 
@@ -871,7 +871,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         }
 
         public Serializable call() throws Throwable {
-            return perform(Channel.currentOrIllegalState());
+            return perform(Channel.currentOrFail());
         }
 
         @Override

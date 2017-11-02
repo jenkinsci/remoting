@@ -1080,7 +1080,7 @@ final class RemoteClassLoader extends URLClassLoader {
 
         private Object readResolve() throws ObjectStreamException {
             try {
-                return getChannelForSerDes().getExportedObject(oid);
+                return getChannelForSerialization().getExportedObject(oid);
             } catch (ExecutionException ex) {
                 //TODO: Implement something better?
                 throw new IllegalStateException("Cannot resolve remoting classloader", ex);

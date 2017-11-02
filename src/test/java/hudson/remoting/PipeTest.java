@@ -197,7 +197,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
         }
 
         public ISaturationTest call() throws IOException {
-            return Channel.currentOrIllegalState().export(ISaturationTest.class, new ISaturationTest() {
+            return Channel.currentOrFail().export(ISaturationTest.class, new ISaturationTest() {
                 private InputStream in;
                 public void ensureConnected() throws IOException {
                     in = pipe.getIn();

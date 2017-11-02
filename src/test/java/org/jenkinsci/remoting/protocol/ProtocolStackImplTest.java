@@ -1175,7 +1175,7 @@ public class ProtocolStackImplTest {
 
         @Override
         public String call() throws IOException {
-            System.out.println("Hello from: " + Channel.currentOrIllegalState());
+            System.out.println("Hello from: " + Channel.currentOrFail());
             return null;
         }
 
@@ -1193,7 +1193,7 @@ public class ProtocolStackImplTest {
         }
 
         public ISaturationTest call() throws IOException {
-            return Channel.currentOrIllegalState().export(ISaturationTest.class, new ISaturationTest() {
+            return Channel.currentOrFail().export(ISaturationTest.class, new ISaturationTest() {
                 private InputStream in;
 
                 public void ensureConnected() throws IOException {

@@ -108,7 +108,7 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        final Channel ch = getChannelForSerDes();
+        final Channel ch = getChannelForSerialization();
         if (ch.remoteCapability.supportsGreedyRemoteInputStream()) {
             oos.writeBoolean(greedy);
 
@@ -176,7 +176,7 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        final Channel channel = getChannelForSerDes();
+        final Channel channel = getChannelForSerialization();
         if (channel.remoteCapability.supportsGreedyRemoteInputStream()) {
             boolean greedy = ois.readBoolean();
             if (greedy) {
