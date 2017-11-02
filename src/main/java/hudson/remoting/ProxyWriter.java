@@ -223,6 +223,8 @@ final class ProxyWriter extends Writer {
         }
 
         if (closeCause == null) {
+            // There is a slight risk of race condition here, but we do not really care.
+            // If two termination events come at the same time, we will just cache a random one.
             this.closeCause = terminationCause;
         }
 
