@@ -140,35 +140,14 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         this.userSpace = userSpace;
     }
 
-
-
-    /**
-     * Wraps an OID to the user-spaced typed wrapper.
-     *
-     * RPC operations with this object will be checking the channel state before sending the request.
-     * @see UserRPCRequest
-     */
-    @Nonnull
-    public static <T> T wrapUser(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller) {
-        return internalWrap(channel, id, type, userProxy, autoUnexportByCaller, true);
-    }
-
-    /**
-     * Wraps an OID to the system-spaced typed wrapper.
-     *
-     * This method is restricted to internal {@link Channel}-specific use only.
-     * Usage of this method in external logic or on the {@link VirtualChannel} level is not supported.
-     */
-    @Nonnull
-    public static <T> T wrapSystem(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller) {
-        return internalWrap(channel, id, type, userProxy, autoUnexportByCaller, false);
-    }
-
     /**
      * Wraps an OID to the typed wrapper.
+     *
+     * @param userProxy If {@code true} (recommended), all commands will be wrapped into {@link UserRequest}s.
+     * @param userSpace If {@code true} (recommended), the requests will be executed in a user scope
      */
     @Nonnull
-    private static <T> T internalWrap(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller, boolean userSpace) {
+    static <T> T wrap(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller, boolean userSpace) {
         ClassLoader cl = type.getClassLoader();
         // if the type is a JDK-defined type, classloader should be for IReadResolve
         if(cl==null || cl==ClassLoader.getSystemClassLoader())
