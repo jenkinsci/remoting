@@ -140,7 +140,7 @@ public class Engine extends Thread {
      */
     private String tunnel;
 
-    private boolean insecure;
+    private boolean disableHttpsCertValidation;
 
     private boolean noReconnect;
 
@@ -150,26 +150,6 @@ public class Engine extends Thread {
      * @since 2.62.1
      */
     private boolean keepAlive = true;
-
-    
-    
-    /**
-     * Determines if JNLPAgentEndpointResolver will not perform certificate validation
-     * @return
-     */
-    public boolean isInsecure() {
-        return insecure;
-    }
-
-    /**
-     * Sets if JNLPAgentEndpointResolver will not perform certificate validation
-     *
-     * @param insecure
-     */
-
-    public void setInsecure(boolean insecure) {
-        this.insecure = insecure;
-    }
     
     @CheckForNull
     private JarCache jarCache = null;
@@ -341,7 +321,25 @@ public class Engine extends Thread {
         this.noReconnect = noReconnect;
     }
 
+    /**
+     * Determines if JNLPAgentEndpointResolver will not perform certificate validation in the HTTPs mode.
+     *
+     * @return {@code true} if the certificate validation is disabled.
+     * @since TODO
+     */
+    public boolean isDisableHttpsCertValidation() {
+        return disableHttpsCertValidation;
+    }
 
+    /**
+     * Sets if JNLPAgentEndpointResolver will not perform certificate validation in the HTTPs mode.
+     *
+     * @param disableHttpsCertValidation {@code true} if the certificate validation is disabled.
+     * @since TODO
+     */
+    public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
+        this.disableHttpsCertValidation = disableHttpsCertValidation;
+    }
 
     /**
      * Sets the destination for agent logs.
@@ -498,7 +496,7 @@ public class Engine extends Thread {
         resolver.setTunnel(tunnel);
         try {
             resolver.setSslSocketFactory(getSSLSocketFactory());
-            resolver.setInsecure(insecure);
+            resolver.setInsecure(disableHttpsCertValidation);
         } catch (Exception e) {
             events.error(e);
         }

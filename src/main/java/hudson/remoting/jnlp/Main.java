@@ -42,6 +42,8 @@ import java.io.File;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
+
 import java.util.List;
 import java.util.ArrayList;
 import java.net.URL;
@@ -89,10 +91,6 @@ public class Main {
             usage="If the connection ends, don't retry and just exit.")
     public boolean noReconnect = false;
 
-    @Option(name="-insecure",
-        usage="Ignore SSL validation errors - use as a last resort only.")
-    public boolean insecure = false;
-
     @Option(name="-noKeepAlive",
             usage="Disable TCP socket keep alive on connection to the master.")
     public boolean noKeepAlive = false;
@@ -102,6 +100,16 @@ public class Main {
                     "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
                     "certificate file to read.")
     public List<String> candidateCertificates;
+
+    /**
+     * Disables HTTPs Certificate validation of the server when using {@link org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver}.
+     *
+     * This option is not recommended for production use.
+     * @since TODO
+     */
+    @Option(name="-disableHttpsCertValidation",
+            usage="Ignore SSL validation errors - use as a last resort only.")
+    public boolean disableHttpsCertValidation = false;
 
     /**
      * Specifies a destination for error logs.
@@ -243,8 +251,11 @@ public class Main {
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
         engine.setKeepAlive(!noKeepAlive);
-        LOGGER.log(INFO, "Insecure Status: {0}", insecure);
-        engine.setInsecure(insecure);
+
+        if (disableHttpsCertValidation) {
+            LOGGER.log(WARNING, "Certificate validation for HTTPs endpoints is disabled");
+        }
+        engine.setDisableHttpsCertValidation(disableHttpsCertValidation);
 
         
         // TODO: ideally logging should be initialized before the "Setting up slave" entry

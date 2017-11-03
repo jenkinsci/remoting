@@ -24,6 +24,10 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Base64;
+import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
+import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+import sun.net.www.protocol.https.HttpsURLConnectionImpl;
+
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
@@ -151,7 +155,7 @@ public class JnlpAgentEndpointResolver {
     /**
      *  Determine if certificate checking should be ignored for JNLP endpoint
      *
-     * @return if insecure, endpoint check is ignored
+     * @return if disableHttpsCertValidation, endpoint check is ignored
      */
 
     public boolean isInsecure() {
@@ -159,7 +163,7 @@ public class JnlpAgentEndpointResolver {
     }
 
     /**
-     * Sets if insecure mode of endpoint should be used.
+     * Sets if disableHttpsCertValidation mode of endpoint should be used.
      *
      * @param insecure
      */
@@ -437,53 +441,27 @@ public class JnlpAgentEndpointResolver {
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
 
-        if (insecure && con instanceof HttpsURLConnection) {
-            System.out.println(String.format("Insecure Status: %s", insecure));
-            try {
-                SSLContext ctx = SSLContext.getInstance("TLS");
+        if (con instanceof HttpsURLConnection) {
+            final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
+            if (insecure) {
+                System.out.println(String.format("Insecure Status: %s", insecure));
 
-                ctx.init(null, new TrustManager[]{new X509TrustManager() {
-                    @Override
-                    public X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
+                try {
+                    SSLContext ctx = SSLContext.getInstance("TLS");
+                    ctx.init(null, new TrustManager[]{new NoCheckTrustManager()}, new SecureRandom());
+                    sslSocketFactory = ctx.getSocketFactory();
 
-                    @Override
-                    public void checkClientTrusted(X509Certificate[] certs,
-                            String authType) {
-                    }
-
-                    @Override
-                    public void checkServerTrusted(X509Certificate[] certs,
-                            String authType) {
-                    }
-
-                }}, new SecureRandom());
-                sslSocketFactory = ctx.getSocketFactory();
-
-                HostnameVerifier allHostsValid = new HostnameVerifier() {
-                    @Override
-                    public boolean verify(String hostname, SSLSession session) {
-                        return true;
-                    }
-                };
-
-                ((HttpsURLConnection) con).setHostnameVerifier(allHostsValid);
-            ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
-            } catch (KeyManagementException | NoSuchAlgorithmException ex) {
-                 System.err.println(String.format("Error setting insecure; %s", ex.getMessage()));
-            }
-
-        }
-        else if (con instanceof HttpsURLConnection && sslSocketFactory != null) {
-            ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
-            HostnameVerifier allHostsValid = new HostnameVerifier() {
-                @Override
-                public boolean verify(String hostname, SSLSession session) {
-                    return true;
+                    httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
+                    httpsConnection.setSSLSocketFactory(sslSocketFactory);
+                } catch (KeyManagementException | NoSuchAlgorithmException ex) {
+                    System.err.println(String.format("Error setting disableHttpsCertValidation; %s", ex.getMessage()));
                 }
-            };
-            ((HttpsURLConnection) con).setHostnameVerifier(allHostsValid);
+
+            } else if (sslSocketFactory != null) {
+                httpsConnection.setSSLSocketFactory(sslSocketFactory);
+                //FIXME: Is it really required in this path? Seems like a bug
+                httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
+            }
         }
         return con;
     }
