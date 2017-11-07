@@ -740,7 +740,10 @@ final class RemoteClassLoader extends URLClassLoader {
                 return new RemoteIClassLoader(oid,rcl.proxy);
             }
         }
-        return local.export(IClassLoader.class, new ClassLoaderProxy(cl,local), false);
+        // Remote classloader operates in the System scope (JENKINS-45294).
+        // It's probably YOLO, but otherwise the termination calls may be unable
+        // to execute correctly.
+        return local.export(IClassLoader.class, new ClassLoaderProxy(cl,local), false, false);
     }
 
     public static void pin(ClassLoader cl, Channel local) {
