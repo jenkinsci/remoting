@@ -1722,7 +1722,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * @return Current channel
      * @throws IllegalStateException the calling thread has no associated channel.
-     * @since TODO
+     * @since 3.14
      * @see org.jenkinsci.remoting.SerializableOnlyOverRemoting
      */
     @Nonnull

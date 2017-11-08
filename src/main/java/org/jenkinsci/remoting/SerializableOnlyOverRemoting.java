@@ -42,7 +42,7 @@ import java.io.Serializable;
  * Attempts to serialize the instance of this interface for different purposes lead to undefined behavior.
  *
  * @author Oleg Nenashev
- * @since TODO
+ * @since 3.14
  */
 public interface SerializableOnlyOverRemoting extends Serializable {
 
