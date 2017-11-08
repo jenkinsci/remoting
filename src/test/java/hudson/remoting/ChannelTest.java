@@ -1,14 +1,14 @@
 package hudson.remoting;
 
 import hudson.remoting.util.GCTask;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 import org.jvnet.hudson.test.Bug;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectStreamException;
 import java.io.PrintWriter;
-import java.io.Serializable;
 import java.io.StringWriter;
-import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.channels.ClosedChannelException;
@@ -130,7 +130,7 @@ public class ChannelTest extends RmiTestBase {
     private static class WaitForRemotePropertyCallable extends CallableBase<Void, Exception> {
         public Void call() throws Exception {
             Thread.sleep(500);
-            Channel.current().setProperty("foo","bar");
+            Channel.currentOrFail().setProperty("foo","bar");
             return null;
         }
     }
@@ -139,14 +139,14 @@ public class ChannelTest extends RmiTestBase {
         void greet(String name);
     }
 
-    private static class GreeterImpl implements Greeter, Serializable {
+    private static class GreeterImpl implements Greeter, SerializableOnlyOverRemoting {
         String name;
         public void greet(String name) {
             this.name = name;
         }
 
-        private Object writeReplace() {
-            return Channel.current().export(Greeter.class,this);
+        private Object writeReplace() throws ObjectStreamException {
+            return getChannelForSerialization().export(Greeter.class,this);
         }
     }
 

@@ -27,6 +27,7 @@ import org.jenkinsci.remoting.RoleSensitive;
 
 import java.io.Serializable;
 
+//TODO: Make it SerializableOnlyOverRemoting?
 /**
  * Represents computation to be done on a remote system.
  *

@@ -1175,7 +1175,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             this.level = level;
         }
         public Void call() throws RuntimeException {
-            Channel.current().maximumBytecodeLevel = level;
+            Channel.currentOrFail().maximumBytecodeLevel = level;
             return null;
         }
 
@@ -1630,8 +1630,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     private static final class IOSyncer implements Callable<Object, InterruptedException> {
+        @Override
         public Object call() throws InterruptedException {
-            Channel.current().syncLocalIO();
+            Channel.currentOrFail().syncLocalIO();
             return null;
         }
 
@@ -1714,6 +1715,24 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     @CheckForNull
     public static Channel current() {
         return CURRENT.get();
+    }
+
+    /**
+     * Gets current channel or fails with {@link IllegalStateException}.
+     *
+     * @return Current channel
+     * @throws IllegalStateException the calling thread has no associated channel.
+     * @since 3.14
+     * @see org.jenkinsci.remoting.SerializableOnlyOverRemoting
+     */
+    @Nonnull
+    public static Channel currentOrFail() throws IllegalStateException {
+        final Channel ch = CURRENT.get();
+        if (ch == null) {
+            final Thread t = Thread.currentThread();
+            throw new IllegalStateException("The calling thread " + t + " has no associated channel");
+        }
+        return ch;
     }
 
     // TODO: Unrestrict after the merge into the master.
