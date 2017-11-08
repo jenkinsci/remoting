@@ -27,7 +27,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -41,6 +40,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
+import org.jenkinsci.remoting.util.PathUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -59,7 +59,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -70,7 +69,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.FileWriter;
-import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -295,7 +293,7 @@ public class Launcher {
         if (slaveLog != null) {
             workDirManager.disable(WorkDirManager.DirType.LOGS_DIR);
         }
-        workDirManager.setupLogging(internalDirPath, slaveLog != null ? slaveLog.toPath() : null);
+        workDirManager.setupLogging(internalDirPath, slaveLog != null ? PathUtils.fileToPath(slaveLog) : null);
 
         if(auth!=null) {
             final int idx = auth.indexOf(':');
