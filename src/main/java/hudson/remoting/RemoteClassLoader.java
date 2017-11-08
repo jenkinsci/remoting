@@ -604,6 +604,7 @@ final class RemoteClassLoader extends URLClassLoader {
          * this points to the location of the resource. Used by
          * the sender side to retrieve the resource when necessary.
          */
+        @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
         transient final URL local;
 
         /**
@@ -656,6 +657,7 @@ final class RemoteClassLoader extends URLClassLoader {
          * While this object is still on the sender side, used to remember the actual
          * class that this {@link ClassFile2} represents.
          */
+        @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
         transient final Class clazz;
 
         ClassFile2(int classLoader, ResourceImageRef image, ClassFile2 referer, Class clazz, URL local) {

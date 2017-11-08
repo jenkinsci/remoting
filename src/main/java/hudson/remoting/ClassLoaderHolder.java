@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.RemoteClassLoader.IClassLoader;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
@@ -40,6 +41,8 @@ public class ClassLoaderHolder implements SerializableOnlyOverRemoting {
         classLoader = proxy==null ? null : getChannelForSerialization().importedClassLoaders.get(proxy);
     }
 
+    @SuppressFBWarnings(value = "DMI_NONSERIALIZABLE_OBJECT_WRITTEN", 
+            justification = "RemoteClassLoader.export() produces a serializable wrapper class")
     private void writeObject(ObjectOutputStream oos) throws IOException {
         if (classLoader==null)
             oos.writeObject(null);

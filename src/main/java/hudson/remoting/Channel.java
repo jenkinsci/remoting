@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.PipeWindow.Key;
@@ -46,12 +47,14 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -291,7 +294,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Property bag that contains application-specific stuff.
      */
-    private final Hashtable<Object,Object> properties = new Hashtable<Object,Object>();
+    private final ConcurrentHashMap<Object,Object> properties = new ConcurrentHashMap<>();
 
     /**
      * Proxy to the remote {@link Channel} object.
@@ -662,6 +665,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * This is the lowest layer of abstraction in {@link Channel}.
      * {@link Command}s are executed on a remote system in the order they are sent.
      */
+    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT", justification = "The method is synchronized, no other usages. See https://sourceforge.net/p/findbugs/bugs/1032/")
     /*package*/ synchronized void send(Command cmd) throws IOException {
         if(outClosed!=null)
             throw new ChannelClosedException(outClosed);
@@ -1343,8 +1347,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         w.printf("  Last command sent=%s%n", new Date(lastCommandSentAt));
         w.printf("  Last command received=%s%n", new Date(lastCommandReceivedAt));
         
-        // TODO: Update after the merge to 3.x branch, where the Hashtable is going to be replaced as a part of
-        // https://github.com/jenkinsci/remoting/pull/109
+        // TODO: Synchronize when Hashtable gets replaced by a modern collection.
         w.printf("  Pending calls=%d%n", pendingCalls.size());
     }
 
@@ -1413,6 +1416,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         // termination is done by CloseCommand when we received it.
     }
 
+    //TODO: ideally waitForProperty() methods should get rid of the notify-driven implementation
     /**
      * Gets the application specific property set by {@link #setProperty(Object, Object)}.
      * These properties are also accessible from the remote channel via {@link #getRemoteProperty(Object)}.
@@ -1421,7 +1425,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * This mechanism can be used for one side to discover contextual objects created by the other JVM
      * (as opposed to executing {@link Callable}, which cannot have any reference to the context
      * of the remote {@link Channel}.
+     * @param key Key
+     * @return The property or {@code null} if there is no property for the specified key
      */
+    @Override
+    @SuppressFBWarnings(value = "UG_SYNC_SET_UNSYNC_GET", 
+            justification = "setProperty() is synchronized in order to notify waitForProperty() methods" +
+                            "No problem with this method since it is a ConcurrentHashMap")
     public Object getProperty(Object key) {
         return properties.get(key);
     }
@@ -1459,10 +1469,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Sets the property value on this side of the channel.
-     * 
+     * @param key Property key
+     * @param value Value to set. {@code null} removes the existing entry without adding a new one.
+     * @return Old property value or {@code null} if it was not set
      * @see #getProperty(Object)
      */
-    public synchronized Object setProperty(Object key, Object value) {
+    @CheckForNull
+    public synchronized Object setProperty(@Nonnull Object key, @CheckForNull Object value) {
         Object old = value!=null ? properties.put(key, value) : properties.remove(key);
         notifyAll();
         return old;
