@@ -23,12 +23,11 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Test;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
@@ -78,6 +77,6 @@ public class EngineUtilTest {
     }
 
     private BufferedInputStream stringToStream(String str) {
-        return new BufferedInputStream(new ByteArrayInputStream(str.getBytes(Charsets.UTF_8)));
+        return new BufferedInputStream(new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8)));
     }
 }

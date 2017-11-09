@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -25,7 +26,6 @@ import org.jenkinsci.remoting.protocol.cert.RSAKeyPairRule;
 import org.jenkinsci.remoting.protocol.cert.SSLContextRule;
 import org.jenkinsci.remoting.protocol.cert.X509CertificateRule;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
-import org.jenkinsci.remoting.util.Charsets;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -201,7 +201,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -275,7 +275,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -353,7 +353,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -432,7 +432,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -511,7 +511,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -587,7 +587,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -662,7 +662,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override

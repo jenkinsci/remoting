@@ -27,6 +27,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -39,7 +41,7 @@ public class FastByteBufferQueueInputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
 
         assertThat(read(instance), is(str));
@@ -50,7 +52,7 @@ public class FastByteBufferQueueInputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue, 10);
 
         assertThat(read(instance, 10), is("AbCdEfGhIj"));
@@ -61,7 +63,7 @@ public class FastByteBufferQueueInputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
 
         assertThat(read(instance, 10), is("AbCdEfGhIj"));
@@ -72,16 +74,16 @@ public class FastByteBufferQueueInputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
 
         byte[] bytes = new byte[10];
         assertThat(instance.read(bytes), is(10));
-        assertThat(new String(bytes, Charsets.UTF_8), is("AbCdEfGhIj"));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("AbCdEfGhIj"));
         assertThat(instance.read(bytes), is(10));
-        assertThat(new String(bytes, Charsets.UTF_8), is("KlMnOpQrSt"));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("KlMnOpQrSt"));
         assertThat(instance.read(bytes), is(6));
-        assertThat(new String(bytes, Charsets.UTF_8), is("UvWxYzQrSt"));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("UvWxYzQrSt"));
     }
 
     @Test
@@ -89,20 +91,20 @@ public class FastByteBufferQueueInputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
 
         byte[] bytes = new byte[10];
         assertThat(instance.read(bytes,5,3), is(3));
-        assertThat(new String(bytes, Charsets.UTF_8), is("\u0000\u0000\u0000\u0000\u0000AbC\u0000\u0000"));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("\u0000\u0000\u0000\u0000\u0000AbC\u0000\u0000"));
         assertThat(instance.read(bytes, 0, 2), is(2));
-        assertThat(new String(bytes, Charsets.UTF_8), is("dE\u0000\u0000\u0000AbC\u0000\u0000"));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("dE\u0000\u0000\u0000AbC\u0000\u0000"));
         assertThat(instance.read(bytes, 2, 8), is(8));
-        assertThat(new String(bytes, Charsets.UTF_8), is("dEfGhIjKlM"));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEfGhIjKlM"));
         assertThat(instance.read(bytes, 2, 8), is(8));
-        assertThat(new String(bytes, Charsets.UTF_8), is("dEnOpQrStU"));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEnOpQrStU"));
         assertThat(instance.read(bytes, 2, 8), is(5));
-        assertThat(new String(bytes, Charsets.UTF_8), is("dEvWxYzStU"));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEvWxYzStU"));
     }
 
     @Test
@@ -110,7 +112,7 @@ public class FastByteBufferQueueInputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
 
         StringBuffer buf = new StringBuffer();
@@ -134,7 +136,7 @@ public class FastByteBufferQueueInputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        queue.put(ByteBuffer.wrap(str.getBytes(Charsets.UTF_8)));
+        queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
         assertThat(instance.markSupported(), is(false));
     }
@@ -145,7 +147,7 @@ public class FastByteBufferQueueInputStreamTest {
         while (-1 != (b = is.read())) {
             tmp.write(b);
         }
-        return new String(tmp.toByteArray(), Charsets.UTF_8);
+        return new String(tmp.toByteArray(), StandardCharsets.UTF_8);
     }
 
     private static String read(InputStream is, int count) throws IOException {
@@ -155,6 +157,6 @@ public class FastByteBufferQueueInputStreamTest {
             tmp.write(b);
             count--;
         }
-        return new String(tmp.toByteArray(), Charsets.UTF_8);
+        return new String(tmp.toByteArray(), StandardCharsets.UTF_8);
     }
 }
