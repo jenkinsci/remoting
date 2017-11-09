@@ -47,7 +47,7 @@ public class EngineUtil {
      *
      * @param inputStream The input stream to read from.
      * @return The line read.
-     * @throws IOException
+     * @throws IOException Failed to read character from the input stream
      */
     public static String readLine(InputStream inputStream) throws IOException {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -67,7 +67,7 @@ public class EngineUtil {
      * @param inputStream The input stream to read from.
      * @param len The amount of characters to read.
      * @return The characters read.
-     * @throws IOException
+     * @throws IOException Failed to read character from the input stream
      */
     public static String readChars(InputStream inputStream, int len) throws IOException {
         byte[] buf = new byte[len];
@@ -83,7 +83,7 @@ public class EngineUtil {
      *
      * @param inputStream The input stream to read from.
      * @return The set of headers stored in a {@link Properties}.
-     * @throws IOException
+     * @throws IOException Failed to read line from the input stream
      */
     protected static Properties readResponseHeaders(InputStream inputStream) throws IOException {
         Properties response = new Properties();
