@@ -25,12 +25,15 @@ package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Base64;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.NoRouteToHostException;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
@@ -60,6 +63,7 @@ import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
 
 /**
  * @author Stephen Connolly
+ * @since 3.0
  */
 public class JnlpAgentEndpointResolver {
 
@@ -81,7 +85,6 @@ public class JnlpAgentEndpointResolver {
      * The option provides protocol names, but the order of the check is defined internally and cannot be changed.
      * This option can be also used in order to workaround issues when the headers cannot be delivered
      * from the server due to whatever reason (e.g. JENKINS-41730).
-     * @since TODO
      */
     private static String PROTOCOL_NAMES_TO_TRY =
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
@@ -134,9 +137,13 @@ public class JnlpAgentEndpointResolver {
         this.tunnel = tunnel;
     }
 
+    @CheckForNull
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
         for (String jenkinsUrl : jenkinsUrls) {
+            if (jenkinsUrl == null) {
+                continue;
+            }
             
             final URL selectedJenkinsURL;
             final URL salURL;
@@ -279,9 +286,9 @@ public class JnlpAgentEndpointResolver {
         return null;
     }
 
-    @CheckForNull
-    private URL toAgentListenerURL(@CheckForNull String jenkinsUrl) throws MalformedURLException {
-        return jenkinsUrl == null ? null : jenkinsUrl.endsWith("/")
+    @Nonnull
+    private URL toAgentListenerURL(@Nonnull String jenkinsUrl) throws MalformedURLException {
+        return jenkinsUrl.endsWith("/")
                 ? new URL(jenkinsUrl + "tcpSlaveAgentListener/")
                 : new URL(jenkinsUrl + "/tcpSlaveAgentListener/");
     }
@@ -296,11 +303,12 @@ public class JnlpAgentEndpointResolver {
                 try {
                     // Jenkins top page might be read-protected. see http://www.nabble
                     // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
-                    URL url = toAgentListenerURL(first(jenkinsUrls));
-                    if (url == null) {
+                    final String firstUrl = first(jenkinsUrls);
+                    if (firstUrl == null) {
                         // returning here will cause the whole loop to be broken and all the urls to be tried again
                         return;
                     }
+                    URL url = toAgentListenerURL(firstUrl);
 
                     retries++;
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
@@ -314,11 +322,14 @@ public class JnlpAgentEndpointResolver {
                         return;
                     }
                     LOGGER.log(Level.INFO,
-                            "Master isn't ready to talk to us on {0}. Will retry again: response code={1}",
+                            "Master isn''t ready to talk to us on {0}. Will try again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
+                } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
+                    LOGGER.log(INFO, "Failed to connect to the master. Will try again: {0} {1}",
+                            new String[] { e.getClass().getName(), e.getMessage() });
                 } catch (IOException e) {
                     // report the failure
-                    LOGGER.log(INFO, "Failed to connect to the master. Will retry again", e);
+                    LOGGER.log(INFO, "Failed to connect to the master. Will try again", e);
                 }
             }
         } finally {

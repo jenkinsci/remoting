@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.PipeWindow.Key;
@@ -46,12 +47,14 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Vector;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -291,7 +294,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Property bag that contains application-specific stuff.
      */
-    private final Hashtable<Object,Object> properties = new Hashtable<Object,Object>();
+    private final ConcurrentHashMap<Object,Object> properties = new ConcurrentHashMap<>();
 
     /**
      * Proxy to the remote {@link Channel} object.
@@ -317,6 +320,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     /*package*/ final ClassLoader baseClassLoader;
 
+    /**
+     * JAR Resolution Cache.
+     * Can be {@code null} if caching disabled for this channel.
+     * In such case some classloading operations may be rejected.
+     */
+    @CheckForNull
     private JarCache jarCache;
 
     /*package*/ final JarLoaderImpl jarLoader;
@@ -325,6 +334,21 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /*package*/ @Nonnull final ClassFilter classFilter;
 
+    /**
+     * Indicates that close of the channel has been requested.
+     * When the value is {@code true}, it does not make sense to execute new user-space commands like {@link UserRequest}.
+     */
+    private boolean closeRequested = false;
+    
+    /**
+     * Stores cause of the close Request.
+     * 
+     * In the case of race condition between multiple close operations, 
+     * this field stores just one of them.
+     */
+    @CheckForNull
+    private Throwable closeRequestCause = null;
+    
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
      * 
@@ -488,23 +512,28 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * @since TODO
+     * @since 2.38
      */
-    protected Channel(ChannelBuilder settings, CommandTransport transport) throws IOException {
+    protected Channel(@Nonnull ChannelBuilder settings, @Nonnull CommandTransport transport) throws IOException {
         this.name = settings.getName();
         this.reference = new Ref(this);
         this.executor = new InterceptingExecutorService(settings.getExecutors(),decorators);
         this.arbitraryCallableAllowed = settings.isArbitraryCallableAllowed();
         this.remoteClassLoadingAllowed = settings.isRemoteClassLoadingAllowed();
         this.underlyingOutput = transport.getUnderlyingStream();
+        
+        // JAR Cache resolution
         this.jarCache = settings.getJarCache();
+        if (this.jarCache == null) {
+            logger.log(Level.CONFIG, "JAR Cache is not defined for channel {0}", name);
+        }
 
         this.baseClassLoader = settings.getBaseLoader();
         this.classFilter = settings.getClassFilter();
 
         if(internalExport(IChannel.class, this, false)!=1)
             throw new AssertionError(); // export number 1 is reserved for the channel itself
-        remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false);
+        remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false,false);
 
         this.remoteCapability = transport.getRemoteCapability();
         this.pipeWriter = new PipeWriter(createPipeWriterExecutor());
@@ -520,11 +549,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         transport.setup(this, new CommandReceiver() {
             public void handle(Command cmd) {
                 commandsReceived++;
-                lastCommandReceivedAt = System.currentTimeMillis();
-                if (logger.isLoggable(Level.FINE))
+                long receivedAt = System.currentTimeMillis();
+                lastCommandReceivedAt = receivedAt;
+                if (logger.isLoggable(Level.FINE)) {
                     logger.fine("Received " + cmd);
+                } else if (logger.isLoggable(Level.FINER)) {
+                    logger.log(Level.FINER, "Received command " + cmd, cmd.createdAt);
+                }
                 try {
                     cmd.execute(Channel.this);
+                    if (logger.isLoggable(Level.FINE)) {
+                        logger.log(Level.FINE, "Completed command {0}. It took {1}ms", new Object[] {cmd, System.currentTimeMillis() - receivedAt});
+                    }
                 } catch (Throwable t) {
                     logger.log(Level.SEVERE, "Failed to execute command " + cmd + " (channel " + Channel.this.name + ")", t);
                     logger.log(Level.SEVERE, "This command is created here", cmd.createdAt);
@@ -572,13 +608,42 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
     
     /**
+     * Get why the sender side of the channel has been closed.
+     * @return Close cause or {@code null} if the sender side is active.
+     *         {@code null} result does not guarantee that the channel is actually operational.
+     * @since 3.11
+     */
+    @CheckForNull
+    public final Throwable getSenderCloseCause() {
+        return outClosed;
+    }
+    
+    /**
      * Returns {@code true} if the channel is either in the process of closing down or has closed down.
+     * 
+     * If the result is {@code true}, it means that the channel will be closed at some point by Remoting,
+     * and that it makes no sense to send any new {@link UserRequest}s to the remote side.
+     * Invocations like {@link #call(hudson.remoting.Callable)} and {@link #callAsync(hudson.remoting.Callable)} 
+     * will just fail as well.
      * @since 2.33
      */
     public boolean isClosingOrClosed() {
-        return inClosed != null || outClosed != null;
+        return closeRequested || inClosed != null || outClosed != null;
     }
 
+    /**
+     * Gets cause of the close request.
+     * 
+     * @return {@link #outClosed} if not {@code null}, value of the transient cache
+     *         {@link #closeRequestCause} otherwise. 
+     *         The latter one may show random cause in the case of race conditions.
+     * @since 3.11
+     */
+    @CheckForNull
+    public Throwable getCloseRequestCause() {
+        return outClosed != null ? outClosed : closeRequestCause;
+    }
+    
     /**
      * Creates the {@link ExecutorService} for writing to pipes.
      *
@@ -600,6 +665,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * This is the lowest layer of abstraction in {@link Channel}.
      * {@link Command}s are executed on a remote system in the order they are sent.
      */
+    @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT", justification = "The method is synchronized, no other usages. See https://sourceforge.net/p/findbugs/bugs/1032/")
     /*package*/ synchronized void send(Command cmd) throws IOException {
         if(outClosed!=null)
             throw new ChannelClosedException(outClosed);
@@ -616,7 +682,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     @Override
     public <T> T export(Class<T> type, T instance) {
-        return export(type, instance, true);
+        return export(type, instance, true, true);
     }
 
     /**
@@ -633,7 +699,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      {@code null} if the input instance is {@code null}.     
      */
     @Nullable
-    /*package*/ <T> T export(Class<T> type, @CheckForNull T instance, boolean userProxy) {
+    /*package*/ <T> T export(Class<T> type, @CheckForNull T instance, boolean userProxy, boolean userScope) {
         if(instance==null) {
             return null;
         }
@@ -652,7 +718,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         // either local side will auto-unexport, or the remote side will unexport when it's GC-ed
         boolean autoUnexportByCaller = exportedObjects.isRecording();
         final int id = internalExport(type, instance, autoUnexportByCaller);
-        return RemoteInvocationHandler.wrap(null, id, type, userProxy, autoUnexportByCaller);
+        return RemoteInvocationHandler.wrap(null, id, type, userProxy, autoUnexportByCaller, userScope);
     }
 
     /*package*/ <T> int internalExport(Class<T> clazz, T instance) {
@@ -684,8 +750,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Unexports object.
      * @param id Object ID
      * @param cause Stacktrace pf the object creation call
-     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
-     * @since TODO
+     * @param severeErrorIfMissing Consider missing object as {@code SEVERE} error. {@code FINE} otherwise
      */
     /*package*/ void unexport(int id, Throwable cause, boolean severeErrorIfMissing) {
         exportedObjects.unexportByOid(id, cause, severeErrorIfMissing);
@@ -779,8 +844,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * If this channel is built with jar file caching, return the object that manages this cache.
+     * @return JAR Cache object. {@code null} if JAR caching is disabled
      * @since 2.24
+     * @since 3.10 JAR Cache is Nonnull
+     * @since 3.12 JAR Cache made nullable again due to <a href="https://issues.jenkins-ci.org/browse/JENKINS-45755">JENKINS-45755</a>
      */
+    @CheckForNull
     public JarCache getJarCache() {
         return jarCache;
     }
@@ -791,9 +860,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * So to best avoid performance loss due to race condition, please set a JarCache in the constructor,
      * unless your call sequence guarantees that you call this method before remote classes are loaded.
+     *
+     * @param jarCache New JAR Cache to be used.
+     *                 Cannot be {@code null}, JAR Cache disabling on a running channel is not supported.
      * @since 2.24
      */
-    public void setJarCache(JarCache jarCache) {
+    public void setJarCache(@Nonnull JarCache jarCache) {
         this.jarCache = jarCache;
     }
 
@@ -823,6 +895,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public <V,T extends Throwable>
     V call(Callable<V,T> callable) throws IOException, T, InterruptedException {
+        if (isClosingOrClosed()) {
+            // No reason to even try performing a user request
+            throw new ChannelClosedException("Remote call on " + name + " failed. "
+                    + "The channel is closing down or has closed down", getCloseRequestCause());
+        }
+        
         UserRequest<V,T> request=null;
         try {
             request = new UserRequest<V, T>(this, callable);
@@ -853,6 +931,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public <V,T extends Throwable>
     Future<V> callAsync(final Callable<V,T> callable) throws IOException {
+        if (isClosingOrClosed()) {
+            // No reason to even try performing a user request
+            throw new ChannelClosedException("Remote call on " + name + " failed. "
+                    + "The channel is closing down or has closed down", getCloseRequestCause());
+        }
+        
         final Future<UserResponse<V,T>> f = new UserRequest<V,T>(this, callable).callAsync(this);
         return new FutureAdapter<V,UserResponse<V,T>>(f) {
             protected V adapt(UserResponse<V,T> r) throws ExecutionException {
@@ -870,6 +954,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * This is an SPI for {@link CommandTransport} implementation to notify
      * {@link Channel} when the underlying connection is severed.
+     * 
+     * Once the call is called {@link #closeRequested} will be set immediately to prevent further executions
+     * of {@link UserRequest}s.
      *
      * @param e
      *      The error that caused the connection to be aborted. Never null.
@@ -877,9 +964,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     @java.lang.SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     @SuppressWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
     public void terminate(@Nonnull IOException e) {
+        
+        if (e == null) {
+            throw new IllegalArgumentException("Cause is null. Channel cannot be closed properly in such case");
+        }
+        closeRequested = true;
+        if (closeRequestCause == null) {
+            // Cache the cause value just in case it takes long to acquire the lock
+            closeRequestCause = e;
+        }
+        
         try {
-            synchronized (this) {
-                if (e == null) throw new IllegalArgumentException();
+            synchronized (this) {  
                 outClosed = inClosed = e;
                 // we need to clear these out early in order to ensure that a GC operation while
                 // proceding with the close does not result in a batch of UnexportCommand instances
@@ -1031,7 +1127,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public boolean isRemoteClassLoadingAllowed() {
         return remoteClassLoadingAllowed;
@@ -1040,14 +1136,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Controls whether or not this channel is willing to load classes from the other side.
      * The default is on.
-     * @since TODO
+     * @since 2.47
      */
     public void setRemoteClassLoadingAllowed(boolean b) {
         this.remoteClassLoadingAllowed = b;
     }
 
     /**
-     * @since TODO
+     * @since 2.47
      */
     public boolean isArbitraryCallableAllowed() {
         return arbitraryCallableAllowed;
@@ -1055,7 +1151,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * @see ChannelBuilder#withArbitraryCallableAllowed(boolean)
-     * @since TODO
+     * @since 2.47
      */
     public void setArbitraryCallableAllowed(boolean b) {
         this.arbitraryCallableAllowed = b;
@@ -1083,7 +1179,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             this.level = level;
         }
         public Void call() throws RuntimeException {
-            Channel.current().maximumBytecodeLevel = level;
+            Channel.currentOrFail().maximumBytecodeLevel = level;
             return null;
         }
 
@@ -1225,7 +1321,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that are made but not returned yet. If you have the remoting diagnostics of the other side, you
      * can compare this number with "pending incoming calls" on the other side to see how many RPC
-     * calls are executing vs in flight. "one side's incoming calls" < "the other side's outgoing calls"
+     * calls are executing vs in flight. "one side's incoming calls" &lt; "the other side's outgoing calls"
      * indicates some RPC requests or responses are passing through the network layer, and mismatch
      * between "# of commands sent" vs "# of commands received" can give some indication of whether
      * it is request or response that's in flight.
@@ -1235,7 +1331,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * The reverse of "pending outgoing calls".
      * Number of RPC calls (e.g., method call through a {@linkplain RemoteInvocationHandler proxy})
      * that the other side has made to us but not yet returned yet.
-     *
+     * </dl>
      * @param w Output destination
      * @throws IOException Error while creating or writing the channel information
      * 
@@ -1251,20 +1347,22 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         w.printf("  Last command sent=%s%n", new Date(lastCommandSentAt));
         w.printf("  Last command received=%s%n", new Date(lastCommandReceivedAt));
         
-        // TODO: Update after the merge to 3.x branch, where the Hashtable is going to be replaced as a part of
-        // https://github.com/jenkinsci/remoting/pull/109
+        // TODO: Synchronize when Hashtable gets replaced by a modern collection.
         w.printf("  Pending calls=%d%n", pendingCalls.size());
     }
 
     /**
      * {@inheritDoc}
      */
-    public synchronized void close() throws IOException {
+    public void close() throws IOException {
         close(null);
     }
 
     /**
      * Closes the channel.
+     * 
+     * Once the call is called {@link #closeRequested} will be set immediately to prevent further executions
+     * of {@link UserRequest}s.
      *
      * @param diagnosis
      *      If someone (either this side or the other side) tries to use a channel that's already closed,
@@ -1274,37 +1372,51 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * @since 2.8
      */
-    public synchronized void close(@CheckForNull Throwable diagnosis) throws IOException {
+    public void close(@CheckForNull Throwable diagnosis) throws IOException {
         if(outClosed!=null)  return;  // already closed
-
-        try {
-            send(new CloseCommand(this, diagnosis));
-        } catch (ChannelClosedException e) {
-            logger.log(Level.FINEST, "Channel is already closed", e);
-            terminate(e);
-            return;
-        } catch (IOException e) {
-            // send should only ever - worst case - throw an IOException so we'll just catch that and not Throwable
-            logger.log(Level.WARNING, "Having to terminate early", e);
-            terminate(e);
-            return;
+        closeRequested = true;
+        if (closeRequestCause == null) {
+            // Cache the cause value just in case it takes long to acquire the lock
+            // TODO: This IOException wrapper is copy-pasted from the original logic, but do we actually need it when diagnosis is non-null?
+            closeRequestCause = new IOException(diagnosis);
         }
-        outClosed = new IOException().initCause(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
-        notifyAll();
-        try {
-            transport.closeWrite();
-        } catch (IOException e) {
-            // there's a race condition here.
-            // the remote peer might have already responded to the close command
-            // and closed the connection, in which case our close invocation
-            // could fail with errors like
-            // "java.io.IOException: The pipe is being closed"
-            // so let's ignore this error.
+        
+        synchronized(this) {
+            if(outClosed!=null) {
+                // It has been closed while we were waiting for the lock
+                return;
+            }
+            
+            try {
+                send(new CloseCommand(this, diagnosis));
+            } catch (ChannelClosedException e) {
+                logger.log(Level.FINEST, "Channel is already closed", e);
+                terminate(e);
+                return;
+            } catch (IOException e) {
+                // send should only ever - worst case - throw an IOException so we'll just catch that and not Throwable
+                logger.log(Level.WARNING, "Having to terminate early", e);
+                terminate(e);
+                return;
+            }
+            outClosed = new IOException(diagnosis);   // last command sent. no further command allowed. lock guarantees that no command will slip inbetween
+            notifyAll();
+            try {
+                transport.closeWrite();
+            } catch (IOException e) {
+                // there's a race condition here.
+                // the remote peer might have already responded to the close command
+                // and closed the connection, in which case our close invocation
+                // could fail with errors like
+                // "java.io.IOException: The pipe is being closed"
+                // so let's ignore this error.
+            }
         }
 
         // termination is done by CloseCommand when we received it.
     }
 
+    //TODO: ideally waitForProperty() methods should get rid of the notify-driven implementation
     /**
      * Gets the application specific property set by {@link #setProperty(Object, Object)}.
      * These properties are also accessible from the remote channel via {@link #getRemoteProperty(Object)}.
@@ -1313,7 +1425,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * This mechanism can be used for one side to discover contextual objects created by the other JVM
      * (as opposed to executing {@link Callable}, which cannot have any reference to the context
      * of the remote {@link Channel}.
+     * @param key Key
+     * @return The property or {@code null} if there is no property for the specified key
      */
+    @Override
+    @SuppressFBWarnings(value = "UG_SYNC_SET_UNSYNC_GET", 
+            justification = "setProperty() is synchronized in order to notify waitForProperty() methods" +
+                            "No problem with this method since it is a ConcurrentHashMap")
     public Object getProperty(Object key) {
         return properties.get(key);
     }
@@ -1351,10 +1469,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Sets the property value on this side of the channel.
-     * 
+     * @param key Property key
+     * @param value Value to set. {@code null} removes the existing entry without adding a new one.
+     * @return Old property value or {@code null} if it was not set
      * @see #getProperty(Object)
      */
-    public synchronized Object setProperty(Object key, Object value) {
+    @CheckForNull
+    public synchronized Object setProperty(@Nonnull Object key, @CheckForNull Object value) {
         Object old = value!=null ? properties.put(key, value) : properties.remove(key);
         notifyAll();
         return old;
@@ -1368,13 +1489,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Gets the property set on the remote peer.
      *
-     * @return null
+     * @return {@code null}
      *      if the property of the said key isn't set.
      */
+    @CheckForNull
     public Object getRemoteProperty(Object key) {
         return remoteChannel.getProperty(key);
     }
 
+    @CheckForNull
     public <T> T getRemoteProperty(ChannelProperty<T> key) {
         return key.type.cast(getRemoteProperty((Object) key));
     }
@@ -1520,8 +1643,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     private static final class IOSyncer implements Callable<Object, InterruptedException> {
+        @Override
         public Object call() throws InterruptedException {
-            Channel.current().syncLocalIO();
+            Channel.currentOrFail().syncLocalIO();
             return null;
         }
 
@@ -1542,16 +1666,16 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Decorates the stack elements of the given {@link Throwable} by adding the call site information.
      */
     /*package*/ void attachCallSiteStackTrace(Throwable t) {
-        Exception e = new Exception();
-        StackTraceElement[] callSite = e.getStackTrace();
-        StackTraceElement[] original = t.getStackTrace();
+        t.addSuppressed(new CallSiteStackTrace(name));
+    }
 
-        StackTraceElement[] combined = new StackTraceElement[original.length+1+callSite.length];
-        System.arraycopy(original,0,combined,0,original.length); // original stack trace at the top
-        combined[original.length] = new StackTraceElement(".....","remote call to "+name,null,-2);
-        System.arraycopy(callSite,0,combined,original.length+1,callSite.length);
-
-        t.setStackTrace(combined);
+    /**
+     * Dummy exception indicating the stacktrace on calling side of channel for remote exception for ease of debugging.
+     */
+    private static final class CallSiteStackTrace extends Exception {
+        public CallSiteStackTrace(String message) {
+            super("Remote call to " + message);
+        }
     }
 
     public String getName() {
@@ -1576,7 +1700,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * TODO: this is not safe against clock skew and is called from jenkins core (and potentially plugins)
-     * @see #lastHeard
+     * @see #lastCommandReceivedAt
      */
     public long getLastHeard() {
         // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
@@ -1598,11 +1722,30 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * objects when they are transferred to the remote {@link Channel},
      * as well as during {@link Callable#call()} is invoked. 
      *
-     * @return null
+     * @return {@code null}
      *      if the calling thread is not performing serialization.
      */
+    @CheckForNull
     public static Channel current() {
         return CURRENT.get();
+    }
+
+    /**
+     * Gets current channel or fails with {@link IllegalStateException}.
+     *
+     * @return Current channel
+     * @throws IllegalStateException the calling thread has no associated channel.
+     * @since 3.14
+     * @see org.jenkinsci.remoting.SerializableOnlyOverRemoting
+     */
+    @Nonnull
+    public static Channel currentOrFail() throws IllegalStateException {
+        final Channel ch = CURRENT.get();
+        if (ch == null) {
+            final Thread t = Thread.currentThread();
+            throw new IllegalStateException("The calling thread " + t + " has no associated channel");
+        }
+        return ch;
     }
 
     // TODO: Unrestrict after the merge into the master.
@@ -1706,7 +1849,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * A reference for the {@link Channel} that can be cleared out on {@link #close()}/{@link #terminate(IOException)}.
-     * Could probably be replaced with {@link AtomicReference} but then we would not retain the only change being
+     * Could probably be replaced with {@link java.util.concurrent.atomic.AtomicReference} but then we would not retain the only change being
      * from valid channel to {@code null} channel semantics of this class.
      * @since 2.52
      * @see #reference
@@ -1715,7 +1858,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         
         /**
          * Cached name of the channel.
-         * @see {@link Channel#getName()}
+         * @see Channel#getName()
          */
         @Nonnull
         private final String name;

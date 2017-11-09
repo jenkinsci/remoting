@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -46,6 +47,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 import javax.annotation.CheckForNull;
 
@@ -105,7 +107,14 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     private final Map<String,ClassReference> prefetchedClasses = Collections.synchronizedMap(new HashMap<String,ClassReference>());
 
-    public static ClassLoader create(ClassLoader parent, IClassLoader proxy) {
+    /**
+     * Creates a remotable classloader
+     * @param parent Parent classloader. Can be {@code null} if there is no delegating classloader
+     * @param proxy Classloader proxy instance
+     * @return Created classloader
+     */
+    @Nonnull
+    public static ClassLoader create(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy) {
         if(proxy instanceof ClassLoaderProxy) {
             // when the remote sends 'RemoteIClassLoader' as the proxy, on this side we get it
             // as ClassLoaderProxy. This means, the so-called remote classloader here is
@@ -115,13 +124,14 @@ final class RemoteClassLoader extends URLClassLoader {
         return new RemoteClassLoader(parent, proxy);
     }
 
-    private RemoteClassLoader(ClassLoader parent, IClassLoader proxy) {
+    private RemoteClassLoader(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy) {
         super(new URL[0],parent);
         final Channel channel = RemoteInvocationHandler.unwrap(proxy);
         this.channel = channel == null ? null : channel.ref();
         this.underlyingProxy = proxy;
-        if (channel == null || !channel.remoteCapability.supportsPrefetch() || channel.getJarCache()==null)
+        if (channel == null || !channel.remoteCapability.supportsPrefetch() || channel.getJarCache()==null) {
             proxy = new DumbClassLoaderBridge(proxy);
+        }
         this.proxy = proxy;
     }
 
@@ -394,6 +404,7 @@ final class RemoteClassLoader extends URLClassLoader {
         definePackage(packageName, null, null, null, null, null, null, null);
     }
 
+    @CheckForNull
     public URL findResource(String name) {
         // first attempt to load from locally fetched jars
         URL url = super.findResource(name);
@@ -433,6 +444,11 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
+    /**
+     * @return {@code null} if one of the URLs cannot be converted.
+     *         E.g. when the referenced file does not exist.
+     */
+    @CheckForNull
     private static Vector<URL> toURLs(Vector<URLish> src) throws MalformedURLException {
         Vector<URL> r = new Vector<URL>(src.size());
         for (URLish s : src) {
@@ -477,7 +493,12 @@ final class RemoteClassLoader extends URLClassLoader {
             }
         resourcesMap.put(name,v);
 
-        return toURLs(v).elements();
+        Vector<URL> resURLs = toURLs(v);
+        if (resURLs == null) {
+            // TODO: Better than NPE, but ideally needs correct error propagation from URLish
+            throw new IOException("One of the URLish objects cannot be converted to URL");
+        }
+        return resURLs.elements();
     }
 
     /**
@@ -583,6 +604,7 @@ final class RemoteClassLoader extends URLClassLoader {
          * this points to the location of the resource. Used by
          * the sender side to retrieve the resource when necessary.
          */
+        @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
         transient final URL local;
 
         /**
@@ -635,6 +657,7 @@ final class RemoteClassLoader extends URLClassLoader {
          * While this object is still on the sender side, used to remember the actual
          * class that this {@link ClassFile2} represents.
          */
+        @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
         transient final Class clazz;
 
         ClassFile2(int classLoader, ResourceImageRef image, ClassFile2 referer, Class clazz, URL local) {
@@ -712,7 +735,7 @@ final class RemoteClassLoader extends URLClassLoader {
         ResourceFile[] getResources2(String name) throws IOException;
     }
 
-    public static IClassLoader export(ClassLoader cl, Channel local) {
+    public static IClassLoader export(@Nonnull ClassLoader cl, Channel local) {
         if (cl instanceof RemoteClassLoader) {
             // check if this is a remote classloader from the channel
             final RemoteClassLoader rcl = (RemoteClassLoader) cl;
@@ -721,7 +744,10 @@ final class RemoteClassLoader extends URLClassLoader {
                 return new RemoteIClassLoader(oid,rcl.proxy);
             }
         }
-        return local.export(IClassLoader.class, new ClassLoaderProxy(cl,local), false);
+        // Remote classloader operates in the System scope (JENKINS-45294).
+        // It's probably YOLO, but otherwise the termination calls may be unable
+        // to execute correctly.
+        return local.export(IClassLoader.class, new ClassLoaderProxy(cl,local), false, false);
     }
 
     public static void pin(ClassLoader cl, Channel local) {
@@ -749,8 +775,8 @@ final class RemoteClassLoader extends URLClassLoader {
          */
         private final Set<String> prefetched = new HashSet<String>();
 
-        public ClassLoaderProxy(ClassLoader cl, Channel channel) {
-        	assert cl != null;
+        public ClassLoaderProxy(@Nonnull ClassLoader cl, Channel channel) {
+            assert cl != null;
 
             this.cl = cl;
             this.channel = channel;
@@ -876,6 +902,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return all;
         }
 
+        @CheckForNull
         private URL getResourceURL(String name) throws IOException {
             URL resource = cl.getResource(name);
            	if (resource == null) {
@@ -892,6 +919,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return resource;
         }
 
+        @CheckForNull
         public ResourceFile getResource2(String name) throws IOException {
             URL resource = getResourceURL(name);
             if (resource == null) return null;
@@ -920,6 +948,7 @@ final class RemoteClassLoader extends URLClassLoader {
         @Override
         @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS", 
                 justification = "Null return value is a part of the public interface")
+        @CheckForNull
         public byte[] getResource(String name) throws IOException {
         	URL resource = getResourceURL(name);
         	if (resource == null)   return null;
@@ -1009,7 +1038,7 @@ final class RemoteClassLoader extends URLClassLoader {
      * to work (which will be the remote instance.) Once transferred to the other side,
      * resolve back to the instance on the server.
      */
-    private static class RemoteIClassLoader implements IClassLoader, Serializable {
+    private static class RemoteIClassLoader implements IClassLoader, SerializableOnlyOverRemoting {
         private transient final IClassLoader proxy;
         private final int oid;
 
@@ -1054,9 +1083,9 @@ final class RemoteClassLoader extends URLClassLoader {
             return proxy.getResources2(name);
         }
 
-        private Object readResolve() {
+        private Object readResolve() throws ObjectStreamException {
             try {
-                return Channel.current().getExportedObject(oid);
+                return getChannelForSerialization().getExportedObject(oid);
             } catch (ExecutionException ex) {
                 //TODO: Implement something better?
                 throw new IllegalStateException("Cannot resolve remoting classloader", ex);

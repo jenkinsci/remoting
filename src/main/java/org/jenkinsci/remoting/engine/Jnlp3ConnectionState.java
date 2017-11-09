@@ -31,7 +31,7 @@ import javax.annotation.Nonnull;
 /**
  * Represents the connection state of a {@link JnlpProtocol3Handler} connection.
  *
- * @since FIXME
+ * @since 3.0
  */
 @Deprecated
 public class Jnlp3ConnectionState extends LegacyJnlpConnectionState {

@@ -1,9 +1,11 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+
 import java.io.File;
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
@@ -17,7 +19,7 @@ import java.util.concurrent.ConcurrentMap;
  * @author Kohsuke Kawaguchi
  */
 @edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_BAD_FIELD")
-class JarLoaderImpl implements JarLoader, Serializable {
+class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
     private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<>();
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
@@ -71,8 +73,8 @@ class JarLoaderImpl implements JarLoader, Serializable {
     /**
      * When sent to the remote node, send a proxy.
      */
-    private Object writeReplace() {
-        return Channel.current().export(JarLoader.class, this);
+    private Object writeReplace() throws NotSerializableException {
+        return getChannelForSerialization().export(JarLoader.class, this);
     }
 
     public static final String DIGEST_ALGORITHM = System.getProperty(JarLoaderImpl.class.getName()+".algorithm","SHA-256");

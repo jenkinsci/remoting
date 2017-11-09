@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -32,19 +33,29 @@ class ResourceImageBoth extends ResourceImageDirect {
             return super.resolveURL(channel, resourcePath);
     }
 
-    private Future<URL> initiateJarRetrieval(Channel channel) {
+    /**
+     * Starts JAR retrieval over the channel.
+     * 
+     * @param channel Channel instance
+     * @return Future object. In the case of error the diagnostics info will be sent to {@link #LOGGER}.
+     */
+    @Nonnull
+    private Future<URL> initiateJarRetrieval(@Nonnull Channel channel) throws IOException, InterruptedException {
         JarCache c = channel.getJarCache();
-        assert c !=null : "we don't advertise jar caching to the other side unless we have a cache with us";
+        if (c == null) {
+            throw new IOException("Failed to initiate retrieval. JAR Cache is disabled for the channel " + channel.getName());
+        }
 
         try {
             return c.resolve(channel, sum1, sum2);
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Failed to initiate retrieval", e);
+            throw e;
         } catch (InterruptedException e) {
             LOGGER.log(Level.WARNING, "Failed to initiate retrieval", e);
             Thread.currentThread().interrupt(); // process the interrupt later
+            throw e;
         }
-        return null;
     }
 
     private static final long serialVersionUID = 1L;

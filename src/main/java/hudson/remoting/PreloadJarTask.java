@@ -23,11 +23,13 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.IOException;
 import java.net.URL;
+import javax.annotation.CheckForNull;
 
 /**
  * {@link Callable} used to deliver a jar file to {@link RemoteClassLoader}.
@@ -40,13 +42,18 @@ final class PreloadJarTask implements DelegatingCallable<Boolean,IOException> {
      */
     private final URL[] jars;
 
-    private transient ClassLoader target;
+    //TODO: This implementation exists starting from https://github.com/jenkinsci/remoting/commit/f3d0a81fdf46a10c3c6193faf252efaeaee98823
+    // Since this time nothing has blown up, but it still seems to be suspicious.
+    // The solution for null classloaders is available in RemoteDiagnostics.Script#call() in the Jenkins core codebase
+    @CheckForNull
+    private transient ClassLoader target = null;
 
-    PreloadJarTask(URL[] jars, ClassLoader target) {
+    PreloadJarTask(URL[] jars, @CheckForNull ClassLoader target) {
         this.jars = jars;
         this.target = target;
     }
 
+    @Override
     public ClassLoader getClassLoader() {
         return target;
     }

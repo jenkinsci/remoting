@@ -47,7 +47,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         channel.setJarCache(new FileSystemJarCache(dir, true));
         channel.call(new CallableBase<Void, IOException>() {
             public Void call() throws IOException {
-                Channel.current().setJarCache(new FileSystemJarCache(dir, true));
+                Channel.currentOrFail().setJarCache(new FileSystemJarCache(dir, true));
                 return null;
             }
         });
@@ -214,8 +214,12 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
         public Void call() throws IOException {
             try {
-                Channel ch = Channel.current();
-                ch.getJarCache().resolve(ch,sum1,sum2).get();
+                final Channel ch = Channel.currentOrFail();
+                final JarCache jarCache = ch.getJarCache();
+                if (jarCache == null) {
+                    throw new IOException("Cannot Force JAR load, JAR cache is disabled");
+                }
+                jarCache.resolve(ch,sum1,sum2).get();
                 return null;
             } catch (InterruptedException e) {
                 throw new IOException(e);

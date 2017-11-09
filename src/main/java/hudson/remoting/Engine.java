@@ -29,9 +29,12 @@ import hudson.remoting.Channel.Mode;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.Socket;
 import java.net.URL;
+import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -68,6 +71,7 @@ import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.engine.JnlpConnectionStateListener;
 import org.jenkinsci.remoting.engine.JnlpProtocolHandler;
 import org.jenkinsci.remoting.engine.JnlpProtocolHandlerFactory;
+import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
@@ -146,11 +150,62 @@ public class Engine extends Thread {
     /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
      *
-     * @since TODO
+     * @since 2.62.1
      */
     private boolean keepAlive = true;
 
-    private JarCache jarCache = new FileSystemJarCache(new File(System.getProperty("user.home"),".jenkins/cache/jars"),true);
+    
+    
+    
+    @CheckForNull
+    private JarCache jarCache = null;
+
+    /**
+     * Specifies a destination for the agent log.
+     * If specified, this option overrides the default destination within {@link #workDir}.
+     * If both this options and {@link #workDir} is not set, the log will not be generated.
+     * @since 3.8
+     */
+    @CheckForNull
+    private Path agentLog;
+    
+    /**
+     * Specified location of the property file with JUL settings.
+     * @since 3.8
+     */
+    @CheckForNull
+    private Path loggingConfigFilePath = null;
+    
+    /**
+     * Specifies a default working directory of the remoting instance.
+     * If specified, this directory will be used to store logs, JAR cache, etc.
+     * <p>
+     * In order to retain compatibility, the option is disabled by default.
+     * <p>
+     * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
+     * @since 3.8
+     */
+    @CheckForNull
+    public Path workDir = null;
+
+    /**
+     * Specifies a directory within {@link #workDir}, which stores all the remoting-internal files.
+     * <p>
+     * This option is not expected to be used frequently, but it allows remoting users to specify a custom
+     * storage directory if the default {@code remoting} directory is consumed by other stuff.
+     * @since 3.8
+     */
+    @Nonnull
+    public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
+
+    /**
+     * Fail the initialization if the workDir or internalDir are missing.
+     * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
+     * (e.g. if a filesystem mount gets disconnected).
+     * @since 3.8
+     */
+    @Nonnull
+    public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
 
@@ -162,14 +217,88 @@ public class Engine extends Thread {
         this.slaveName = slaveName;
         if(candidateUrls.isEmpty())
             throw new IllegalArgumentException("No URLs given");
+        setUncaughtExceptionHandler((t, e) -> {
+            LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
+            interrupt();
+        });
     }
 
     /**
-     * Configures JAR caching for better performance.
+     * Starts the engine.
+     * The procedure initializes the working directory and all the required environment
+     * @throws IOException Initialization error
+     * @since 3.9
+     */
+    public synchronized void startEngine() throws IOException {
+        startEngine(false);
+    }
+     
+    /**
+     * Starts engine.
+     * @param dryRun If {@code true}, do not actually start the engine.
+     *               This method can be used for testing startup logic.
+     */
+    /*package*/ void startEngine(boolean dryRun) throws IOException {
+        @CheckForNull File jarCacheDirectory = null;
+        
+        // Prepare the working directory if required
+        if (workDir != null) {
+            final WorkDirManager workDirManager = WorkDirManager.getInstance();
+            if (jarCache != null) {
+                // Somebody has already specificed Jar Cache, hence we do not need it in the workspace.
+                workDirManager.disable(WorkDirManager.DirType.JAR_CACHE_DIR);
+            }
+            
+            if (loggingConfigFilePath != null) {
+                workDirManager.setLoggingConfig(loggingConfigFilePath.toFile());
+            }
+            
+            final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
+            jarCacheDirectory = workDirManager.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
+            workDirManager.setupLogging(path, agentLog);
+        } else if (jarCache == null) {
+            LOGGER.log(Level.WARNING, "No Working Directory. Using the legacy JAR Cache location: {0}", JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION);
+            jarCacheDirectory = JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION;
+        }
+        
+        if (jarCache == null){
+            if (jarCacheDirectory == null) {
+                // Should never happen in the current code
+                throw new IOException("Cannot find the JAR Cache location");
+            }
+            LOGGER.log(Level.FINE, "Using standard File System JAR Cache. Root Directory is {0}", jarCacheDirectory);
+            try {
+                jarCache = new FileSystemJarCache(jarCacheDirectory, true);
+            } catch (IllegalArgumentException ex) {
+                throw new IOException("Failed to initialize FileSystem JAR Cache in " + jarCacheDirectory, ex);
+            }
+        } else {
+            LOGGER.log(Level.INFO, "Using custom JAR Cache: {0}", jarCache);
+        }
+        
+        // Start the engine thread
+        if (!dryRun) {
+            this.start();
+        }
+    }
+
+    /**
+     * Configures custom JAR Cache location.
+     * Starting from TODO, this option disables JAR Caching in the working directory.
+     * @param jarCache JAR Cache to be used
      * @since 2.24
      */
-    public void setJarCache(JarCache jarCache) {
+    public void setJarCache(@Nonnull JarCache jarCache) {
         this.jarCache = jarCache;
+    }
+    
+    /**
+     * Sets path to the property file with JUL settings.
+     * @param filePath JAR Cache to be used
+     * @since 3.8
+     */
+    public void setLoggingConfigFile(@Nonnull Path filePath) {
+        this.loggingConfigFilePath = filePath;
     }
 
     /**
@@ -197,6 +326,44 @@ public class Engine extends Thread {
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;
     }
+
+    /**
+     * Sets the destination for agent logs.
+     * @param agentLog Path to the agent log.
+     *      If {@code null}, the engine will pick the default behavior depending on the {@link #workDir} value
+     * @since 3.8
+     */
+    public void setAgentLog(@CheckForNull Path agentLog) {
+        this.agentLog = agentLog;
+    }
+
+    /**
+     * Specified a path to the work directory.
+     * @param workDir Path to the working directory of the remoting instance.
+     *                {@code null} Disables the working directory.
+     * @since 3.8
+     */
+    public void setWorkDir(@CheckForNull Path workDir) {
+        this.workDir = workDir;
+    }
+
+    /**
+     * Specifies name of the internal data directory within {@link #workDir}.
+     * @param internalDir Directory name
+     * @since 3.8
+     */
+    public void setInternalDir(@Nonnull String internalDir) {
+        this.internalDir = internalDir;
+    }
+
+    /**
+     * Sets up behavior if the workDir or internalDir are missing during the startup.
+     * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
+     * (e.g. if a filesystem mount gets disconnected).
+     * @param failIfWorkDirIsMissing Flag
+     * @since 3.8
+     */
+    public void setFailIfWorkDirIsMissing(boolean failIfWorkDirIsMissing) { this.failIfWorkDirIsMissing = failIfWorkDirIsMissing; }
 
     /**
      * Returns {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.
@@ -239,6 +406,7 @@ public class Engine extends Thread {
 
     @Override
     public void run() {
+        // Create the engine
         try {
             IOHub hub = IOHub.create(executor);
             try {
@@ -407,7 +575,10 @@ public class Engine extends Thread {
 
                                 @Override
                                 public void beforeChannel(@Nonnull JnlpConnectionState event) {
-                                    event.getChannelBuilder().withJarCache(jarCache).withMode(Mode.BINARY);
+                                    ChannelBuilder bldr = event.getChannelBuilder().withMode(Mode.BINARY);
+                                    if (jarCache != null) {
+                                        bldr.withJarCache(jarCache);
+                                    }
                                 }
 
                                 @Override

@@ -6,6 +6,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.attribute.FileTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -36,32 +38,45 @@ public class FileSystemJarCache extends JarCacheSupport {
     @GuardedBy("itself")
     private final Map<String, Checksum> checksumsByPath = new HashMap<>();
 
+    //TODO: Create new IOException constructor
     /**
+     * @param rootDir  
+     *      Root directory.
      * @param touch
      *      True to touch the cached jar file that's used. This enables external LRU based cache
      *      eviction at the expense of increased I/O.
+     * @throws IllegalArgumentException
+     *      Root directory is {@code null} or not writable.
      */
-    public FileSystemJarCache(File rootDir, boolean touch) {
+    public FileSystemJarCache(@Nonnull File rootDir, boolean touch) {
         this.rootDir = rootDir;
         this.touch = touch;
         if (rootDir==null)
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Root directory is null");
 
         try {
             Util.mkdirs(rootDir);
         } catch (IOException ex) {
-            throw new RuntimeException("Root directory not writable: " + rootDir);
+            throw new IllegalArgumentException("Root directory not writable: " + rootDir, ex);
         }
     }
 
+    @Override
+    public String toString() {
+        return String.format("FileSystem JAR Cache: path=%s, touch=%s", rootDir, Boolean.toString(touch));
+    }
+    
     @Override
     protected URL lookInCache(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         File jar = map(sum1, sum2);
         if (jar.exists()) {
             LOGGER.log(Level.FINER, String.format("Jar file cache hit %16X%16X",sum1,sum2));
-            if (touch)  jar.setLastModified(System.currentTimeMillis());
-            if (notified.add(new Checksum(sum1,sum2)))
+            if (touch)  {
+                Files.setLastModifiedTime(jar.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
+            }
+            if (notified.add(new Checksum(sum1,sum2))) {
                 getJarLoader(channel).notifyJarPresence(sum1,sum2);
+            }
             return jar.toURI().toURL();
         }
         return null;
@@ -83,7 +98,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                     "Cached file checksum mismatch: %s%nExpected: %s%n Actual: %s",
                     target.getAbsolutePath(), expected, actual
             ));
-            target.delete();
+            Files.delete(target.toPath());
             synchronized (checksumsByPath) {
                 checksumsByPath.remove(target.getCanonicalPath());
             }
@@ -127,7 +142,7 @@ public class FileSystemJarCache extends JarCacheSupport {
 
                 return target.toURI().toURL();
             } finally {
-                tmp.delete();
+                Files.deleteIfExists(tmp.toPath());
             }
         } catch (IOException e) {
             throw (IOException)new IOException("Failed to write to "+target).initCause(e);

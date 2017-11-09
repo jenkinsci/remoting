@@ -50,7 +50,9 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
  * This was the first protocol supported by Jenkins. JNLP slaves will use this
  * as a last resort when connecting to old versions of Jenkins masters.
  *
- * @since FIXME
+ * @since 3.0
+ * @deprecated Replaced by JNLP4
+ * @see JnlpProtocol4Handler
  */
 @Deprecated
 public class JnlpProtocol1Handler extends LegacyJnlpProtocolHandler<LegacyJnlpConnectionState> {

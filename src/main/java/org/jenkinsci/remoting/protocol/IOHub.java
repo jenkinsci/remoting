@@ -63,7 +63,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 /**
  * A hub for performing I/O. The hub has a selector thread and an executor service.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
 
@@ -457,8 +457,6 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         }
                         keyIterator.remove();
                     }
-                } catch (ClosedSelectorException e) {
-                    return;
                 } catch (IOException e) {
                     // we should not have any of these exceptions propagated this far, so if we get one that is a
                     // problem
@@ -487,6 +485,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                     }
                 }
             }
+        } catch (ClosedSelectorException e) {
+            // ignore, happens routinely
         } finally {
             selectorThread.setName(oldName);
         }

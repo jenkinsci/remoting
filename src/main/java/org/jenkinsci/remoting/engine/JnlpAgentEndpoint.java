@@ -45,7 +45,7 @@ import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
 /**
  * Represents a {@code TcpSlaveAgentListener} endpoint details.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class JnlpAgentEndpoint {
     /**
@@ -69,13 +69,12 @@ public class JnlpAgentEndpoint {
     
     /**
      * Jenkins URL for the discovered endpoint.
-     * @since TODO
      */
     @CheckForNull
     private final URL serviceUrl;
 
     /**
-     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.lang.String)}
+     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.net.URL)}
      */
     @Deprecated
     public JnlpAgentEndpoint(@Nonnull String host, int port, @CheckForNull RSAPublicKey publicKey,
@@ -92,7 +91,7 @@ public class JnlpAgentEndpoint {
      * @param protocols The supported protocols.
      * @param serviceURL URL of the service hosting the remoting endpoint.
      *                   Use {@code null} if it is not a web service or if the URL cannot be determined
-     * @since TODO
+     * @since 3.0
      */
     public JnlpAgentEndpoint(@Nonnull String host, int port, @CheckForNull RSAPublicKey publicKey,
                              @CheckForNull Set<String> protocols, @CheckForNull URL serviceURL) {

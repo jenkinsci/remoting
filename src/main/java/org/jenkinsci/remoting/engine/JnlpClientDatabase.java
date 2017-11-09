@@ -29,7 +29,7 @@ import javax.annotation.Nonnull;
 /**
  * Represents a database of clients that are permitted to connect.
  *
- * @since FIXME
+ * @since 3.0
  */
 public abstract class JnlpClientDatabase {
 

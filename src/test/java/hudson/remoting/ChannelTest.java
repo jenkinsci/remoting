@@ -1,16 +1,32 @@
 package hudson.remoting;
 
 import hudson.remoting.util.GCTask;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 import org.jvnet.hudson.test.Bug;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectStreamException;
 import java.io.PrintWriter;
-import java.io.Serializable;
 import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.channels.ClosedChannelException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import static junit.framework.TestCase.assertFalse;
+import static junit.framework.TestCase.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+
+import org.jenkinsci.remoting.RoleChecker;
+import org.jvnet.hudson.test.Issue;
+import sun.rmi.runtime.Log;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -114,7 +130,7 @@ public class ChannelTest extends RmiTestBase {
     private static class WaitForRemotePropertyCallable extends CallableBase<Void, Exception> {
         public Void call() throws Exception {
             Thread.sleep(500);
-            Channel.current().setProperty("foo","bar");
+            Channel.currentOrFail().setProperty("foo","bar");
             return null;
         }
     }
@@ -123,14 +139,14 @@ public class ChannelTest extends RmiTestBase {
         void greet(String name);
     }
 
-    private static class GreeterImpl implements Greeter, Serializable {
+    private static class GreeterImpl implements Greeter, SerializableOnlyOverRemoting {
         String name;
         public void greet(String name) {
             this.name = name;
         }
 
-        private Object writeReplace() {
-            return Channel.current().export(Greeter.class,this);
+        private Object writeReplace() throws ObjectStreamException {
+            return getChannelForSerialization().export(Greeter.class,this);
         }
     }
 
@@ -175,5 +191,242 @@ public class ChannelTest extends RmiTestBase {
         assertTrue(sw.toString().contains("Channel south"));
         assertTrue(sw.toString().contains("Commands sent=0"));
         assertTrue(sw.toString().contains("Commands received=0"));
+    }
+
+    public void testCallSiteStacktrace() throws Exception {
+        try {
+            failRemotelyToBeWrappedLocally();
+            fail();
+        } catch (Exception e) {
+            assertEquals("Local Nested", e.getMessage());
+            assertEquals(Exception.class, e.getClass());
+            Throwable cause = e.getCause();
+            assertEquals("Node Nested", cause.getMessage());
+            assertEquals(IOException.class, cause.getClass());
+            Throwable rootCause = cause.getCause();
+            assertEquals("Node says hello!", rootCause.getMessage());
+            assertEquals(RuntimeException.class, rootCause.getClass());
+            Throwable callSite = cause.getSuppressed()[0];
+            assertEquals("Remote call to north", callSite.getMessage());
+            assertEquals("hudson.remoting.Channel$CallSiteStackTrace", callSite.getClass().getName());
+        }
+    }
+
+    private void failRemotelyToBeWrappedLocally() throws Exception {
+        try {
+            channel.call(new ThrowingCallable());
+        } catch (IOException e) {
+            throw new Exception("Local Nested", e);
+        }
+    }
+
+    private static class ThrowingCallable extends CallableBase<Void, IOException> {
+        @Override public Void call() throws IOException {
+            throw new IOException("Node Nested", new RuntimeException("Node says hello!"));
+        }
+    }
+    
+    /**
+     * Checks if {@link UserRequest}s can be executed during the pending close operation.
+     * @throws Exception Test Error
+     */
+    @Bug(45023)
+    public void testShouldNotAcceptUserRequestsWhenIsBeingClosed() throws Exception {
+        
+        // Create a sample request to the channel
+        final Callable<Void, Exception> testPayload = new NeverEverCallable();
+        UserRequest<Void, Exception> delayedRequest = new UserRequest<>(channel, testPayload);
+        
+        try (ChannelCloseLock lock = new ChannelCloseLock(channel)) {
+            // Call Async
+            assertFailsWithChannelClosedException(TestRunnable.forChannel_call(testPayload));
+            assertFailsWithChannelClosedException(TestRunnable.forChannel_callAsync(testPayload));
+            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_constructor(testPayload));
+
+            // Check if the previously created command also fails to execute
+            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_call(delayedRequest, testPayload));
+            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_callAsync(delayedRequest, testPayload));
+        }
+    }
+
+    /**
+     * Checks if {@link UserRequest}s can be executed during the pending close operation.
+     * @throws Exception Test Error
+     */
+    @Issue("JENKINS-45294")
+    public void testShouldNotAcceptUserRPCRequestsWhenIsBeingClosed() throws Exception {
+
+        Collection<String> src = new ArrayList<>();
+        src.add("Hello");
+        src.add("World");
+
+        //TODO: System request will just hang. Once JENKINS-44785 is implemented, all system requests
+        // in Remoting codebase must have a timeout.
+        final Collection remoteList = channel.call(new RMIObjectExportedCallable<>(src, Collection.class, true));
+
+        try (ChannelCloseLock lock = new ChannelCloseLock(channel)) {
+            // Call Async
+            assertFailsWithChannelClosedException(new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    remoteList.size();
+                }
+            });
+        }
+    }
+
+    private static class RMIObjectExportedCallable<TInterface> implements Callable<TInterface, Exception> {
+
+        private final TInterface object;
+        private final Class<TInterface> clazz;
+        private final boolean userSpace;
+
+        RMIObjectExportedCallable(TInterface object, Class<TInterface> clazz, boolean userSpace) {
+            this.object = object;
+            this.clazz = clazz;
+            this.userSpace = userSpace;
+        }
+
+        @Override
+        public TInterface call() throws Exception {
+            // UserProxy is used only for the user space, otherwise it will be wrapped into UserRequest
+            return Channel.current().export(clazz, object, userSpace, userSpace);
+        }
+
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+
+        }
+    }
+
+    private static final class NeverEverCallable implements Callable<Void, Exception> {
+
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public Void call() throws Exception {
+            throw new AssertionError("This method should be never executed");
+        }
+
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+            throw new AssertionError("This method should be never executed");
+        }
+    }
+    
+    /**
+     * Auto-closable wrapper, which puts the {@link Channel} into the pending close state.
+     * This state is achieved by a deadlock of the customer request, which blocks {@link Channel#close()}.
+     * Within this wrapper all methods requiring the Channel instance lock will hang till the timeout.
+     */
+    private static final class ChannelCloseLock implements AutoCloseable {
+
+        final ExecutorService svc;
+        final Channel channel;
+
+        public ChannelCloseLock(final @Nonnull Channel channel) throws AssertionError, InterruptedException {
+            this.svc = Executors.newFixedThreadPool(2);
+            this.channel = channel;
+            
+            // Lock channel
+            java.util.concurrent.Future<Void> lockChannel = svc.submit(new java.util.concurrent.Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    synchronized (channel) {
+                        System.out.println("All your channel belongs to us");
+                        Thread.sleep(Long.MAX_VALUE);
+                        return null;
+                    }
+                }
+            });
+
+            // Try to close the channel in another task
+            java.util.concurrent.Future<Void> closeChannel = svc.submit(new java.util.concurrent.Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    System.out.println("Trying to close the channel");
+                    channel.close();
+                    System.out.println("Channel is closed");
+                    return null;
+                }
+            });
+
+            // Check the state
+            Thread.sleep(1000);
+            System.out.println("Running the tests");
+            assertTrue("Channel should be closing", channel.isClosingOrClosed());
+            assertFalse("Channel should not be closed due to the lock", channel.isOutClosed());
+        }
+        
+        @Override
+        public void close() throws Exception {
+            svc.shutdownNow();
+        }
+        
+    }
+    
+    private abstract static class TestRunnable {
+        public abstract void run(Channel channel) throws Exception, AssertionError;
+        
+        private static final TestRunnable forChannel_call(final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    channel.call(payload);
+                }
+            };
+        }
+        
+        private static final TestRunnable forChannel_callAsync(final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    channel.callAsync(payload);
+                }
+            };
+        }
+        
+        private static final TestRunnable forUserRequest_constructor(final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    new UserRequest<Void, Exception>(channel, payload);
+                }
+            };
+        }
+        
+        private static final TestRunnable forUserRequest_call(final UserRequest<Void, Exception> req, final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    req.call(channel);
+                }
+            };
+        }
+        
+        private static final TestRunnable forUserRequest_callAsync(final UserRequest<Void, Exception> req, final Callable<Void, Exception> payload) {
+            return new TestRunnable() {
+                @Override
+                public void run(Channel channel) throws Exception, AssertionError {
+                    req.callAsync(channel);
+                }
+            };
+        }
+    }
+    
+    private void assertFailsWithChannelClosedException(TestRunnable call) throws AssertionError {
+        try {
+            call.run(channel);
+        } catch(Exception ex) {
+            Logger.getLogger(ChannelTest.class.getName()).log(Level.WARNING, "Call execution failed with exception", ex);
+            Throwable cause = ex instanceof RemotingSystemException ? ex.getCause() : ex;
+            if (cause instanceof ChannelClosedException) {
+                // Fine
+                return;
+            } else {
+                throw new AssertionError("Expected ChannelClosedException, but got another exception", cause);
+            }
+        }
+        fail("Expected ChannelClosedException, but the call has completed without any exception");
     }
 }

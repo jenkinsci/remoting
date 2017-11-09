@@ -23,10 +23,11 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.io.Writer;
 
 /**
@@ -48,7 +49,7 @@ import java.io.Writer;
  * @see RemoteInputStream
  * @author Kohsuke Kawaguchi
  */
-public final class RemoteWriter extends Writer implements Serializable {
+public final class RemoteWriter extends Writer implements SerializableOnlyOverRemoting {
     /**
      * On local machine, this points to the {@link Writer} where
      * the data will be sent ultimately.
@@ -63,14 +64,12 @@ public final class RemoteWriter extends Writer implements Serializable {
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        int id = Channel.current().internalExport(Writer.class, core, false);  // this export is unexported in ProxyWriter.finalize()
+        int id = getChannelForSerialization().internalExport(Writer.class, core, false);  // this export is unexported in ProxyWriter.finalize()
         oos.writeInt(id);
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        final Channel channel = Channel.current();
-        assert channel !=null;
-
+        final Channel channel = getChannelForSerialization();
         this.core = new ProxyWriter(channel, ois.readInt());
     }
 
