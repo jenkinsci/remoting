@@ -1458,9 +1458,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         // TODO: Does it make sense to execute this thing when the channel is closing?
         if (isInClosed())
-            throw (IllegalStateException)new IllegalStateException("Channel was already closed").initCause(inClosed);
+            throw new IllegalStateException("Channel was already closed", inClosed);
         if (isOutClosed())
-            throw (IllegalStateException)new IllegalStateException("Channel was already closed").initCause(outClosed);
+            throw new IllegalStateException("Channel was already closed", outClosed);
 
         while (true) {
             synchronized(this) {
@@ -1471,9 +1471,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             if (v != null) return v;
 
             if (isInClosed())
-                throw (IllegalStateException) new IllegalStateException("Channel was already closed").initCause(inClosed);
+                throw new IllegalStateException("Channel was already closed", inClosed);
             if (isOutClosed())
-                throw (IllegalStateException) new IllegalStateException("Channel was already closed").initCause(outClosed);
+                throw new IllegalStateException("Channel was already closed", outClosed);
         }
     }
 
