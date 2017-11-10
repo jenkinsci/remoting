@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.util.PathUtils;
+
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 import java.io.File;
@@ -72,7 +74,7 @@ public class FileSystemJarCache extends JarCacheSupport {
         if (jar.exists()) {
             LOGGER.log(Level.FINER, String.format("Jar file cache hit %16X%16X",sum1,sum2));
             if (touch)  {
-                Files.setLastModifiedTime(jar.toPath(), FileTime.fromMillis(System.currentTimeMillis()));
+                Files.setLastModifiedTime(PathUtils.fileToPath(jar), FileTime.fromMillis(System.currentTimeMillis()));
             }
             if (notified.add(new Checksum(sum1,sum2))) {
                 getJarLoader(channel).notifyJarPresence(sum1,sum2);
@@ -98,7 +100,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                     "Cached file checksum mismatch: %s%nExpected: %s%n Actual: %s",
                     target.getAbsolutePath(), expected, actual
             ));
-            Files.delete(target.toPath());
+            Files.delete(PathUtils.fileToPath(target));
             synchronized (checksumsByPath) {
                 checksumsByPath.remove(target.getCanonicalPath());
             }
@@ -142,7 +144,7 @@ public class FileSystemJarCache extends JarCacheSupport {
 
                 return target.toURI().toURL();
             } finally {
-                Files.deleteIfExists(tmp.toPath());
+                Files.deleteIfExists(PathUtils.fileToPath(tmp));
             }
         } catch (IOException e) {
             throw (IOException)new IOException("Failed to write to "+target).initCause(e);
