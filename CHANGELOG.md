@@ -6,6 +6,34 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.14
+
+Release date: Nov 10, 2017
+
+Fixed issues:
+
+* [JENKINS-45294](https://issues.jenkins-ci.org/browse/JENKINS-45294) -
+User-space RMI calls (including Jenkins core ones) will be rejected when the channel is being closed 
+(similar to [JENKINS-45023](https://issues.jenkins-ci.org/browse/JENKINS-45023) in 3.11).
+It prevents channel hanging in edge cases.
+* [JENKINS-47425](https://issues.jenkins-ci.org/browse/JENKINS-47425) - 
+Do not print full stack traces on network connection errors.
+* [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) - 
+Cleanup a number of issues reported by FindBugs.
+Notable ones: Unchecked file operations, improper synchronization.
+* [JENKINS-47901](https://issues.jenkins-ci.org/browse/JENKINS-47901) -
+Prevent uncaught `InvalidPathException` for file operations if and invalid path is passed from command line or API.
+* [JENKINS-47942](https://issues.jenkins-ci.org/browse/JENKINS-47942) -
+Performance: Reduce scope of Channel instance locks by property management.
+
+Build flow:
+
+* [PR #207](https://github.com/jenkinsci/remoting/pull/207) -
+Jacoco does not longer run by default in the build, `jacoco` profile should be used.
+* [PR #207](https://github.com/jenkinsci/remoting/pull/207) -
+Update Jacoco version to make the reports compatible with Jenkins [Jacoco Plugin](https://plugins.jenkins.io/jacoco).
+
+
 ##### 3.13
 
 Release date: Oct 05, 2017
