@@ -496,7 +496,7 @@ public class Engine extends Thread {
         resolver.setTunnel(tunnel);
         try {
             resolver.setSslSocketFactory(getSSLSocketFactory());
-            resolver.setInsecure(disableHttpsCertValidation);
+            resolver.setDisableHttpsCertValidation(disableHttpsCertValidation);
         } catch (Exception e) {
             events.error(e);
         }

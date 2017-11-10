@@ -26,7 +26,6 @@ package org.jenkinsci.remoting.engine;
 import hudson.remoting.Base64;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
-import sun.net.www.protocol.https.HttpsURLConnectionImpl;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -45,7 +44,6 @@ import java.security.KeyFactory;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
@@ -65,11 +63,8 @@ import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import static java.util.logging.Level.INFO;
 import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
@@ -93,7 +88,7 @@ public class JnlpAgentEndpointResolver {
 
     private String tunnel;
 
-    private boolean insecure;
+    private boolean disableHttpsCertValidation;
 
     /**
      * If specified, only the protocols from the list will be tried during the connection.
@@ -155,20 +150,22 @@ public class JnlpAgentEndpointResolver {
     /**
      *  Determine if certificate checking should be ignored for JNLP endpoint
      *
-     * @return if disableHttpsCertValidation, endpoint check is ignored
+     * @return {@code true} if the HTTPs certificate is disabled, endpoint check is ignored
      */
 
-    public boolean isInsecure() {
-        return insecure;
+    public boolean isDisableHttpsCertValidation() {
+        return disableHttpsCertValidation;
     }
 
     /**
-     * Sets if disableHttpsCertValidation mode of endpoint should be used.
+     * Sets if the HTTPs certificate check should be disabled.
      *
-     * @param insecure
+     * This behavior is no recommended.
+     * @param disableHttpsCertValidation
+     * @since TODO
      */
-    public void setInsecure(boolean insecure) {
-        this.insecure = insecure;
+    public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
+        this.disableHttpsCertValidation = disableHttpsCertValidation;
     }
 
     @CheckForNull
@@ -188,7 +185,7 @@ public class JnlpAgentEndpointResolver {
 
             // find out the TCP port
             HttpURLConnection con =
-                    (HttpURLConnection) openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory, insecure);
+                    (HttpURLConnection) openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation);
             try {
                 try {
                     con.setConnectTimeout(30000);
@@ -344,7 +341,7 @@ public class JnlpAgentEndpointResolver {
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
 
                     HttpURLConnection con =
-                            (HttpURLConnection) openURLConnection(url, credentials, proxyCredentials, sslSocketFactory, insecure);
+                            (HttpURLConnection) openURLConnection(url, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation);
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
@@ -411,7 +408,7 @@ public class JnlpAgentEndpointResolver {
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      */
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
-                                           SSLSocketFactory sslSocketFactory, boolean insecure) throws IOException {
+                                           SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
         if (System.getProperty("http.proxyHost") == null) {
@@ -443,8 +440,8 @@ public class JnlpAgentEndpointResolver {
 
         if (con instanceof HttpsURLConnection) {
             final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
-            if (insecure) {
-                System.out.println(String.format("Insecure Status: %s", insecure));
+            if (disableHttpsCertValidation) {
+                System.err.println("Warning: HTTPs certificate check is disabled for the endpoint");
 
                 try {
                     SSLContext ctx = SSLContext.getInstance("TLS");
@@ -454,7 +451,9 @@ public class JnlpAgentEndpointResolver {
                     httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
                     httpsConnection.setSSLSocketFactory(sslSocketFactory);
                 } catch (KeyManagementException | NoSuchAlgorithmException ex) {
-                    System.err.println(String.format("Error setting disableHttpsCertValidation; %s", ex.getMessage()));
+                    // We could just suppress it, but the exception will unlikely happen.
+                    // So let's just propagate the error and fail the resolution
+                    throw new IOException("Cannot initialize the insecure HTTPs mode", ex);
                 }
 
             } else if (sslSocketFactory != null) {
