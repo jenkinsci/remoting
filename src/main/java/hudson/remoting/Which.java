@@ -33,6 +33,7 @@ import java.net.MalformedURLException;
 import java.net.URLConnection;
 import java.net.JarURLConnection;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.zip.ZipFile;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
@@ -183,7 +184,7 @@ public class Which {
 
                 File jarFile = new File(dir,fileName);
                 if (jarFile.exists())   return jarFile;
-            } catch (Exception e) {
+            } catch (RuntimeException | NoSuchMethodException | IllegalAccessException | IOException | InvocationTargetException e) {
                 LOGGER.log(Level.FINE, "Failed to resolve vfs file into a location",e);
             }
         }

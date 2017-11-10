@@ -21,6 +21,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
@@ -316,7 +317,7 @@ public class ChannelBuilder {
      * @since 2.47
      */
     public Map<Object,Object> getProperties() {
-        return properties;
+        return Collections.unmodifiableMap(properties);
     }
 
     /**
