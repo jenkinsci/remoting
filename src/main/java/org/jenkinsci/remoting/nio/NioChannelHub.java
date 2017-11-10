@@ -38,6 +38,7 @@ import java.util.logging.Logger;
 
 import static java.nio.channels.SelectionKey.*;
 import static java.util.logging.Level.*;
+import javax.annotation.CheckForNull;
 
 /**
  * Switch board of multiple {@link Channel}s through NIO select.
@@ -114,7 +115,8 @@ public class NioChannelHub implements Runnable, Closeable {
          */
         final FifoBuffer wb = new FifoBuffer(16*1024,256*1024);
 
-        private ByteArrayReceiver receiver;
+        @CheckForNull
+        private ByteArrayReceiver receiver = null;
 
         /**
          * To ensure serial execution order within each {@link Channel}, we submit
@@ -195,6 +197,7 @@ public class NioChannelHub implements Runnable, Closeable {
             return channel;
         }
 
+        //TODO: do not just ignore the exceptions below
         @SelectorThreadOnly
         public void abort(Throwable e) {
             try {
@@ -206,6 +209,9 @@ public class NioChannelHub implements Runnable, Closeable {
                 closeW();
             } catch (IOException ignored) {
                 // ignore
+            }
+            if (receiver == null) {
+                throw new IllegalStateException("Aborting connection before it has been actually set up");
             }
             receiver.terminate((IOException)new IOException("Connection aborted: "+this).initCause(e));
         }
@@ -593,8 +599,13 @@ public class NioChannelHub implements Runnable, Closeable {
                                         assert packetSize==0;
                                         if (packet.length > 0) {
                                             t.swimLane.submit(new Runnable() {
+                                                @Override
                                                 public void run() {
-                                                    t.receiver.handle(packet);
+                                                    final ByteArrayReceiver receiver = t.receiver;
+                                                    if (receiver == null) {
+                                                        throw new IllegalStateException("NIO transport layer has not been set up yet");
+                                                    }
+                                                    receiver.handle(packet);
                                                 }
                                             });
                                         }

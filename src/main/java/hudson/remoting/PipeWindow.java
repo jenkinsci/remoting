@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.logging.Logger;
@@ -155,6 +156,8 @@ abstract class PipeWindow {
         }
     }
 
+    //TODO: Consider rework and cleanup of the fields
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "Legacy implementation")
     static class Real extends PipeWindow {
         private final int initial;
         private int available;

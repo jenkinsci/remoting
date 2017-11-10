@@ -172,6 +172,9 @@ public class JnlpAgentEndpointResolver {
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
         for (String jenkinsUrl : jenkinsUrls) {
+            if (jenkinsUrl == null) {
+                continue;
+            }
             
             final URL selectedJenkinsURL;
             final URL salURL;
@@ -314,9 +317,9 @@ public class JnlpAgentEndpointResolver {
         return null;
     }
 
-    @CheckForNull
-    private URL toAgentListenerURL(@CheckForNull String jenkinsUrl) throws MalformedURLException {
-        return jenkinsUrl == null ? null : jenkinsUrl.endsWith("/")
+    @Nonnull
+    private URL toAgentListenerURL(@Nonnull String jenkinsUrl) throws MalformedURLException {
+        return jenkinsUrl.endsWith("/")
                 ? new URL(jenkinsUrl + "tcpSlaveAgentListener/")
                 : new URL(jenkinsUrl + "/tcpSlaveAgentListener/");
     }
@@ -331,11 +334,12 @@ public class JnlpAgentEndpointResolver {
                 try {
                     // Jenkins top page might be read-protected. see http://www.nabble
                     // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
-                    URL url = toAgentListenerURL(first(jenkinsUrls));
-                    if (url == null) {
+                    final String firstUrl = first(jenkinsUrls);
+                    if (firstUrl == null) {
                         // returning here will cause the whole loop to be broken and all the urls to be tried again
                         return;
                     }
+                    URL url = toAgentListenerURL(firstUrl);
 
                     retries++;
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
@@ -521,9 +525,10 @@ public class JnlpAgentEndpointResolver {
     private static List<String> header(@Nonnull HttpURLConnection connection, String... headerNames) {
         Map<String, List<String>> headerFields = connection.getHeaderFields();
         for (String headerName : headerNames) {
-            for (String headerField : headerFields.keySet()) {
+            for (Map.Entry<String, List<String>> entry: headerFields.entrySet()) {
+                final String headerField = entry.getKey();
                 if (headerField != null && headerField.equalsIgnoreCase(headerName)) {
-                    return headerFields.get(headerField);
+                    return entry.getValue();
                 }
             }
         }

@@ -1,5 +1,8 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+
+import java.io.ObjectStreamException;
 import java.io.Serializable;
 
 public class RemoteInvocationHandlerTest extends RmiTestBase {
@@ -34,7 +37,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         void meth2(String arg);
     }
 
-    private static class Impl implements Contract, Serializable, Contract2 {
+    private static class Impl implements Contract, SerializableOnlyOverRemoting, Contract2 {
         String arg;
         public void meth(String arg1, String arg2) {
             assert false : "should be ignored";
@@ -45,8 +48,9 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         public void meth2(String arg) {
             this.arg = arg;
         }
-        private Object writeReplace() {
-            return Channel.current().export(Contract.class, this);
+
+        private Object writeReplace() throws ObjectStreamException {
+            return getChannelForSerialization().export(Contract.class, this);
         }
     }
 

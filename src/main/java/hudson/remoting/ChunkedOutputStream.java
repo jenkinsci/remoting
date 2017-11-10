@@ -30,10 +30,6 @@ class ChunkedOutputStream extends OutputStream {
         this.base = base;
     }
 
-    private int frameSize() {
-        return buf.length;
-    }
-
     /**
      * How many more bytes can our buffer take?
      */
