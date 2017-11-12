@@ -27,7 +27,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -41,6 +40,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
+import org.jenkinsci.remoting.util.PathUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -59,7 +59,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -70,7 +69,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.FileWriter;
-import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -179,7 +177,7 @@ public class Launcher {
 
     /**
      * Specified location of the property file with JUL settings.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
@@ -237,7 +235,7 @@ public class Launcher {
      * In order to retain compatibility, the option is disabled by default.
      * <p>
      * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-workDir",
             usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
@@ -249,7 +247,7 @@ public class Launcher {
      * <p>
      * This option is not expected to be used frequently, but it allows remoting users to specify a custom
      * storage directory if the default {@code remoting} directory is consumed by other stuff.
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-internalDir",
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
@@ -261,7 +259,7 @@ public class Launcher {
      * Fail the initialization if the workDir or internalDir are missing.
      * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
      * (e.g. if a filesystem mount gets disconnected).
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
@@ -295,7 +293,7 @@ public class Launcher {
         if (slaveLog != null) {
             workDirManager.disable(WorkDirManager.DirType.LOGS_DIR);
         }
-        workDirManager.setupLogging(internalDirPath, slaveLog != null ? slaveLog.toPath() : null);
+        workDirManager.setupLogging(internalDirPath, slaveLog != null ? PathUtils.fileToPath(slaveLog) : null);
 
         if(auth!=null) {
             final int idx = auth.indexOf(':');
@@ -732,7 +730,7 @@ public class Launcher {
         ExecutorService executor = Executors.newCachedThreadPool();
         ChannelBuilder cb = new ChannelBuilder("channel", executor)
                 .withMode(mode)
-                .withJarCache(cache);
+                .withJarCacheOrDefault(cache);
 
         // expose StandardOutputStream as a channel property, which is a better way to make this available
         // to the user of Channel than Channel#getUnderlyingOutput()

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import javax.annotation.CheckForNull;
 
 /**
  * Lower level abstraction under {@link Channel} for sending and receiving commands
@@ -179,6 +180,7 @@ public abstract class CommandTransport {
      * This method is package private, to prevent new {@link CommandTransport} from
      * providing this feature.
      */
+    @CheckForNull
     OutputStream getUnderlyingStream() {
         return null;
     }

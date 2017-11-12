@@ -54,6 +54,10 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
  * the new connection request. The master can use the cookie to determine if
  * the incoming request is an initial connection request or a reconnection
  * and take appropriate action.
+ * 
+ * @since 3.0
+ * @deprecated Replaced by JNLP4
+ * @see JnlpProtocol4Handler
  */
 @Deprecated
 public class JnlpProtocol2Handler extends LegacyJnlpProtocolHandler<LegacyJnlpConnectionState> {

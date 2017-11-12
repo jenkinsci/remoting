@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -67,14 +68,14 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      * @param oid
      *      The object id of the exported {@link OutputStream}.
      */
-    public ProxyOutputStream(Channel channel, int oid) throws IOException {
+    public ProxyOutputStream(@Nonnull Channel channel, int oid) throws IOException {
         connect(channel,oid);
     }
 
     /**
      * Connects this stream to the specified remote object.
      */
-    synchronized void connect(Channel channel, int oid) throws IOException {
+    synchronized void connect(@Nonnull Channel channel, int oid) throws IOException {
         if(this.channel!=null)
             throw new IllegalStateException("Cannot connect twice");
         if(oid==0)

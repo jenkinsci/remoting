@@ -42,7 +42,7 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
  * Represents the state of a connection event. This object should not be retained by the
  * {@link JnlpConnectionStateListener}
  *
- * @since FIXME
+ * @since 3.0
  */
 @NotThreadSafe
 public class JnlpConnectionState {

@@ -37,7 +37,7 @@ import org.jenkinsci.remoting.protocol.IOHub;
 /**
  * Builds a set of {@link JnlpProtocolHandler} instances from the supplied preconditions.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class JnlpProtocolHandlerFactory {
     /**

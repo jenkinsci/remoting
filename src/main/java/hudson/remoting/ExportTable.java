@@ -97,9 +97,12 @@ final class ExportTable {
          */
         private int referenceCount;
 
+        //TODO: cleanup this mess?
         /**
-         * This field can be set programmatically to track reference counting
+         * This field can be set programmatically to track reference counting.
+         * Please note that value unset is not thread-safe.
          */
+        @SuppressFBWarnings(value = "UWF_UNWRITTEN_FIELD", justification = "Old System script magic")
         @CheckForNull
         private ReferenceCountRecorder recorder;
 
@@ -398,7 +401,6 @@ final class ExportTable {
      * Retrieves object by id.
      * @param oid Object ID
      * @return Object or {@code null} if the ID is missing in the {@link ExportTable}.
-     * @since TODO
      */
     @CheckForNull
     synchronized Object getOrNull(int oid) {
@@ -461,13 +463,16 @@ final class ExportTable {
         Exception cause=null;
 
         if (!unexportLog.isEmpty()) {
-            for (Entry e : unexportLog) {
+            for (Entry<?> e : unexportLog) {
                 if (e.id==id)
                     cause = new Exception("Object was recently deallocated\n"+Util.indent(e.dump()), e.releaseTrace);
             }
-            if (cause==null)
-                cause = new Exception("Object appears to be deallocated at lease before "+
-                    new Date(unexportLog.get(0).releaseTrace.timestamp));
+            if (cause==null) {
+                // If there is no cause available, create an artificial cause and use the last unexport entry as an estimated release time if possible
+                final ReleasedAt releasedAt = unexportLog.get(0).releaseTrace;
+                final Date releasedBefore = releasedAt != null ? new Date(releasedAt.timestamp) : new Date();
+                cause = new Exception("Object appears to be deallocated at lease before "+ releasedBefore);
+            }
         }
 
         return new ExecutionException("Invalid object ID "+id+" iota="+iota, cause);
@@ -500,7 +505,7 @@ final class ExportTable {
      * Removes the exported object for the specified oid from the table.
      * @param oid Object ID. If {@code null} the method will do nothing.
      * @param callSite Unexport command caller
-     * @param severeErrorIfMissing Consider missing object as {@link #SEVERE} error. {@link #FINE} otherwise
+     * @param severeErrorIfMissing Consider missing object as {@code SEVERE} error. {@code FINE} otherwise
      * @since TODO
      */
     synchronized void unexportByOid(@CheckForNull Integer oid, @CheckForNull Throwable callSite, boolean severeErrorIfMissing) {

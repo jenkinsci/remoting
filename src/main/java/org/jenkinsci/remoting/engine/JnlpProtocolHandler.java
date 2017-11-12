@@ -36,6 +36,9 @@ import javax.annotation.Nullable;
 
 /**
  * Consolidates the protocol handling for both the server and the client ends of the connection.
+ * 
+ * @param <STATE> State class for connection events
+ * @since 3.0
  */
 public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
 

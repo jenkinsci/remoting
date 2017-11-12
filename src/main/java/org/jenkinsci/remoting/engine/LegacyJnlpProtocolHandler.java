@@ -42,7 +42,7 @@ import org.jenkinsci.remoting.util.ThrowableUtils;
 /**
  * Base class for the {@link JnlpProtocolHandler} implementations that use {@link NioChannelHub}.
  *
- * @since FIXME
+ * @since 3.0
  */
 abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState> extends JnlpProtocolHandler<STATE> {
     /**

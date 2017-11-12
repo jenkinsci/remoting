@@ -68,6 +68,10 @@ public abstract class PingThread extends Thread {
         this.timeout = timeout;
         this.interval = interval;
         setDaemon(true);
+        setUncaughtExceptionHandler((t, e) -> {
+            LOGGER.log(Level.SEVERE, "Uncaught exception in PingThread " + t, e);
+            onDead(e);
+        });
     }
 
     public PingThread(Channel channel, long interval) {

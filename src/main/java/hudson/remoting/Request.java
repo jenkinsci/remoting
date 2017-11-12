@@ -26,6 +26,7 @@ package hudson.remoting;
 import java.io.IOException;
 import java.io.Serializable;
 import java.time.Duration;
+import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -33,6 +34,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.CheckForNull;
 import org.jenkinsci.remoting.util.Timeout;
 
@@ -63,7 +66,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *
      * @param channel
      *      The local channel. From the view point of the JVM that
-     *      {@link #call(Channel) made the call}, this channel is
+     *      {@link #call(Channel)} made the call, this channel is
      *      the remote channel.
      * @return
      *      the return value will be sent back to the calling process.
@@ -71,7 +74,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      The exception will be forwarded to the calling process.
      *      If no checked exception is supposed to be thrown, use {@link RuntimeException}.
      */
-    protected abstract RSP perform(Channel channel) throws EXC;
+    @Nullable
+    protected abstract RSP perform(@Nonnull Channel channel) throws EXC;
 
     /**
      * Uniquely identifies this request.
@@ -158,6 +162,21 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
     }
     
     /**
+     * Checks if the request can be executed on the channel.
+     * 
+     * @param channel Channel
+     * @throws IOException Error with explanation if the request cannot be executed. 
+     * @since 3.11
+     */
+    public void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
+        final Throwable senderCloseCause = channel.getSenderCloseCause();
+        if (senderCloseCause != null) {
+            // Sender is closed, we won't be able to send anything
+            throw new ChannelClosedException(senderCloseCause);
+        }
+    }
+    
+    /**
      * Sends this request to a remote system, and blocks until we receives a response.
      *
      * @param channel
@@ -172,6 +191,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      If the {@link #perform(Channel)} throws an exception.
      */
     public final RSP call(Channel channel) throws EXC, InterruptedException, IOException {
+        checkIfCanBeExecutedOnChannel(channel);
         lastIoId = channel.lastIoId();
 
         // Channel.send() locks channel, and there are other call sequences
@@ -253,6 +273,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      If there's an error during the communication.
      */
     public final hudson.remoting.Future<RSP> callAsync(final Channel channel) throws IOException {
+        checkIfCanBeExecutedOnChannel(channel);
+        
         response=null;
         lastIoId = channel.lastIoId();
 
@@ -403,14 +425,11 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                     if(chainCause)
                         rsp.createdAt.initCause(createdAt);
 
-                    synchronized (channel) {// expand the synchronization block of the send() method to a check
-                        if(!channel.isOutClosed())
-                            channel.send(rsp);
-                    }
+                    channel.send(rsp);
                 } catch (IOException e) {
                     // communication error.
                     // this means the caller will block forever
-                    logger.log(Level.SEVERE, "Failed to send back a reply",e);
+                    logger.log(Level.WARNING, "Failed to send back a reply to the request " + this, e);
                 } finally {
                     channel.executingCalls.remove(id);
                     Thread.currentThread().setName(oldThreadName);
