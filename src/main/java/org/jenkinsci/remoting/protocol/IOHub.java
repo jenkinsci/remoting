@@ -433,7 +433,10 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         // in an immediately ready selection key, hence we use the non-blocking form
                         selected = selector.selectNow();
                     } else {
-                        selected = selector.select(); // WINDOWS!!! Waiting the whole timeout anyway if timeout specified?!?
+                        // We just wait for one second if the data is not available
+                        // Before Remoting 3.15 it was an infinite wait, which was causing hanging of the test logic
+                        // If the timeout happens, we will get 0 in selected, and all statistics calculation below will be skipped.
+                        selected = selector.select(1000);
                     }
                     if (selected == 0) {
                         // don't stress the GC by creating instantiating the selected keys
