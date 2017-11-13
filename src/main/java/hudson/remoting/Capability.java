@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.IOException;
 import java.io.InputStream;
@@ -108,22 +109,30 @@ public final class Capability implements Serializable {
         return (mask & MASK_PROXY_WRITER_2_35) != 0;
     }
 
+    //TODO: ideally preamble handling needs to be reworked in order to avoid FB suppression
     /**
      * Writes out the capacity preamble.
      */
     void writePreamble(OutputStream os) throws IOException {
         os.write(PREAMBLE);
-        ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os));
-        oos.writeObject(this);
-        oos.flush();
+        try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os)) {
+            @Override
+            public void close() throws IOException {
+                flush();
+                // TODO: Cannot invoke the private clear() method, but GC well do it for us. Not worse than the original solution
+                // Here the code does not close the proxied stream OS on completion
+            }
+        }) {
+            oos.writeObject(this);
+            oos.flush();
+        }
     }
 
     /**
      * The opposite operation of {@link #writePreamble(OutputStream)}.
      */
     public static Capability read(InputStream is) throws IOException {
-        try {
-            ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
+        try (ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
                 // during deserialization, only accept Capability to protect ourselves
                 // from malicious payload. Allow java.lang.String so that
                 // future versions of Capability can send more complex data structure.
@@ -136,7 +145,12 @@ public final class Capability implements Serializable {
                         return super.resolveClass(desc);
                     throw new SecurityException("Rejected: "+n);
                 }
-            };
+
+                @Override
+                public void close() throws IOException {
+                    // Do not close the stream since we continue reading from the input stream "is" 
+                }   
+            }) {
             return (Capability)ois.readObject();
         } catch (ClassNotFoundException e) {
             throw (Error)new NoClassDefFoundError(e.getMessage()).initCause(e);

@@ -62,22 +62,11 @@ public class InitializeJarCacheMain {
      * our own from scratch.
      */
     private static void copyFile(File src, File dest) throws Exception {
-        FileInputStream input = null;
-        FileOutputStream output = null;
-        try {
-            input = new FileInputStream(src);
-            output = new FileOutputStream(dest);
+        try (FileInputStream input = new FileInputStream(src); FileOutputStream output = new FileOutputStream(dest)) {
             byte[] buf = new byte[1024 * 1024];
             int bytesRead;
             while ((bytesRead = input.read(buf)) > 0) {
                 output.write(buf, 0, bytesRead);
-            }
-        } finally {
-            if (input != null) {
-                input.close();
-            }
-            if (output != null) {
-                output.close();
             }
         }
     }

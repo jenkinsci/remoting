@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
 import hudson.remoting.CommandTransport.CommandReceiver;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 import org.jenkinsci.remoting.nio.NioChannelBuilder;
 import org.junit.After;
 import org.junit.Test;
@@ -250,7 +251,7 @@ public class ClassFilterTest implements Serializable {
      * An attack payload that leaves a trace on the receiver side if it gets read from the stream.
      * Extends from {@link Command} to be able to test command stream.
      */
-    static class Security218 extends Command implements Serializable {
+    static class Security218 extends Command implements SerializableOnlyOverRemoting {
         private final String attack;
 
         public Security218(String attack) {
@@ -259,7 +260,7 @@ public class ClassFilterTest implements Serializable {
 
         private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
             ois.defaultReadObject();
-            System.setProperty("attack", attack + ">" + Channel.current().getName());
+            System.setProperty("attack", attack + ">" + getChannelForSerialization().getName());
         }
 
         @Override

@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.RemoteClassLoader.IClassLoader;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.RemoteInvocationHandler.RPCRequest;
@@ -62,6 +63,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
      * Objects exported by the request. This value will remain local
      * and won't be sent over to the remote side.
      */
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with default null")
     private transient final ExportList exports;
 
     /**

@@ -1,6 +1,8 @@
 package hudson.remoting;
 
-import org.jvnet.animal_sniffer.IgnoreJRERequirement;
+import org.jenkinsci.remoting.util.PathUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -20,7 +22,8 @@ import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import java.nio.file.Files;
-import java.util.Iterator;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 
 /**
  * Misc. I/O utilities
@@ -56,41 +59,17 @@ class Util {
 
     @Nonnull
     static File makeResource(String name, byte[] image) throws IOException {
-        File tmpFile = createTempDir();
-        File resource = new File(tmpFile, name);
-        resource.getParentFile().mkdirs();
+        Path tmpDir = Files.createTempDirectory("resource-");
+        File resource = new File(tmpDir.toFile(), name);
+        Files.createDirectories(PathUtils.fileToPath(resource.getParentFile()));
+        Files.createFile(PathUtils.fileToPath(resource));
 
-        FileOutputStream fos = new FileOutputStream(resource);
-        try {
+        try(FileOutputStream fos = new FileOutputStream(resource)) {
             fos.write(image);
-        } finally {
-            fos.close();
         }
 
-        deleteDirectoryOnExit(tmpFile);
-
+        deleteDirectoryOnExit(resource);
         return resource;
-    }
-
-    static File createTempDir() throws IOException {
-    	// work around sun bug 6325169 on windows
-    	// see http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6325169
-        int nRetry=0;
-        while (true) {
-            try {
-                File tmpFile = File.createTempFile("jenkins-remoting", "");
-                tmpFile.delete();
-                tmpFile.mkdir();
-                return tmpFile;
-            } catch (IOException e) {
-                if (nRetry++ < 100){
-                    continue;
-                }
-                IOException nioe = new IOException("failed to create temp directory at default location, most probably at: "+System.getProperty("java.io.tmpdir"));
-                nioe.initCause(e);
-                throw nioe;
-            }
-        }
     }
 
     /** Instructs Java to recursively delete the given directory (dir) and its contents when the JVM exits.
@@ -222,25 +201,13 @@ class Util {
         return openURLConnection(url, null, null, null);
     }
 
-    @IgnoreJRERequirement @SuppressWarnings("Since15")
+    /**
+     * @deprecated Use {@link Files#createDirectories(java.nio.file.Path, java.nio.file.attribute.FileAttribute...)} instead.
+     */
+    @Deprecated
     static void mkdirs(@Nonnull File file) throws IOException {
         if (file.isDirectory()) return;
-
-        try {
-            Class.forName("java.nio.file.Files");
-            Files.createDirectories(file.toPath());
-            return;
-        } catch (ClassNotFoundException e) {
-            // JDK6
-        } catch (ExceptionInInitializerError e) {
-            // JDK7 on multibyte encoding (http://bugs.java.com/bugdatabase/view_bug.do?bug_id=7050570)
-        }
-
-        // Fallback
-        if (!file.mkdirs()) {
-            if (!file.isDirectory()) {
-                throw new IOException("Directory not created");
-            }
-        }
+        Files.createDirectories(PathUtils.fileToPath(file));
     }
+
 }

@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>3.14-SNAPSHOT</version>
+  <version>3.15-SNAPSHOT</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -190,7 +190,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.kohsuke</groupId>
       <artifactId>access-modifier-annotation</artifactId>
-      <version>1.7</version>
+      <version>1.12</version>
       <type>jar</type>
       <optional>true</optional><!-- no need to have this at runtime -->
     </dependency>

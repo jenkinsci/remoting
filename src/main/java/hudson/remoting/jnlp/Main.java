@@ -35,6 +35,7 @@ import java.security.cert.X509Certificate;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
+import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Argument;
@@ -245,10 +246,18 @@ public class Main {
         
         // TODO: ideally logging should be initialized before the "Setting up slave" entry
         if (agentLog != null) {
-            engine.setAgentLog(agentLog.toPath());
+            try {
+                engine.setAgentLog(PathUtils.fileToPath(agentLog));
+            } catch (IOException ex) {
+                throw new IllegalStateException("Cannot retrieve custom log destination", ex);
+            }
         }
         if (loggingConfigFile != null) {
-            engine.setLoggingConfigFile(loggingConfigFile.toPath());
+            try {
+                engine.setLoggingConfigFile(PathUtils.fileToPath(loggingConfigFile));
+            } catch (IOException ex) {
+                throw new IllegalStateException("Logging config file is invalid", ex);
+            }
         }
         
         if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
@@ -321,7 +330,11 @@ public class Main {
 
         // Working directory settings
         if (workDir != null) {
-            engine.setWorkDir(workDir.toPath());
+            try {
+                engine.setWorkDir(PathUtils.fileToPath(workDir));
+            } catch (IOException ex) {
+                throw new IllegalStateException("Work directory path is invalid", ex);
+            }
         }
         engine.setInternalDir(internalDir);
         engine.setFailIfWorkDirIsMissing(failIfWorkDirIsMissing);

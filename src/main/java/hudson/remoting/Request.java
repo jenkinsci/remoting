@@ -34,6 +34,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
  * Request/response pattern over {@link Channel}, the layer-1 service.
@@ -51,7 +52,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *
      * @param channel
      *      The local channel. From the view point of the JVM that
-     *      {@link #call(Channel) made the call}, this channel is
+     *      {@link #call(Channel)} made the call, this channel is
      *      the remote channel.
      * @return
      *      the return value will be sent back to the calling process.
@@ -59,7 +60,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      The exception will be forwarded to the calling process.
      *      If no checked exception is supposed to be thrown, use {@link RuntimeException}.
      */
-    protected abstract RSP perform(Channel channel) throws EXC;
+    @Nullable
+    protected abstract RSP perform(@Nonnull Channel channel) throws EXC;
 
     /**
      * Uniquely identifies this request.

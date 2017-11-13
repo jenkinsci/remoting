@@ -1,8 +1,11 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.PrintWriter;
 import java.io.StreamCorruptedException;
 import java.io.StringWriter;
+import java.util.Arrays;
+import javax.annotation.Nonnull;
 
 /**
  * Signals a {@link StreamCorruptedException} with some additional diagnostic information.
@@ -11,10 +14,15 @@ import java.io.StringWriter;
  */
 public class DiagnosedStreamCorruptionException extends StreamCorruptedException {
     private final Exception diagnoseFailure;
+    
+    @Nonnull
     private final byte[] readBack;
+    
+    @Nonnull
     private final byte[] readAhead;
 
-    DiagnosedStreamCorruptionException(Exception cause, Exception diagnoseFailure, byte[] readBack, byte[] readAhead) {
+    DiagnosedStreamCorruptionException(Exception cause, Exception diagnoseFailure, 
+            @Nonnull byte[] readBack, @Nonnull byte[] readAhead) {
         initCause(cause);
         this.diagnoseFailure = diagnoseFailure;
         this.readBack = readBack;
@@ -25,12 +33,14 @@ public class DiagnosedStreamCorruptionException extends StreamCorruptedException
         return diagnoseFailure;
     }
 
+    @Nonnull
     public byte[] getReadBack() {
-        return readBack;
+        return readBack.clone();
     }
-
+  
+    @Nonnull
     public byte[] getReadAhead() {
-        return readAhead;
+        return readAhead.clone();
     }
 
     @Override
