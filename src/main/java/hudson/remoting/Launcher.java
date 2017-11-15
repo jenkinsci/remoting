@@ -25,6 +25,8 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
+
+import java.io.Console;
 import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Path;
@@ -678,29 +680,19 @@ public class Launcher {
         main(System.in, os, mode, ping, jarCache != null ? new FileSystemJarCache(jarCache,true) : null);
     }
 
+    /**
+     * Checks if there is any {@link java.io.Console Console} object associated with JVM.
+     * If yes, prints a warning to STDOUT.
+     */
     private static void ttyCheck() {
-        try {
-            Method m = System.class.getMethod("console");
-            Object console = m.invoke(null);
-            if(console!=null) {
-                // we seem to be running from interactive console. issue a warning.
-                // but since this diagnosis could be wrong, go on and do what we normally do anyway. Don't exit.
-                System.out.println(
-                        "WARNING: Are you running slave agent from an interactive console?\n" +
-                        "If so, you are probably using it incorrectly.\n" +
-                        "See http://wiki.jenkins-ci.org/display/JENKINS/Launching+slave.jar+from+from+console");
-            }
-        } catch (LinkageError e) {
-            // we are probably running on JDK5 that doesn't have System.console()
-            // we can't check
-        } catch (InvocationTargetException e) {
-            // this is impossible
-            throw new AssertionError(e);
-        } catch (NoSuchMethodException e) {
-            // must be running on JDK5
-        } catch (IllegalAccessException e) {
-            // this is impossible
-            throw new AssertionError(e);
+        final Console console = System.console();
+        if(console != null) {
+            // we seem to be running from interactive console. issue a warning.
+            // but since this diagnosis could be wrong, go on and do what we normally do anyway. Don't exit.
+            System.out.println(
+                    "WARNING: Are you running slave agent from an interactive console?\n" +
+                            "If so, you are probably using it incorrectly.\n" +
+                            "See http://wiki.jenkins-ci.org/display/JENKINS/Launching+slave.jar+from+from+console");
         }
     }
 
