@@ -451,6 +451,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Creates a new channel.
      *
      * @param restricted
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
      */
@@ -1575,6 +1576,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param forwardPort
      *      The remote port that the connection will be forwarded to.
      * @return
+     *      Created {@link PortForwarder}
      */
     public ListeningPort createLocalToRemotePortForwarding(int recvPort, String forwardHost, int forwardPort) throws IOException, InterruptedException {
         PortForwarder portForwarder = new PortForwarder(recvPort,
@@ -1597,6 +1599,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param forwardPort
      *      The remote port that the connection will be forwarded to.
      * @return
+     *      Created {@link PortForwarder}.
      */
     public ListeningPort createRemoteToLocalPortForwarding(int recvPort, String forwardHost, int forwardPort) throws IOException, InterruptedException {
         return PortForwarder.create(this,recvPort,

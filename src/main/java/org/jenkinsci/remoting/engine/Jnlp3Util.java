@@ -76,7 +76,7 @@ class Jnlp3Util {
 
     /**
      * Generate a random challenge phrase.
-     * @param entropy
+     * @param entropy Entropy
      */
     public static String generateChallenge(Random entropy) {
         return new BigInteger(10400, entropy).toString(32);
