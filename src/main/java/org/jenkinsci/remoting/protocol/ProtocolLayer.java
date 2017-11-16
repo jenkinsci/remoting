@@ -48,7 +48,7 @@ public interface ProtocolLayer {
     /**
      * A handy constant until Java 7 compatibility can be assumed.
      *
-     * @deprecated Usev {@link StandardCharsets}
+     * @deprecated Use {@link StandardCharsets}
      */
     @Deprecated
     @Restricted(DoNotUse.class)
