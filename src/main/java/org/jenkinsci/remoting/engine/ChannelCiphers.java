@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Random;
@@ -32,11 +35,16 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
+ * Provides ciphers required by the JNLP3 protocol.
+ *
  * {@link javax.crypto.Cipher}s that will be used to construct an encrypted
  * {@link hudson.remoting.Channel} after a successful handshake.
  *
+ * @deprecated JNLP3 protocol is deprecated
  * @author Akshay Dayal
  */
+@Deprecated
+@Restricted(NoExternalUse.class)
 class ChannelCiphers {
 
     private final byte[] aesKey;

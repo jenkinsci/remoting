@@ -33,13 +33,18 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.spec.KeySpec;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * {@link Cipher}s that will be used to during the handshake
  * process for JNLP3 protocol.
  *
+ * @deprecated JNLP3 protocol is deprecated
  * @author Akshay Dayal
  */
+@Deprecated
+@Restricted(NoExternalUse.class)
 class HandshakeCiphers {
 
     private final SecretKey secretKey;

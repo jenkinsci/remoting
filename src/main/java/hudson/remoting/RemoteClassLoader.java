@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.URLClassLoader;
@@ -272,7 +271,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 ClassLoader cl = cr.classLoader;
                 if (cl instanceof RemoteClassLoader) {
                     RemoteClassLoader rcl = (RemoteClassLoader) cl;
-                    synchronized (_getClassLoadingLock(rcl, name)) {
+                    synchronized (rcl.getClassLoadingLock(name)) {
                         Class<?> c = rcl.findLoadedClass(name);
 
                         boolean interrupted = false;
@@ -333,28 +332,6 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
-    private static Method gCLL;
-    static {
-        try {
-            gCLL = ClassLoader.class.getDeclaredMethod("getClassLoadingLock", String.class);
-            gCLL.setAccessible(true);
-        } catch (NoSuchMethodException x) {
-            // OK, Java 6
-        } catch (Exception x) {
-            LOGGER.log(WARNING, null, x);
-        }
-    }
-    private static Object _getClassLoadingLock(RemoteClassLoader rcl, String name) {
-        // Java 7: return rcl.getClassLoadingLock(name);
-        if (gCLL != null) {
-            try {
-                return gCLL.invoke(rcl, name);
-            } catch (Exception x) {
-                LOGGER.log(WARNING, null, x);
-            }
-        }
-        return rcl;
-    }
     /**
      * Intercept {@link RemoteClassLoader#findClass(String)} to allow unittests to be written.
      *

@@ -26,6 +26,7 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.TeeOutputStream;
+import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -124,6 +125,19 @@ public class WorkDirManager {
     public File getLocation(@Nonnull DirType type) {
         return directories.get(type);
     }
+
+    /**
+     * Get {@link Path} of the directory.
+     * @param type Type of the directory
+     * @return Path
+     * @since TODO
+     * @throws IOException Invalid path, e.g. ig the root directory is incorrect
+     */
+    @CheckForNull
+    public Path getLocationPath(@Nonnull DirType type) throws IOException {
+        File location = directories.get(type);
+        return location != null ? PathUtils.fileToPath(location) : null;
+    }
     
     /**
      * Sets path to the Logging JUL property file with logging settings.
@@ -191,7 +205,7 @@ public class WorkDirManager {
             directories.put(DirType.INTERNAL_DIR, internalDirFile);
 
             // Create the directory on-demand
-            final Path internalDirPath = internalDirFile.toPath();
+            final Path internalDirPath = PathUtils.fileToPath(internalDirFile);
             Files.createDirectories(internalDirPath);
             LOGGER.log(Level.INFO, "Using {0} as a remoting work directory", internalDirPath);
             
@@ -208,7 +222,7 @@ public class WorkDirManager {
         if (!disabledDirectories.contains(type)) {
             final File directory = new File(internalDir, type.getDefaultLocation());
             verifyDirectory(directory, type, false);
-            Files.createDirectories(directory.toPath());
+            Files.createDirectories(PathUtils.fileToPath(directory));
             directories.put(type, directory);
         } else {
             LOGGER.log(Level.FINE, "Skipping the disabled directory: {0}", type.getName());

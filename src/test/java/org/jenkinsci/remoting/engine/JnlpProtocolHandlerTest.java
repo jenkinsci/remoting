@@ -701,6 +701,7 @@ public class JnlpProtocolHandlerTest {
     @DataPoints
     public static Factory[] protocols() {
         return new Factory[]{
+                //TODO: Disable JNLP-1 tests by default?
                 new Factory() {
                     @Override
                     public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
@@ -731,6 +732,7 @@ public class JnlpProtocolHandlerTest {
                         return "JNLP2-connect";
                     }
                 },
+                //TODO: Disable JNLP3 tests by default?
                 new Factory() {
                     @Override
                     public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
