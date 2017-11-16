@@ -76,6 +76,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -140,7 +141,7 @@ public class HandlerLoopbackLoadStress {
     private final RuntimeMXBean runtimeMXBean;
     private final List<GarbageCollectorMXBean> garbageCollectorMXBeans;
     private final OperatingSystemMXBean operatingSystemMXBean;
-    private final Method _getProcessCpuTime;
+    private final @CheckForNull Method _getProcessCpuTime;
     private final Config config;
     private final Stats stats;
 
@@ -241,7 +242,12 @@ public class HandlerLoopbackLoadStress {
         acceptor = new Acceptor(serverSocketChannel);
         runtimeMXBean = ManagementFactory.getRuntimeMXBean();
         operatingSystemMXBean = ManagementFactory.getOperatingSystemMXBean();
-        _getProcessCpuTime = _getProcessCpuTime(operatingSystemMXBean);
+        if (operatingSystemMXBean instanceof com.sun.management.OperatingSystemMXBean) {
+            // YAGNI, we will do it without reflection then
+            _getProcessCpuTime = null;
+        } else {
+            _getProcessCpuTime = _getProcessCpuTime(operatingSystemMXBean);
+        }
         garbageCollectorMXBeans = new ArrayList<GarbageCollectorMXBean>(ManagementFactory.getGarbageCollectorMXBeans());
         Collections.sort(garbageCollectorMXBeans, new Comparator<GarbageCollectorMXBean>() {
             @Override
@@ -358,6 +364,14 @@ public class HandlerLoopbackLoadStress {
         }
     }
 
+    /**
+     * Resolves the {@code getProcessCpuTime} method.
+     * This method is guaranteed to be available in {@link com.sun.management.OperatingSystemMXBean},
+     * but not in the universal package.
+     * @param operatingSystemMXBean Bean
+     * @return Method or {@code null} if it does not exist
+     */
+    @CheckForNull
     private static Method _getProcessCpuTime(OperatingSystemMXBean operatingSystemMXBean) {
         Method getProcessCpuTime;
         try {
@@ -388,14 +402,18 @@ public class HandlerLoopbackLoadStress {
         return addr.get();
     }
 
+    @CheckForNull
     private Long getProcessCpuTime() {
         Object r = null;
-        try {
-            r = _getProcessCpuTime.invoke(operatingSystemMXBean);
-        } catch (IllegalAccessException e) {
-            r = null;
-        } catch (InvocationTargetException e) {
-            r = null;
+        if (operatingSystemMXBean instanceof com.sun.management.OperatingSystemMXBean) {
+            r = ((com.sun.management.OperatingSystemMXBean)operatingSystemMXBean).getProcessCpuTime();
+        } else if (_getProcessCpuTime != null) {
+            // Then we try reflection, if the method was located
+            try {
+                r = _getProcessCpuTime.invoke(operatingSystemMXBean);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                r = null;
+            }
         }
         if (r instanceof Number) {
             long value = ((Number) r).longValue();
@@ -730,7 +748,7 @@ public class HandlerLoopbackLoadStress {
         private long time;
         private long noops;
         private long uptime;
-        private Long cpu;
+        private @CheckForNull Long cpu;
         private Map<String,GCStats> gc;
 
         public Metrics() {
@@ -756,6 +774,11 @@ public class HandlerLoopbackLoadStress {
             return uptime;
         }
 
+        /**
+         * Gets CPU load stats.
+         * @return CPU Load stats. {@code null} if it cannot be determined.
+         */
+        @CheckForNull
         public Long getCpu() {
             return cpu;
         }
