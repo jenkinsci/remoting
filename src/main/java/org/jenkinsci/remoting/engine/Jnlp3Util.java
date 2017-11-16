@@ -29,13 +29,18 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Random;
 import org.jenkinsci.remoting.util.Charsets;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Utility methods for JNLP3.
  *
+ * @deprecated JNLP3 Protocol is deprecated.
  * @author Akshay Dayal
  */
-class Jnlp3Util {
+@Restricted(NoExternalUse.class)
+@Deprecated
+/*package*/ class Jnlp3Util {
 
     /**
      * Generate a random 128bit key.
