@@ -85,7 +85,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
     default Channel getOpenChannelOrFail() throws ChannelStateException {
         final Channel ch = getChannelOrFail();
         if (ch.isClosingOrClosed()) {
-            throw new ChannelStateException("The associated channel " + ch + " is closing down or has closed down", ch.getCloseRequestCause());
+            throw new ChannelClosedException("The associated channel " + ch + " is closing down or has closed down", ch.getCloseRequestCause());
         }
         return ch;
     }

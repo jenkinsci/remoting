@@ -28,7 +28,6 @@ package org.jenkinsci.remoting;
 
 import java.io.IOException;
 
-//TODO: ClosedChannelException probably needs to be reworked in order to implement this type as well.
 /**
  * Indicates invalid state of the channel during the operation.
  *
