@@ -92,9 +92,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * Our selector.
      */
     private final Selector selector;
-    private volatile boolean winWatcherSelectorIsWaiting = false;
     private volatile boolean ioHubRunning = false;
-    private long winWatcherSelectorPollTimestamp = 0;
 
     /**
      * Our executor.
@@ -456,10 +454,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         // On Windows the select(timeout) operation ALWAYS waits for the timeout,
                         // so we workaround it by WindowsIOHubSelectorWatcher
                         if (Launcher.isWindows()) {
-                            winWatcherSelectorIsWaiting = true;
-                            winWatcherSelectorPollTimestamp = System.currentTimeMillis();
                             selected = selector.select();
-                            winWatcherSelectorIsWaiting = false;
                         } else {
                             selected = selector.select(SELECTOR_WAKEUP_TIMEOUT_MS);
                         }
@@ -513,8 +508,6 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         cpuOverheatProtection = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(100);
                         Thread.yield();
                     }
-                } finally {
-                    winWatcherSelectorIsWaiting = false;
                 }
             }
         } catch (ClosedSelectorException e) {
@@ -542,23 +535,22 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             final Thread watcherThread = Thread.currentThread();
             final String oldName = watcherThread.getName();
             final String watcherName = "Windows IOHub Watcher for " + iohub.getThreadNameBase(oldName);
+            LOGGER.log(Level.FINEST, "{0}: Started", watcherName);
             try {
                 watcherThread.setName(watcherName);
                 while (iohub.ioHubRunning) {
-                    if (iohub.winWatcherSelectorIsWaiting && (System.currentTimeMillis() - iohub.winWatcherSelectorPollTimestamp) > SELECTOR_WAKEUP_TIMEOUT_MS) {
-                        LOGGER.log(Level.FINE, "{0}: IOHub Selector is waiting for more that 1 second without events. Waking up the IOHub Selector", watcherName);
-                        iohub.selector.wakeup();
-                    }
                     Thread.sleep(1000);
+                    iohub.selector.wakeup();
                 }
             } catch (InterruptedException ex) {
                 // interrupted
-                if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "{0}: Interrupted", ex);
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "{0}: Interrupted", ex);
                 }
                 return;
             } finally {
                 watcherThread.setName(oldName);
+                LOGGER.log(Level.FINEST, "{0}: Finished", watcherName);
             }
         }
     }
