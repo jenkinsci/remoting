@@ -26,6 +26,8 @@ package org.jenkinsci.remoting.util;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
 import org.jenkinsci.remoting.protocol.ProtocolLayer;
 
 /**
@@ -75,7 +77,7 @@ public final class ByteBufferUtils {
      * @param dst the destination.
      */
     public static void putUTF8(String src, ByteBuffer dst) {
-        byte[] bytes = src.getBytes(ProtocolLayer.UTF_8);
+        byte[] bytes = src.getBytes(StandardCharsets.UTF_8);
         if (bytes.length > 65535) {
             throw new IllegalArgumentException("UTF-8 encoded string must be less than 65536 bytes");
         }
@@ -106,7 +108,7 @@ public final class ByteBufferUtils {
         src.position(src.position() + 2);
         byte[] bytes = new byte[length];
         src.get(bytes);
-        return new String(bytes, ProtocolLayer.UTF_8);
+        return new String(bytes, StandardCharsets.UTF_8);
     }
 
     /**
@@ -116,7 +118,7 @@ public final class ByteBufferUtils {
      * @return a {@link ByteBuffer} containing the two byte length followed by the string encoded as UTF-8.
      */
     public static ByteBuffer wrapUTF8(String string) {
-        byte[] bytes = string.getBytes(ProtocolLayer.UTF_8);
+        byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
         if (bytes.length > 65535) {
             throw new IllegalArgumentException("UTF-8 encoded string must be less than 65536 bytes");
         }

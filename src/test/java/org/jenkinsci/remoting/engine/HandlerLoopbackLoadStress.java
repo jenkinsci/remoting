@@ -45,6 +45,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -100,7 +101,6 @@ import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.IOHubReadyListener;
 import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
 import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
-import org.jenkinsci.remoting.util.Charsets;
 import org.jenkinsci.remoting.util.SettableFuture;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -263,7 +263,7 @@ public class HandlerLoopbackLoadStress {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.reset();
             byte[] bytes = digest.digest(
-                    (HandlerLoopbackLoadStress.class.getName() + clientName).getBytes(Charsets.UTF_8));
+                    (HandlerLoopbackLoadStress.class.getName() + clientName).getBytes(StandardCharsets.UTF_8));
             StringBuilder result = new StringBuilder(Math.max(0, bytes.length * 3 - 1));
             for (int i = 0; i < bytes.length; i++) {
                 if (i > 0) {
