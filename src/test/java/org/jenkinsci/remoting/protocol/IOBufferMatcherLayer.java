@@ -29,6 +29,8 @@ import java.nio.ByteBuffer;
 
 /**
  * An {@link ApplicationLayer} that produces a {@link IOBufferMatcher}
+ *
+ * @since 3.0
  */
 public class IOBufferMatcherLayer extends ApplicationLayer<IOBufferMatcher> {
 

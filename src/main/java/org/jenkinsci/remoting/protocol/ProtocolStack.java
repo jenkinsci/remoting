@@ -101,7 +101,7 @@ import org.jenkinsci.remoting.util.ByteBufferPool;
  * </ol>
  *
  * @param <T> the application specific API.
- * @since FIXME
+ * @since 3.0
  */
 public class ProtocolStack<T> implements Closeable, ByteBufferPool {
 

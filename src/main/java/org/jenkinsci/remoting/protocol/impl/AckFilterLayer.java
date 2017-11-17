@@ -38,7 +38,7 @@ import org.jenkinsci.remoting.util.ByteBufferUtils;
  * A {@link FilterLayer} that ensures both sides will not proceed unless the acknowledgement has been sent and
  * received by both sides.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class AckFilterLayer extends FilterLayer {
     /**

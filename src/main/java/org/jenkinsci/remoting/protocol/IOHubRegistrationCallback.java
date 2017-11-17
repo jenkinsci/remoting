@@ -31,7 +31,7 @@ import java.nio.channels.SelectionKey;
  * Callback to be notified when a call to
  * {@link IOHub#register(SelectableChannel, IOHubReadyListener, boolean, boolean, boolean, boolean, IOHubRegistrationCallback)} has completed registration.
  *
- * @since FIXME
+ * @since 3.0
  */
 public interface IOHubRegistrationCallback {
 
