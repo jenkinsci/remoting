@@ -48,7 +48,7 @@ import org.jenkinsci.remoting.util.IOUtils;
 /**
  * A {@link NetworkLayer} that uses the NIO {@link Selector} of a {@link IOHub} to manage I/O.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener {
 

@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -48,10 +49,13 @@ public class Which {
     /**
      * Returns the URL of the class file where the given class has been loaded from.
      *
+     * @param clazz Class
      * @throws IllegalArgumentException
-     *      if failed to determine.
+     *      if failed to determine the URL.
+     * @return URL of the class file
      * @since 2.24
      */
+    @Nonnull
     public static URL classFileUrl(Class clazz) throws IOException {
         ClassLoader cl = clazz.getClassLoader();
         if(cl==null)
@@ -77,13 +81,18 @@ public class Which {
      * Note that jar files are not always loaded from {@link File},
      * so for diagnostics purposes {@link #jarURL(Class)} is preferrable.
      *
+     * @param clazz Class
      * @throws IllegalArgumentException
-     *      if failed to determine.
+     *      if failed to determine the class File URL.
+     * @return
+     *      JAR File, which contains the class.
      */
+    @Nonnull
     public static File jarFile(Class clazz) throws IOException {
         return jarFile(classFileUrl(clazz),clazz.getName().replace('.','/')+".class");
     }
 
+    //TODO: This method will likely start blowing up in Java 9. Needs some testing.
     /**
      * Locates the jar file that contains the given resource
      *
@@ -97,8 +106,9 @@ public class Which {
      * @throws IllegalArgumentException
      *      If the URL is not in a jar file.
      * @return
-     *      never null
+     *      JAR File, which contains the URL
      */
+    @Nonnull
     /*package*/ static File jarFile(URL res, String qualifiedName) throws IOException {
         String resURL = res.toExternalForm();
         String originalURL = resURL;
@@ -137,14 +147,14 @@ public class Which {
 
         if(resURL.startsWith("vfszip:")) {
             // JBoss5
-            InputStream is = res.openStream();
-            try {
+            try(InputStream is = res.openStream()) {
                 Object delegate = is;
                 while (delegate.getClass().getEnclosingClass()!=ZipFile.class) {
                     Field f = delegate.getClass().getDeclaredField("delegate");
                     f.setAccessible(true);
                     delegate = f.get(delegate);
                     //JENKINS-5922 - workaround for CertificateReaderInputStream; JBoss 5.0.0, EAP 5.0 and EAP 5.1
+                    // java.util.jar.JarVerifier is not public in Java, so we have to use reflection
                     if(delegate.getClass().getName().equals("java.util.jar.JarVerifier$VerifierStream")){
                         f = delegate.getClass().getDeclaredField("is");
                         f.setAccessible(true);
@@ -155,14 +165,9 @@ public class Which {
                 f.setAccessible(true);
                 ZipFile zipFile = (ZipFile)f.get(delegate);
                 return new File(zipFile.getName());
-            } catch (NoSuchFieldException e) {
+            } catch (NoSuchFieldException | IllegalAccessException e) {
                 // something must have changed in JBoss5. fall through
                 LOGGER.log(Level.FINE, "Failed to resolve vfszip into a jar location",e);
-            } catch (IllegalAccessException e) {
-                // something must have changed in JBoss5. fall through
-                LOGGER.log(Level.FINE, "Failed to resolve vfszip into a jar location",e);
-            } finally {
-                is.close();
             }
         }
 
@@ -200,13 +205,13 @@ public class Which {
                 } else {
                     // JDK6u10 apparently starts hiding the real jar file name,
                     // so this just keeps getting tricker and trickier...
+                    // TODO: this is a bit insane, but it is not covered by autotests now.
+                    // Needs to be solved by Remoting test harness if there is a plan to have such fallback for Java 9
                     try {
                         Field f = ZipFile.class.getDeclaredField("name");
                         f.setAccessible(true);
                         return new File((String) f.get(jarFile));
-                    } catch (NoSuchFieldException e) {
-                        LOGGER.log(Level.INFO, "Failed to obtain the local cache file name of "+resURL, e);
-                    } catch (IllegalAccessException e) {
+                    } catch (NoSuchFieldException | IllegalAccessException e) {
                         LOGGER.log(Level.INFO, "Failed to obtain the local cache file name of "+resURL, e);
                     }
                 }

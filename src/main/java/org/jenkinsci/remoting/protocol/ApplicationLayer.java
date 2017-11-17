@@ -41,7 +41,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  *
  * @param <T> the application specific API.
  *
- * @since FIXME
+ * @since 3.0
  */
 public abstract class ApplicationLayer<T> implements ProtocolLayer, ProtocolLayer.Recv {
 

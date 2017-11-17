@@ -27,6 +27,7 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -40,7 +41,7 @@ import org.jenkinsci.remoting.util.ThrowableUtils;
 /**
  * Performs the connection header negotiation.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class ConnectionHeadersFilterLayer extends FilterLayer {
     /**
@@ -181,7 +182,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 byte[] headerBytes = new byte[headerInputContent.capacity()];
                 headerInputContent.flip();
                 headerInputContent.get(headerBytes, 0, headerInputContent.remaining());
-                final String headerAsString = new String(headerBytes, UTF_8);
+                final String headerAsString = new String(headerBytes, StandardCharsets.UTF_8);
                 if (LOGGER.isLoggable(Level.FINER)) {
                     LOGGER.log(Level.FINER, "[{0}] Received headers \"{1}\"",
                             new Object[]{stack().name(), headerAsString});
@@ -298,7 +299,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 byte[] responseBytes = new byte[responseInputContent.capacity()];
                 responseInputContent.flip();
                 responseInputContent.get(responseBytes, 0, responseInputContent.remaining());
-                String response = new String(responseBytes, UTF_8);
+                String response = new String(responseBytes, StandardCharsets.UTF_8);
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "[{0}] Received response \"{1}\"",
                             new Object[]{stack().name(), response});

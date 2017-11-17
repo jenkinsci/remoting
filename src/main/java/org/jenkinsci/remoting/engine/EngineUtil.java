@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -34,12 +37,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Engine utility methods.
+ * Engine utility methods for JNLP3.
  * 
  * Internal class. DO NOT USE FROM OUTSIDE.
  *
+ * @deprecated JNLP3 protocol is deprecated
  * @author Akshay Dayal
  */
+@Restricted(NoExternalUse.class)
+@Deprecated
+//TODO: @RestrictedSince
 public class EngineUtil {
 
     /**

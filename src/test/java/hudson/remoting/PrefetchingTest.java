@@ -30,7 +30,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     private Checksum sum1,sum2;
 
     @Override
-    protected void setUp() throws Exception {
+    protected void setUp() throws Exception {        
         super.setUp();
 
         URL jar1 = getClass().getClassLoader().getResource("remoting-test-client.jar");
@@ -68,6 +68,13 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         cl.cleanup();
         super.tearDown();
 
+        if (Launcher.isWindows()) {
+            // Current Resource loader implementation keep files open even if we close the classloader.
+            // This check has been never working correctly in Windows.
+            // TODO: Fix it as a part of JENKINS-38696
+            return;
+        }
+        
         // because the dir is used by FIleSystemJarCache to asynchronously load stuff
         // we might fail to shut it down right away
         for (int i=0; ; i++) {

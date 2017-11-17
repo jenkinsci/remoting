@@ -31,7 +31,7 @@ import org.jenkinsci.remoting.util.SettableFuture;
 /**
  * Converts the {@link IOHubRegistrationCallback} pattern into a {@link Future}.
  *
- * @since FIXME
+ * @since 3.0
  */
 class IOHubRegistrationFutureAdapterImpl implements IOHubRegistrationCallback {
     /**

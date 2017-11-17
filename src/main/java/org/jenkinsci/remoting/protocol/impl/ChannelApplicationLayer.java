@@ -49,7 +49,7 @@ import org.jenkinsci.remoting.util.ThrowableUtils;
 /**
  * An {@link ApplicationLayer} that produces a {@link Channel}.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
 

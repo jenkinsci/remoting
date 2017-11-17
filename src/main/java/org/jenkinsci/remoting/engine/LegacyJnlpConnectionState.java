@@ -35,9 +35,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-import org.jenkinsci.remoting.util.Charsets;
 
 /**
  * Base class for {@link LegacyJnlpProtocolHandler} based protocols.
@@ -90,7 +89,7 @@ public class LegacyJnlpConnectionState extends JnlpConnectionState {
     @Deprecated
     public PrintWriter getPrintWriter() {
         if (printWriter == null) {
-            printWriter = new PrintWriter(new OutputStreamWriter(bufferedOutputStream, Charsets.UTF_8), true);
+            printWriter = new PrintWriter(new OutputStreamWriter(bufferedOutputStream, StandardCharsets.UTF_8), true);
         }
         return printWriter;
     }
