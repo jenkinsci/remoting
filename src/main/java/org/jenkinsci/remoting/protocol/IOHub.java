@@ -92,9 +92,9 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * Our selector.
      */
     private final Selector selector;
-    private boolean selectorIsWaiting = false;
-    private boolean ioHubRunning = false;
-    private long selectorPollTimestamp = 0;
+    private volatile boolean winWatcherSelectorIsWaiting = false;
+    private volatile boolean ioHubRunning = false;
+    private long winWatcherSelectorPollTimestamp = 0;
 
     /**
      * Our executor.
@@ -155,6 +155,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         IOHub result = new IOHub(executor);
         executor.execute(result);
         if (Launcher.isWindows()) {
+            LOGGER.log(Level.FINE, "IOHub runs on Windows. There are known issues with Selector#select() hanging, running an additional watcher thread. See JENKINS-47965 for more info");
             executor.execute(new WindowsIOHubSelectorWatcher(result));
         }
         return result;
@@ -425,6 +426,10 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         selectionKey.attach(null);
     }
 
+    private String getThreadNameBase(String executorThreadName) {
+        return "IOHub#" + _id + ": Selector[keys:" + selector.keys().size() + ", gen:" + gen + "] / " + executorThreadName;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -436,9 +441,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         long cpuOverheatProtection = System.nanoTime();
         try {
             while (isOpen()) {
-                selectorThread.setName(
-                        "IOHub#" + _id + ": Selector[keys:" + selector.keys().size() + ", gen:" + gen + "] / " + oldName
-                );
+                selectorThread.setName(getThreadNameBase(oldName));
                 try {
                     processScheduledTasks();
                     boolean wantSelectNow = processRegistrations();
@@ -453,10 +456,10 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         // On Windows the select(timeout) operation ALWAYS waits for the timeout,
                         // so we workaround it by WindowsIOHubSelectorWatcher
                         if (Launcher.isWindows()) {
-                            selectorIsWaiting = true;
-                            selectorPollTimestamp = System.currentTimeMillis();
+                            winWatcherSelectorIsWaiting = true;
+                            winWatcherSelectorPollTimestamp = System.currentTimeMillis();
                             selected = selector.select();
-                            selectorIsWaiting = false;
+                            winWatcherSelectorIsWaiting = false;
                         } else {
                             selected = selector.select(SELECTOR_WAKEUP_TIMEOUT_MS);
                         }
@@ -511,7 +514,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         Thread.yield();
                     }
                 } finally {
-                    selectorIsWaiting = false;
+                    winWatcherSelectorIsWaiting = false;
                 }
             }
         } catch (ClosedSelectorException e) {
@@ -522,6 +525,10 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         }
     }
 
+    /**
+     * This is an artificial thread, which monitors IOHub Selector and wakes it up if it waits for more than 1 second.
+     * It is a workaround for Selector#select(long timeout) on Windows, where the call always waits for the entire timeout before returning back.
+     */
     private static class WindowsIOHubSelectorWatcher implements Runnable {
 
         private final IOHub iohub;
@@ -532,18 +539,26 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
 
         @Override
         public void run() {
-            while(iohub.ioHubRunning) {
-                if (iohub.selectorIsWaiting && (System.currentTimeMillis() - iohub.selectorPollTimestamp) > SELECTOR_WAKEUP_TIMEOUT_MS) {
-                    LOGGER.log(Level.WARNING, "IOHub Selector is waiting on Windows for more that 1 second without events. Waking up the IOHub Selector {0}", iohub.selector);
-                    iohub.selector.wakeup();
-                }
-
-                try {
+            final Thread watcherThread = Thread.currentThread();
+            final String oldName = watcherThread.getName();
+            final String watcherName = "Windows IOHub Watcher for " + iohub.getThreadNameBase(oldName);
+            try {
+                watcherThread.setName(watcherName);
+                while (iohub.ioHubRunning) {
+                    if (iohub.winWatcherSelectorIsWaiting && (System.currentTimeMillis() - iohub.winWatcherSelectorPollTimestamp) > SELECTOR_WAKEUP_TIMEOUT_MS) {
+                        LOGGER.log(Level.FINE, "{0}: IOHub Selector is waiting for more that 1 second without events. Waking up the IOHub Selector", watcherName);
+                        iohub.selector.wakeup();
+                    }
                     Thread.sleep(1000);
-                } catch (InterruptedException ex) {
-                    // interrupted
-                    return;
                 }
+            } catch (InterruptedException ex) {
+                // interrupted
+                if (LOGGER.isLoggable(Level.FINEST)) {
+                    LOGGER.log(Level.FINEST, "{0}: Interrupted", ex);
+                }
+                return;
+            } finally {
+                watcherThread.setName(oldName);
             }
         }
     }
