@@ -40,7 +40,7 @@ import org.jenkinsci.remoting.util.ThrowableUtils;
 /**
  * Performs the connection header negotiation.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class ConnectionHeadersFilterLayer extends FilterLayer {
     /**

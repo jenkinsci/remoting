@@ -44,7 +44,7 @@ import org.jenkinsci.remoting.util.ByteBufferQueue;
  * <li>etc.</li>
  * </ul>
  *
- * @since FIXME
+ * @since 3.0
  */
 public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, ProtocolLayer.Recv {
 

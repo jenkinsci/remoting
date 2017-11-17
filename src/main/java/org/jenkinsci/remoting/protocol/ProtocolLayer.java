@@ -35,7 +35,7 @@ import org.jenkinsci.remoting.util.Charsets;
  * A network {@link ProtocolStack} consists of a number of {@link ProtocolLayer}s. This interface represents the general
  * contract of all layers in the stack.
  *
- * @since FIXME
+ * @since 3.0
  */
 public interface ProtocolLayer {
 
