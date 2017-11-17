@@ -893,7 +893,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         }
 
         public Serializable call() throws Throwable {
-            return perform(Channel.currentOrFail());
+            return perform(getChannelOrFail());
         }
 
         @Override
