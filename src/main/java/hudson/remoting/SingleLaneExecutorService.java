@@ -136,9 +136,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
                     assert scheduled;
                     if (!tasks.isEmpty()) {
                         // we have still more things to do
-                        base.submit(this);
                         try {
-                            // Submit task in the async mode
                             ExecutorServiceUtils.submitAsync(base, this);
                         } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
                             // It is supposed to be a fatal error, but we cannot propagate it properly
