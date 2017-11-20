@@ -19,6 +19,8 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.NotSerializableException;
+import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
@@ -39,6 +41,7 @@ import java.util.logging.Logger;
 import static java.nio.channels.SelectionKey.*;
 import static java.util.logging.Level.*;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Switch board of multiple {@link Channel}s through NIO select.
@@ -253,16 +256,9 @@ public class NioChannelHub implements Runnable, Closeable {
 
         @Override
         public void closeRead() throws IOException {
-            scheduleSelectorTask(new Callable<Void, IOException>() {
-                public Void call() throws IOException {
-                    closeR();
-                    return null;
-                }
-
-                @Override
-                public void checkRoles(RoleChecker checker) throws SecurityException {
-                    throw new AssertionError();    // not actually used over remoting
-                }
+            scheduleSelectorTask(() -> {
+                closeR();
+                return null;
             });
         }
 
@@ -270,16 +266,9 @@ public class NioChannelHub implements Runnable, Closeable {
          * Update the operations for which we are registered.
          */
         private void scheduleReregister() {
-            scheduleSelectorTask(new Callable<Void, IOException>() {
-                public Void call() throws IOException {
-                    reregister();
-                    return null;
-                }
-
-                @Override
-                public void checkRoles(RoleChecker checker) throws SecurityException {
-                    throw new AssertionError();    // not actually used over remoting
-                }
+            scheduleSelectorTask(() -> {
+                reregister();
+                return null;
             });
         }
 
@@ -508,9 +497,50 @@ public class NioChannelHub implements Runnable, Closeable {
         };
     }
 
-    private void scheduleSelectorTask(Callable<Void, IOException> task) {
-        selectorTasks.add(task);
+    // TODO: This logic should use Executor service
+    private void scheduleSelectorTask(java.util.concurrent.Callable<Void> task) {
+        selectorTasks.add(new CallableRemotingWrapper(task));
         selector.wakeup();
+    }
+
+    /**
+     * Provides a wrapper for submitting {@link java.util.concurrent.Callable}s over Remoting execution queues.
+     *
+     * @deprecated It is just a hack, which schedules non-serializable tasks over the Remoting Task queue.
+     *             There is no sane reason to reuse this wrapper class anywhere.
+     */
+    @Deprecated
+    private static final class CallableRemotingWrapper implements Callable<Void, IOException> {
+        private static final long serialVersionUID = -7331104479109353930L;
+        final transient java.util.concurrent.Callable<Void> task;
+
+        CallableRemotingWrapper(@Nonnull java.util.concurrent.Callable<Void> task) {
+            this.task = task;
+        }
+
+        @Override
+        public Void call() throws IOException {
+            if (task == null) {
+                throw new IOException("The callable " + this + " has been serialized somehow, but it is actually not serializable");
+            }
+            try {
+                return task.call();
+            } catch (Exception ex) {
+                if (ex instanceof IOException) {
+                    throw (IOException)ex;
+                }
+                throw new IOException(ex);
+            }
+        }
+
+        private Object readResolve() throws ObjectStreamException {
+            throw new NotSerializableException("The class should not be serialized over Remoting");
+        }
+
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+            throw new SecurityException("The class should not be serialized over Remoting");
+        }
     }
 
     /**
