@@ -183,7 +183,6 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         // if the object is auto-unexported, the export entry could have already been removed.
         if(channel!=null) {
             channel.send(new Unexport(channel.newIoId(),oid));
-            channel = null;
             oid = -1;
         }
     }
