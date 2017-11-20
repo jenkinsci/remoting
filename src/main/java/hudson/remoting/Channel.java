@@ -1465,8 +1465,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         while (true) {
             synchronized(this) {
-                // Now we wait till setProperty() notifies us
-                wait();
+                // Now we wait till setProperty() notifies us (in a cycle)
+                wait(1000);
             }
             Object v = properties.get(key);
             if (v != null) return v;
