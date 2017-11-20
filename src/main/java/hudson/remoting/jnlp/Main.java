@@ -27,7 +27,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.FileSystemJarCache;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -45,6 +44,8 @@ import java.io.File;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
+
 import java.util.List;
 import java.util.ArrayList;
 import java.net.URL;
@@ -52,7 +53,6 @@ import java.io.IOException;
 
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
-import java.nio.file.Path;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -102,6 +102,16 @@ public class Main {
                     "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
                     "certificate file to read.")
     public List<String> candidateCertificates;
+
+    /**
+     * Disables HTTPs Certificate validation of the server when using {@link org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver}.
+     *
+     * This option is not recommended for production use.
+     * @since TODO
+     */
+    @Option(name="-disableHttpsCertValidation",
+            usage="Ignore SSL validation errors - use as a last resort only.")
+    public boolean disableHttpsCertValidation = false;
 
     /**
      * Specifies a destination for error logs.
@@ -243,6 +253,12 @@ public class Main {
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
         engine.setKeepAlive(!noKeepAlive);
+
+        if (disableHttpsCertValidation) {
+            LOGGER.log(WARNING, "Certificate validation for HTTPs endpoints is disabled");
+        }
+        engine.setDisableHttpsCertValidation(disableHttpsCertValidation);
+
         
         // TODO: ideally logging should be initialized before the "Setting up slave" entry
         if (agentLog != null) {
