@@ -352,7 +352,8 @@ public class Launcher {
                 }
             }
             if (noCertificateCheck) {
-                //TODO: Rename option?
+		// Generally it is not required since the default settings have been changed anyway.
+		// But we set it up just in case there are overrides somewhere in the logic
                 jnlpArgs.add("-disableHttpsCertValidation");
             }
             try {
