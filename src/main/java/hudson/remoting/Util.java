@@ -1,5 +1,9 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.util.PathUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -57,8 +61,8 @@ class Util {
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
         File resource = new File(tmpDir.toFile(), name);
-        Files.createDirectories(fileToPath(resource.getParentFile()));
-        Files.createFile(fileToPath(resource));
+        Files.createDirectories(PathUtils.fileToPath(resource.getParentFile()));
+        Files.createFile(PathUtils.fileToPath(resource));
 
         try(FileOutputStream fos = new FileOutputStream(resource)) {
             fos.write(image);
@@ -203,21 +207,7 @@ class Util {
     @Deprecated
     static void mkdirs(@Nonnull File file) throws IOException {
         if (file.isDirectory()) return;
-        Files.createDirectories(fileToPath(file));
+        Files.createDirectories(PathUtils.fileToPath(file));
     }
 
-    /**
-     * Converts {@link File} to {@link Path} and checks runtime exceptions.
-     * @param file File
-     * @return Resulting path
-     * @throws IOException Conversion error caused by {@link InvalidPathException}
-     */
-    @Nonnull
-    private static Path fileToPath(@Nonnull File file) throws IOException {
-        try {
-            return file.toPath();
-        } catch (InvalidPathException ex) {
-            throw new IOException(ex);
-        }
-    }
 }

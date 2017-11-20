@@ -893,7 +893,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         }
 
         public Serializable call() throws Throwable {
-            return perform(Channel.currentOrFail());
+            return perform(getChannelOrFail());
         }
 
         @Override
@@ -977,6 +977,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * classes for the parameters and the return value are sent remotely if needed.
      */
     static class UserRPCRequest extends RPCRequest {
+
+        private static final long serialVersionUID = -9185841650347902580L;
+
         public UserRPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl) {
             super(oid, m, arguments, cl);
         }

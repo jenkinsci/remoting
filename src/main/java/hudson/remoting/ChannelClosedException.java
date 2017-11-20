@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.ChannelStateException;
+
 import java.io.IOException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -9,7 +11,7 @@ import javax.annotation.Nonnull;
  *
  * @author Kohsuke Kawaguchi
  */
-public class ChannelClosedException extends IOException {
+public class ChannelClosedException extends ChannelStateException {
     /**
      * @deprecated
      *      Use {@link #ChannelClosedException(Throwable)} or {@link #ChannelClosedException(java.lang.String, java.lang.Throwable)}.

@@ -34,7 +34,7 @@ import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 /**
  * An {@link X509ExtendedTrustManager} that delegates to a runtime mutable delegate {@link X509ExtendedTrustManager}.
  *
- * @since FIXME
+ * @since 3.0
  */
 @IgnoreJRERequirement // TODO We override some methods in Java 7, so remove this ignore when baseline is Java 7
 public class DelegatingX509ExtendedTrustManager extends X509ExtendedTrustManager {

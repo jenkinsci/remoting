@@ -57,7 +57,7 @@ import java.util.TreeMap;
  * </li>
  * </ul>
  *
- * @since FIXME
+ * @since 3.0
  */
 public final class ConnectionHeaders {
 

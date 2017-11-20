@@ -451,6 +451,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Creates a new channel.
      *
      * @param restricted
+     *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
      */
@@ -1429,9 +1430,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @return The property or {@code null} if there is no property for the specified key
      */
     @Override
-    @SuppressFBWarnings(value = "UG_SYNC_SET_UNSYNC_GET", 
-            justification = "setProperty() is synchronized in order to notify waitForProperty() methods" +
-                            "No problem with this method since it is a ConcurrentHashMap")
     public Object getProperty(Object key) {
         return properties.get(key);
     }
@@ -1443,23 +1441,40 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Works like {@link #getProperty(Object)} but wait until some value is set by someone.
      *
+     * @param key Property key
      * @throws IllegalStateException
      *      if the channel is closed. The idea is that channel properties are expected to be the coordination
      *      mechanism between two sides of the channel, and this method in particular is a way of one side
      *      to wait for the set by the other side of the channel (via {@link #waitForRemoteProperty(Object)}.
      *      If we don't abort after the channel shutdown, this method will block forever.
      */
-    public synchronized Object waitForProperty(Object key) throws InterruptedException {
-        while(true) {
+    @Nonnull
+    public Object waitForProperty(@Nonnull Object key) throws InterruptedException {
+
+        // There is no need to acquire the channel lock if the property is already set
+        Object prop = properties.get(key);
+        if(prop!=null) {
+            return prop;
+        }
+
+        // TODO: Does it make sense to execute this thing when the channel is closing?
+        if (isInClosed())
+            throw new IllegalStateException("Channel was already closed", inClosed);
+        if (isOutClosed())
+            throw new IllegalStateException("Channel was already closed", outClosed);
+
+        while (true) {
+            synchronized(this) {
+                // Now we wait till setProperty() notifies us
+                wait();
+            }
             Object v = properties.get(key);
-            if(v!=null) return v;
+            if (v != null) return v;
 
             if (isInClosed())
-                throw (IllegalStateException)new IllegalStateException("Channel was already closed").initCause(inClosed);
+                throw new IllegalStateException("Channel was already closed", inClosed);
             if (isOutClosed())
-                throw (IllegalStateException)new IllegalStateException("Channel was already closed").initCause(outClosed);
-
-            wait();
+                throw new IllegalStateException("Channel was already closed", outClosed);
         }
     }
 
@@ -1475,10 +1490,20 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @see #getProperty(Object)
      */
     @CheckForNull
-    public synchronized Object setProperty(@Nonnull Object key, @CheckForNull Object value) {
-        Object old = value!=null ? properties.put(key, value) : properties.remove(key);
-        notifyAll();
-        return old;
+    public Object setProperty(@Nonnull Object key, @CheckForNull Object value) {
+        if (value == null) {
+            // We do not need to notify listeners here, the only use-case is
+            // Channel#waitForProperty(), which cares about defined properties only
+            return properties.remove(key);
+        }
+
+        synchronized (this) {
+            // TODO: Oleg Nenashev: I believe that the synchronization logic should be removed at all
+            // and probably replaced by async timed polling in waitForProperty() or by a Future implementation.
+            Object old = properties.put(key, value);
+            notifyAll();
+            return old;
+        }
     }
 
     public <T> T setProperty(ChannelProperty<T> key, T value) {
@@ -1551,6 +1576,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param forwardPort
      *      The remote port that the connection will be forwarded to.
      * @return
+     *      Created {@link PortForwarder}
      */
     public ListeningPort createLocalToRemotePortForwarding(int recvPort, String forwardHost, int forwardPort) throws IOException, InterruptedException {
         PortForwarder portForwarder = new PortForwarder(recvPort,
@@ -1573,6 +1599,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param forwardPort
      *      The remote port that the connection will be forwarded to.
      * @return
+     *      Created {@link PortForwarder}.
      */
     public ListeningPort createRemoteToLocalPortForwarding(int recvPort, String forwardHost, int forwardPort) throws IOException, InterruptedException {
         return PortForwarder.create(this,recvPort,

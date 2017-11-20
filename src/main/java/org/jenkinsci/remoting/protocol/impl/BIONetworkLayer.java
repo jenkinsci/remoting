@@ -43,7 +43,7 @@ import org.jenkinsci.remoting.util.IOUtils;
 /**
  * A {@link NetworkLayer} that uses a dedicated reader thread and runs on demand writer thread to manage I/O.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class BIONetworkLayer extends NetworkLayer {
     /**
