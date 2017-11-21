@@ -45,8 +45,10 @@ import javax.annotation.CheckForNull;
 abstract class Command implements Serializable {
     /**
      * This exception captures the stack trace of where the Command object is created.
-     * This is useful for diagnosing the error when command fails to execute on the remote peer. 
+     * This is useful for diagnosing the error when command fails to execute on the remote peer.
+     * {@code null} if the cause is not recorded.
      */
+    @CheckForNull
     public final Exception createdAt;
 
 
@@ -81,6 +83,17 @@ abstract class Command implements Serializable {
      * @throws ExecutionException Execution error
      */
     protected abstract void execute(Channel channel) throws ExecutionException;
+
+    /**
+     * Chains the {@link #createdAt} cause.
+     * It will happen if and only if cause recording is enabled.
+     * @param initCause Original Cause. {@code null} causes will be ignored
+     */
+    protected final void chainCause(@CheckForNull Throwable initCause) {
+        if (createdAt != null && initCause != null) {
+            createdAt.initCause(initCause);
+        }
+    }
       
     void writeTo(Channel channel, ObjectOutputStream oos) throws IOException {
         Channel old = Channel.setCurrent(channel);
