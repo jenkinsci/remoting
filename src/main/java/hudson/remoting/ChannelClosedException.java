@@ -19,11 +19,25 @@ public class ChannelClosedException extends ChannelStateException {
      */
     @Deprecated
     public ChannelClosedException() {
-        super("channel is already closed");
+        this(null, "channel is already closed", null);
     }
 
+    /**
+     * @deprecated Use {@link #ChannelClosedException(Channel, Throwable)}
+     */
+    @Deprecated
     public ChannelClosedException(Throwable cause) {
-        super("channel is already closed", cause);
+        this((Channel) null, cause);
+    }
+
+    /**
+     * Constructor.
+     * @param channel Reference to the channel. {@code null} if the channel is unknown.
+     * @param cause Cause
+     * @since TODO
+     */
+    public ChannelClosedException(@CheckForNull Channel channel, @CheckForNull Throwable cause) {
+        super(channel, "channel is already closed", cause);
     }
     
     /**
@@ -33,8 +47,23 @@ public class ChannelClosedException extends ChannelStateException {
      * @param cause Cause of the channel close/termination. 
      *              May be {@code null} if it cannot be determined when the exception is constructed.
      * @since 3.11
+     * @deprecated Use {@link #ChannelClosedException(Channel, String, Throwable)}
      */
+    @Deprecated
     public ChannelClosedException(@Nonnull String message, @CheckForNull Throwable cause) {
-        super(message, cause);
+        this(null, message, cause);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param channel Reference to the channel. {@code null} if the channel is unknown.
+     * @param message Message
+     * @param cause Cause of the channel close/termination.
+     *              May be {@code null} if it cannot be determined when the exception is constructed.
+     * @since TODO
+     */
+    public ChannelClosedException(@CheckForNull Channel channel, @Nonnull String message, @CheckForNull Throwable cause) {
+        super(channel, message, cause);
     }
 }

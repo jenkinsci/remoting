@@ -669,7 +669,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     @SuppressFBWarnings(value = "VO_VOLATILE_INCREMENT", justification = "The method is synchronized, no other usages. See https://sourceforge.net/p/findbugs/bugs/1032/")
     /*package*/ synchronized void send(Command cmd) throws IOException {
         if(outClosed!=null)
-            throw new ChannelClosedException(outClosed);
+            throw new ChannelClosedException(this, outClosed);
         if(logger.isLoggable(Level.FINE))
             logger.fine("Send "+cmd);
 
