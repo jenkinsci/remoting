@@ -712,7 +712,17 @@ final class RemoteClassLoader extends URLClassLoader {
         ResourceFile[] getResources2(String name) throws IOException;
     }
 
-    public static IClassLoader export(@Nonnull ClassLoader cl, Channel local) {
+    /**
+     * Exports classloader over the channel.
+     *
+     * If the classloader is an instance of {@link RemoteClassLoader}, this classloader will be unwrapped and reused.
+     * Otherwise, a classloader object will be exported
+     *
+     * @param cl Classloader to be exported
+     * @param local Channel
+     * @return Exported reference. This reference is always {@link Serializable} though interface is not explict about that
+     */
+    public static IClassLoader export(@Nonnull ClassLoader cl, @Nonnull Channel local) {
         if (cl instanceof RemoteClassLoader) {
             // check if this is a remote classloader from the channel
             final RemoteClassLoader rcl = (RemoteClassLoader) cl;
