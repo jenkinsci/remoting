@@ -38,7 +38,7 @@ import org.jenkinsci.remoting.util.ByteBufferQueue;
  * the protocol
  * to the recipient and injecting the input from the recipient into the protocol stack.
  *
- * @since FIXME
+ * @since 3.0
  */
 public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send {
 

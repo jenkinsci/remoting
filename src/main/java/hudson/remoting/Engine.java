@@ -23,15 +23,11 @@
  */
 package hudson.remoting;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Path;
@@ -134,7 +130,6 @@ public class Engine extends Thread {
      */
     @CheckForNull
     private URL hudsonUrl;
-
     private final String secretKey;
     public final String slaveName;
     private String credentials;
@@ -145,6 +140,8 @@ public class Engine extends Thread {
      */
     private String tunnel;
 
+    private boolean disableHttpsCertValidation;
+
     private boolean noReconnect;
 
     /**
@@ -153,9 +150,6 @@ public class Engine extends Thread {
      * @since 2.62.1
      */
     private boolean keepAlive = true;
-
-    
-    
     
     @CheckForNull
     private JarCache jarCache = null;
@@ -328,6 +322,26 @@ public class Engine extends Thread {
     }
 
     /**
+     * Determines if JNLPAgentEndpointResolver will not perform certificate validation in the HTTPs mode.
+     *
+     * @return {@code true} if the certificate validation is disabled.
+     * @since TODO
+     */
+    public boolean isDisableHttpsCertValidation() {
+        return disableHttpsCertValidation;
+    }
+
+    /**
+     * Sets if JNLPAgentEndpointResolver will not perform certificate validation in the HTTPs mode.
+     *
+     * @param disableHttpsCertValidation {@code true} if the certificate validation is disabled.
+     * @since TODO
+     */
+    public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
+        this.disableHttpsCertValidation = disableHttpsCertValidation;
+    }
+
+    /**
      * Sets the destination for agent logs.
      * @param agentLog Path to the agent log.
      *      If {@code null}, the engine will pick the default behavior depending on the {@link #workDir} value
@@ -482,6 +496,7 @@ public class Engine extends Thread {
         resolver.setTunnel(tunnel);
         try {
             resolver.setSslSocketFactory(getSSLSocketFactory());
+            resolver.setDisableHttpsCertValidation(disableHttpsCertValidation);
         } catch (Exception e) {
             events.error(e);
         }
@@ -809,8 +824,8 @@ public class Engine extends Thread {
             trustManagerFactory.init(keyStore);
             // prepare the SSL context
             SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
             // now we have our custom socket factory
+            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
             sslSocketFactory = ctx.getSocketFactory();
         }
         return sslSocketFactory;

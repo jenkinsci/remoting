@@ -35,7 +35,7 @@ import org.jenkinsci.remoting.util.ByteBufferUtils;
 /**
  * A {@link FilterLayer} that sends the AgentProtocol client handshake.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class AgentProtocolClientFilterLayer extends FilterLayer {
     /**

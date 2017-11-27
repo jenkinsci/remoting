@@ -24,18 +24,23 @@
 package org.jenkinsci.remoting.engine;
 
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Random;
-import org.jenkinsci.remoting.util.Charsets;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Utility methods for JNLP3.
  *
+ * @deprecated JNLP3 Protocol is deprecated.
  * @author Akshay Dayal
  */
-class Jnlp3Util {
+@Restricted(NoExternalUse.class)
+@Deprecated
+/*package*/ class Jnlp3Util {
 
     /**
      * Generate a random 128bit key.
@@ -52,7 +57,7 @@ class Jnlp3Util {
     public static byte[] generate128BitKey(String str) {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            messageDigest.update(str.getBytes(Charsets.UTF_8));
+            messageDigest.update(str.getBytes(StandardCharsets.UTF_8));
             return Arrays.copyOf(messageDigest.digest(), 16);
         } catch (NoSuchAlgorithmException nsae) {
             // This should never happen.
@@ -64,19 +69,19 @@ class Jnlp3Util {
      * Convert the given key to a string.
      */
     public static String keyToString(byte[] key) {
-        return new String(key, Charsets.ISO_8859_1);
+        return new String(key, StandardCharsets.ISO_8859_1);
     }
 
     /**
      * Get back the original key from the given string.
      */
     public static byte[] keyFromString(String keyString) {
-        return keyString.getBytes(Charsets.ISO_8859_1);
+        return keyString.getBytes(StandardCharsets.ISO_8859_1);
     }
 
     /**
      * Generate a random challenge phrase.
-     * @param entropy
+     * @param entropy Entropy
      */
     public static String generateChallenge(Random entropy) {
         return new BigInteger(10400, entropy).toString(32);
@@ -90,8 +95,8 @@ class Jnlp3Util {
     public static String createChallengeResponse(String challenge) {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            messageDigest.update(challenge.getBytes(Charsets.UTF_8));
-            return new String(messageDigest.digest(), Charsets.UTF_8); // <--- One of the root causes of JENKINS-37315
+            messageDigest.update(challenge.getBytes(StandardCharsets.UTF_8));
+            return new String(messageDigest.digest(), StandardCharsets.UTF_8); // <--- One of the root causes of JENKINS-37315
         } catch (NoSuchAlgorithmException nsae) {
             // This should never happen.
             throw new AssertionError(nsae);
@@ -107,7 +112,7 @@ class Jnlp3Util {
             return true;
         }
         // JENKINS-37315 fallback to comparing the encoded bytes because the format should never have used UTF-8
-        if (Arrays.equals(expectedResponse.getBytes(Charsets.UTF_8), challengeResponse.getBytes(Charsets.UTF_8))) {
+        if (Arrays.equals(expectedResponse.getBytes(StandardCharsets.UTF_8), challengeResponse.getBytes(StandardCharsets.UTF_8))) {
             return true;
         }
         return false;

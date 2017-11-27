@@ -24,6 +24,8 @@
 package org.jenkinsci.remoting.util;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -37,7 +39,7 @@ public class ByteBufferQueueOutputStreamTest {
         ByteBufferQueue queue = new ByteBufferQueue(10);
         ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue);
 
-        instance.write(str.getBytes(Charsets.UTF_8));
+        instance.write(str.getBytes(StandardCharsets.UTF_8));
 
         assertThat(read(queue), is(str));
     }
@@ -49,7 +51,7 @@ public class ByteBufferQueueOutputStreamTest {
         ByteBufferQueue queue = new ByteBufferQueue(10);
         ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue);
 
-        instance.write(str.getBytes(Charsets.UTF_8), 0, 10);
+        instance.write(str.getBytes(StandardCharsets.UTF_8), 0, 10);
         assertThat(read(queue), is("AbCdEfGhIj"));
     }
 

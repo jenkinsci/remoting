@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +50,6 @@ import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
-import org.jenkinsci.remoting.util.Charsets;
 
 import static org.jenkinsci.remoting.engine.EngineUtil.readChars;
 import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
@@ -269,7 +269,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         // Get initiation information from slave.
         Properties request = new Properties();
         DataInputStream in = state.getDataInputStream();
-        request.load(new ByteArrayInputStream(in.readUTF().getBytes(Charsets.UTF_8)));
+        request.load(new ByteArrayInputStream(in.readUTF().getBytes(StandardCharsets.UTF_8)));
         String clientName = request.getProperty(JnlpConnectionState.CLIENT_NAME_KEY);
         JnlpClientDatabase clientDatabase = getClientDatabase();
         if (clientDatabase == null || !clientDatabase.exists(clientName)) {
@@ -287,7 +287,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         // Send agent challenge response.
         String challengeResponse = Jnlp3Util.createChallengeResponse(challenge);
         String encryptedChallengeResponse = handshakeCiphers.encrypt(challengeResponse);
-        out.println(encryptedChallengeResponse.getBytes(Charsets.UTF_8).length);
+        out.println(encryptedChallengeResponse.getBytes(StandardCharsets.UTF_8).length);
         out.print(encryptedChallengeResponse);
         out.flush();
 
@@ -315,7 +315,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         // now validate the client
         String masterChallenge = Jnlp3Util.generateChallenge(RANDOM);
         String encryptedMasterChallenge = handshakeCiphers.encrypt(masterChallenge);
-        out.println(encryptedMasterChallenge.getBytes(Charsets.UTF_8).length);
+        out.println(encryptedMasterChallenge.getBytes(StandardCharsets.UTF_8).length);
         out.print(encryptedMasterChallenge);
         out.flush();
 

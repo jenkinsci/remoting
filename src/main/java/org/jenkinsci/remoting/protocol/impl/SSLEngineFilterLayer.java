@@ -38,7 +38,7 @@ import org.jenkinsci.remoting.util.ThrowableUtils;
  * A {@link FilterLayer} that encrypts the communication between the upper layers and the lower layers using
  * the supplied {@link SSLEngine}.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class SSLEngineFilterLayer extends FilterLayer {
     /**

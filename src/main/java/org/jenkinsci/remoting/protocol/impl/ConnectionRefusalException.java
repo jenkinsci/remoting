@@ -28,7 +28,7 @@ import java.io.IOException;
 /**
  * An exception to flag that the connection has been refused.
  *
- * @since FIXME
+ * @since 3.0
  * @see PermanentConnectionRefusalException for a permanent rejection of the connection.
  */
 public class ConnectionRefusalException extends IOException {
