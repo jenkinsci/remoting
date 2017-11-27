@@ -442,7 +442,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         @Override
         protected void execute(Channel channel) {
             PipeWindow w = channel.getPipeWindow(oid);
-            w.dead(createdAt.getCause());
+            w.dead(createdAt != null ? createdAt.getCause() : null);
         }
 
         public String toString() {
