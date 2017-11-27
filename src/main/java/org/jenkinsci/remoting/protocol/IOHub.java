@@ -93,6 +93,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      */
     private final Selector selector;
     private volatile boolean ioHubRunning = false;
+    private Object winIoHubLockObject = new Object();
 
     /**
      * Our executor.
@@ -515,6 +516,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         } finally {
             selectorThread.setName(oldName);
             ioHubRunning = false;
+            winIoHubLockObject.notify();
         }
     }
 
@@ -539,8 +541,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             try {
                 watcherThread.setName(watcherName);
                 while (iohub.ioHubRunning) {
-                    Thread.sleep(1000);
                     iohub.selector.wakeup();
+                    iohub.winIoHubLockObject.wait(1000);
                 }
             } catch (InterruptedException ex) {
                 // interrupted
