@@ -535,6 +535,10 @@ public class NioChannelHub implements Runnable, Closeable {
         private Object readResolve() throws ObjectStreamException {
             throw new NotSerializableException("The class should not be serialized over Remoting");
         }
+        
+        private Object writeReplace() throws ObjectStreamException {
+            throw new NotSerializableException("The class should not be serialized over Remoting");
+        }
 
         @Override
         public void checkRoles(RoleChecker checker) throws SecurityException {
