@@ -364,8 +364,9 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                     } finally {
                         CURRENT.set(null);
                     }
-                    if(chainCause)
-                        rsp.createdAt.initCause(createdAt);
+                    if(chainCause) {
+                        rsp.chainCause(createdAt);
+                    }
 
                     channel.send(rsp);
                 } catch (IOException e) {

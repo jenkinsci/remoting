@@ -10,6 +10,7 @@ import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Represents additional features implemented on {@link Channel}.
@@ -226,7 +227,7 @@ public final class Capability implements Serializable {
      */
     private static final long MASK_CHUNKED_ENCODING = 1L << 7;
 
-    static final byte[] PREAMBLE;
+    static final byte[] PREAMBLE = "<===[JENKINS REMOTING CAPACITY]===>".getBytes(StandardCharsets.UTF_8);
 
     public static final Capability NONE = new Capability(0);
 
@@ -291,13 +292,5 @@ public final class Capability implements Serializable {
         }
         sb.append('}');
         return sb.toString();
-    }
-
-    static {
-        try {
-            PREAMBLE = "<===[JENKINS REMOTING CAPACITY]===>".getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new AssertionError(e);
-        }
     }
 }

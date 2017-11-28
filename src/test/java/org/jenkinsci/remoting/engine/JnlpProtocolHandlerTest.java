@@ -15,6 +15,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
@@ -52,6 +54,8 @@ public class JnlpProtocolHandlerTest {
     private static ExecutorService executorService;
     private IOHub selector;
     private NioChannelHub hub;
+
+    private static final Logger LOGGER = Logger.getLogger(JnlpProtocolHandlerTest.class.getName());
 
     private static RSAKeyPairRule clientKey = new RSAKeyPairRule();
     private static RSAKeyPairRule serverKey = new RSAKeyPairRule();
@@ -149,6 +153,10 @@ public class JnlpProtocolHandlerTest {
         IOUtils.closeQuietly(selector);
     }
 
+    private static void printFactoryInfoMessage(Factory factory, boolean useNioHubServer, boolean useNioHubClient) {
+        LOGGER.log(Level.WARNING, "Testing factory {0}, nio_server={1}, nio_client={2}", new Object[] {factory, useNioHubServer, useNioHubClient});
+    }
+
     @Theory
     @Repeat(value = 25, stopAfter = 10, stopAfterUnits = TimeUnit.SECONDS)
     public void happyPath(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
@@ -156,7 +164,7 @@ public class JnlpProtocolHandlerTest {
             assumeThat(factory.toString(), not(is("JNLP4-connect")));
         }
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -230,7 +238,7 @@ public class JnlpProtocolHandlerTest {
     @Theory
     public void serverRejects(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -309,7 +317,7 @@ public class JnlpProtocolHandlerTest {
     @Theory
     public void serverIgnores(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -387,7 +395,7 @@ public class JnlpProtocolHandlerTest {
     @Theory
     public void clientRejects(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -466,7 +474,7 @@ public class JnlpProtocolHandlerTest {
     @Theory
     public void clientIgnores(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -544,7 +552,7 @@ public class JnlpProtocolHandlerTest {
 
     @Theory
     public void doesNotExist(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        System.out.println("Testing factory " + factory);
+        printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
             @Override
             public boolean exists(String clientName) {
@@ -620,7 +628,7 @@ public class JnlpProtocolHandlerTest {
 
     @Theory
     public void wrongSecret(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        System.out.println("Testing factory " + factory);
+        printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
             @Override
             public boolean exists(String clientName) {

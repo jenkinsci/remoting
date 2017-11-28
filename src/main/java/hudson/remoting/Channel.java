@@ -743,7 +743,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return exportedObjects.type(oid);
     }
 
-    /*package*/ void unexport(int id, Throwable cause) {
+    /*package*/ void unexport(int id, @CheckForNull Throwable cause) {
         unexport(id, cause, true);
     }
     
@@ -753,7 +753,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param cause Stacktrace pf the object creation call
      * @param severeErrorIfMissing Consider missing object as {@code SEVERE} error. {@code FINE} otherwise
      */
-    /*package*/ void unexport(int id, Throwable cause, boolean severeErrorIfMissing) {
+    /*package*/ void unexport(int id, @CheckForNull Throwable cause, boolean severeErrorIfMissing) {
         exportedObjects.unexportByOid(id, cause, severeErrorIfMissing);
     }
 
@@ -1244,9 +1244,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * where the termination was initiated as a nested exception.
      */
     private static final class OrderlyShutdown extends IOException {
-        private OrderlyShutdown(Throwable cause) {
-            super(cause.getMessage());
-            initCause(cause);
+        private OrderlyShutdown(@CheckForNull  Throwable cause) {
+            super(cause);
         }
         private static final long serialVersionUID = 1L;
     }
@@ -1465,8 +1464,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         while (true) {
             synchronized(this) {
-                // Now we wait till setProperty() notifies us
-                wait();
+                // Now we wait till setProperty() notifies us (in a cycle)
+                wait(1000);
             }
             Object v = properties.get(key);
             if (v != null) return v;

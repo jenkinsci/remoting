@@ -57,6 +57,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
     private final byte[] request;
     
     @Nonnull
+    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "RemoteClassLoader.export() always returns a serializable instance, but we cannot check it statically due to the java.lang.reflect.Proxy")
     private final IClassLoader classLoaderProxy;
     private final String toString;
     /**
@@ -101,6 +102,8 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
             exports.stopRecording();
         }
 
+        // TODO: We know that the classloader is always serializable, but there is no way to express it here in a compatible way \
+        // (as well as to call instance off or whatever)
         this.classLoaderProxy = RemoteClassLoader.export(cl, local);
     }
 

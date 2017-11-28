@@ -130,7 +130,7 @@ public class ChannelTest extends RmiTestBase {
     private static class WaitForRemotePropertyCallable extends CallableBase<Void, Exception> {
         public Void call() throws Exception {
             Thread.sleep(500);
-            Channel.currentOrFail().setProperty("foo","bar");
+            getChannelOrFail().setProperty("foo","bar");
             return null;
         }
     }

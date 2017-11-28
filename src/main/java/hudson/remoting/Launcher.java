@@ -42,6 +42,8 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
+import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
+import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
@@ -191,6 +193,12 @@ public class Launcher {
                     "certificate file to read.", forbids = "-noCertificateCheck")
     public List<String> candidateCertificates;
 
+    /**
+     * Disables HTTPs Certificate validation of the server when using {@link org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver}.
+     * This option is managed by the {@code -noCertificateCheck} option.
+     */
+    private boolean noCertificateCheck = false;
+
     public InetSocketAddress connectionTarget = null;
 
     @Option(name="-connectTo",usage="make a TCP connection to the given host and port, then start communication.",metaVar="HOST:PORT")
@@ -212,15 +220,13 @@ public class Launcher {
     @Option(name="-noCertificateCheck", forbids = "-cert")
     public void setNoCertificateCheck(boolean ignored) throws NoSuchAlgorithmException, KeyManagementException {
         System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
+
+        this.noCertificateCheck = true;
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, new TrustManager[]{new NoCheckTrustManager()}, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
         // bypass host name check, too.
-        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
-            public boolean verify(String s, SSLSession sslSession) {
-                return true;
-            }
-        });
+        HttpsURLConnection.setDefaultHostnameVerifier(new NoCheckHostnameVerifier());
     }
 
     @Option(name="-noReconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
@@ -346,6 +352,11 @@ public class Launcher {
                     jnlpArgs.add("-cert");
                     jnlpArgs.add(c);
                 }
+            }
+            if (noCertificateCheck) {
+		// Generally it is not required since the default settings have been changed anyway.
+		// But we set it up just in case there are overrides somewhere in the logic
+                jnlpArgs.add("-disableHttpsCertValidation");
             }
             try {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
@@ -756,21 +767,6 @@ public class Launcher {
         }
         channel.join();
         System.err.println("channel stopped");
-    }
-
-    /**
-     * {@link X509TrustManager} that performs no check at all.
-     */
-    private static class NoCheckTrustManager implements X509TrustManager {
-        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-        }
-
-        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-        }
-
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
     }
 
     public static boolean isWindows() {
