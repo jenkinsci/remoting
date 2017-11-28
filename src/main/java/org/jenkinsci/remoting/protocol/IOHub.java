@@ -93,7 +93,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      */
     private final Selector selector;
     private volatile boolean ioHubRunning = false;
-    private Object winIoHubLockObject = new Object();
+    private final Object winIoHubLockObject = new Object();
 
     /**
      * Our executor.
@@ -516,7 +516,9 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         } finally {
             selectorThread.setName(oldName);
             ioHubRunning = false;
-            winIoHubLockObject.notify();
+            synchronized (winIoHubLockObject) {
+                winIoHubLockObject.notifyAll();
+            }
         }
     }
 
@@ -540,9 +542,15 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             LOGGER.log(Level.FINEST, "{0}: Started", watcherName);
             try {
                 watcherThread.setName(watcherName);
-                while (iohub.ioHubRunning) {
+                while (true) {
+                    synchronized (iohub.winIoHubLockObject) {
+                        if (iohub.ioHubRunning) {
+                            iohub.winIoHubLockObject.wait(1000);
+                        } else {
+                            break;
+                        }
+                    }
                     iohub.selector.wakeup();
-                    iohub.winIoHubLockObject.wait(1000);
                 }
             } catch (InterruptedException ex) {
                 // interrupted
