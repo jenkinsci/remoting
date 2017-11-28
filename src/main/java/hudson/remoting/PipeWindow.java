@@ -23,6 +23,10 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.logging.Logger;
@@ -48,6 +52,12 @@ import static java.util.logging.Level.*;
  * @author Kohsuke Kawaguchi
  */
 abstract class PipeWindow {
+
+    /**
+     * Cause of death.
+     * If not {@code null}, new commands will not be executed.
+     */
+    @CheckForNull
     protected volatile Throwable dead;
 
     /**
@@ -94,19 +104,23 @@ abstract class PipeWindow {
 
     /**
      * Indicates that the remote end has died and all the further send attempt should fail.
+     * @param cause Death cause. If {@code null}, the death will be still considered as dead, but there will be no cause recorded..
      */
-    void dead(Throwable cause) {
-        this.dead = cause;
+    void dead(@CheckForNull Throwable cause) {
+        // We need to record
+        this.dead = cause != null ? cause : new RemotingSystemException("Unknown cause", null) ;
     }
 
     /**
      * If we already know that the remote end had developed a problem, throw an exception.
      * Otherwise no-op.
+     * @throws IOException Pipe is already closed
      */
     protected void checkDeath() throws IOException {
-        if (dead!=null)
+        if (dead != null) {
             // the remote end failed to write.
-            throw (IOException)new IOException("Pipe is already closed").initCause(dead);
+            throw new IOException("Pipe is already closed", dead);
+        }
     }
 
 
@@ -155,6 +169,8 @@ abstract class PipeWindow {
         }
     }
 
+    //TODO: Consider rework and cleanup of the fields
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "Legacy implementation")
     static class Real extends PipeWindow {
         private final int initial;
         private int available;

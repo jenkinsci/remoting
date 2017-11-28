@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 
 /**
  * {@link CommandTransport} that works with {@code byte[]} instead of command object.
@@ -35,7 +36,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
      * 
      * In this subtype, we pass in {@link ByteArrayReceiver} that uses byte[] instead of {@link Command}
      */
-    public abstract void setup(ByteArrayReceiver receiver);
+    public abstract void setup(@Nonnull ByteArrayReceiver receiver);
     
     public static interface ByteArrayReceiver {
         /**

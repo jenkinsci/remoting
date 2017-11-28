@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.RemoteClassLoader.IClassLoader;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.RemoteInvocationHandler.RPCRequest;
@@ -56,12 +57,14 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
     private final byte[] request;
     
     @Nonnull
+    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "RemoteClassLoader.export() always returns a serializable instance, but we cannot check it statically due to the java.lang.reflect.Proxy")
     private final IClassLoader classLoaderProxy;
     private final String toString;
     /**
      * Objects exported by the request. This value will remain local
      * and won't be sent over to the remote side.
      */
+    @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with default null")
     private transient final ExportList exports;
 
     /**
@@ -99,6 +102,8 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
             exports.stopRecording();
         }
 
+        // TODO: We know that the classloader is always serializable, but there is no way to express it here in a compatible way \
+        // (as well as to call instance off or whatever)
         this.classLoaderProxy = RemoteClassLoader.export(cl, local);
     }
 

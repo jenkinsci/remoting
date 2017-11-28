@@ -27,8 +27,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectStreamException;
 import java.io.Serializable;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.MalformedURLException;
 import java.net.URLClassLoader;
@@ -46,6 +46,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 import javax.annotation.CheckForNull;
 
@@ -270,7 +271,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 ClassLoader cl = cr.classLoader;
                 if (cl instanceof RemoteClassLoader) {
                     RemoteClassLoader rcl = (RemoteClassLoader) cl;
-                    synchronized (_getClassLoadingLock(rcl, name)) {
+                    synchronized (rcl.getClassLoadingLock(name)) {
                         Class<?> c = rcl.findLoadedClass(name);
 
                         boolean interrupted = false;
@@ -331,28 +332,6 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
-    private static Method gCLL;
-    static {
-        try {
-            gCLL = ClassLoader.class.getDeclaredMethod("getClassLoadingLock", String.class);
-            gCLL.setAccessible(true);
-        } catch (NoSuchMethodException x) {
-            // OK, Java 6
-        } catch (Exception x) {
-            LOGGER.log(WARNING, null, x);
-        }
-    }
-    private static Object _getClassLoadingLock(RemoteClassLoader rcl, String name) {
-        // Java 7: return rcl.getClassLoadingLock(name);
-        if (gCLL != null) {
-            try {
-                return gCLL.invoke(rcl, name);
-            } catch (Exception x) {
-                LOGGER.log(WARNING, null, x);
-            }
-        }
-        return rcl;
-    }
     /**
      * Intercept {@link RemoteClassLoader#findClass(String)} to allow unittests to be written.
      *
@@ -602,6 +581,7 @@ final class RemoteClassLoader extends URLClassLoader {
          * this points to the location of the resource. Used by
          * the sender side to retrieve the resource when necessary.
          */
+        @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
         transient final URL local;
 
         /**
@@ -654,6 +634,7 @@ final class RemoteClassLoader extends URLClassLoader {
          * While this object is still on the sender side, used to remember the actual
          * class that this {@link ClassFile2} represents.
          */
+        @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
         transient final Class clazz;
 
         ClassFile2(int classLoader, ResourceImageRef image, ClassFile2 referer, Class clazz, URL local) {
@@ -731,7 +712,17 @@ final class RemoteClassLoader extends URLClassLoader {
         ResourceFile[] getResources2(String name) throws IOException;
     }
 
-    public static IClassLoader export(@Nonnull ClassLoader cl, Channel local) {
+    /**
+     * Exports classloader over the channel.
+     *
+     * If the classloader is an instance of {@link RemoteClassLoader}, this classloader will be unwrapped and reused.
+     * Otherwise, a classloader object will be exported
+     *
+     * @param cl Classloader to be exported
+     * @param local Channel
+     * @return Exported reference. This reference is always {@link Serializable} though interface is not explict about that
+     */
+    public static IClassLoader export(@Nonnull ClassLoader cl, @Nonnull Channel local) {
         if (cl instanceof RemoteClassLoader) {
             // check if this is a remote classloader from the channel
             final RemoteClassLoader rcl = (RemoteClassLoader) cl;
@@ -740,7 +731,10 @@ final class RemoteClassLoader extends URLClassLoader {
                 return new RemoteIClassLoader(oid,rcl.proxy);
             }
         }
-        return local.export(IClassLoader.class, new ClassLoaderProxy(cl,local), false);
+        // Remote classloader operates in the System scope (JENKINS-45294).
+        // It's probably YOLO, but otherwise the termination calls may be unable
+        // to execute correctly.
+        return local.export(IClassLoader.class, new ClassLoaderProxy(cl,local), false, false);
     }
 
     public static void pin(ClassLoader cl, Channel local) {
@@ -1031,7 +1025,7 @@ final class RemoteClassLoader extends URLClassLoader {
      * to work (which will be the remote instance.) Once transferred to the other side,
      * resolve back to the instance on the server.
      */
-    private static class RemoteIClassLoader implements IClassLoader, Serializable {
+    private static class RemoteIClassLoader implements IClassLoader, SerializableOnlyOverRemoting {
         private transient final IClassLoader proxy;
         private final int oid;
 
@@ -1076,9 +1070,9 @@ final class RemoteClassLoader extends URLClassLoader {
             return proxy.getResources2(name);
         }
 
-        private Object readResolve() {
+        private Object readResolve() throws ObjectStreamException {
             try {
-                return Channel.current().getExportedObject(oid);
+                return getChannelForSerialization().getExportedObject(oid);
             } catch (ExecutionException ex) {
                 //TODO: Implement something better?
                 throw new IllegalStateException("Cannot resolve remoting classloader", ex);

@@ -26,6 +26,7 @@
 
 package org.jenkinsci.remoting.engine;
 
+import static hudson.remoting.Launcher.isWindows;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -34,10 +35,13 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
@@ -48,6 +52,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.jenkinsci.remoting.engine.WorkDirManager.DirType;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.jvnet.hudson.test.Bug;
 
@@ -255,14 +260,15 @@ public class WorkDirManagerTest {
         final File workDir = tmpDir.newFolder("workDir");
         final File customLogDir = tmpDir.newFolder("mylogs");
         
+        Properties p = new Properties();
+        p.setProperty("handlers", "java.util.logging.FileHandler");
+        p.setProperty("java.util.logging.FileHandler.pattern", customLogDir.getAbsolutePath() + File.separator  + "mylog.log.%g");
+        p.setProperty("java.util.logging.FileHandler.limit", "81920");
+        p.setProperty("java.util.logging.FileHandler.count", "5");
+        
         // Create config file
-        try (FileWriter wr = new FileWriter(loggingConfigFile)) {
-            // Init FileHandler with default XML formatter
-            wr.write("handlers= java.util.logging.FileHandler\n");
-            // TODO: It won't work well on Windows
-            wr.write("java.util.logging.FileHandler.pattern=" + customLogDir.getAbsolutePath() + "/mylog.log.%g\n");
-            wr.write("java.util.logging.FileHandler.limit=81920\n");
-            wr.write("java.util.logging.FileHandler.count=5\n");
+        try (OutputStream out = new FileOutputStream(loggingConfigFile)) {
+            p.store(out, "Just a config file");
         }
         
         // Init WorkDirManager
@@ -284,7 +290,7 @@ public class WorkDirManagerTest {
                 defaultLog0.exists());
         
         // Assert that logs have been written to the specified custom destination
-        assertFileLogsExist(customLogDir, "mylog.log", 0);
+        assertFileLogsExist(customLogDir, "mylog.log", 1);
         File log0 = new File(customLogDir, "mylog.log.0");
         try (FileInputStream istr = new FileInputStream(log0)) {
             String contents = IOUtils.toString(istr);
@@ -343,20 +349,23 @@ public class WorkDirManagerTest {
 
     private void verifyDirectoryFlag(DirType type, DirectoryFlag flag) throws IOException, AssertionError {
         final File dir = tmpDir.newFolder("test-" + type.getClass().getSimpleName() + "-" + flag);
-
+        
+        boolean success = false;
+        File dirToModify = dir;
         switch (type) {
             case WORK_DIR:
-                flag.modifyFile(dir);
+                success = flag.modifyFile(dir);
                 break;
             case INTERNAL_DIR:
                 // Then we create remoting dir and also modify it
-                File remotingDir = new File(dir, DirType.INTERNAL_DIR.getDefaultLocation());
-                remotingDir.mkdir();
-                flag.modifyFile(remotingDir);
+                dirToModify = new File(dir, DirType.INTERNAL_DIR.getDefaultLocation());
+                Files.createDirectory(dirToModify.toPath());
+                success = flag.modifyFile(dirToModify);
                 break;
             default:
                 Assert.fail("Unsupported Directory type: " + type);
         }
+        Assume.assumeTrue(String.format("Failed to modify flag %s of %s", flag, dirToModify), success);
 
         try {
             WorkDirManager.getInstance().initializeWorkDir(dir, DirType.INTERNAL_DIR.getDefaultLocation(), false);
@@ -373,19 +382,22 @@ public class WorkDirManagerTest {
         NOT_READABLE,
         NOT_EXECUTABLE;
 
-        public void modifyFile(File file) throws AssertionError {
+        /**
+         * Modifies the file's flag.
+         * @param file File to modify
+         * @return {@code true} if the operation succeeds
+         */
+        public boolean modifyFile(File file) throws AssertionError {
             switch (this) {
                 case NOT_EXECUTABLE:
-                    file.setExecutable(false);
-                    break;
+                    return file.setExecutable(false);
                 case NOT_WRITABLE:
-                    file.setWritable(false);
-                    break;
+                    return file.setWritable(false);
                 case NOT_READABLE:
-                    file.setReadable(false);
-                    break;
+                    return file.setReadable(false);
                 default:
                     Assert.fail("Unsupported file mode " + this);
+                    return false;
             }
         }
     }

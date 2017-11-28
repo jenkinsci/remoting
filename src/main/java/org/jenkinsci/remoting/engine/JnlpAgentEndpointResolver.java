@@ -24,18 +24,26 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Base64;
+import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
+import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.NoRouteToHostException;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.KeyFactory;
+import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
@@ -54,6 +62,9 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 
 import static java.util.logging.Level.INFO;
 import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
@@ -76,6 +87,8 @@ public class JnlpAgentEndpointResolver {
     private String proxyCredentials;
 
     private String tunnel;
+
+    private boolean disableHttpsCertValidation;
 
     /**
      * If specified, only the protocols from the list will be tried during the connection.
@@ -134,10 +147,34 @@ public class JnlpAgentEndpointResolver {
         this.tunnel = tunnel;
     }
 
+    /**
+     *  Determine if certificate checking should be ignored for JNLP endpoint
+     *
+     * @return {@code true} if the HTTPs certificate is disabled, endpoint check is ignored
+     */
+
+    public boolean isDisableHttpsCertValidation() {
+        return disableHttpsCertValidation;
+    }
+
+    /**
+     * Sets if the HTTPs certificate check should be disabled.
+     *
+     * This behavior is no recommended.
+     * @param disableHttpsCertValidation
+     * @since TODO
+     */
+    public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
+        this.disableHttpsCertValidation = disableHttpsCertValidation;
+    }
+
     @CheckForNull
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
         for (String jenkinsUrl : jenkinsUrls) {
+            if (jenkinsUrl == null) {
+                continue;
+            }
             
             final URL selectedJenkinsURL;
             final URL salURL;
@@ -151,7 +188,7 @@ public class JnlpAgentEndpointResolver {
 
             // find out the TCP port
             HttpURLConnection con =
-                    (HttpURLConnection) openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory);
+                    (HttpURLConnection) openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation);
             try {
                 try {
                     con.setConnectTimeout(30000);
@@ -280,9 +317,9 @@ public class JnlpAgentEndpointResolver {
         return null;
     }
 
-    @CheckForNull
-    private URL toAgentListenerURL(@CheckForNull String jenkinsUrl) throws MalformedURLException {
-        return jenkinsUrl == null ? null : jenkinsUrl.endsWith("/")
+    @Nonnull
+    private URL toAgentListenerURL(@Nonnull String jenkinsUrl) throws MalformedURLException {
+        return jenkinsUrl.endsWith("/")
                 ? new URL(jenkinsUrl + "tcpSlaveAgentListener/")
                 : new URL(jenkinsUrl + "/tcpSlaveAgentListener/");
     }
@@ -297,17 +334,18 @@ public class JnlpAgentEndpointResolver {
                 try {
                     // Jenkins top page might be read-protected. see http://www.nabble
                     // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
-                    URL url = toAgentListenerURL(first(jenkinsUrls));
-                    if (url == null) {
+                    final String firstUrl = first(jenkinsUrls);
+                    if (firstUrl == null) {
                         // returning here will cause the whole loop to be broken and all the urls to be tried again
                         return;
                     }
+                    URL url = toAgentListenerURL(firstUrl);
 
                     retries++;
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
 
                     HttpURLConnection con =
-                            (HttpURLConnection) openURLConnection(url, credentials, proxyCredentials, sslSocketFactory);
+                            (HttpURLConnection) openURLConnection(url, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation);
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
@@ -315,17 +353,19 @@ public class JnlpAgentEndpointResolver {
                         return;
                     }
                     LOGGER.log(Level.INFO,
-                            "Master isn''t ready to talk to us on {0}. Will retry again: response code={1}",
+                            "Master isn''t ready to talk to us on {0}. Will try again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
+                } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
+                    LOGGER.log(INFO, "Failed to connect to the master. Will try again: {0} {1}",
+                            new String[] { e.getClass().getName(), e.getMessage() });
                 } catch (IOException e) {
                     // report the failure
-                    LOGGER.log(INFO, "Failed to connect to the master. Will retry again", e);
+                    LOGGER.log(INFO, "Failed to connect to the master. Will try again", e);
                 }
             }
         } finally {
             t.setName(oldName);
         }
-
     }
 
     @CheckForNull
@@ -372,7 +412,7 @@ public class JnlpAgentEndpointResolver {
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      */
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
-                                           SSLSocketFactory sslSocketFactory) throws IOException {
+                                           SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
         if (System.getProperty("http.proxyHost") == null) {
@@ -401,8 +441,30 @@ public class JnlpAgentEndpointResolver {
             String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
-        if (con instanceof HttpsURLConnection && sslSocketFactory != null) {
-            ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
+
+        if (con instanceof HttpsURLConnection) {
+            final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
+            if (disableHttpsCertValidation) {
+                System.err.println("Warning: HTTPs certificate check is disabled for the endpoint");
+
+                try {
+                    SSLContext ctx = SSLContext.getInstance("TLS");
+                    ctx.init(null, new TrustManager[]{new NoCheckTrustManager()}, new SecureRandom());
+                    sslSocketFactory = ctx.getSocketFactory();
+
+                    httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
+                    httpsConnection.setSSLSocketFactory(sslSocketFactory);
+                } catch (KeyManagementException | NoSuchAlgorithmException ex) {
+                    // We could just suppress it, but the exception will unlikely happen.
+                    // So let's just propagate the error and fail the resolution
+                    throw new IOException("Cannot initialize the insecure HTTPs mode", ex);
+                }
+
+            } else if (sslSocketFactory != null) {
+                httpsConnection.setSSLSocketFactory(sslSocketFactory);
+                //FIXME: Is it really required in this path? Seems like a bug
+                httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
+            }
         }
         return con;
     }
@@ -463,9 +525,10 @@ public class JnlpAgentEndpointResolver {
     private static List<String> header(@Nonnull HttpURLConnection connection, String... headerNames) {
         Map<String, List<String>> headerFields = connection.getHeaderFields();
         for (String headerName : headerNames) {
-            for (String headerField : headerFields.keySet()) {
+            for (Map.Entry<String, List<String>> entry: headerFields.entrySet()) {
+                final String headerField = entry.getKey();
                 if (headerField != null && headerField.equalsIgnoreCase(headerName)) {
-                    return headerFields.get(headerField);
+                    return entry.getValue();
                 }
             }
         }

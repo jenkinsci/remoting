@@ -217,12 +217,13 @@ public abstract class ClassFilter {
                 // this is a simple startsWith test, no need to slow things down with a regex
                 blacklistPatterns.add(pattern.substring(3, pattern.length() - 4));
             } else {
+                final Pattern regex;
                 try {
-                    Pattern regex = Pattern.compile(pattern);
+                    regex = Pattern.compile(pattern);
                 } catch (PatternSyntaxException ex) {
                     throw new ClassFilterException("Cannot add RegExp class filter", ex);
                 }
-                blacklistPatterns.add(Pattern.compile(pattern));
+                blacklistPatterns.add(regex);
             }
         }
 

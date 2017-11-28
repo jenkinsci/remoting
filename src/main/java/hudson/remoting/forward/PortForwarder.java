@@ -134,9 +134,10 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
 
         return ch.call(new Callable<ListeningPort,IOException>() {
             public ListeningPort call() throws IOException {
+                final Channel channel = getOpenChannelOrFail(); // We initialize it early, so the forwarder won's start its daemon if the channel is shutting down
                 PortForwarder t = new PortForwarder(acceptingPort, proxy);
                 t.start();
-                return Channel.current().export(ListeningPort.class,t);
+                return channel.export(ListeningPort.class,t);
             }
 
             @Override

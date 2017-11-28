@@ -8,12 +8,15 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
@@ -25,7 +28,6 @@ import org.jenkinsci.remoting.protocol.cert.RSAKeyPairRule;
 import org.jenkinsci.remoting.protocol.cert.SSLContextRule;
 import org.jenkinsci.remoting.protocol.cert.X509CertificateRule;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
-import org.jenkinsci.remoting.util.Charsets;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -52,6 +54,8 @@ public class JnlpProtocolHandlerTest {
     private static ExecutorService executorService;
     private IOHub selector;
     private NioChannelHub hub;
+
+    private static final Logger LOGGER = Logger.getLogger(JnlpProtocolHandlerTest.class.getName());
 
     private static RSAKeyPairRule clientKey = new RSAKeyPairRule();
     private static RSAKeyPairRule serverKey = new RSAKeyPairRule();
@@ -149,6 +153,10 @@ public class JnlpProtocolHandlerTest {
         IOUtils.closeQuietly(selector);
     }
 
+    private static void printFactoryInfoMessage(Factory factory, boolean useNioHubServer, boolean useNioHubClient) {
+        LOGGER.log(Level.WARNING, "Testing factory {0}, nio_server={1}, nio_client={2}", new Object[] {factory, useNioHubServer, useNioHubClient});
+    }
+
     @Theory
     @Repeat(value = 25, stopAfter = 10, stopAfterUnits = TimeUnit.SECONDS)
     public void happyPath(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
@@ -156,7 +164,7 @@ public class JnlpProtocolHandlerTest {
             assumeThat(factory.toString(), not(is("JNLP4-connect")));
         }
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -201,7 +209,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -230,7 +238,7 @@ public class JnlpProtocolHandlerTest {
     @Theory
     public void serverRejects(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -275,7 +283,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -309,7 +317,7 @@ public class JnlpProtocolHandlerTest {
     @Theory
     public void serverIgnores(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -353,7 +361,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -387,7 +395,7 @@ public class JnlpProtocolHandlerTest {
     @Theory
     public void clientRejects(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -432,7 +440,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -466,7 +474,7 @@ public class JnlpProtocolHandlerTest {
     @Theory
     public void clientIgnores(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
         if (lastFactory != factory) {
-            System.out.println("Testing factory " + factory);
+            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
             lastFactory = factory;
         }
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
@@ -511,7 +519,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -544,7 +552,7 @@ public class JnlpProtocolHandlerTest {
 
     @Theory
     public void doesNotExist(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        System.out.println("Testing factory " + factory);
+        printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
             @Override
             public boolean exists(String clientName) {
@@ -587,7 +595,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -620,7 +628,7 @@ public class JnlpProtocolHandlerTest {
 
     @Theory
     public void wrongSecret(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        System.out.println("Testing factory " + factory);
+        printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
         JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
             @Override
             public boolean exists(String clientName) {
@@ -662,7 +670,7 @@ public class JnlpProtocolHandlerTest {
         while (content.hasRemaining()) {
             eastChannel.read(content);
         }
-        assertThat(new String(bytes, Charsets.UTF_8), is("Protocol:" + factory.toString()));
+        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
         Future<Channel> eastChan = eastProto
                 .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
                     @Override
@@ -701,6 +709,7 @@ public class JnlpProtocolHandlerTest {
     @DataPoints
     public static Factory[] protocols() {
         return new Factory[]{
+                //TODO: Disable JNLP-1 tests by default?
                 new Factory() {
                     @Override
                     public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
@@ -731,6 +740,7 @@ public class JnlpProtocolHandlerTest {
                         return "JNLP2-connect";
                     }
                 },
+                //TODO: Disable JNLP3 tests by default?
                 new Factory() {
                     @Override
                     public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,

@@ -3,7 +3,6 @@ package hudson.remoting;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import org.hamcrest.core.StringContains;
-import org.jenkinsci.remoting.util.Charsets;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -19,6 +18,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -54,7 +54,7 @@ public class FileSystemJarCacheTest {
         fileSystemJarCache = new FileSystemJarCache(tmp.getRoot(), true);
 
         expectedChecksum = ChecksumTest.createdExpectedChecksum(
-                Hashing.sha256().hashBytes(CONTENTS.getBytes(Charsets.UTF_8)));
+                Hashing.sha256().hashBytes(CONTENTS.getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -92,7 +92,7 @@ public class FileSystemJarCacheTest {
             @Override
             public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
                 RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-                o.write("Some other contents".getBytes(Charsets.UTF_8));
+                o.write("Some other contents".getBytes(StandardCharsets.UTF_8));
                 return null;
             }
         }).when(mockJarLoader).writeJarTo(
@@ -162,7 +162,7 @@ public class FileSystemJarCacheTest {
             public Boolean answer(InvocationOnMock invocationOnMock) throws Throwable {
                 Files.createParentDirs(expectedFile);
                 expectedFile.createNewFile();
-                Files.append("Some other contents", expectedFile, Charsets.UTF_8);
+                Files.append("Some other contents", expectedFile, StandardCharsets.UTF_8);
                 return false;
             }
         }).when(fileSpy).renameTo(expectedFile);
@@ -180,7 +180,7 @@ public class FileSystemJarCacheTest {
             @Override
             public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
                 RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-                o.write(CONTENTS.getBytes(Charsets.UTF_8));
+                o.write(CONTENTS.getBytes(StandardCharsets.UTF_8));
                 return null;
             }
         }).when(mockJarLoader).writeJarTo(

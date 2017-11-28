@@ -26,7 +26,7 @@ package org.jenkinsci.remoting.protocol.impl;
 /**
  * An exception to flag that the connection has been rejected and no further connection attempts should be made.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class PermanentConnectionRefusalException extends ConnectionRefusalException {
     /**

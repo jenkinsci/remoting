@@ -161,13 +161,15 @@ public class UtilTest extends TestCase {
         assertTrue(file.exists());
         assertTrue(file.isFile());
 
-        // Fail to create aloud
-        try {
-            File forbidden = new File("/proc/nonono");
-            Util.mkdirs(forbidden);
-            fail();
-        } catch (IOException ex) {
-            // Expected
+        // Fail to create aloud, do not try on Windows
+        if (!Launcher.isWindows()) {
+            try {
+                File forbidden = new File("/proc/nonono");
+                Util.mkdirs(forbidden);
+                fail("The directory has been created when it should not: " + forbidden);
+            } catch (IOException ex) {
+                // Expected
+            }
         }
     }
 }

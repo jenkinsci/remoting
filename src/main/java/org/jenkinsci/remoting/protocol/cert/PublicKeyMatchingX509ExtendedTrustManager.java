@@ -44,7 +44,7 @@ import org.jenkinsci.remoting.util.KeyUtils;
  * An {@link X509ExtendedTrustManager} that trusts any chain where the initial certificate was issued for a specific
  * set of trusted {@link PublicKey}s.
  *
- * @since FIXME
+ * @since 3.0
  */
 @IgnoreJRERequirement // TODO We override some methods in Java 7, so remove this ignore when baseline is Java 7
 public class PublicKeyMatchingX509ExtendedTrustManager extends X509ExtendedTrustManager {
