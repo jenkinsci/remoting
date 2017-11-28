@@ -347,7 +347,7 @@ final class RemoteClassLoader extends URLClassLoader {
         short bytecodeLevel = (short) ((bytes[6] << 8) + (bytes[7] & 0xFF) - 44);
         final Channel channel = channel();
         if (channel != null && bytecodeLevel > channel.maximumBytecodeLevel) {
-            throw new ClassFormatError("this channel is restricted to JDK 1." + channel.maximumBytecodeLevel + " compatibility but " + name + " was compiled for 1." + bytecodeLevel);
+            throw new UnsupportedClassVersionError("this channel is restricted to JDK 1." + channel.maximumBytecodeLevel + " compatibility but " + name + " was compiled for 1." + bytecodeLevel);
         }
 
         // if someone else is forcing us to load a class by giving as bytecode,
@@ -356,12 +356,15 @@ final class RemoteClassLoader extends URLClassLoader {
 
         definePackage(name);
 
+        //TODO: probably this wrapping is not required anymore
         try {
             return defineClass(name, bytes, 0, bytes.length);
+        } catch (UnsupportedClassVersionError e) {
+            throw (UnsupportedClassVersionError)new UnsupportedClassVersionError("Failed to load "+name).initCause(e);
         } catch (ClassFormatError e) {
             throw (ClassFormatError)new ClassFormatError("Failed to load "+name).initCause(e);
         } catch (LinkageError e) {
-            throw (LinkageError)new LinkageError("Failed to load "+name).initCause(e);
+            throw new LinkageError("Failed to load "+name, e);
         }
     }
 
