@@ -525,10 +525,9 @@ public class NioChannelHub implements Runnable, Closeable {
             }
             try {
                 return task.call();
+            } catch (IOException ex) {
+                throw ex;
             } catch (Exception ex) {
-                if (ex instanceof IOException) {
-                    throw (IOException)ex;
-                }
                 throw new IOException(ex);
             }
         }
