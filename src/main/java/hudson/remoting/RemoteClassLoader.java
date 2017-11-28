@@ -152,6 +152,19 @@ final class RemoteClassLoader extends URLClassLoader {
         return RemoteInvocationHandler.unwrap(underlyingProxy,channel);
     }
 
+    /**
+     * Finds and loads the class with the specified name from the URL search from the remote instance.
+     * Any URLs referring to JAR files are loaded and opened as needed
+     * until the class is found.
+     *
+     * @param name the name of the class
+     * @return the resulting class
+     * @exception ClassNotFoundException if the class could not be found or if the loader is closed.
+     * @throws UnsupportedClassVersionError The channel does not support the specified bytecode version
+     * @throws ClassFormatError Class format is incorrect
+     * @throws LinkageError Linkage error during the class loading
+     */
+    @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         try {
             // first attempt to load from locally fetched jars
@@ -340,7 +353,16 @@ final class RemoteClassLoader extends URLClassLoader {
     static Runnable TESTING_CLASS_LOAD;
     static Runnable TESTING_CLASS_REFERENCE_LOAD;
 
-    private Class<?> loadClassFile(String name, byte[] bytes) {
+    /**
+     * Loads class from the byte array.
+     * @param name Name of the class
+     * @param bytes Bytes
+     * @return Loaded class
+     * @throws UnsupportedClassVersionError The channel does not support the specified bytecode version
+     * @throws ClassFormatError Class format is incorrect
+     * @throws LinkageError Linkage error during the class loading
+     */
+    private Class<?> loadClassFile(String name, byte[] bytes) throws LinkageError {
         if (bytes.length < 8) {
             throw new ClassFormatError(name + " is <8 bytes long");
         }
