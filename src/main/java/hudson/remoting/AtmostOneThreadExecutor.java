@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
 
 /**
  * {@link ExecutorService} that uses at most one executor.
@@ -86,7 +87,8 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
     public void execute(Runnable command) {
         synchronized (q) {
             if (isShutdown()) {
-                throw new RejectedExecutionException("This executor has been shutdown.");
+                // No way this executor service can be recovered
+                throw new FatalRejectedExecutionException("This executor has been shutdown.");
             }
             q.add(command);
             if (!isAlive()) {

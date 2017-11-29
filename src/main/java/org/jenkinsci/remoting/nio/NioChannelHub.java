@@ -40,6 +40,7 @@ import java.util.logging.Logger;
 
 import static java.nio.channels.SelectionKey.*;
 import static java.util.logging.Level.*;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -631,7 +632,7 @@ public class NioChannelHub implements Runnable, Closeable {
                                         } while (!last);
                                         assert packetSize==0;
                                         if (packet.length > 0) {
-                                            t.swimLane.submit(new Runnable() {
+                                            ExecutorServiceUtils.submitAsync(t.swimLane, new Runnable() {
                                                 @Override
                                                 public void run() {
                                                     final ByteArrayReceiver receiver = t.receiver;
@@ -653,8 +654,9 @@ public class NioChannelHub implements Runnable, Closeable {
                                     t.abort(new IOException(msg));
                                 }
                                 if (t.rb.isClosed()) {
-                                    // EOF. process this synchronously with respect to packets
-                                    t.swimLane.submit(new Runnable() {
+                                    // EOF. process this synchronously with respect to packets waiting for handling in the queue
+                                    ExecutorServiceUtils.submitAsync(t.swimLane, new Runnable() {
+                                        @Override
                                         public void run() {
                                             // if this EOF is unexpected, report an error.
                                             if (!t.getChannel().isInClosed()) {
@@ -676,6 +678,11 @@ public class NioChannelHub implements Runnable, Closeable {
                         } catch (IOException e) {
                             // It causes the channel failure, hence it is severe
                             LOGGER.log(SEVERE, "Communication problem in " + t + ". NIO Transport will be aborted.", e);
+                            t.abort(e);
+                        } catch (ExecutorServiceUtils.ExecutionRejectedException e) {
+                            // TODO: should we try to reschedule the task if the issue is not fatal?
+                            // The swimlane has rejected the execution, e.g. due to the "shutting down" state.
+                            LOGGER.log(SEVERE, "The underlying executor service rejected the task in " + t + ". NIO Transport will be aborted.", e);
                             t.abort(e);
                         } catch (CancelledKeyException e) {
                             // see JENKINS-24050. I don't understand how this can happen, given that the selector

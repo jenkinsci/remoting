@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 
 /**
  * Default partial implementation of {@link JarCache}.
@@ -50,49 +51,91 @@ public abstract class JarCacheSupport extends JarCache {
 
         while (true) {// might have to try a few times before we get successfully resolve
 
-            final Checksum key = new Checksum(sum1,sum2);
-            final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<URL>();
-            Future<URL> cur = inprogress.putIfAbsent(key, promise);
+            final Checksum key = new Checksum(sum1,sum2);        
+            Future<URL> cur = inprogress.get(key);
             if (cur!=null) {
                 // this computation is already in progress. piggy back on that one
                 return cur;
             } else {
                 // we are going to resolve this ourselves and publish the result in 'promise' for others
-                downloader.submit(new Runnable() {
-                    public void run() {
-                        try {
-                            URL url = retrieve(channel,sum1,sum2);
-                            inprogress.remove(key);
-                            promise.set(url);
-                        } catch (ChannelClosedException e) {
-                            // the connection was killed while we were still resolving the file
-                            bailout(e);
-                        } catch (RequestAbortedException e) {
-                            // the connection was killed while we were still resolving the file
-                            bailout(e);
-                        } catch (InterruptedException e) {
-                            // we are bailing out, but we need to allow another thread to retry later.
-                            bailout(e);
-
-                            LOGGER.log(Level.WARNING, String.format("Interrupted while resolving a jar %016x%016x",sum1,sum2), e);
-                        } catch (Throwable e) {
-                            // in other general failures, we aren't retrying
-                            // TODO: or should we?
-                            promise.set(e);
-
-                            LOGGER.log(Level.WARNING, String.format("Failed to resolve a jar %016x%016x",sum1,sum2), e);
-                        }
+                try {
+                    final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<URL>();
+                    ExecutorServiceUtils.submitAsync(downloader, new  DownloadRunnable(channel, sum1, sum2, key, promise));
+                    // Now we are sure that the task has been accepted to the queue, hence we cache the promise
+                    // if nobody else caches it before.
+                    inprogress.putIfAbsent(key, promise);
+                } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
+                    final String message = "Downloader executor service has rejected the download command for checksum " + key;
+                    LOGGER.log(Level.SEVERE, message, ex);
+                    // Retry the submission after 100 ms if the error is not fatal
+                    if (ex.isFatal()) {
+                        // downloader won't accept anything else, do not even try
+                        throw new IOException(message, ex);
+                    } else {
+                        //TODO: should we just fail? unrealistic case for the current AtmostOneThreadExecutor implementation anyway
+                        Thread.sleep(100);
                     }
-
-                    /**
-                     * Report a failure of the retrieval and allows another thread to retry.
-                     */
-                    private void bailout(Exception e) {
-                        inprogress.remove(key);     // this lets another thread to retry later
-                        promise.set(e);             // then tell those who are waiting that we aborted
-                    }
-                });
+                }
             }
+        }
+    }
+    
+    private class DownloadRunnable implements Runnable {
+    
+        final Channel channel;
+        final long sum1;
+        final long sum2;
+        final Checksum key;
+        final AsyncFutureImpl<URL> promise;
+
+        public DownloadRunnable(Channel channel, long sum1, long sum2, Checksum key, AsyncFutureImpl<URL> promise) {
+            this.channel = channel;
+            this.sum1 = sum1;
+            this.sum2 = sum2;
+            this.key = key;
+            this.promise = promise;
+        }
+        
+        @Override
+        public void run() {
+            try {
+                // Deduplication: There is a risk that multiple downloadables get scheduled, hence we check if
+                // the promise is actually in the queue
+                Future<URL> inprogressDownload = inprogress.get(key);
+                if (promise != inprogressDownload) {
+                    // Duplicated entry due to the race condition, do nothing
+                    return;
+                }
+                
+                URL url = retrieve(channel, sum1, sum2);
+                inprogress.remove(key);
+                promise.set(url);
+            } catch (ChannelClosedException e) {
+                // the connection was killed while we were still resolving the file
+                bailout(e);
+            } catch (RequestAbortedException e) {
+                // the connection was killed while we were still resolving the file
+                bailout(e);
+            } catch (InterruptedException e) {
+                // we are bailing out, but we need to allow another thread to retry later.
+                bailout(e);
+
+                LOGGER.log(Level.WARNING, String.format("Interrupted while resolving a jar %016x%016x", sum1, sum2), e);
+            } catch (Throwable e) {
+                // in other general failures, we aren't retrying
+                // TODO: or should we?
+                promise.set(e);
+
+                LOGGER.log(Level.WARNING, String.format("Failed to resolve a jar %016x%016x", sum1, sum2), e);
+            }
+        }
+
+        /**
+         * Report a failure of the retrieval and allows another thread to retry.
+         */
+        private void bailout(Exception e) {
+            inprogress.remove(key);     // this lets another thread to retry later
+            promise.set(e);             // then tell those who are waiting that we aborted
         }
     }
 
@@ -104,6 +147,6 @@ public abstract class JarCacheSupport extends JarCache {
         }
         return jl;
     }
-
+    
     private static final Logger LOGGER = Logger.getLogger(JarCacheSupport.class.getName());
 }
