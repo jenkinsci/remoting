@@ -56,7 +56,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.OverridingMethodsMustInvokeSuper;
 import javax.annotation.concurrent.GuardedBy;
 
-import hudson.remoting.Launcher;
 import org.jenkinsci.remoting.util.ByteBufferPool;
 import org.jenkinsci.remoting.util.DirectByteBufferPool;
 import org.kohsuke.accmod.Restricted;
@@ -93,7 +92,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      */
     private final Selector selector;
     private volatile boolean ioHubRunning = false;
-    private final Object winIoHubLockObject = new Object();
+    private final Object selectorLockObject = new Object();
 
     /**
      * Our executor.
@@ -153,10 +152,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     public static IOHub create(Executor executor) throws IOException {
         IOHub result = new IOHub(executor);
         executor.execute(result);
-        if (Launcher.isWindows()) {
-            LOGGER.log(Level.FINE, "IOHub runs on Windows. There are known issues with Selector#select() hanging, running an additional watcher thread. See JENKINS-47965 for more info");
-            executor.execute(new WindowsIOHubSelectorWatcher(result));
-        }
+        LOGGER.log(Level.FINE, "Staring an additional Selector wakeup thread. See JENKINS-47965 for more info");
+        executor.execute(new IOHubSelectorWatcher(result));
         return result;
     }
 
@@ -453,12 +450,9 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         selected = selector.selectNow();
                     } else {
                         // On Windows the select(timeout) operation ALWAYS waits for the timeout,
-                        // so we workaround it by WindowsIOHubSelectorWatcher
-                        if (Launcher.isWindows()) {
-                            selected = selector.select();
-                        } else {
-                            selected = selector.select(SELECTOR_WAKEUP_TIMEOUT_MS);
-                        }
+                        // so we workaround it by IOHubSelectorWatcher
+                        // "Ubuntu on Windows also qualifies as Windows, so we just rely on the wakeup thread ad use infinite timeout"
+                        selected = selector.select();
                     }
 
                     if (selected == 0) {
@@ -516,8 +510,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         } finally {
             selectorThread.setName(oldName);
             ioHubRunning = false;
-            synchronized (winIoHubLockObject) {
-                winIoHubLockObject.notifyAll();
+            synchronized (selectorLockObject) {
+                selectorLockObject.notifyAll();
             }
         }
     }
@@ -525,12 +519,13 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     /**
      * This is an artificial thread, which monitors IOHub Selector and wakes it up if it waits for more than 1 second.
      * It is a workaround for Selector#select(long timeout) on Windows, where the call always waits for the entire timeout before returning back.
+     * Since the same behavior happens on Unix emulation layer in Windows, we run this thread on Unix platforms as well.
      */
-    private static class WindowsIOHubSelectorWatcher implements Runnable {
+    private static class IOHubSelectorWatcher implements Runnable {
 
         private final IOHub iohub;
 
-        public WindowsIOHubSelectorWatcher(IOHub iohub) {
+        public IOHubSelectorWatcher(IOHub iohub) {
             this.iohub = iohub;
         }
 
@@ -543,9 +538,9 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             try {
                 watcherThread.setName(watcherName);
                 while (true) {
-                    synchronized (iohub.winIoHubLockObject) {
+                    synchronized (iohub.selectorLockObject) {
                         if (iohub.ioHubRunning) {
-                            iohub.winIoHubLockObject.wait(1000);
+                            iohub.selectorLockObject.wait(SELECTOR_WAKEUP_TIMEOUT_MS);
                         } else {
                             break;
                         }
