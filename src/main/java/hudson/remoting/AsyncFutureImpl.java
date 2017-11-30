@@ -89,8 +89,7 @@ public class AsyncFutureImpl<V> implements Future<V> {
                 break;
             }
 
-            long timeToWaitMs = Math.max(1, timeToWait / 1000000);
-            wait(timeToWaitMs);
+            wait(timeToWait / 1000000, (int)(timeToWait % 1000000));
         }
 
         if(!completed)
