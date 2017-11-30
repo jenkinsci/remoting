@@ -81,16 +81,16 @@ public class AsyncFutureImpl<V> implements Future<V> {
 
     @CheckForNull
     public synchronized V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        long timeoutMs = unit.toMillis(timeout);
-        // It is not very accurate, but all(proof?) production uses of this class pass seconds.
-        // Test cases pass 1 millisecond and other such fun, but wait(long) is not time-accurate anyway
-        long endWaitTime = System.currentTimeMillis() + timeoutMs;
+        // The accuracy of wait(long) operation is milliseconds anyway, but ok.
+        long endWaitTime = System.nanoTime() + unit.toNanos(timeout);
         while (!completed) {
-            long currentTime = System.currentTimeMillis();
-            if (currentTime > endWaitTime) {
+            long timeToWait = endWaitTime - System.nanoTime();
+            if (timeout < 0) {
                 break;
             }
-            wait(endWaitTime - currentTime);
+
+            long timeToWaitMs = Math.max(1, timeToWait / 1000000);
+            wait(timeToWaitMs);
         }
 
         if(!completed)
