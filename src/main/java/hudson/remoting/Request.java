@@ -117,7 +117,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
         final Throwable senderCloseCause = channel.getSenderCloseCause();
         if (senderCloseCause != null) {
             // Sender is closed, we won't be able to send anything
-            throw new ChannelClosedException(senderCloseCause);
+            throw new ChannelClosedException(channel, senderCloseCause);
         }
     }
     
@@ -364,8 +364,9 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                     } finally {
                         CURRENT.set(null);
                     }
-                    if(chainCause)
-                        rsp.createdAt.initCause(createdAt);
+                    if(chainCause) {
+                        rsp.chainCause(createdAt);
+                    }
 
                     channel.send(rsp);
                 } catch (IOException e) {

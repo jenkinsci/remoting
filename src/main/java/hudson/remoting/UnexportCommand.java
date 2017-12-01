@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import javax.annotation.CheckForNull;
+
 /**
  * {@link Command} that unexports an object.
  * @author Kohsuke Kawaguchi
@@ -30,11 +32,15 @@ package hudson.remoting;
 public class UnexportCommand extends Command {
     private final int oid;
 
-    UnexportCommand(int oid, Throwable cause) {
+    UnexportCommand(int oid, @CheckForNull Throwable cause) {
         this.oid = oid;
-        this.createdAt.initCause(cause);
+        chainCause(cause);
     }
 
+    /**
+     * @deprecated Use {@link #UnexportCommand(int, Throwable)}
+     */
+    @Deprecated
     public UnexportCommand(int oid) {
         this(oid,null);
     }

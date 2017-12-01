@@ -26,21 +26,74 @@
 
 package org.jenkinsci.remoting;
 
+import hudson.remoting.Channel;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 
 /**
  * Indicates invalid state of the channel during the operation.
+ *
+ * Exception stores the channel reference is a {@link WeakReference}, so the information may be deallocated at any moment.
+ * Former channel name can be retrieved via {@link #getChannelName()}.
+ * The reference also will not be serialized.
  *
  * @author Oleg Nenashev
  * @since TODO
  */
 public class ChannelStateException extends IOException {
 
-    public ChannelStateException(String message) {
+    @Nonnull
+    private final String channelName;
+
+    @CheckForNull
+    private final transient WeakReference<Channel> channelRef;
+
+    public ChannelStateException(@CheckForNull Channel channel, @Nonnull String message) {
         super(message);
+        channelRef = channel != null ?  new WeakReference<>(channel) : null;
+        channelName = channel != null ? channel.getName() : "unknown";
     }
 
-    public ChannelStateException(String message, Throwable cause) {
+    public ChannelStateException(@CheckForNull Channel channel, String message, @CheckForNull Throwable cause) {
         super(message, cause);
+        channelRef = channel != null ?  new WeakReference<>(channel) : null;
+        channelName = channel != null ? channel.getName() : "unknown";
+    }
+
+    @CheckForNull
+    public WeakReference<Channel> getChannelRef() {
+        return channelRef;
+    }
+
+    /**
+     * Gets channel name.
+     * @return Channel name ot {@code unknown} if it is not known.
+     */
+    @Nonnull
+    public String getChannelName() {
+        return channelName;
+    }
+
+    /**
+     * Gets channel associated with the exception.
+     *
+     * The channel reference is a {@link WeakReference}, so the information may be deallocated at any moment.
+     * Former channel name can be retrieved via {@link #getChannelName()}.
+     * The reference also will not be serialized.
+     * @return Channel reference if it is available. {@code null} otherwise.
+     */
+    @CheckForNull
+    public Channel getChannel() {
+        return channelRef != null ? channelRef.get() : null;
+    }
+
+    @Override
+    public String getMessage() {
+        Channel ch = getChannel();
+        String infoForMessage = ch != null ? ch.toString() : channelName;
+        return String.format("Channel \"%s\": %s", infoForMessage, super.getMessage());
     }
 }
