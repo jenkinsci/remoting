@@ -118,7 +118,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
         final Throwable senderCloseCause = channel.getSenderCloseCause();
         if (senderCloseCause != null) {
             // Sender is closed, we won't be able to send anything
-            throw new ChannelClosedException(senderCloseCause);
+            throw new ChannelClosedException(channel, senderCloseCause);
         }
     }
     

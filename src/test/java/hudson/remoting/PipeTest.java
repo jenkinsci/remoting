@@ -222,7 +222,12 @@ public class PipeTest extends RmiTestBase implements Serializable {
         }
 
         public Integer call() throws IOException {
-            read(pipe);
+            try {
+                read(pipe);
+            } catch(AssertionError ex) {
+                // Propagate the assetion to the remote side
+                throw new IOException("Assertion failed", ex);
+            }
             return 5;
         }
 
@@ -238,12 +243,13 @@ public class PipeTest extends RmiTestBase implements Serializable {
         os.close();
     }
 
-    private static void read(Pipe p) throws IOException {
-        InputStream in = p.getIn();
-        for( int cnt=0; cnt<256*256; cnt++ )
-            assertEquals(cnt/256,in.read());
-        assertEquals(-1,in.read());
-        in.close();
+    private static void read(Pipe p) throws IOException, AssertionError {
+        try (InputStream in = p.getIn()) {
+            for( int cnt=0; cnt<256*256; cnt++ ) {
+                assertEquals(cnt/256,in.read());
+            }
+            assertEquals(-1,in.read());
+        }
     }
 
 
