@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnegative;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -80,12 +81,12 @@ public class AsyncFutureImpl<V> implements Future<V> {
     }
 
     @CheckForNull
-    public synchronized V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public synchronized V get(@Nonnegative long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         // The accuracy of wait(long) operation is milliseconds anyway, but ok.
         long endWaitTime = System.nanoTime() + unit.toNanos(timeout);
         while (!completed) {
             long timeToWait = endWaitTime - System.nanoTime();
-            if (timeout < 0) {
+            if (timeToWait < 0) {
                 break;
             }
 
