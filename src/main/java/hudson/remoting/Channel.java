@@ -1463,17 +1463,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             throw new IllegalStateException("Channel was already closed", outClosed);
 
         while (true) {
+            // Now we wait till setProperty() notifies us (in a cycle)
             synchronized(this) {
-                // Now we wait till setProperty() notifies us (in a cycle)
-                wait(1000);
+                if (isInClosed()) {
+                    throw new IllegalStateException("Channel was already closed", inClosed);
+                } else if (isOutClosed()) {
+                    throw new IllegalStateException("Channel was already closed", outClosed);
+                } else {
+                    wait(1000);
+                }
             }
             Object v = properties.get(key);
             if (v != null) return v;
-
-            if (isInClosed())
-                throw new IllegalStateException("Channel was already closed", inClosed);
-            if (isOutClosed())
-                throw new IllegalStateException("Channel was already closed", outClosed);
         }
     }
 

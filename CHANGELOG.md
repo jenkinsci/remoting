@@ -193,6 +193,8 @@ See the [Logging page](./docs/logging.md) for more details.
 Cleanup FindBugs-reported issues in ExportTable implementation (regression in 2.40).
 * [PR #153](https://github.com/jenkinsci/remoting/pull/153) -
 Prevent `NullPointerException` in `hudson.remoting.Channel.Ref()` when creating a reference to a `null` channel.
+* [JENKINS-5374](https://issues.jenkins-ci.org/browse/JENKINS-5374) - 
+Plrevent `NullPointerException` when executing a `UserRequest` constructed with a null classloader reference.
 
 ##### 3.7
 
