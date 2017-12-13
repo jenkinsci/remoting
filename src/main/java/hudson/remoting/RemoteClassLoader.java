@@ -152,6 +152,19 @@ final class RemoteClassLoader extends URLClassLoader {
         return RemoteInvocationHandler.unwrap(underlyingProxy,channel);
     }
 
+    /**
+     * Finds and loads the class with the specified name from the URL search from the remote instance.
+     * Any URLs referring to JAR files are loaded and opened as needed
+     * until the class is found.
+     *
+     * @param name the name of the class
+     * @return the resulting class
+     * @exception ClassNotFoundException if the class could not be found or if the loader is closed.
+     * @throws UnsupportedClassVersionError The channel does not support the specified bytecode version
+     * @throws ClassFormatError Class format is incorrect
+     * @throws LinkageError Linkage error during the class loading
+     */
+    @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         try {
             // first attempt to load from locally fetched jars
@@ -340,14 +353,23 @@ final class RemoteClassLoader extends URLClassLoader {
     static Runnable TESTING_CLASS_LOAD;
     static Runnable TESTING_CLASS_REFERENCE_LOAD;
 
-    private Class<?> loadClassFile(String name, byte[] bytes) {
+    /**
+     * Loads class from the byte array.
+     * @param name Name of the class
+     * @param bytes Bytes
+     * @return Loaded class
+     * @throws UnsupportedClassVersionError The channel does not support the specified bytecode version
+     * @throws ClassFormatError Class format is incorrect
+     * @throws LinkageError Linkage error during the class loading
+     */
+    private Class<?> loadClassFile(String name, byte[] bytes) throws LinkageError {
         if (bytes.length < 8) {
             throw new ClassFormatError(name + " is <8 bytes long");
         }
         short bytecodeLevel = (short) ((bytes[6] << 8) + (bytes[7] & 0xFF) - 44);
         final Channel channel = channel();
         if (channel != null && bytecodeLevel > channel.maximumBytecodeLevel) {
-            throw new ClassFormatError("this channel is restricted to JDK 1." + channel.maximumBytecodeLevel + " compatibility but " + name + " was compiled for 1." + bytecodeLevel);
+            throw new UnsupportedClassVersionError("this channel is restricted to JDK 1." + channel.maximumBytecodeLevel + " compatibility but " + name + " was compiled for 1." + bytecodeLevel);
         }
 
         // if someone else is forcing us to load a class by giving as bytecode,
@@ -356,12 +378,15 @@ final class RemoteClassLoader extends URLClassLoader {
 
         definePackage(name);
 
+        //TODO: probably this wrapping is not required anymore
         try {
             return defineClass(name, bytes, 0, bytes.length);
+        } catch (UnsupportedClassVersionError e) {
+            throw (UnsupportedClassVersionError)new UnsupportedClassVersionError("Failed to load "+name).initCause(e);
         } catch (ClassFormatError e) {
             throw (ClassFormatError)new ClassFormatError("Failed to load "+name).initCause(e);
         } catch (LinkageError e) {
-            throw (LinkageError)new LinkageError("Failed to load "+name).initCause(e);
+            throw new LinkageError("Failed to load "+name, e);
         }
     }
 

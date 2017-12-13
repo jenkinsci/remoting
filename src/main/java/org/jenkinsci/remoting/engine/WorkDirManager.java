@@ -25,6 +25,7 @@
 
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.TeeOutputStream;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
@@ -34,8 +35,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -282,7 +285,7 @@ public class WorkDirManager {
             System.out.println("Using " + overrideLogPath + " as an agent Error log destination. 'Out' log won't be generated");
             System.out.flush(); // Just in case the channel
             System.err.flush();
-            System.setErr(new PrintStream(new TeeOutputStream(System.err, new FileOutputStream(overrideLogPath.toFile()))));
+            System.setErr(legacyCreateTeeStream(System.err, overrideLogPath));
             this.loggingInitialized = true;
         } else if (internalDirPath != null) { // New behavior
             System.out.println("Both error and output logs will be printed to " + internalDirPath);
@@ -293,13 +296,7 @@ public class WorkDirManager {
             final File internalDirFile = internalDirPath.toFile();
             createInternalDirIfRequired(internalDirFile, DirType.LOGS_DIR);
             final File logsDir = getLocation(DirType.LOGS_DIR);
-            
-            // TODO: Forward these logs? Likely no, we do not expect something to get there
-            //System.setErr(new PrintStream(new TeeOutputStream(System.err,
-            //        new FileOutputStream(new File(logsDir, "remoting.err.log")))));
-            //System.setOut(new PrintStream(new TeeOutputStream(System.out,
-            //        new FileOutputStream(new File(logsDir, "remoting.out.log")))));
-             
+
             if (configFile == null) {
                 final Logger rootLogger = Logger.getLogger("");
                 final File julLog = new File(logsDir, "remoting.log");
@@ -307,14 +304,7 @@ public class WorkDirManager {
                                          10*1024*1024, 5, false); 
                 logHandler.setFormatter(new SimpleFormatter()); 
                 logHandler.setLevel(Level.INFO); 
-                rootLogger.addHandler(logHandler); 
-                
-                // TODO: Uncomment if there is TeeOutputStream added
-                // Remove console handler since the logs are going to the file now
-                // ConsoleHandler consoleHandler = findConsoleHandler(rootLogger);
-                // if (consoleHandler != null) {
-                //    rootLogger.removeHandler(consoleHandler);
-                // }
+                rootLogger.addHandler(logHandler);
             }
 
             this.loggingInitialized = true;
@@ -324,14 +314,9 @@ public class WorkDirManager {
         }
     }
 
-    @CheckForNull
-    private static ConsoleHandler findConsoleHandler(Logger logger) {
-        for (Handler h : logger.getHandlers()) {
-            if (h instanceof ConsoleHandler) {
-                return (ConsoleHandler)h;
-            }
-        }
-        return null;
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "It is a legacy logging mode. Relying on the default is not fine, but it just behaves as it used to behave for years")
+    private PrintStream legacyCreateTeeStream(OutputStream ostream, Path destination) throws FileNotFoundException {
+        return new PrintStream(new TeeOutputStream(ostream, new FileOutputStream(destination.toFile())));
     }
     
     /**

@@ -63,7 +63,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
             // and leaks in ExportTable.
             //TODO: maybe there is a way to actually diagnose this case?
             final Thread t = Thread.currentThread();
-            throw new ChannelStateException("The calling thread " + t + " has no associated channel. "
+            throw new ChannelStateException(null, "The calling thread " + t + " has no associated channel. "
                     + "The current object " + this + " is " + SerializableOnlyOverRemoting.class +
                     ", but it is likely being serialized/deserialized without the channel");
         }
@@ -85,7 +85,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
     default Channel getOpenChannelOrFail() throws ChannelStateException {
         final Channel ch = getChannelOrFail();
         if (ch.isClosingOrClosed()) {
-            throw new ChannelClosedException("The associated channel " + ch + " is closing down or has closed down", ch.getCloseRequestCause());
+            throw new ChannelClosedException(ch, "The associated channel " + ch + " is closing down or has closed down", ch.getCloseRequestCause());
         }
         return ch;
     }
