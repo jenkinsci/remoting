@@ -26,6 +26,8 @@ package org.jenkinsci.remoting.engine;
 import hudson.remoting.Base64;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+import sun.misc.RegexpPool;
+import sun.net.NetProperties;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -56,6 +58,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -377,7 +380,30 @@ public class JnlpAgentEndpointResolver {
         while (targetAddress == null && proxies.hasNext()) {
             Proxy proxy = proxies.next();
             if (proxy.type() == Proxy.Type.DIRECT) {
-                break;
+                // Proxy.NO_PROXY with a DIRECT type is returned in two cases:
+                // - when no proxy (none) has been configured in the JVM (either with system properties or by the operating system)
+                // - when the URI host is part of the exclusion list defined by system property -Dhttp.nonProxyHosts
+                //
+                // Unfortunately, the Proxy class does not provide a way to differentiate both cases to fallback to
+                // environment variables only when no proxy has been configured. Therefore, we have to recheck if the URI
+                // host is in the exclusion list.
+                String nonProxyHosts = NetProperties.get("http.nonProxyHosts");
+                if(nonProxyHosts != null && nonProxyHosts.length() != 0) {
+                    RegexpPool exclusionsPool = new RegexpPool();
+                    StringTokenizer stringTokenizer = new StringTokenizer(nonProxyHosts, "|", false);
+                    try {
+                        while(stringTokenizer.hasMoreTokens()) {
+                            exclusionsPool.add(stringTokenizer.nextToken().toLowerCase(), Boolean.TRUE);
+                        }
+                    } catch(sun.misc.REException e) {
+                        System.err.println("Malformed exception list in http.nonProxyHosts system property: " + e.getMessage());
+                    }
+                    if(exclusionsPool.match(host.toLowerCase()) != null) {
+                        return null;
+                    } else {
+                        break;
+                    }
+                }
             }
             if (proxy.type() == Proxy.Type.HTTP) {
                 final SocketAddress address = proxy.address();
