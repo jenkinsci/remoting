@@ -56,6 +56,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -393,12 +394,12 @@ public class JnlpAgentEndpointResolver {
                     StringTokenizer stringTokenizer = new StringTokenizer(nonProxyHosts, "|", false);
                     try {
                         while(stringTokenizer.hasMoreTokens()) {
-                            exclusionsPool.add(stringTokenizer.nextToken().toLowerCase(), Boolean.TRUE);
+                            exclusionsPool.add(stringTokenizer.nextToken().toLowerCase(Locale.ENGLISH), Boolean.TRUE);
                         }
                     } catch(sun.misc.REException e) {
                         System.err.println("Malformed exception list in http.nonProxyHosts system property: " + e.getMessage());
                     }
-                    if(exclusionsPool.match(host.toLowerCase()) != null) {
+                    if(exclusionsPool.match(host.toLowerCase(Locale.ENGLISH)) != null) {
                         return null;
                     } else {
                         break;
