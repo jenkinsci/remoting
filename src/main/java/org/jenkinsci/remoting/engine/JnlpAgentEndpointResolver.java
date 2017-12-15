@@ -397,7 +397,7 @@ public class JnlpAgentEndpointResolver {
                             exclusionsPool.add(stringTokenizer.nextToken().toLowerCase(Locale.ENGLISH), Boolean.TRUE);
                         }
                     } catch(sun.misc.REException e) {
-                        System.err.println("Malformed exception list in http.nonProxyHosts system property: " + e.getMessage());
+                        LOGGER.log(Level.WARNING, "Malformed exception list in http.nonProxyHosts system property.", e);
                     }
                     if(exclusionsPool.match(host.toLowerCase(Locale.ENGLISH)) != null) {
                         return null;
@@ -409,8 +409,7 @@ public class JnlpAgentEndpointResolver {
             if (proxy.type() == Proxy.Type.HTTP) {
                 final SocketAddress address = proxy.address();
                 if (!(address instanceof InetSocketAddress)) {
-                    System.err.println(
-                            "Unsupported proxy address type " + (address != null ? address.getClass() : "null"));
+                    LOGGER.log(Level.WARNING, "Unsupported proxy address type {0}", (address != null ? address.getClass() : "null"));
                     continue;
                 }
                 InetSocketAddress proxyAddress = (InetSocketAddress) address;
@@ -426,7 +425,7 @@ public class JnlpAgentEndpointResolver {
                     URL url = new URL(httpProxy);
                     targetAddress = new InetSocketAddress(url.getHost(), url.getPort());
                 } catch (MalformedURLException e) {
-                    System.err.println("Not use http_proxy environment variable which is invalid: " + e.getMessage());
+                    LOGGER.log(Level.WARNING, "Not using http_proxy environment variable which is invalid.", e);
                 }
             }
         }
@@ -453,8 +452,7 @@ public class JnlpAgentEndpointResolver {
                 Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
                 con = url.openConnection(proxy);
             } catch (MalformedURLException e) {
-                System.err.println(
-                        "Not use http_proxy property or environment variable which is invalid: " + e.getMessage());
+                LOGGER.log(Level.WARNING, "Not using http_proxy environment variable which is invalid.", e);
                 con = url.openConnection();
             }
         } else {
@@ -472,7 +470,7 @@ public class JnlpAgentEndpointResolver {
         if (con instanceof HttpsURLConnection) {
             final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
             if (disableHttpsCertValidation) {
-                System.err.println("Warning: HTTPs certificate check is disabled for the endpoint");
+                LOGGER.log(Level.WARNING, "HTTPs certificate check is disabled for the endpoint.");
 
                 try {
                     SSLContext ctx = SSLContext.getInstance("TLS");
