@@ -622,6 +622,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          */
         public void onWrite(Channel channel, Command cmd, long blockSize) {}
 
+        /**
+         * Called when a response has been read from a channel.
+         * @param channel a channel
+         * @param req the original request
+         * @param rsp the resulting response
+         * @param totalTime the total time in nanoseconds taken to service the request
+         */
+        public void onResponse(Channel channel, Request<?, ?> req, Response<?, ?> rsp, long totalTime) {}
+
     }
 
     /**
@@ -1864,6 +1873,19 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     void notifyWrite(Command cmd, long blockSize) {
         for (Listener listener : listeners) {
             listener.onWrite(this, cmd, blockSize);
+        }
+    }
+
+    /**
+     * Notification that a {@link Response} has been received.
+     * @param req the original request
+     * @param rsp the resulting response
+     * @param totalTime the total time in nanoseconds taken to service the request
+     * @see CommandListener
+     */
+    void notifyResponse(Request<?, ?> req, Response<?, ?> rsp, long totalTime) {
+        for (Listener listener : listeners) {
+            listener.onResponse(this, req, rsp, totalTime);
         }
     }
 

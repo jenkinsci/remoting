@@ -88,7 +88,9 @@ public final class Response<RSP,EXC extends Throwable> extends Command {
         request = req;
         long startTime = req.startTime;
         if (startTime != 0) {
-            totalTime = System.nanoTime() - startTime;
+            long time = System.nanoTime() - startTime;
+            totalTime = time;
+            channel.notifyResponse(req, this, time);
         }
     }
 
