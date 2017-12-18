@@ -1255,7 +1255,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         @Override
         public String toString() {
-            return "close";
+            return "Close";
         }
 
         // this value is compatible with remoting < 2.8. I made an incompatible change in 2.8 that got corrected in 2.11.

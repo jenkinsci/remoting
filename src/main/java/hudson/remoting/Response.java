@@ -94,7 +94,7 @@ public final class Response<RSP,EXC extends Throwable> extends Command {
 
     @Override
     public String toString() {
-        return "Response:" + request + ":" + (returnValue != null ? returnValue.getClass().getName() : exception != null ? exception.getClass().getName() : null);
+        return "Response:" + request + "(" + (returnValue != null ? returnValue.getClass().getName() : exception != null ? exception.getClass().getName() : null) + ")";
     }
 
     /**

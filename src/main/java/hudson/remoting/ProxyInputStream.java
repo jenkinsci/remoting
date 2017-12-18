@@ -146,7 +146,7 @@ final class ProxyInputStream extends InputStream {
 
         @Override
         public String toString() {
-            return "ProxyInputStream.Chunk:len=" + len;
+            return "ProxyInputStream.Chunk(len=" + len + ")";
         }
 
         private static final long serialVersionUID = 1L;
