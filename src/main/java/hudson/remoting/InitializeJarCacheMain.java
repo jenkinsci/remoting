@@ -34,7 +34,7 @@ public class InitializeJarCacheMain {
     public static void main(String[] argv) throws Exception {
         if (argv.length != 2) {
             throw new IllegalArgumentException(
-                    "Usage: java -cp slave.jar hudson.remoting.InitializeJarCacheMain " +
+                    "Usage: java -cp agent.jar hudson.remoting.InitializeJarCacheMain " +
                     "<source jar dir> <jar cache dir>");
         }
 
