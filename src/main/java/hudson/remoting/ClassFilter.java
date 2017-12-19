@@ -19,7 +19,7 @@ import javax.annotation.Nonnull;
 
 /**
  * Restricts what classes can be received through remoting.
- *
+ * The same filter is also applied by Jenkins core for XStream serialization.
  * @author Kohsuke Kawaguchi
  * @since 2.53
  */
@@ -36,20 +36,40 @@ public abstract class ClassFilter {
 
     private static final Logger LOGGER = Logger.getLogger(ClassFilter.class.getName());
 
+    /**
+     * Whether a given class should be blocked, before even attempting to load that class.
+     * @param name {@link Class#getName}
+     * @return false by default; override to return true to blacklist this class
+     */
     public boolean isBlacklisted(String name) {
         return false;
     }
 
+    /**
+     * Whether a given class should be blocked, after having loaded that class.
+     * @param c a loaded class
+     * @return false by default; override to return true to blacklist this class
+     */
     public boolean isBlacklisted(Class c) {
         return false;
     }
 
+    /**
+     * API version of {@link #isBlacklisted(String)} SPI.
+     * @return the same {@code name}
+     * @throws SecurityException if it is blacklisted
+     */
 	public final String check(String name) {
 		if (isBlacklisted(name))
 			throw new SecurityException("Rejected: " +name);
 		return name;
 	}
 
+    /**
+     * API version of {@link #isBlacklisted(Class)} SPI.
+     * @return the same {@code c}
+     * @throws SecurityException if it is blacklisted
+     */
 	public final Class check(Class c) {
 		if (isBlacklisted(c))
 			throw new SecurityException("Rejected: " +c.getName());
@@ -108,6 +128,7 @@ public abstract class ClassFilter {
     /**
      * Changes the effective value of {@link #DEFAULT}.
      * @param filter a new default to set; may or may not delegate to {@link STANDARD}
+     * @since FIXME
      */
     public static void setDefault(@Nonnull ClassFilter filter) {
         CURRENT_DEFAULT = filter;
