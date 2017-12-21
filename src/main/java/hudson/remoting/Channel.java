@@ -38,6 +38,7 @@ import org.jenkinsci.remoting.nio.NioChannelHub;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
@@ -630,6 +631,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param totalTime the total time in nanoseconds taken to service the request
          */
         public void onResponse(Channel channel, Request<?, ?> req, Response<?, ?> rsp, long totalTime) {}
+
+        /**
+         * Called when a JAR file is being sent to the remote side.
+         * @param channel a channel
+         * @param jar the JAR file from which code is being loaded remotely
+         * @see Capability#supportsPrefetch
+         */
+        public void onJar(Channel channel, File jar) {}
 
     }
 
@@ -1888,6 +1897,18 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             listener.onResponse(this, req, rsp, totalTime);
         }
     }
+
+    /**
+     * Notification that a JAR file will be delivered to the remote side.
+     * @param jar the JAR file from which code is being loaded remotely
+     * @see CommandListener
+     */
+    void notifyJar(File jar) {
+        for (Listener listener : listeners) {
+            listener.onJar(this, jar);
+        }
+    }
+
 
     /**
      * Remembers the current "channel" associated for this thread.
