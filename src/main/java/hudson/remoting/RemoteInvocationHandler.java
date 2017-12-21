@@ -964,7 +964,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         @Override
         public String toString() {
-            StringBuilder b = new StringBuilder("RPCRequest:").append(declaringClassName).append('.').append(methodName).append('[');
+            StringBuilder b = new StringBuilder(getClass().getSimpleName()).append(':').append(declaringClassName).append('.').append(methodName).append('[');
             for (int i = 0; i < types.length; i++) {
                 if (i > 0) {
                     b.append(',');
@@ -994,11 +994,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         public UserRPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl) {
             super(oid, m, arguments, cl);
-        }
-
-        @Override
-        public String toString() {
-            return "UserRPCRequest("+oid+","+methodName+")";
         }
 
         // Same implementation as UserRequest
