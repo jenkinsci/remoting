@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.15
 
-Release date: Dec 21, 2017
+Release date: Dec 22, 2017
 
 Enhancements:
 
