@@ -37,6 +37,7 @@ Previous versions:
 Developer documentation:
 
 * [Contributing](CONTRIBUTING.md)
+* [Javadoc](http://javadoc.jenkins.io/component/remoting/)
 * [Channel Termination Process](docs/close.md)
 
 ### Reporting issues
