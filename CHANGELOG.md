@@ -16,7 +16,7 @@ Enhancements:
 Channel exceptions now record the channel name and other information when possible
 * [PR #210](https://github.com/jenkinsci/remoting/pull/210) - 
 Allow disabling HTTPs certificate validation of JNLP endpoint when starting Remoting
-  * **WARNING**: This option undermines the HTTPs security and opens the connection to MiTM attacks
+  * **WARNING**: This option undermines the HTTPs security and opens the connection to MiTM attacks.
     Use it at your own risk
 * [JENKINS-48055](https://issues.jenkins-ci.org/browse/JENKINS-48055) -
 API: Introduce new `getChannelOrFail()` and `getOpenChannelOrFail()` methods in
@@ -24,7 +24,7 @@ API: Introduce new `getChannelOrFail()` and `getOpenChannelOrFail()` methods in
 * [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) -
 API: `Channel#current()` now explicitly requires checking for `null`.
 * [PR #227](https://github.com/jenkinsci/remoting/pull/227) - 
-API: Deprecate and restrict the [JNLP3-connnect protocol](docs/protocols.md) codebase
+API: Deprecate and restrict the obsolete [JNLP3 protocol](docs/protocols.md) utility classes
 
 Fixed issues:
 
@@ -44,7 +44,7 @@ After the change such failure terminates only a single channel
 Throw the standard `UnsupportedClassVersionError` in `RemoteClassLoader` 
 when the bytecode is not supported.
 * [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) - 
-Cleanup all issues reported by FindBugs. Notable issues:
+Clean up all issues reported by FindBugs. Notable issues:
   * Prevent infinite hanging of `Channel#waitForProperty()` when the channel hangs in the closing state.
   * Prevent `NullPointerException`s in `Command#createdAt` handling logic and API
   * Prevent serialization of `Callable`s in `NioChannelHub` selectors (JNLP1 and JNLP2 protocols)
