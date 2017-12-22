@@ -16,7 +16,7 @@ Enhancements:
 Channel exceptions now record the channel name and other information when possible
 * [PR #210](https://github.com/jenkinsci/remoting/pull/210) - 
 Allow disabling HTTPs certificate validation of JNLP endpoint when starting Remoting
-  * **WARNING**: This option undermines the HTTPs securiyt and opens the connection to MiTM attacks
+  * **WARNING**: This option undermines the HTTPs security and opens the connection to MiTM attacks
     Use it at your own risk
 * [JENKINS-48055](https://issues.jenkins-ci.org/browse/JENKINS-48055) -
 API: Introduce new `getChannelOrFail()` and `getOpenChannelOrFail()` methods in
