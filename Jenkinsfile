@@ -42,8 +42,10 @@ for (int i = 0; i < platforms.size(); ++i) {
                     /* Archive the test results */
                     junit '**/target/surefire-reports/TEST-*.xml'
 
-                    /* Archive the build artifacts */
-                    archiveArtifacts artifacts: 'target/**/*.jar'
+                    if (label == 'linux') {
+                      archiveArtifacts artifacts: 'target/**/*.jar'
+                      findbugs pattern: '**/target/findbugsXml.xml'
+                    }
                 }
             }
         }
