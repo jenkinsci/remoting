@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.15
 
-Release date: Dec 22, 2017
+Release date: Dec 22, 2017 => Jenkins 2.98
 
 Enhancements:
 
@@ -63,7 +63,7 @@ Enforce FindBugs in the pull request builder
 
 ##### 3.14
 
-Release date: Nov 10, 2017
+Release date: Nov 10, 2017 => [Jenkins 2.90](https://jenkins.io/changelog/#v2.90)
 
 Fixed issues:
 
@@ -89,7 +89,7 @@ Jacoco does not longer run by default in the build, `jacoco` profile should be u
 Update Jacoco version to make the reports compatible with Jenkins [Jacoco Plugin](https://plugins.jenkins.io/jacoco).
 
 
-##### 3.13
+##### 3.13 => [Jenkins 2.85](https://jenkins.io/changelog/#v2.85)
 
 Release date: Oct 05, 2017
 
@@ -105,7 +105,7 @@ Fixed issues:
 When an agent is waiting for master to be ready, 
 the port was not filled in the `Master isnt ready to talk to us on {0}. Will retry again` log message.
 
-##### 3.12
+##### 3.12 => [Jenkins 2.79](https://jenkins.io/changelog/#v2.79)
 
 Release date: Sep 14, 2017 => [Jenkins 2.79](https://jenkins.io/changelog/#v2.79)
 
