@@ -6,6 +6,61 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.15
+
+Release date: Dec 22, 2017
+
+Enhancements:
+
+* [JENKINS-48133](https://issues.jenkins-ci.org/browse/JENKINS-48133) -
+Channel exceptions now record the channel name and other information when possible
+* [PR #210](https://github.com/jenkinsci/remoting/pull/210) - 
+Allow disabling HTTPs certificate validation of JNLP endpoint when starting Remoting
+  * **WARNING**: This option undermines the HTTPs security and opens the connection to MiTM attacks
+    Use it at your own risk
+* [JENKINS-48055](https://issues.jenkins-ci.org/browse/JENKINS-48055) -
+API: Introduce new `getChannelOrFail()` and `getOpenChannelOrFail()` methods in
+[hudson.remoting.Callable](http://javadoc.jenkins.io/component/remoting/hudson/remoting/Callable.html).
+* [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) -
+API: `Channel#current()` now explicitly requires checking for `null`.
+* [PR #227](https://github.com/jenkinsci/remoting/pull/227) - 
+API: Deprecate and restrict the [JNLP3-connnect protocol](docs/protocols.md) codebase
+
+Fixed issues:
+
+* [JENKINS-48309](https://issues.jenkins-ci.org/browse/JENKINS-48309) -
+Prevent timeout in `AsyncFutureImpl#get(timeout)` when a spurious thread wakeup happens 
+before the timeout expiration.
+  * The issue also impacts [FutureImpl](http://javadoc.jenkins.io/hudson/model/queue/FutureImpl.html) in the Jenkins core
+* [JENKINS-47965](https://issues.jenkins-ci.org/browse/JENKINS-47965) -
+Prevent infinite hanging of JNLP4 `IOHub` selector threads when `IOHub` does not get closed properly 
+  * Affected [protocols](docs/protocols.md): JNLP4 only
+* [JENKINS-48130](https://issues.jenkins-ci.org/browse/JENKINS-48130) -
+Prevent fatal failure of `NIOChannelHub` when an underlying executor service rejects a task execution.
+After the change such failure terminates only a single channel
+  * Affected [protocols](docs/protocols.md): JNLP, JNLP2, CLI and CLI2. JNLP4 is not affected
+  * The change also improves diagnostics of `RejectedExecutionException` in other execution services
+* [JENKINS-37670](https://issues.jenkins-ci.org/browse/JENKINS-37670) -
+Throw the standard `UnsupportedClassVersionError` in `RemoteClassLoader` 
+when the bytecode is not supported.
+* [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) - 
+Cleanup all issues reported by FindBugs. Notable issues:
+  * Prevent infinite hanging of `Channel#waitForProperty()` when the channel hangs in the closing state.
+  * Prevent `NullPointerException`s in `Command#createdAt` handling logic and API
+  * Prevent serialization of `Callable`s in `NioChannelHub` selectors (JNLP1 and JNLP2 protocols)
+* [JENKINS-46724](https://issues.jenkins-ci.org/browse/JENKINS-46724) - 
+Remove obsolete reflection calls in `RemoteClassloader` and `Launcher#checkTty()`
+* [PR #234](https://github.com/jenkinsci/remoting/pull/234) - 
+`hudson.remoting.Capability` preamble initialization cannot longer throw exceptions
+
+Build flow:
+
+* [JENKINS-38696](https://issues.jenkins-ci.org/browse/JENKINS-38696) -
+Fix Windows tests and enable them in the pull request builder
+* [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) -
+Enforce FindBugs in the pull request builder
+
+
 ##### 3.14
 
 Release date: Nov 10, 2017
