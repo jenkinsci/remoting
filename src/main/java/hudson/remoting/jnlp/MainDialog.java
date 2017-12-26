@@ -31,7 +31,7 @@ import java.awt.*;
 import javax.annotation.CheckForNull;
 
 /**
- * Main window for JNLP slave agent.
+ * Main window for JNLP agent.
  * 
  * @author Kohsuke Kawaguchi
  */
@@ -43,7 +43,7 @@ public class MainDialog extends JFrame {
     @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE",
             justification = "We allow overriding this resource. Just in case")
     public MainDialog() throws HeadlessException {
-        super("Jenkins slave agent");
+        super("Jenkins agent");
 
         ImageIcon background = new ImageIcon(getClass().getResource("title.png"));
 
@@ -93,7 +93,7 @@ public class MainDialog extends JFrame {
     }
 
     /**
-     * If the current JVM runs a {@link MainDialog} as a JNLP slave agent,
+     * If the current JVM runs a {@link MainDialog} as a JNLP agent,
      * return its reference, otherwise {@code null}.
      */
     @CheckForNull

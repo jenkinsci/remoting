@@ -128,7 +128,7 @@ public class Launcher {
     public File slaveLog = null;
 
     @Option(name="-text",usage="encode communication with the master with base64. " +
-            "Useful for running slave over 8-bit unsafe protocol like telnet")
+            "Useful for running agent over 8-bit unsafe protocol like telnet")
     public void setTextMode(boolean b) {
         mode = b?Mode.TEXT:Mode.BINARY;
         System.out.println("Running in "+mode.name().toLowerCase(Locale.ENGLISH)+" mode");
@@ -142,7 +142,7 @@ public class Launcher {
     @Option(name="-jnlpCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String slaveJnlpCredentials = null;
 
-    @Option(name="-secret", metaVar="HEX_SECRET", usage="Slave connection secret to use instead of -jnlpCredentials.")
+    @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret to use instead of -jnlpCredentials.")
     public String secret;
 
     @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
@@ -283,7 +283,7 @@ public class Launcher {
             launcher.run();
         } catch (CmdLineException e) {
             System.err.println(e.getMessage());
-            System.err.println("java -jar slave.jar [options...]");
+            System.err.println("java -jar agent.jar [options...]");
             parser.printUsage(System.err);
             System.err.println();
         }
@@ -585,9 +585,9 @@ public class Launcher {
         return r;
     }
 
-    private static Document loadDom(URL slaveJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
+    private static Document loadDom(URL agentJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-        return db.parse(is, slaveJnlpURL.toExternalForm());
+        return db.parse(is, agentJnlpURL.toExternalForm());
     }
 
     /**
@@ -701,9 +701,9 @@ public class Launcher {
             // we seem to be running from interactive console. issue a warning.
             // but since this diagnosis could be wrong, go on and do what we normally do anyway. Don't exit.
             System.out.println(
-                    "WARNING: Are you running slave agent from an interactive console?\n" +
+                    "WARNING: Are you running agent from an interactive console?\n" +
                             "If so, you are probably using it incorrectly.\n" +
-                            "See http://wiki.jenkins-ci.org/display/JENKINS/Launching+slave.jar+from+from+console");
+                            "See https://wiki.jenkins.io/display/JENKINS/Launching+agent+from+console");
         }
     }
 
@@ -801,7 +801,7 @@ public class Launcher {
     }
 
     /**
-     * Version number of Hudson this slave.jar is from.
+     * Version number of Hudson this agent.jar is from.
      */
     public static final String VERSION = computeVersion();
     

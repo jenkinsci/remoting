@@ -76,7 +76,7 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
 
 /**
- * Slave agent engine that proactively connects to Jenkins master.
+ * Agent engine that proactively connects to Jenkins master.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -122,7 +122,7 @@ public class Engine extends Thread {
     private List<X509Certificate> candidateCertificates;
 
     /**
-     * URL that points to Jenkins's tcp slave agent listener, like <tt>http://myhost/hudson/</tt>
+     * URL that points to Jenkins's tcp agent listener, like <tt>http://myhost/hudson/</tt>
      *
      * <p>
      * This value is determined from {@link #candidateUrls} after a successful connection.
@@ -672,7 +672,7 @@ public class Engine extends Thread {
     }
 
     /**
-     * Connects to TCP slave host:port, with a few retries.
+     * Connects to TCP agent host:port, with a few retries.
      * @param endpoint Connection endpoint
      * @throws IOException Connection failure or invalid parameter specification
      */
