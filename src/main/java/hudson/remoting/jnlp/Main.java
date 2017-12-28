@@ -58,7 +58,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
- * Entry point to JNLP slave agent.
+ * Entry point to JNLP agent.
  *
  * <p>
  * See also <tt>slave-agent.jnlp.jelly</tt> in the core.
@@ -179,7 +179,7 @@ public class Main {
 
     /**
      * 4 mandatory parameters.
-     * Host name (deprecated), Jenkins URL, secret key, and slave name.
+     * Host name (deprecated), Jenkins URL, secret key, and agent name.
      */
     @Argument
     public final List<String> args = new ArrayList<String>();
@@ -189,7 +189,7 @@ public class Main {
             _main(args);
         } catch (CmdLineException e) {
             System.err.println(e.getMessage());
-            System.err.println("java -jar slave.jar [options...] <secret key> <slave name>");
+            System.err.println("java -jar agent.jar [options...] <secret key> <agent name>");
             new CmdLineParser(new Main()).printUsage(System.err);
         }
     }
@@ -238,11 +238,11 @@ public class Main {
     }
 
     public Engine createEngine() {
-        String slaveName = args.get(1);
-        LOGGER.log(INFO, "Setting up slave: {0}", slaveName);
+        String agentName = args.get(1);
+        LOGGER.log(INFO, "Setting up agent: {0}", agentName);
         Engine engine = new Engine(
                 headlessMode ? new CuiListener() : new GuiListener(),
-                urls, args.get(0), slaveName);
+                urls, args.get(0), agentName);
         if(tunnel!=null)
             engine.setTunnel(tunnel);
         if(credentials!=null)
@@ -260,7 +260,7 @@ public class Main {
         engine.setDisableHttpsCertValidation(disableHttpsCertValidation);
 
         
-        // TODO: ideally logging should be initialized before the "Setting up slave" entry
+        // TODO: ideally logging should be initialized before the "Setting up agent" entry
         if (agentLog != null) {
             try {
                 engine.setAgentLog(PathUtils.fileToPath(agentLog));
