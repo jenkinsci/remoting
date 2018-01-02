@@ -8,8 +8,7 @@ properties([[$class: 'BuildDiscarderProperty',
 /* These platforms correspond to labels in ci.jenkins.io, see:
  *  https://github.com/jenkins-infra/documentation/blob/master/ci.adoc
  */
-//TODO: Enable Windows once JENKINS-38696 is fixed. No sense to spend CPU cycles before that
-List platforms = ['linux']
+List platforms = ['linux', 'windows']
 Map branches = [:]
 
 for (int i = 0; i < platforms.size(); ++i) {
@@ -43,8 +42,10 @@ for (int i = 0; i < platforms.size(); ++i) {
                     /* Archive the test results */
                     junit '**/target/surefire-reports/TEST-*.xml'
 
-                    /* Archive the build artifacts */
-                    archiveArtifacts artifacts: 'target/**/*.jar'
+                    if (label == 'linux') {
+                      archiveArtifacts artifacts: 'target/**/*.jar'
+                      findbugs pattern: '**/target/findbugsXml.xml'
+                    }
                 }
             }
         }
