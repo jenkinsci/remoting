@@ -397,6 +397,9 @@ public class JnlpAgentEndpointResolver {
                             sj.add(Pattern.quote(entry.substring(0, entry.length() - 1)) + ".*");
                         else
                             sj.add(Pattern.quote(entry));
+                        // Detect when the pattern contains multiple wildcard, which used to work previous to Java 9 (e.g. 127.*.*.*)
+                        if(entry.split("\\*").length > 2)
+                            LOGGER.log(Level.WARNING, "Using more than one wildcard is not supported in nonProxyHosts entries: {0}", entry);
                     }
                     Pattern nonProxyRegexps = Pattern.compile(sj.toString());
                     if(nonProxyRegexps.matcher(host.toLowerCase(Locale.ENGLISH)).matches()) {
