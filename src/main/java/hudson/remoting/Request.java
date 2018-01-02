@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.CancellationException;
@@ -102,6 +103,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
     @Deprecated
     /*package*/ volatile transient Future<?> lastIo;
 
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="That is why we synchronize on the class.")
     Request() {
         synchronized(Request.class) {
             id = nextId++;

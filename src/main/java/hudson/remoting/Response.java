@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
@@ -55,7 +56,9 @@ public final class Response<RSP,EXC extends Throwable> extends Command {
     final RSP returnValue;
     final EXC exception;
 
+    @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED", justification="Only supposed to be defined on one side.")
     private transient long totalTime;
+    @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED", justification="Bound after deserialization, in execute.")
     private transient Request<?, ?> request;
 
     Response(Request request, int id, int lastIoId, RSP returnValue) {
