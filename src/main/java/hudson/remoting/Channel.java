@@ -67,6 +67,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
+import org.jenkinsci.remoting.util.LoggingChannelListener;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -591,6 +592,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Callback "interface" for changes in the state of {@link Channel}.
+     * @see LoggingChannelListener
      */
     public static abstract class Listener {
         /**
