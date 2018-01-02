@@ -436,6 +436,7 @@ public class JnlpAgentEndpointResolver {
      * Gets URL connection.
      * If http_proxy environment variable exists,  the connection uses the proxy.
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
+     * FIXME: similar to hudson.remoting.Util.openURLConnection which is still used in hudson.remoting.Launcher
      */
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
                                            SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
@@ -505,6 +506,8 @@ public class JnlpAgentEndpointResolver {
      * - To match IPV4/IPV/FQDN: Regular Expressions Cookbook, 2nd Edition (ISBN: 9781449327453)
      *
      * Warning: this method won't match shortened representation of IPV6 address
+     *
+     * FIXME: duplicate of hudson.remoting.Util.inNoProxyEnvVar
      */
     static boolean inNoProxyEnvVar(String host) {
         String noProxy = System.getenv("no_proxy");
