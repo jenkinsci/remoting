@@ -26,8 +26,6 @@ package org.jenkinsci.remoting.engine;
 import hudson.remoting.Base64;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
-import sun.misc.RegexpPool;
-import sun.net.NetProperties;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -49,19 +47,10 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
@@ -383,23 +372,34 @@ public class JnlpAgentEndpointResolver {
             if (proxy.type() == Proxy.Type.DIRECT) {
                 // Proxy.NO_PROXY with a DIRECT type is returned in two cases:
                 // - when no proxy (none) has been configured in the JVM (either with system properties or by the operating system)
-                // - when the URI host is part of the exclusion list defined by system property -Dhttp.nonProxyHosts
+                // - when the host URI is part of the exclusion list defined by system property -Dhttp.nonProxyHosts
                 //
                 // Unfortunately, the Proxy class does not provide a way to differentiate both cases to fallback to
                 // environment variables only when no proxy has been configured. Therefore, we have to recheck if the URI
                 // host is in the exclusion list.
-                String nonProxyHosts = NetProperties.get("http.nonProxyHosts");
+                //
+                // Warning:
+                //      This code only supports Java 9+ implementation where nonProxyHosts entries are not interpreted as regex expressions anymore.
+                //      Wildcard at the beginning or the end of an expression are the only remaining supported behaviours (e.g. *.jenkins.io or 127.*)
+                //      https://bugs.java.com/view_bug.do?bug_id=8035158
+                //      http://hg.openjdk.java.net/jdk9/jdk9/jdk/rev/50a749f2cade
+                String nonProxyHosts = System.getProperty("http.nonProxyHosts");
                 if(nonProxyHosts != null && nonProxyHosts.length() != 0) {
-                    RegexpPool exclusionsPool = new RegexpPool();
-                    StringTokenizer stringTokenizer = new StringTokenizer(nonProxyHosts, "|", false);
-                    try {
-                        while(stringTokenizer.hasMoreTokens()) {
-                            exclusionsPool.add(stringTokenizer.nextToken().toLowerCase(Locale.ENGLISH), Boolean.TRUE);
-                        }
-                    } catch(sun.misc.REException e) {
-                        LOGGER.log(Level.WARNING, "Malformed exception list in http.nonProxyHosts system property.", e);
+                    // Build a list of regexps matching all nonProxyHosts entries
+                    StringJoiner sj = new StringJoiner("|");
+                    nonProxyHosts = nonProxyHosts.toLowerCase(Locale.ENGLISH);
+                    for(String entry : nonProxyHosts.split("\\|")) {
+                        if(entry.isEmpty())
+                            continue;
+                        else if(entry.startsWith("*"))
+                            sj.add(".*" + Pattern.quote(entry.substring(1)));
+                        else if(entry.endsWith("*"))
+                            sj.add(Pattern.quote(entry.substring(0, entry.length() - 1)) + ".*");
+                        else
+                            sj.add(Pattern.quote(entry));
                     }
-                    if(exclusionsPool.match(host.toLowerCase(Locale.ENGLISH)) != null) {
+                    Pattern nonProxyRegexps = Pattern.compile(sj.toString());
+                    if(nonProxyRegexps.matcher(host.toLowerCase(Locale.ENGLISH)).matches()) {
                         return null;
                     } else {
                         break;
