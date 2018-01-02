@@ -351,7 +351,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     @CheckForNull
     private Throwable closeRequestCause = null;
-
+    
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
      * 
@@ -593,7 +593,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Callback "interface" for changes in the state of {@link Channel}.
      */
     public static abstract class Listener {
-
         /**
          * When the channel was closed normally or abnormally due to an error.
          *
@@ -629,6 +628,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param req the original request
          * @param rsp the resulting response
          * @param totalTime the total time in nanoseconds taken to service the request
+         * @since FIXME
          */
         public void onResponse(Channel channel, Request<?, ?> req, Response<?, ?> rsp, long totalTime) {}
 
@@ -637,6 +637,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param channel a channel
          * @param jar the JAR file from which code is being loaded remotely
          * @see Capability#supportsPrefetch
+         * @since FIXME
          */
         public void onJar(Channel channel, File jar) {}
 
@@ -1869,7 +1870,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     void notifyRead(Command cmd, long blockSize) {
         for (Listener listener : listeners) {
-            listener.onRead(this, cmd, blockSize);
+            try {
+                listener.onRead(this, cmd, blockSize);
+            } catch (Throwable x) {
+                logger.log(Level.WARNING, null, x);
+            }
         }
     }
 
@@ -1881,7 +1886,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     void notifyWrite(Command cmd, long blockSize) {
         for (Listener listener : listeners) {
-            listener.onWrite(this, cmd, blockSize);
+            try {
+                listener.onWrite(this, cmd, blockSize);
+            } catch (Throwable x) {
+                logger.log(Level.WARNING, null, x);
+            }
         }
     }
 
@@ -1894,7 +1903,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     void notifyResponse(Request<?, ?> req, Response<?, ?> rsp, long totalTime) {
         for (Listener listener : listeners) {
-            listener.onResponse(this, req, rsp, totalTime);
+            try {
+                listener.onResponse(this, req, rsp, totalTime);
+            } catch (Throwable x) {
+                logger.log(Level.WARNING, null, x);
+            }
         }
     }
 
@@ -1905,7 +1918,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     void notifyJar(File jar) {
         for (Listener listener : listeners) {
-            listener.onJar(this, jar);
+            try {
+                listener.onJar(this, jar);
+            } catch (Throwable x) {
+                logger.log(Level.WARNING, null, x);
+            }
         }
     }
 

@@ -33,6 +33,7 @@ import javax.annotation.Nullable;
  *
  * @author Kohsuke Kawaguchi
  * @see Request
+ * @since FIXME
  */
 public final class Response<RSP,EXC extends Throwable> extends Command {
     /**
@@ -96,7 +97,7 @@ public final class Response<RSP,EXC extends Throwable> extends Command {
 
     @Override
     public String toString() {
-        return "Response:" + request + "(" + (returnValue != null ? returnValue.getClass().getName() : exception != null ? exception.getClass().getName() : null) + ")";
+        return "Response" + (request != null ? ":" + request : "") + "(" + (returnValue != null ? returnValue.getClass().getName() : exception != null ? exception.getClass().getName() : null) + ")";
     }
 
     /**

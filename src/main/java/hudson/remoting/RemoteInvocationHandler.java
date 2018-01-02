@@ -857,6 +857,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * Type name of declaring class.
          * Null if deserialized historically.
          */
+        @CheckForNull
         private final String declaringClassName;
 
         protected final String methodName;
