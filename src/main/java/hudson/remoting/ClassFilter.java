@@ -41,7 +41,7 @@ public abstract class ClassFilter {
      * @param name {@link Class#getName}
      * @return false by default; override to return true to blacklist this class
      */
-    public boolean isBlacklisted(String name) {
+    public boolean isBlacklisted(@Nonnull String name) {
         return false;
     }
 
@@ -50,7 +50,7 @@ public abstract class ClassFilter {
      * @param c a loaded class
      * @return false by default; override to return true to blacklist this class
      */
-    public boolean isBlacklisted(Class c) {
+    public boolean isBlacklisted(@Nonnull Class c) {
         return false;
     }
 
