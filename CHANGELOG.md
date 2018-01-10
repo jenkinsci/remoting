@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.16
 
-Release date: Jan 10, 2018
+Release date: Jan 10, 2018 => Jenkins 2.102
 
 * [PR #190](https://github.com/jenkinsci/remoting/pull/190) -
 Introduce the new `ClassFilter.setDefault` API which allows replacing the default Class Filter
