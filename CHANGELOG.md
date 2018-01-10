@@ -10,12 +10,12 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 Release date: Jan 10, 2018 => Jenkins 2.102
 
-* [PR #190](https://github.com/jenkinsci/remoting/pull/190) -
+* [PR #208](https://github.com/jenkinsci/remoting/pull/208) -
 Introduce the new `ClassFilter.setDefault` API which allows replacing the default Class Filter
   * This is a foundation work for [JEP-200](https://github.com/jenkinsci/jep/tree/master/jep/200)/[JENKINS-47736](https://issues.jenkins-ci.org/browse/JENKINS-47736), 
   which switches the default Remoting/XStream blacklist to whitelist in the Jenkins core
   * Other Remoting API users are adviced to do the same
-* [PR #190](https://github.com/jenkinsci/remoting/pull/190) -
+* [PR #208](https://github.com/jenkinsci/remoting/pull/208) -
 Update the blacklist in the default Class Filter to align it with the Jenkins core. 
 New entries:
   * `^java[.]lang[.]reflect[.]Method$`
