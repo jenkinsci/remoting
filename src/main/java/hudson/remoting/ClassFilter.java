@@ -128,7 +128,7 @@ public abstract class ClassFilter {
     /**
      * Changes the effective value of {@link #DEFAULT}.
      * @param filter a new default to set; may or may not delegate to {@link STANDARD}
-     * @since FIXME
+     * @since 3.16
      */
     public static void setDefault(@Nonnull ClassFilter filter) {
         CURRENT_DEFAULT = filter;
