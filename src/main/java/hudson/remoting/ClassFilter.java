@@ -60,8 +60,9 @@ public abstract class ClassFilter {
      * @throws SecurityException if it is blacklisted
      */
 	public final String check(String name) {
-		if (isBlacklisted(name))
-			throw new SecurityException("Rejected: " +name);
+        if (isBlacklisted(name)) {
+            throw new SecurityException("Rejected: " + name + "; see https://jenkins.io/redirect/class-filter/");
+        }
 		return name;
 	}
 
@@ -71,8 +72,9 @@ public abstract class ClassFilter {
      * @throws SecurityException if it is blacklisted
      */
 	public final Class check(Class c) {
-		if (isBlacklisted(c))
-			throw new SecurityException("Rejected: " +c.getName());
+        if (isBlacklisted(c)) {
+            throw new SecurityException("Rejected: " + c.getName() + "; see https://jenkins.io/redirect/class-filter/");
+        }
 		return c;
 	}
 

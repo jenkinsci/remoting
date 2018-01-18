@@ -47,7 +47,6 @@ import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Date;
 import java.util.Hashtable;
 import java.util.Locale;
@@ -910,13 +909,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         // re-wrap the exception so that we can capture the stack trace of the caller.
         } catch (ClassNotFoundException e) {
-            IOException x = new IOException("Remote call on "+name+" failed");
-            x.initCause(e);
-            throw x;
+            throw new IOException("Remote call on " + name + " failed", e);
         } catch (Error e) {
-            IOException x = new IOException("Remote call on "+name+" failed");
-            x.initCause(e);
-            throw x;
+            throw new IOException("Remote call on " + name + " failed", e);
+        } catch (SecurityException e) {
+            throw new IOException("Failed to deserialize response to " + request + ": " + e, e);
         } finally {
             // since this is synchronous operation, when the round trip is over
             // we assume all the exported objects are out of scope.
