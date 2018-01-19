@@ -6,6 +6,25 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.16
+
+Release date: Jan 10, 2018 => Jenkins 2.102
+
+* [PR #208](https://github.com/jenkinsci/remoting/pull/208) -
+Introduce the new `ClassFilter.setDefault` API which allows replacing the default Class Filter
+  * This is a foundation work for [JEP-200](https://github.com/jenkinsci/jep/tree/master/jep/200)/[JENKINS-47736](https://issues.jenkins-ci.org/browse/JENKINS-47736), 
+  which switches the default Remoting/XStream blacklist to whitelist in the Jenkins core
+  * Other Remoting API users are adviced to do the same
+* [PR #208](https://github.com/jenkinsci/remoting/pull/208) -
+Update the blacklist in the default Class Filter to align it with the Jenkins core. 
+New entries:
+  * `^java[.]lang[.]reflect[.]Method$`
+  * `^net[.]sf[.]json[.].*`
+  * `^java[.]security[.]SignedObject$` ([SECURITY-429 advisory](https://jenkins.io/security/advisory/2017-04-26/#cli-unauthenticated-remote-code-execution))
+* [JENKINS-48686](https://issues.jenkins-ci.org/browse/JENKINS-48686) -
+Replace the _slave_ term by _agent_ in logging, UI and Javadocs
+
+
 ##### 3.15
 
 Release date: Dec 22, 2017 => Jenkins 2.98
