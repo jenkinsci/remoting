@@ -591,6 +591,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Callback "interface" for changes in the state of {@link Channel}.
+     * @see #addListener
      * @see LoggingChannelListener
      */
     public static abstract class Listener {
@@ -609,7 +610,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param channel a channel
          * @param cmd a command
          * @param blockSize the number of bytes used to read this command
-         * @since FIXME
+         * @since 3.17
          */
         public void onRead(Channel channel, Command cmd, long blockSize) {}
 
@@ -619,7 +620,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param channel a channel
          * @param cmd a command
          * @param blockSize the number of bytes used to write this command
-         * @since FIXME
+         * @since 3.17
          */
         public void onWrite(Channel channel, Command cmd, long blockSize) {}
 
@@ -629,7 +630,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param req the original request
          * @param rsp the resulting response
          * @param totalTime the total time in nanoseconds taken to service the request
-         * @since FIXME
+         * @since 3.17
          */
         public void onResponse(Channel channel, Request<?, ?> req, Response<?, ?> rsp, long totalTime) {}
 
@@ -638,7 +639,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @param channel a channel
          * @param jar the JAR file from which code is being loaded remotely
          * @see Capability#supportsPrefetch
-         * @since FIXME
+         * @since 3.17
          */
         public void onJar(Channel channel, File jar) {}
 

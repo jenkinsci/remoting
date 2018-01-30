@@ -43,7 +43,7 @@ import javax.annotation.CheckForNull;
  * @author Kohsuke Kawaguchi
  * @see hudson.remoting.Channel.Listener#onRead
  * @see hudson.remoting.Channel.Listener#onWrite
- * @since FIXME
+ * @since 3.17
  */
 public abstract class Command implements Serializable {
     /**
