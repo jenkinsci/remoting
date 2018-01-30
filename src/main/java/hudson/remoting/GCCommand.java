@@ -34,5 +34,10 @@ class GCCommand extends Command {
         System.gc();
     }
 
+    @Override
+    public String toString() {
+        return "GC";
+    }
+
     private static final long serialVersionUID = 1L;
 }

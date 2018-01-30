@@ -51,7 +51,7 @@ public class UnexportCommand extends Command {
 
     @Override
     public String toString() {
-        return super.toString();
+        return "Unexport";
     }
 
     private static final long serialVersionUID = 1L;

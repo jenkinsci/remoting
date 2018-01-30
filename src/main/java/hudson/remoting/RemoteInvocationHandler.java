@@ -55,9 +55,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.jenkinsci.remoting.RoleChecker;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 /**
  * Sits behind a proxy object and implements the proxy logic.
  *
@@ -856,6 +853,13 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          */
         protected final int oid;
 
+        /**
+         * Type name of declaring class.
+         * Null if deserialized historically.
+         */
+        @CheckForNull
+        private final String declaringClassName;
+
         protected final String methodName;
         /**
          * Type name of the arguments to invoke. They are names because
@@ -882,6 +886,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         public RPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl) {
             this.oid = oid;
             this.arguments = arguments;
+            declaringClassName = m.getDeclaringClass().getName();
             this.methodName = m.getName();
             this.classLoader = cl;
 
@@ -960,7 +965,15 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         @Override
         public String toString() {
-            return "RPCRequest("+oid+","+methodName+")";
+            StringBuilder b = new StringBuilder(getClass().getSimpleName()).append(':').append(declaringClassName).append('.').append(methodName).append('[');
+            for (int i = 0; i < types.length; i++) {
+                if (i > 0) {
+                    b.append(',');
+                }
+                b.append(types[i]);
+            }
+            b.append("](").append(oid).append(')');
+            return b.toString();
         }
 
         private static final long serialVersionUID = 1L; 
@@ -982,11 +995,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         public UserRPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl) {
             super(oid, m, arguments, cl);
-        }
-
-        @Override
-        public String toString() {
-            return "UserRPCRequest("+oid+","+methodName+")";
         }
 
         // Same implementation as UserRequest

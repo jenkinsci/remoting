@@ -232,6 +232,11 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
             });
         }
 
+        @Override
+        public String toString() {
+            return "Pipe.Connect";
+        }
+
         static final long serialVersionUID = -9128735897846418140L;
     }
 }

@@ -23,9 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -45,8 +45,9 @@ import javax.annotation.Nullable;
  *
  * @author Kohsuke Kawaguchi
  * @see Response
+ * @since FIXME
  */
-abstract class Request<RSP extends Serializable,EXC extends Throwable> extends Command {
+public abstract class Request<RSP extends Serializable,EXC extends Throwable> extends Command {
     /**
      * Executed on a remote system to perform the task.
      *
@@ -61,7 +62,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      *      If no checked exception is supposed to be thrown, use {@link RuntimeException}.
      */
     @Nullable
-    protected abstract RSP perform(@Nonnull Channel channel) throws EXC;
+    abstract RSP perform(@Nonnull Channel channel) throws EXC;
 
     /**
      * Uniquely identifies this request.
@@ -80,10 +81,12 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
 
     private volatile Response<RSP,EXC> response;
 
+    transient long startTime;
+
     /**
      * While executing the call this is set to the handle of the execution.
      */
-    protected volatile transient Future<?> future;
+    volatile transient Future<?> future;
 
     /**
      * Set by {@link Response} to point to the I/O ID issued from the other side that this request needs to
@@ -100,7 +103,8 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
     @Deprecated
     /*package*/ volatile transient Future<?> lastIo;
 
-    protected Request() {
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="That is why we synchronize on the class.")
+    Request() {
         synchronized(Request.class) {
             id = nextId++;
         }
@@ -113,7 +117,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * @throws IOException Error with explanation if the request cannot be executed. 
      * @since 3.11
      */
-    public void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
+    void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
         final Throwable senderCloseCause = channel.getSenderCloseCause();
         if (senderCloseCause != null) {
             // Sender is closed, we won't be able to send anything
@@ -135,7 +139,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * @throws EXC
      *      If the {@link #perform(Channel)} throws an exception.
      */
-    public final RSP call(Channel channel) throws EXC, InterruptedException, IOException {
+    final RSP call(Channel channel) throws EXC, InterruptedException, IOException {
         checkIfCanBeExecutedOnChannel(channel);
         lastIoId = channel.lastIoId();
 
@@ -147,6 +151,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
                 response=null;
 
                 channel.pendingCalls.put(id,this);
+                startTime = System.nanoTime();
                 channel.send(this);
             }
         }
@@ -217,13 +222,14 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * @throws IOException
      *      If there's an error during the communication.
      */
-    public final hudson.remoting.Future<RSP> callAsync(final Channel channel) throws IOException {
+    final hudson.remoting.Future<RSP> callAsync(final Channel channel) throws IOException {
         checkIfCanBeExecutedOnChannel(channel);
         
         response=null;
         lastIoId = channel.lastIoId();
 
         channel.pendingCalls.put(id,this);
+        startTime = System.nanoTime();
         channel.send(this);
 
         return new hudson.remoting.Future<RSP>() {
@@ -326,13 +332,13 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * Aborts the processing. The calling thread will receive an exception. 
      */
     /*package*/ void abort(IOException e) {
-        onCompleted(new Response(id,0,new RequestAbortedException(e)));
+        onCompleted(new Response(this, id, 0, new RequestAbortedException(e)));
     }
 
     /**
      * Schedules the execution of this request.
      */
-    protected final void execute(final Channel channel) {
+    final void execute(final Channel channel) {
         channel.executingCalls.put(id,this);
         future = channel.executor.submit(new Runnable() {
 
@@ -357,10 +363,10 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
 
                         RSP r = Request.this.perform(channel);
                         // normal completion
-                        rsp = new Response<RSP,EXC>(id,calcLastIoId(),r);
+                        rsp = new Response<RSP, EXC>(Request.this, id, calcLastIoId(), r);
                     } catch (Throwable t) {
                         // error return
-                        rsp = new Response<RSP,Throwable>(id,calcLastIoId(),t);
+                        rsp = new Response<RSP, Throwable>(Request.this, id, calcLastIoId(), t);
                     } finally {
                         CURRENT.set(null);
                     }
@@ -394,7 +400,7 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
      * Set to true to chain {@link Command#createdAt} to track request/response relationship.
      * This will substantially increase the network traffic, but useful for debugging.
      */
-    public static boolean chainCause = Boolean.getBoolean(Request.class.getName()+".chainCause");
+    static boolean chainCause = Boolean.getBoolean(Request.class.getName()+".chainCause");
 
     /**
      * Set to the {@link Request} object during {@linkplain #perform(Channel) the execution of the call}.
@@ -426,6 +432,11 @@ abstract class Request<RSP extends Serializable,EXC extends Throwable> extends C
             if(r==null)     return; // already completed
             Future<?> f = r.future;
             if(f!=null)     f.cancel(true);
+        }
+
+        @Override
+        public String toString() {
+            return "Request.Cancel";
         }
 
         private static final long serialVersionUID = -1709992419006993208L;

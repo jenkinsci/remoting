@@ -38,22 +38,25 @@ import org.jenkinsci.remoting.nio.NioChannelHub;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.Closeable;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Vector;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -63,6 +66,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import javax.annotation.Nullable;
+import org.jenkinsci.remoting.util.LoggingChannelListener;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -209,7 +213,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Registered listeners. 
      */
-    private final Vector<Listener> listeners = new Vector<Listener>();
+    private final List<Listener> listeners = new CopyOnWriteArrayList<>();
     private int gcCounter;
 
     /**
@@ -587,6 +591,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * Callback "interface" for changes in the state of {@link Channel}.
+     * @see LoggingChannelListener
      */
     public static abstract class Listener {
         /**
@@ -598,6 +603,45 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          *      Otherwise null.
          */
         public void onClosed(Channel channel, IOException cause) {}
+
+        /**
+         * Called when a command is successfully received by a channel.
+         * @param channel a channel
+         * @param cmd a command
+         * @param blockSize the number of bytes used to read this command
+         * @since FIXME
+         */
+        public void onRead(Channel channel, Command cmd, long blockSize) {}
+
+        /**
+         * Called when a command is successfully written to a channel.
+         * See {@link #onRead} for general usage guidelines.
+         * @param channel a channel
+         * @param cmd a command
+         * @param blockSize the number of bytes used to write this command
+         * @since FIXME
+         */
+        public void onWrite(Channel channel, Command cmd, long blockSize) {}
+
+        /**
+         * Called when a response has been read from a channel.
+         * @param channel a channel
+         * @param req the original request
+         * @param rsp the resulting response
+         * @param totalTime the total time in nanoseconds taken to service the request
+         * @since FIXME
+         */
+        public void onResponse(Channel channel, Request<?, ?> req, Response<?, ?> rsp, long totalTime) {}
+
+        /**
+         * Called when a JAR file is being sent to the remote side.
+         * @param channel a channel
+         * @param jar the JAR file from which code is being loaded remotely
+         * @see Capability#supportsPrefetch
+         * @since FIXME
+         */
+        public void onJar(Channel channel, File jar) {}
+
     }
 
     /**
@@ -1006,7 +1050,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             } // JENKINS-14909: leave synch block
         } finally {
             if (e instanceof OrderlyShutdown) e = null;
-            for (Listener l : listeners.toArray(new Listener[0])) {
+            for (Listener l : listeners) {
                 try {
                     l.onClosed(this, e);
                 } catch (Throwable t) {
@@ -1229,7 +1273,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         @Override
         public String toString() {
-            return "close";
+            return "Close";
         }
 
         // this value is compatible with remoting < 2.8. I made an incompatible change in 2.8 that got corrected in 2.11.
@@ -1816,6 +1860,71 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             processedCount++;
         }
     }
+
+    /**
+     * Notification that {@link Command#readFrom} has succeeded.
+     * @param cmd the resulting command
+     * @param blockSize the serialized size of the command
+     * @see CommandListener
+     */
+    void notifyRead(Command cmd, long blockSize) {
+        for (Listener listener : listeners) {
+            try {
+                listener.onRead(this, cmd, blockSize);
+            } catch (Throwable x) {
+                logger.log(Level.WARNING, null, x);
+            }
+        }
+    }
+
+    /**
+     * Notification that {@link Command#writeTo} has succeeded.
+     * @param cmd the command passed in
+     * @param blockSize the serialized size of the command
+     * @see CommandListener
+     */
+    void notifyWrite(Command cmd, long blockSize) {
+        for (Listener listener : listeners) {
+            try {
+                listener.onWrite(this, cmd, blockSize);
+            } catch (Throwable x) {
+                logger.log(Level.WARNING, null, x);
+            }
+        }
+    }
+
+    /**
+     * Notification that a {@link Response} has been received.
+     * @param req the original request
+     * @param rsp the resulting response
+     * @param totalTime the total time in nanoseconds taken to service the request
+     * @see CommandListener
+     */
+    void notifyResponse(Request<?, ?> req, Response<?, ?> rsp, long totalTime) {
+        for (Listener listener : listeners) {
+            try {
+                listener.onResponse(this, req, rsp, totalTime);
+            } catch (Throwable x) {
+                logger.log(Level.WARNING, null, x);
+            }
+        }
+    }
+
+    /**
+     * Notification that a JAR file will be delivered to the remote side.
+     * @param jar the JAR file from which code is being loaded remotely
+     * @see CommandListener
+     */
+    void notifyJar(File jar) {
+        for (Listener listener : listeners) {
+            try {
+                listener.onJar(this, jar);
+            } catch (Throwable x) {
+                logger.log(Level.WARNING, null, x);
+            }
+        }
+    }
+
 
     /**
      * Remembers the current "channel" associated for this thread.

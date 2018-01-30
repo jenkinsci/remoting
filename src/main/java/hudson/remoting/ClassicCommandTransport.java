@@ -49,6 +49,7 @@ import java.io.StreamCorruptedException;
 
     public final void write(Command cmd, boolean last) throws IOException {
         cmd.writeTo(channel,oos);
+        // TODO notifyWrite using CountingOutputStream
         oos.flush();        // make sure the command reaches the other end.
 
         // unless this is the last command, have OOS and remote OIS forget all the objects we sent
@@ -68,6 +69,7 @@ import java.io.StreamCorruptedException;
     public final Command read() throws IOException, ClassNotFoundException {
         try {
             Command cmd = Command.readFrom(channel, ois);
+            // TODO notifyRead using CountingInputStream
             if (rawIn!=null)
                 rawIn.clear();
             return cmd;
