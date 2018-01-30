@@ -11,7 +11,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
@@ -22,11 +21,9 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.jenkinsci.remoting.RoleChecker;
 import org.jvnet.hudson.test.Issue;
-import sun.rmi.runtime.Log;
 
 /**
  * @author Kohsuke Kawaguchi
