@@ -27,7 +27,7 @@ for (int i = 0; i < platforms.size(); ++i) {
                         'PATH+JDK=$JAVA_HOME/bin',
                     ]) {
                         timeout(30) {
-                            String command = 'mvn --batch-mode clean install -Dmaven.test.failure.ignore=true -s settings-azure.xml -e'
+                            String command = "mvn --batch-mode clean install -Dmaven.test.failure.ignore=true ${infra.isRunningOnJenkinsInfra() ? '-s settings-azure.xml' : ''} -e"
                             if (isUnix()) {
                                 sh command
                             }
