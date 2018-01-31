@@ -6,6 +6,18 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.17
+
+Release date: Jan 30, 2018
+
+* [JENKINS-49027](https://issues.jenkins-ci.org/browse/JENKINS-49027) -
+Improve reporting of JEP-200 violations in Remoting serialization.
+  * More info: [Announcement Blogpost](https://jenkins.io/blog/2018/01/13/jep-200/)
+* [JENKINS-27035](https://issues.jenkins-ci.org/browse/JENKINS-27035) -
+Add read/write events to [Channel.Listener](http://javadoc.jenkins.io/component/remoting/hudson/remoting/Channel.Listener.html)
+to support collection of Request/Response statistics.
+  * More info: [Event Listeners Documentation](/docs/logging.md#event-listeners)
+
 ##### 3.16
 
 Release date: Jan 10, 2018 => Jenkins 2.102
