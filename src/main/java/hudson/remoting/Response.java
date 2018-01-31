@@ -34,7 +34,7 @@ import javax.annotation.Nullable;
  *
  * @author Kohsuke Kawaguchi
  * @see Request
- * @since FIXME
+ * @since 3.17
  */
 public final class Response<RSP,EXC extends Throwable> extends Command {
     /**

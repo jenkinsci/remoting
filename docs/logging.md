@@ -1,5 +1,6 @@
-Logging
-===
+# Logging and Diagnostics
+
+## Standard logging
 
 In Remoting logging is powered by the standard `java.util.logging` engine. 
 The default behavior depends on the [Work Directory](workDir.md) mode.
@@ -47,3 +48,12 @@ If `-agentLog` or `-slaveLog` are not specified, `${workDir}/${internalDir}/logs
   
 Particular Jenkins components use external features to provide better logging in the legacy mode.
 E.g. Windows agent services generate logs using features provided by [Windows Service Wrapper (WinSW)](https://github.com/kohsuke/winsw/).
+
+## Event listeners
+
+The `hudson.remoting.Channel.Listener` interface can be used to intercept important events programmatically.
+For example, you can be notified when a `Command` has been sent out over the channel, and obtain certain details.
+
+Normally administrators need not use this API directly.
+[Jenkins core will print events to a standard logger](https://github.com/jenkinsci/jenkins/pull/3071),
+and the [Support Core plugin will gather aggregate statistics](https://github.com/jenkinsci/support-core-plugin/pull/128).

@@ -35,7 +35,7 @@ import java.util.logging.Logger;
 
 /**
  * Channel listener which merely formats events to a logger.
- * @since FIXME
+ * @since 3.17
  */
 public class LoggingChannelListener extends Channel.Listener {
 
