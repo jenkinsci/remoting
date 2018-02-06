@@ -88,14 +88,13 @@ public class Engine extends Thread {
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
         public Thread newThread(final Runnable r) {
-            Thread t = defaultFactory.newThread(new Runnable() {
-                public void run() {
-                    CURRENT.set(Engine.this);
-                    r.run();
-                }
+            Thread thread = defaultFactory.newThread(() -> {
+                CURRENT.set(Engine.this);
+                r.run();
             });
-            t.setDaemon(true);
-            return t;
+            thread.setDaemon(true);
+            thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in thread " + t, e));
+            return thread;
         }
     });
 
