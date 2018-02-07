@@ -6,9 +6,16 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.18
+
+Release date: Coming soon
+
+* [JENKINS-49415](https://issues.jenkins-ci.org/browse/JENKINS-49415) -
+Add uncaught exception handler to the Engine's executor service 
+
 ##### 3.17
 
-Release date: Jan 30, 2018
+Release date: Jan 30, 2018 => Jenkins 2.106
 
 * [JENKINS-49027](https://issues.jenkins-ci.org/browse/JENKINS-49027) -
 Improve reporting of JEP-200 violations in Remoting serialization.
@@ -17,6 +24,8 @@ Improve reporting of JEP-200 violations in Remoting serialization.
 Add read/write events to [Channel.Listener](http://javadoc.jenkins.io/component/remoting/hudson/remoting/Channel.Listener.html)
 to support collection of Request/Response statistics.
   * More info: [Event Listeners Documentation](/docs/logging.md#event-listeners)
+* [JENKINS-45897](https://issues.jenkins-ci.org/browse/JENKINS-45897) -
+Improve string representation of `Request` types to improve log messages
 
 ##### 3.16
 
