@@ -200,10 +200,8 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
             try {
                 ObjectInputStreamEx ois = new ObjectInputStreamEx(is, channel.baseClassLoader, channel.classFilter);
                 receiver.handle(Command.readFrom(channel, ois));
-            } catch (IOException e1) {
-                LOGGER.log(Level.WARNING, "Failed to construct Command", e1);
-            } catch (ClassNotFoundException e11) {
-                LOGGER.log(Level.WARNING, "Failed to construct Command", e11);
+            } catch (IOException | ClassNotFoundException e1) {
+                LOGGER.log(Level.WARNING, "Failed to construct Command in channel " + channel.getName(), e1);
             } finally {
                 int available = is.available();
                 if (available > 0) {
