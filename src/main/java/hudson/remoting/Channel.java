@@ -1052,7 +1052,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                     reference.clear(e);
                     logger.log(Level.WARNING, "Successfully terminated channel, still need to notify listeners");
                 } catch (Throwable t) {
-                    logger.log(Level.WARNING, "Caught error while terminating channel", t);
+                    logger.log(Level.SEVERE, "Caught error while terminating channel", t);
                     throw t;
                 } finally {
                     notifyAll();
