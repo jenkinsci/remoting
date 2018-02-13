@@ -35,7 +35,7 @@ THE SOFTWARE.
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
   <!-- This is being used for diagnostics purposes.  This version of remoting should NOT be installed. -->
-  <version>3.14.1-diagnosis-donotuse-SNAPSHOT</version>
+  <version>3.14.1-diagnosis-donotuse</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -58,7 +58,7 @@ THE SOFTWARE.
     <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
     <url>https://github.com/jenkinsci/remoting</url>
-    <tag>HEAD</tag>
+    <tag>remoting-3.14.1-diagnosis-donotuse</tag>
   </scm>
 
   <properties>
