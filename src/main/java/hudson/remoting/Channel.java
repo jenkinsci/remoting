@@ -964,6 +964,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     @java.lang.SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     @SuppressWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
     public void terminate(@Nonnull IOException e) {
+        logger.log(Level.WARNING, "Attempting to terminate channel " + getName());
         
         if (e == null) {
             throw new IllegalArgumentException("Cause is null. Channel cannot be closed properly in such case");
@@ -973,7 +974,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             // Cache the cause value just in case it takes long to acquire the lock
             closeRequestCause = e;
         }
-        
+
         try {
             synchronized (this) {  
                 outClosed = inClosed = e;
@@ -987,11 +988,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                     logger.log(Level.WARNING, "Failed to close down the reader side of the transport", x);
                 }
                 try {
+                    logger.log(Level.WARNING, "Clearing pending calls in " + getName());
                     synchronized (pendingCalls) {
                         for (Request<?, ?> req : pendingCalls.values())
                             req.abort(e);
                         pendingCalls.clear();
                     }
+                    logger.log(Level.WARNING, "Clearing executing calls in " + getName());
                     synchronized (executingCalls) {
                         for (Request<?, ?> r : executingCalls.values()) {
                             java.util.concurrent.Future<?> f = r.future;
@@ -999,9 +1002,15 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                         }
                         executingCalls.clear();
                     }
+                    logger.log(Level.WARNING, "Aborting exported objects in " + getName());
                     exportedObjects.abort(e);
                     // break any object cycles into simple chains to simplify work for the garbage collector
+                    logger.log(Level.WARNING, "Clearing reference in " + getName());
                     reference.clear(e);
+                    logger.log(Level.WARNING, "Successfully terminated channel " + getName() + ", still need to notify listeners");
+                } catch (Throwable t) {
+                    logger.log(Level.SEVERE, "Caught error while terminating channel " + getName(), t);
+                    throw t;
                 } finally {
                     notifyAll();
                 }

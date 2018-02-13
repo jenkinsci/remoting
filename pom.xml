@@ -34,7 +34,8 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>3.14.1-SNAPSHOT</version>
+  <!-- This is being used for diagnostics purposes.  This version of remoting should NOT be installed. -->
+  <version>3.14.1-diagnosis-donotuse-SNAPSHOT</version>
 
   <name>Jenkins remoting layer</name>
   <description>
