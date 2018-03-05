@@ -47,17 +47,10 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
@@ -377,13 +370,49 @@ public class JnlpAgentEndpointResolver {
         while (targetAddress == null && proxies.hasNext()) {
             Proxy proxy = proxies.next();
             if (proxy.type() == Proxy.Type.DIRECT) {
-                break;
+                // Proxy.NO_PROXY with a DIRECT type is returned in two cases:
+                // - when no proxy (none) has been configured in the JVM (either with system properties or by the operating system)
+                // - when the host URI is part of the exclusion list defined by system property -Dhttp.nonProxyHosts
+                //
+                // Unfortunately, the Proxy class does not provide a way to differentiate both cases to fallback to
+                // environment variables only when no proxy has been configured. Therefore, we have to recheck if the URI
+                // host is in the exclusion list.
+                //
+                // Warning:
+                //      This code only supports Java 9+ implementation where nonProxyHosts entries are not interpreted as regex expressions anymore.
+                //      Wildcard at the beginning or the end of an expression are the only remaining supported behaviours (e.g. *.jenkins.io or 127.*)
+                //      https://bugs.java.com/view_bug.do?bug_id=8035158
+                //      http://hg.openjdk.java.net/jdk9/jdk9/jdk/rev/50a749f2cade
+                String nonProxyHosts = System.getProperty("http.nonProxyHosts");
+                if(nonProxyHosts != null && nonProxyHosts.length() != 0) {
+                    // Build a list of regexps matching all nonProxyHosts entries
+                    StringJoiner sj = new StringJoiner("|");
+                    nonProxyHosts = nonProxyHosts.toLowerCase(Locale.ENGLISH);
+                    for(String entry : nonProxyHosts.split("\\|")) {
+                        if(entry.isEmpty())
+                            continue;
+                        else if(entry.startsWith("*"))
+                            sj.add(".*" + Pattern.quote(entry.substring(1)));
+                        else if(entry.endsWith("*"))
+                            sj.add(Pattern.quote(entry.substring(0, entry.length() - 1)) + ".*");
+                        else
+                            sj.add(Pattern.quote(entry));
+                        // Detect when the pattern contains multiple wildcard, which used to work previous to Java 9 (e.g. 127.*.*.*)
+                        if(entry.split("\\*").length > 2)
+                            LOGGER.log(Level.WARNING, "Using more than one wildcard is not supported in nonProxyHosts entries: {0}", entry);
+                    }
+                    Pattern nonProxyRegexps = Pattern.compile(sj.toString());
+                    if(nonProxyRegexps.matcher(host.toLowerCase(Locale.ENGLISH)).matches()) {
+                        return null;
+                    } else {
+                        break;
+                    }
+                }
             }
             if (proxy.type() == Proxy.Type.HTTP) {
                 final SocketAddress address = proxy.address();
                 if (!(address instanceof InetSocketAddress)) {
-                    System.err.println(
-                            "Unsupported proxy address type " + (address != null ? address.getClass() : "null"));
+                    LOGGER.log(Level.WARNING, "Unsupported proxy address type {0}", (address != null ? address.getClass() : "null"));
                     continue;
                 }
                 InetSocketAddress proxyAddress = (InetSocketAddress) address;
@@ -399,7 +428,7 @@ public class JnlpAgentEndpointResolver {
                     URL url = new URL(httpProxy);
                     targetAddress = new InetSocketAddress(url.getHost(), url.getPort());
                 } catch (MalformedURLException e) {
-                    System.err.println("Not use http_proxy environment variable which is invalid: " + e.getMessage());
+                    LOGGER.log(Level.WARNING, "Not using http_proxy environment variable which is invalid.", e);
                 }
             }
         }
@@ -410,6 +439,7 @@ public class JnlpAgentEndpointResolver {
      * Gets URL connection.
      * If http_proxy environment variable exists,  the connection uses the proxy.
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
+     * FIXME: similar to hudson.remoting.Util.openURLConnection which is still used in hudson.remoting.Launcher
      */
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
                                            SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
@@ -426,8 +456,7 @@ public class JnlpAgentEndpointResolver {
                 Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
                 con = url.openConnection(proxy);
             } catch (MalformedURLException e) {
-                System.err.println(
-                        "Not use http_proxy property or environment variable which is invalid: " + e.getMessage());
+                LOGGER.log(Level.WARNING, "Not using http_proxy environment variable which is invalid.", e);
                 con = url.openConnection();
             }
         } else {
@@ -445,7 +474,7 @@ public class JnlpAgentEndpointResolver {
         if (con instanceof HttpsURLConnection) {
             final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
             if (disableHttpsCertValidation) {
-                System.err.println("Warning: HTTPs certificate check is disabled for the endpoint");
+                LOGGER.log(Level.WARNING, "HTTPs certificate check is disabled for the endpoint.");
 
                 try {
                     SSLContext ctx = SSLContext.getInstance("TLS");
@@ -480,6 +509,8 @@ public class JnlpAgentEndpointResolver {
      * - To match IPV4/IPV/FQDN: Regular Expressions Cookbook, 2nd Edition (ISBN: 9781449327453)
      *
      * Warning: this method won't match shortened representation of IPV6 address
+     *
+     * FIXME: duplicate of hudson.remoting.Util.inNoProxyEnvVar
      */
     static boolean inNoProxyEnvVar(String host) {
         String noProxy = System.getenv("no_proxy");
