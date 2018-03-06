@@ -118,7 +118,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Diagnostic information that remembers where the proxy was created.
      */
-    private final Throwable origin;
+    private final @CheckForNull Throwable origin;
 
     /**
      * Indicates that the handler operates in the user space.
@@ -127,18 +127,22 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     private final boolean userSpace;
 
+    /** @see Command#Command(boolean) */
+    private final boolean recordCreatedAt;
+
     /**
      * Creates a proxy that wraps an existing OID on the remote.
      */
-    RemoteInvocationHandler(Channel channel, int id, boolean userProxy,
+    private RemoteInvocationHandler(Channel channel, int id, boolean userProxy,
                             boolean autoUnexportByCaller, boolean userSpace,
-                            Class proxyType) {
+                            Class proxyType, boolean recordCreatedAt) {
         this.channel = channel == null ? null : channel.ref();
         this.oid = id;
         this.userProxy = userProxy;
-        this.origin = new Exception("Proxy "+toString()+" was created for "+proxyType);
+        this.origin = recordCreatedAt ? new Exception("Proxy " + toString() + " was created for " + proxyType) : null;
         this.autoUnexportByCaller = autoUnexportByCaller;
         this.userSpace = userSpace;
+        this.recordCreatedAt = recordCreatedAt;
     }
 
     /**
@@ -146,14 +150,15 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      *
      * @param userProxy If {@code true} (recommended), all commands will be wrapped into {@link UserRequest}s.
      * @param userSpace If {@code true} (recommended), the requests will be executed in a user scope
+     * @param recordCreatedAt as in {@link Command#Command(boolean)}
      */
     @Nonnull
-    static <T> T wrap(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller, boolean userSpace) {
+    static <T> T wrap(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller, boolean userSpace, boolean recordCreatedAt) {
         ClassLoader cl = type.getClassLoader();
         // if the type is a JDK-defined type, classloader should be for IReadResolve
         if(cl==null || cl==ClassLoader.getSystemClassLoader())
             cl = IReadResolve.class.getClassLoader();
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(channel, id, userProxy, autoUnexportByCaller, userSpace, type);
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(channel, id, userProxy, autoUnexportByCaller, userSpace, type, recordCreatedAt);
         if (channel != null) {
             if (!autoUnexportByCaller) {
                 UNEXPORTER.watch(handler);
@@ -270,8 +275,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         boolean async = method.isAnnotationPresent(Asynchronous.class);
         RPCRequest req = userSpace
-                ? new UserRPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null)
-                : new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null);
+                ? new UserRPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null, recordCreatedAt)
+                : new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null, recordCreatedAt);
         try {
             if(userProxy) {
                 if (async)  channelOrFail().callAsync(req);
@@ -353,7 +358,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         /**
          * The origin from where the object was created.
          */
-        private Throwable origin;
+        private @CheckForNull Throwable origin;
         /**
          * The reference to the channel on which to unexport.
          */
@@ -879,11 +884,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
         private transient ClassLoader classLoader;
 
-        public RPCRequest(int oid, Method m, Object[] arguments) {
-            this(oid,m,arguments,null);
-        }
-
-        public RPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl) {
+        private RPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl, boolean recordCreatedAt) {
+            super(recordCreatedAt);
             this.oid = oid;
             this.arguments = arguments;
             declaringClassName = m.getDeclaringClass().getName();
@@ -989,12 +991,12 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * this can be used to send a method call to user-level objects, and
      * classes for the parameters and the return value are sent remotely if needed.
      */
-    static class UserRPCRequest extends RPCRequest {
+    private static class UserRPCRequest extends RPCRequest {
 
         private static final long serialVersionUID = -9185841650347902580L;
 
-        public UserRPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl) {
-            super(oid, m, arguments, cl);
+        UserRPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl, boolean recordCreatedAt) {
+            super(oid, m, arguments, cl, recordCreatedAt);
         }
 
         // Same implementation as UserRequest

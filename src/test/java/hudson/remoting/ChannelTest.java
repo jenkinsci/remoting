@@ -287,7 +287,7 @@ public class ChannelTest extends RmiTestBase {
         @Override
         public TInterface call() throws Exception {
             // UserProxy is used only for the user space, otherwise it will be wrapped into UserRequest
-            return Channel.current().export(clazz, object, userSpace, userSpace);
+            return Channel.current().export(clazz, object, userSpace, userSpace, true);
         }
 
         @Override

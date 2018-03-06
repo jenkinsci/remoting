@@ -103,8 +103,13 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
     @Deprecated
     /*package*/ volatile transient Future<?> lastIo;
 
-    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="That is why we synchronize on the class.")
     Request() {
+        this(true);
+    }
+
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="That is why we synchronize on the class.")
+    Request(boolean recordCreatedAt) {
+        super(recordCreatedAt);
         synchronized(Request.class) {
             id = nextId++;
         }

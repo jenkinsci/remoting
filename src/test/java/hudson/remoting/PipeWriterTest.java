@@ -24,7 +24,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
     protected void setUp() throws Exception {
         super.setUp();
         // Checker operates using the user-space RMI
-        checker = channel.export(PipeWriterTestChecker.class, this, false, true);
+        checker = channel.export(PipeWriterTestChecker.class, this, false, true, true);
     }
 
     /**
