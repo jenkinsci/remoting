@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link SynchronousCommandTransport} that works with {@code byte[]} instead of command object.
@@ -42,7 +43,7 @@ public abstract class AbstractSynchronousByteArrayCommandTransport extends Synch
     @Override
     public void write(Command cmd, boolean last) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(baos);
         cmd.writeTo(channel,oos);
         oos.close();
         byte[] block = baos.toByteArray();

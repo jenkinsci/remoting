@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.CheckForNull;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * Factory for {@link Channel}, including hand-shaking between two sides
@@ -470,7 +471,7 @@ public class ChannelBuilder {
         if (cap.supportsChunking())
             return new ChunkedCommandTransport(cap, mode.wrap(fis), mode.wrap(os), os);
         else {
-            ObjectOutputStream oos = new ObjectOutputStream(mode.wrap(os));
+            ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(mode.wrap(os));
             oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
 
             return new ClassicCommandTransport(

@@ -39,6 +39,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link Request} that can take {@link Callable} whose actual implementation
@@ -245,7 +246,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
             if (channel.remoteCapability.supportsMultiClassLoaderRPC())
                 oos = new MultiClassLoaderSerializer.Output(channel,baos);
             else
-                oos = new ObjectOutputStream(baos);
+                oos = AnonymousClassWarnings.checkingObjectOutputStream(baos);
 
             oos.writeObject(o);
             return baos.toByteArray();

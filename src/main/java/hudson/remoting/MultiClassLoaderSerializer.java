@@ -17,6 +17,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link ObjectInputStream}/{@link ObjectOutputStream} pair that can handle object graph that spans across
@@ -45,6 +46,7 @@ class MultiClassLoaderSerializer {
 
         @Override
         protected void annotateClass(Class<?> c) throws IOException {
+            AnonymousClassWarnings.check(c);
             ClassLoader cl = c.getClassLoader();
             if (cl==null) {// bootstrap classloader. no need to export.
                 writeInt(TAG_SYSTEMCLASSLOADER);
