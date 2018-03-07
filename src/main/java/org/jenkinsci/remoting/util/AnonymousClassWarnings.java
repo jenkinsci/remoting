@@ -39,7 +39,7 @@ import javax.annotation.Nonnull;
 
 /**
  * Issues warnings about attempts to (de-)serialize anonymous, local, or synthetic classes.
- * @see <a href="JENKINS-49994">https://issues.jenkins-ci.org/browse/JENKINS-49994</a>
+ * @see <a href="https://jenkins.io/redirect/serialization-of-anonymous-classes/">More information</a>
  */
 public class AnonymousClassWarnings {
 
@@ -89,11 +89,10 @@ public class AnonymousClassWarnings {
         }
         if (doWarn) {
             if (codeSource == null) {
-                // TODO create jenkins.io/redirect
-                LOGGER.warning("JENKINS-49795: attempt to (de-)serialize " + kind + " class " + name);
+                LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
             } else {
                 // most easily tracked back to source using javap -classpath <location> -l '<name>'
-                LOGGER.warning("JENKINS-49795: attempt to (de-)serialize " + kind + " class " + name + " in " + codeSource);
+                LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name + " in " + codeSource + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
             }
         }
     }
