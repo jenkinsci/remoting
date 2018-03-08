@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.ByteBufferQueueOutputStream;
 import org.jenkinsci.remoting.util.FastByteBufferQueueInputStream;
@@ -283,7 +284,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     @Override
     public final void write(Command cmd, boolean last) throws IOException {
         ByteBufferQueueOutputStream bqos = new ByteBufferQueueOutputStream(sendStaging);
-        ObjectOutputStream oos = new ObjectOutputStream(bqos);
+        ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(bqos);
         try {
             cmd.writeTo(channel, oos);
         } finally {

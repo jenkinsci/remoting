@@ -7,6 +7,7 @@ import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link CommandTransport} that works with {@code byte[]} instead of command object.
@@ -77,7 +78,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
     @Override
     public final void write(Command cmd, boolean last) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(baos);
         cmd.writeTo(channel,oos);
         oos.close();
         byte[] block = baos.toByteArray();

@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * Represents additional features implemented on {@link Channel}.
@@ -122,6 +123,11 @@ public final class Capability implements Serializable {
                 flush();
                 // TODO: Cannot invoke the private clear() method, but GC well do it for us. Not worse than the original solution
                 // Here the code does not close the proxied stream OS on completion
+            }
+            @Override
+            protected void annotateClass(Class<?> c) throws IOException {
+                AnonymousClassWarnings.check(c);
+                super.annotateClass(c);
             }
         }) {
             oos.writeObject(this);

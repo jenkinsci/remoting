@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 import org.jenkinsci.remoting.protocol.ApplicationLayer;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
 import org.jenkinsci.remoting.util.SettableFuture;
 import org.jenkinsci.remoting.util.ThrowableUtils;
@@ -219,7 +220,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
     public void start() throws IOException {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(BinarySafeStream.wrap(bos));
+            ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos));
             try {
                 oos.writeObject(new Capability());
             } finally {

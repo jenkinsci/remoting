@@ -140,7 +140,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     private final String name;
     private volatile boolean remoteClassLoadingAllowed, arbitraryCallableAllowed;
     /*package*/ final CallableDecoratorList decorators = new CallableDecoratorList();
-    /*package*/ final ExecutorService executor;
+    @Restricted(NoExternalUse.class)
+    public final ExecutorService executor;
 
     /**
      * If non-null, the incoming link is already shut down,

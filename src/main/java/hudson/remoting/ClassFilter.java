@@ -16,6 +16,7 @@ import java.util.regex.PatternSyntaxException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * Restricts what classes can be received through remoting.
@@ -292,6 +293,12 @@ public abstract class ClassFilter {
                     return true;
                 }
             }
+            return false;
+        }
+
+        @Override
+        public boolean isBlacklisted(Class c) {
+            AnonymousClassWarnings.check(c);
             return false;
         }
 
