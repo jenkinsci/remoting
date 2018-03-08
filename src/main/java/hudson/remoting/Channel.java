@@ -538,7 +538,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         if(internalExport(IChannel.class, this, false)!=1)
             throw new AssertionError(); // export number 1 is reserved for the channel itself
-        remoteChannel = RemoteInvocationHandler.wrap(this,1,IChannel.class,true,false,false);
+        remoteChannel = RemoteInvocationHandler.wrap(this, 1, IChannel.class, true, false, false, true);
 
         this.remoteCapability = transport.getRemoteCapability();
         this.pipeWriter = new PipeWriter(createPipeWriterExecutor());
@@ -728,7 +728,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     @Override
     public <T> T export(Class<T> type, T instance) {
-        return export(type, instance, true, true);
+        return export(type, instance, true, true, true);
     }
 
     /**
@@ -741,11 +741,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      used by {@link RemoteClassLoader}.
      *
      *      To create proxies for objects inside remoting, pass in false. 
+     * @param recordCreatedAt as in {@link Command#Command(boolean)}
      * @return Reference to the exported instance wrapped by {@link RemoteInvocationHandler}. 
      *      {@code null} if the input instance is {@code null}.     
      */
     @Nullable
-    /*package*/ <T> T export(Class<T> type, @CheckForNull T instance, boolean userProxy, boolean userScope) {
+    /*package*/ <T> T export(Class<T> type, @CheckForNull T instance, boolean userProxy, boolean userScope, boolean recordCreatedAt) {
         if(instance==null) {
             return null;
         }
@@ -764,7 +765,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         // either local side will auto-unexport, or the remote side will unexport when it's GC-ed
         boolean autoUnexportByCaller = exportedObjects.isRecording();
         final int id = internalExport(type, instance, autoUnexportByCaller);
-        return RemoteInvocationHandler.wrap(null, id, type, userProxy, autoUnexportByCaller, userScope);
+        return RemoteInvocationHandler.wrap(null, id, type, userProxy, autoUnexportByCaller, userScope, recordCreatedAt);
     }
 
     /*package*/ <T> int internalExport(Class<T> clazz, T instance) {
