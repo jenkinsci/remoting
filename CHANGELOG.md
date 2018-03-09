@@ -18,6 +18,8 @@ Log channel name in StreamCorruptedExceptions
 Give precedence to proxy exclusion list system property over environmental vars.
 * [JENKINS-49994](https://issues.jenkins-ci.org/browse/JENKINS-49994) -
 Add infrastructure for warning about remoting serialization of anonymous inner classes.
+* [PR #258](https://github.com/jenkinsci/remoting/pull/258) -
+Disable `recordCreateAt` from `RemoteClassLoader`
 
 ##### 3.17
 
