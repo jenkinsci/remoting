@@ -232,6 +232,7 @@ public class Engine extends Thread {
      *               This method can be used for testing startup logic.
      */
     /*package*/ void startEngine(boolean dryRun) throws IOException {
+        LOGGER.log(Level.INFO, "Using Remoting version: {0}", Launcher.VERSION);
         @CheckForNull File jarCacheDirectory = null;
         
         // Prepare the working directory if required
