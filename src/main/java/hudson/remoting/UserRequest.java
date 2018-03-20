@@ -354,6 +354,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                 if (t == null) {
                     t = (Throwable) deserialize(channel, proxyResponse, cl);
                 }
+                channel.attachCallSiteStackTrace(t);
                 throw (EXC) t;
             } finally {
                 Channel.setCurrent(old);
