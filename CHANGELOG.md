@@ -8,7 +8,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.18
 
-Release date: Mar 9, 2018
+Release date: Mar 9, 2018 => Jenkins 2.112
 
 * [JENKINS-49415](https://issues.jenkins-ci.org/browse/JENKINS-49415) -
 Add uncaught exception handler to the Engine's executor service 
