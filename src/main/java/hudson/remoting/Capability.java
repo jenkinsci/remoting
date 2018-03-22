@@ -36,7 +36,7 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_PREFETCH|GREEDY_REMOTE_INPUTSTREAM| MASK_PROXY_WRITER_2_35|MASK_CHUNKED_ENCODING);
+        this(MASK_MULTI_CLASSLOADER | MASK_PIPE_THROTTLING | MASK_MIMIC_EXCEPTION | MASK_PREFETCH | GREEDY_REMOTE_INPUTSTREAM | MASK_PROXY_WRITER_2_35 | MASK_CHUNKED_ENCODING | PROXY_EXCEPTION_FALLBACK);
     }
 
     /**
@@ -109,6 +109,15 @@ public final class Capability implements Serializable {
      */
     public boolean supportsProxyWriter2_35() {
         return (mask & MASK_PROXY_WRITER_2_35) != 0;
+    }
+
+    /**
+     * Supports {@link ProxyException} as a fallback when failing to deserialize {@link UserRequest} exceptions.
+     * @since 3.19
+     * @see <a href="https://issues.jenkins-ci.org/browse/JENKINS-50237">JENKINS-50237</a>
+     */
+    public boolean supportsProxyExceptionFallback() {
+        return (mask & PROXY_EXCEPTION_FALLBACK) != 0;
     }
 
     //TODO: ideally preamble handling needs to be reworked in order to avoid FB suppression
@@ -233,6 +242,8 @@ public final class Capability implements Serializable {
      */
     private static final long MASK_CHUNKED_ENCODING = 1L << 7;
 
+    private static final long PROXY_EXCEPTION_FALLBACK = 1L << 8;
+
     static final byte[] PREAMBLE = "<===[JENKINS REMOTING CAPACITY]===>".getBytes(StandardCharsets.UTF_8);
 
     public static final Capability NONE = new Capability(0);
@@ -295,6 +306,14 @@ public final class Capability implements Serializable {
                 sb.append(", ");
             }
             sb.append("Chunked encoding");
+        }
+        if ((mask & PROXY_EXCEPTION_FALLBACK) != 0) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append("ProxyException fallback");
         }
         sb.append('}');
         return sb.toString();

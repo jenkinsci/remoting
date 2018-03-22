@@ -51,7 +51,7 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  *
  * @author Kohsuke Kawaguchi
  */
-final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<RSP,EXC>,EXC> {
+final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.ResponseToUserRequest<RSP,EXC>,EXC> {
 
     private static final Logger LOGGER = Logger.getLogger(UserRequest.class.getName());
 
@@ -147,7 +147,8 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
     }
 
     private static boolean workaroundDone = false;
-    protected UserResponse<RSP,EXC> perform(Channel channel) throws EXC {
+    @Override
+    protected ResponseToUserRequest<RSP,EXC> perform(Channel channel) throws EXC {
         try {
             ClassLoader cl = channel.importedClassLoaders.get(classLoaderProxy);
 
@@ -219,10 +220,22 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
                 Channel.setCurrent(oldc);
             }
 
-            return new UserResponse<RSP,EXC>(serialize(r,channel),false);
+            byte[] response = serialize(r,channel);
+            return channel.remoteCapability.supportsProxyExceptionFallback() ? new NormalResponse<>(response) : new UserResponse<>(response,false);
         } catch (Throwable e) {
             // propagate this to the calling process
             try {
+                if (channel.remoteCapability.supportsProxyExceptionFallback()) {
+                    byte[] rawResponse = null;
+                    try {
+                        rawResponse = _serialize(e, channel);
+                    } catch (NotSerializableException x) {
+                        // OK
+                    }
+                    byte[] proxyResponse = serialize(new ProxyException(e), channel);
+                    return new ExceptionResponse<>(rawResponse, proxyResponse);
+                }
+                // Remote side is old, so need to use less robust variant:
                 byte[] response;
                 try {
                     response = _serialize(e, channel);
@@ -291,9 +304,71 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserResponse<
     }
 
     private static final long serialVersionUID = 1L;
+
+    interface ResponseToUserRequest<RSP,EXC extends Throwable> extends Serializable {
+        /**
+         * Deserializes the response byte stream into an object.
+         */
+        RSP retrieve(Channel channel, ClassLoader cl) throws IOException, ClassNotFoundException, EXC;
+    }
+
+    private static final class NormalResponse<RSP, EXC extends Throwable> implements ResponseToUserRequest<RSP, EXC> {
+        private static final long serialVersionUID = 1L;
+        private final byte[] response;
+        NormalResponse(byte[] response) {
+            this.response = response;
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public RSP retrieve(Channel channel, ClassLoader cl) throws IOException, ClassNotFoundException, EXC {
+            Channel old = Channel.setCurrent(channel);
+            try {
+                return (RSP) deserialize(channel, response, cl);
+            } finally {
+                Channel.setCurrent(old);
+            }
+        }
+    }
+
+    private static final class ExceptionResponse<RSP, EXC extends Throwable> implements ResponseToUserRequest<RSP, EXC> {
+        private static final long serialVersionUID = 1L;
+        private @CheckForNull final byte[] rawResponse;
+        private final byte[] proxyResponse;
+        ExceptionResponse(@CheckForNull byte[] rawResponse, byte[] proxyResponse) {
+            this.rawResponse = rawResponse;
+            this.proxyResponse = proxyResponse;
+        }
+        @SuppressWarnings("unchecked")
+        @Override
+        public RSP retrieve(Channel channel, ClassLoader cl) throws IOException, ClassNotFoundException, EXC {
+            Channel old = Channel.setCurrent(channel);
+            try {
+                Throwable t = null;
+                if (rawResponse != null) {
+                    try {
+                        t = (Throwable) deserialize(channel, rawResponse, cl);
+                    } catch (Exception x) {
+                        LOGGER.log(Level.FINE, "could not deserialize exception response", x);
+                    }
+                }
+                if (t == null) {
+                    t = (Throwable) deserialize(channel, proxyResponse, cl);
+                }
+                channel.attachCallSiteStackTrace(t);
+                throw (EXC) t;
+            } finally {
+                Channel.setCurrent(old);
+            }
+        }
+    }
+
 }
 
-final class UserResponse<RSP,EXC extends Throwable> implements Serializable {
+/**
+ * @deprecated Used only when we lack {@link Capability#supportsProxyExceptionFallback}.
+ */
+@Deprecated
+final class UserResponse<RSP,EXC extends Throwable> implements UserRequest.ResponseToUserRequest<RSP, EXC> {
     private final byte[] response;
     private final boolean isException;
 

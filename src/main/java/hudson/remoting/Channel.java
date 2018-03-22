@@ -951,7 +951,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         UserRequest<V,T> request=null;
         try {
             request = new UserRequest<V, T>(this, callable);
-            UserResponse<V,T> r = request.call(this);
+            UserRequest.ResponseToUserRequest<V, T> r = request.call(this);
             return r.retrieve(this, UserRequest.getClassLoader(callable));
 
         // re-wrap the exception so that we can capture the stack trace of the caller.
@@ -982,9 +982,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                     + "The channel is closing down or has closed down", getCloseRequestCause());
         }
         
-        final Future<UserResponse<V,T>> f = new UserRequest<V,T>(this, callable).callAsync(this);
-        return new FutureAdapter<V,UserResponse<V,T>>(f) {
-            protected V adapt(UserResponse<V,T> r) throws ExecutionException {
+        final Future<UserRequest.ResponseToUserRequest<V, T>> f = new UserRequest<V, T>(this, callable).callAsync(this);
+        return new FutureAdapter<V, UserRequest.ResponseToUserRequest<V, T>>(f) {
+            @Override
+            protected V adapt(UserRequest.ResponseToUserRequest<V, T> r) throws ExecutionException {
                 try {
                     return r.retrieve(Channel.this, UserRequest.getClassLoader(callable));
                 } catch (Throwable t) {// really means catch(T t)
