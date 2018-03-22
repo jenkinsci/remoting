@@ -6,6 +6,18 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.19
+
+Release date: Mar 22, 2018
+
+* [JENKINS-49618](https://issues.jenkins-ci.org/browse/JENKINS-49618) -
+Display Remoting version in the agent log when starting up the agent
+* [JENKINS-50237](https://issues.jenkins-ci.org/browse/JENKINS-50237) -
+Include a ProxyException to responses when returning an exception to a `UserRequest`s.
+  * This allows returning the exception details even if Jenkins 2.102+ refuses to deserialize the original exception
+    due to the whitelist violation
+  * More info: [JEP-200 announcement](https://jenkins.io/blog/2018/03/15/jep-200-lts/)
+
 ##### 3.18
 
 Release date: Mar 9, 2018 => Jenkins 2.112
