@@ -3,7 +3,7 @@ bundle:
   artifactId: "jenkins-remoting-it"
   vendor: "Jenkins project"
   title: "Remoting Integration Tests WAR"
-  description: "Just a Jenkins WAR, which includes all latest libs from master branches"
+  description: "Jenkins WAR, which bundles local Remoting build and plugin for PCT"
 war:
   groupId: "org.jenkins-ci.main"
   artifactId: "jenkins-war"
@@ -31,6 +31,7 @@ plugins:
     source:
       version: "1.12"
 libPatches:
+  # Override Remoting by a locally built version
   - groupId: "org.jenkins-ci.main"
     artifactId: "remoting"
     source:
