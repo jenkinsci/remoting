@@ -70,7 +70,9 @@ node("docker && highmem") {
                 mavenOptions << "-Dcustom-war-packager.mvnSettingsFile=${mvnSettingsFile}"
             }
 
-            infra.runMaven(mavenOptions)
+            timeout(30) {
+                infra.runMaven(mavenOptions)
+            }
             archiveArtifacts artifacts: outputWARpattern
 
             // Pass variables for the next steps
