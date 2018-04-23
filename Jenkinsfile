@@ -7,6 +7,11 @@ properties([[$class: 'BuildDiscarderProperty',
                 strategy: [$class: 'LogRotator', numToKeepStr: '10']]])
 
 node("docker && highmem") {
+    // TODO: this VM is not a single-shot one, we need to wipe it on our own
+    stage("Cleanup workspace") {
+        deleteDir()
+    }
+
     stage("Checkout") {
         infra.checkout()
     }
