@@ -8,9 +8,7 @@ properties([[$class: 'BuildDiscarderProperty',
 
 node("docker && highmem") {
     // TODO: this VM is not a single-shot one, we need to wipe it on our own
-    stage("Cleanup workspace") {
-        deleteDir()
-    }
+  dir(env.BUILD_NUMBER)
 
     stage("Checkout") {
         infra.checkout()
@@ -60,4 +58,5 @@ node("docker && highmem") {
                pctUrl: "docker://jenkins/pct:pr74",
                javaOptions: ["-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"]
     }
+  }  
 }
