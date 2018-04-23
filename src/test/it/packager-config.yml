@@ -26,6 +26,10 @@ plugins:
     artifactId: "credentials"
     source:
       version: "2.1.16"
+  - groupId: "org.jenkins-ci.plugins"
+    artifactId: "ssh-credentials"
+    source:
+      version: "1.12"
 libPatches:
   - groupId: "org.jenkins-ci.main"
     artifactId: "remoting"
