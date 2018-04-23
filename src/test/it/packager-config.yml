@@ -22,6 +22,10 @@ plugins:
     artifactId: "windows-slaves"
     source:
       version: "1.3.1"
+  - groupId: "org.jenkins-ci.plugins"
+    artifactId: "credentials"
+    source:
+      version: "2.1.16"
 libPatches:
   - groupId: "org.jenkins-ci.main"
     artifactId: "remoting"
