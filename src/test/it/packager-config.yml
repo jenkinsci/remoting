@@ -30,5 +30,4 @@ libPatches:
   - groupId: "org.jenkins-ci.main"
     artifactId: "remoting"
     source:
-      git: https://github.com/jenkinsci/remoting.git
-
+      dir: ../../..

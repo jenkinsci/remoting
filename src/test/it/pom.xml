@@ -62,7 +62,7 @@
       <plugin>
         <groupId>io.jenkins.tools.custom-war-packager</groupId>
         <artifactId>custom-war-packager-maven-plugin</artifactId>
-        <version>0.1-alpha-4-20180421.080907-4</version>
+        <version>0.1-alpha-4-20180423.085628-5</version>
         <executions>
           <execution>
             <phase>package</phase>
