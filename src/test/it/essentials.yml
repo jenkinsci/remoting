@@ -1,7 +1,7 @@
 ---
 ath:
   useLocalSnapshots: false
-  athRevision: "06caf67d37d945ec5228a80d73714fac692c28d3"
+  athRevision: "dad333092159cb368efc2f9869572f0a05d255ac"
   tests:
     - "plugins.SshSlavesPluginTest"
     - "core.SlaveTest"
