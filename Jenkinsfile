@@ -11,25 +11,24 @@ properties([[$class: 'BuildDiscarderProperty',
  */
 List platforms = ['linux', 'windows']
 Map branches = [:]
-    for (int i = 0; i < platforms.size(); ++i) {
-        String label = platforms[i]
-        branches[label] = {
-            node(label) {
-                timestamps {
-                    checkout scm
-                    infra.runMaven(["--batch-mode", "clean", "install", "-Dmaven.test.failure.ignore=true"])
+for (int i = 0; i < platforms.size(); ++i) {
+    String label = platforms[i]
+    branches[label] = {
+        node(label) {
+            timestamps {
+                checkout scm
+                infra.runMaven(["--batch-mode", "clean", "install", "-Dmaven.test.failure.ignore=true"])
 
-                    /* Archive the test results */
-                    try {
-                      junit '**/target/surefire-reports/TEST-*.xml'
-                    } catch(Exception ex) {
-                      echo "Ignoring JUnit step failure: ${ex.message}"
-                    }
+                /* Archive the test results */
+                try {
+                  junit '**/target/surefire-reports/TEST-*.xml'
+                } catch(Exception ex) {
+                  echo "Ignoring JUnit step failure: ${ex.message}"
+                }
 
-                    if (label == 'linux') {
-                      archiveArtifacts artifacts: 'target/**/*.jar'
-                      findbugs pattern: '**/target/findbugsXml.xml'
-                    }
+                if (label == 'linux') {
+                  archiveArtifacts artifacts: 'target/**/*.jar'
+                  findbugs pattern: '**/target/findbugsXml.xml'
                 }
             }
         }
