@@ -1,0 +1,19 @@
+---
+ath:
+  useLocalSnapshots: false
+  athRevision: "06caf67d37d945ec5228a80d73714fac692c28d3"
+  tests:
+    - "plugins.SshSlavesPluginTest"
+    - "core.SlaveTest"
+  categories:
+    - "org.jenkinsci.test.acceptance.junit.SmokeTest"
+pct:
+  useLocalSnapshots: false
+  jth:
+    version: 2.38
+    passCustomJenkinsWAR: true
+  plugins:
+    - "ssh-slaves"
+    - "command-launcher"
+    - "windows-slaves"
+    # TODO: JTH/PCT does not work reliably against non-bundled plugins (if something else is bundled) - "compress-artifacts"

@@ -1,0 +1,93 @@
+<!--
+  ~
+  ~ The MIT License
+  ~
+  ~ Copyright (c) 2017 CloudBees, Inc.
+  ~
+  ~ Permission is hereby granted, free of charge, to any person obtaining a copy
+  ~ of this software and associated documentation files (the "Software"), to deal
+  ~ in the Software without restriction, including without limitation the rights
+  ~ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  ~ copies of the Software, and to permit persons to whom the Software is
+  ~ furnished to do so, subject to the following conditions:
+  ~
+  ~  The above copyright notice and this permission notice shall be included in
+  ~  all copies or substantial portions of the Software.
+  ~
+  ~  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  ~  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  ~  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  ~  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  ~  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  ~  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+  ~  THE SOFTWARE.
+  ~
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>io.jenkins.tools.custom-war-packager.demo</groupId>
+  <artifactId>remoting-it</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <packaging>pom</packaging>
+
+  <properties>
+    <custom-war-packager.mvnSettingsFile></custom-war-packager.mvnSettingsFile>
+    <custom-war-packager.batchMode>false</custom-war-packager.batchMode>
+    <custom-war-packager.deploySnapshots>true</custom-war-packager.deploySnapshots>
+    <custom-war-packager.deploySnapshotsRepositoryId>cloudbees-internal-snapshots</custom-war-packager.deploySnapshotsRepositoryId>
+  </properties>
+
+  <build>
+    <plugins>
+      <!-- TODO: ensures that the maven-dependency-plugin is available before we start the build -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.0.2</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <configuration>
+              <artifact>io.jenkins.tools.custom-war-packager:custom-war-packager-maven-plugin:0.1-alpha-3</artifact>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Build -->
+      <plugin>
+        <groupId>io.jenkins.tools.custom-war-packager</groupId>
+        <artifactId>custom-war-packager-maven-plugin</artifactId>
+        <version>0.1-alpha-4-20180421.080907-4</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>custom-war</goal>
+            </goals>
+            <configuration>
+              <configFilePath>packager-config.yml</configFilePath>
+              <warVersion>1.0-remoting-it-SNAPSHOT</warVersion>
+              <mvnSettingsFile>${custom-war-packager.mvnSettingsFile}</mvnSettingsFile>
+              <batchMode>${custom-war-packager.batchMode}</batchMode>
+              <deploySnapshots>${custom-war-packager.deploySnapshots}</deploySnapshots>
+              <deploySnapshotsRepositoryId>${custom-war-packager.deploySnapshotsRepositoryId}</deploySnapshotsRepositoryId>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
+
+</project>
