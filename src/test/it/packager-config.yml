@@ -1,6 +1,6 @@
 bundle:
   groupId: "io.jenkins.tools.war-packager.demo"
-  artifactId: "jenkins-all-latest"
+  artifactId: "jenkins-remoting-it"
   vendor: "Jenkins project"
   title: "Remoting Integration Tests WAR"
   description: "Just a Jenkins WAR, which includes all latest libs from master branches"

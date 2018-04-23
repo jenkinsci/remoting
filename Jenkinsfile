@@ -18,7 +18,7 @@ node("docker && highmem") {
 
     dir("src/test/it") {
         // TODO: convert to a library method
-        def outputWARpattern = "target/custom-war-packager-maven-plugin/output/target/jenkins-war-1.0-remoting-it-SNAPSHOT.war"
+        def outputWARpattern = "target/custom-war-packager-maven-plugin/output/target/jenkins-remoting-it-1.0-remoting-it-SNAPSHOT.war"
         stage("Build Custom WAR") {
             List<String> mavenOptions = [
                 '--batch-mode', '--errors',
