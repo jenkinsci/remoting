@@ -11,21 +11,14 @@ properties([[$class: 'BuildDiscarderProperty',
  */
 List platforms = ['linux', 'windows']
 Map branches = [:]
-
-for (int i = 0; i < platforms.size(); ++i) {
-    String label = platforms[i]
-    branches[label] = {
-        node(label) {
-            timestamps {
-                stage('Checkout') {
+    for (int i = 0; i < platforms.size(); ++i) {
+        String label = platforms[i]
+        branches[label] = {
+            node(label) {
+                timestamps {
                     checkout scm
-                }
-
-                stage('Build') {
                     infra.runMaven(["--batch-mode", "clean", "install", "-Dmaven.test.failure.ignore=true"])
-                }
 
-                stage('Archive') {
                     /* Archive the test results */
                     try {
                       junit '**/target/surefire-reports/TEST-*.xml'
@@ -43,14 +36,16 @@ for (int i = 0; i < platforms.size(); ++i) {
     }
 }
 
-/* Execute our platforms in parallel */
-parallel(branches)
+stage("Build Remoting") {
+    /* Execute our platforms in parallel */
+    parallel(branches)
+}
 
 node("docker && highmem") {
     // TODO: this VM is not a single-shot one, we need to wipe it on our own
   dir(env.BUILD_NUMBER) {
 
-    stage("Checkout") {
+    stage("Integration Tests: Checkout") {
         infra.checkout()
     }
 
