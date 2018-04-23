@@ -50,6 +50,7 @@ node("docker && highmem") {
     }
 
     stage("Run PCT") {
+        //TODO: Remove Slf4jMavenTransferListener option once runPCT() invokes it by default
         runPCT jenkins: fileUri, metadataFile: metadataPath,
                pctUrl: "docker://jenkins/pct:pr74",
                javaOptions: ["-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn"]
