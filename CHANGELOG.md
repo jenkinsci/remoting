@@ -6,6 +6,13 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.20
+
+Release date: Apr 18, 2018
+
+* Refresh the Code-signing certificate
+* No functional changes
+
 ##### 3.19
 
 Release date: Mar 22, 2018

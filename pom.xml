@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>3.20-SNAPSHOT</version>
+  <version>3.21-SNAPSHOT</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -76,7 +76,7 @@ THE SOFTWARE.
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
+      <url>https://repo.jenkins-ci.org/public/</url>
       <releases>
         <enabled>true</enabled>
       </releases>
@@ -85,6 +85,12 @@ THE SOFTWARE.
       </snapshots>
     </repository>
   </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <dependencies>
     <dependency>
