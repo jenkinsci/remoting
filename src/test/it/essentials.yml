@@ -1,4 +1,7 @@
 ---
+packaging:
+  # We cannot use BOM here, because BOM does not support build by relative path
+  configFile: "packager-config.yml"
 ath:
   useLocalSnapshots: false
   athRevision: "dad333092159cb368efc2f9869572f0a05d255ac"
