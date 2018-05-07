@@ -4,7 +4,6 @@ packaging:
   configFile: "packager-config.yml"
 ath:
   useLocalSnapshots: false
-  athRevision: "dad333092159cb368efc2f9869572f0a05d255ac"
   tests:
     - "plugins.SshSlavesPluginTest"
     - "core.SlaveTest"
