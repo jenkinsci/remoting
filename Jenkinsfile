@@ -1,7 +1,5 @@
 #!/usr/bin/env groovy
 
-// TODO: restore original tests (which just fail now)
-
 /* Only keep the 10 most recent builds. */
 properties([[$class: 'BuildDiscarderProperty',
                 strategy: [$class: 'LogRotator', numToKeepStr: '10']]])
