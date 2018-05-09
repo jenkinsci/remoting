@@ -70,7 +70,7 @@
               <goal>custom-war</goal>
             </goals>
             <configuration>
-              <configFilePath>packager-config.yml</configFilePath>
+              <configFilePath>../packager-config.yml</configFilePath>
               <warVersion>1.0-remoting-it-SNAPSHOT</warVersion>
               <mvnSettingsFile>${custom-war-packager.mvnSettingsFile}</mvnSettingsFile>
               <batchMode>${custom-war-packager.batchMode}</batchMode>
