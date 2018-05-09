@@ -178,7 +178,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                 final Logger logger = Logger.getLogger(RemoteClassLoader.class.getName());
                 if( logger.isLoggable(logLevel) )
                 {
-                    logger.log(logLevel, "%s class '%s' using classloader: %s", new String[]{ eventMsg, clazz, cl.toString()} );
+                    logger.log(logLevel, "{0} class ''{1}'' using classloader: {2}", new Object[]{ eventMsg, clazz, cl.toString()} );
                 }
             }
 
