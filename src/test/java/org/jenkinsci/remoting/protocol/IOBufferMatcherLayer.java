@@ -52,11 +52,6 @@ public class IOBufferMatcherLayer extends ApplicationLayer<IOBufferMatcher> {
                 super.close();
             }
 
-            @Override
-            public void closeRead() throws IOException {
-                doCloseRead();
-                super.closeRead();
-            }
         };
     }
 

@@ -284,7 +284,4 @@ public abstract class IOBufferMatcher {
         }
     }
 
-    public void closeRead() throws IOException {
-        //innerClose(null);
-    }
 }
