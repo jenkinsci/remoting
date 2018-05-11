@@ -3,6 +3,7 @@ package org.jenkinsci.remoting.engine;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
 import hudson.remoting.TestCallable;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -15,25 +16,25 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.net.ssl.SSLContext;
+
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.protocol.IOHub;
-import org.jenkinsci.remoting.protocol.Repeat;
-import org.jenkinsci.remoting.protocol.RepeatRule;
 import org.jenkinsci.remoting.protocol.cert.RSAKeyPairRule;
 import org.jenkinsci.remoting.protocol.cert.SSLContextRule;
 import org.jenkinsci.remoting.protocol.cert.X509CertificateRule;
+import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
@@ -42,20 +43,22 @@ import org.junit.runner.RunWith;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeThat;
 
 @RunWith(Theories.class)
 public class JnlpProtocolHandlerTest {
 
+    private static final Consumer<JnlpConnectionState> APPROVING_STATE_CONSUMER = JnlpConnectionState::approve;
+    private static final Consumer<JnlpConnectionState> REJECTING_STATE_CONSUMER = (event) -> event.reject(new ConnectionRefusalException("I don't like you"));
+    private static final Consumer<JnlpConnectionState> IGNORING_STATE_CONSUMER = (event) -> {
+    };
+    private static final String SECRET_KEY = "SecretKey-1234";
+
     private static ExecutorService executorService;
     private IOHub selector;
     private NioChannelHub hub;
-
-    private static final Logger LOGGER = Logger.getLogger(JnlpProtocolHandlerTest.class.getName());
 
     private static RSAKeyPairRule clientKey = new RSAKeyPairRule();
     private static RSAKeyPairRule serverKey = new RSAKeyPairRule();
@@ -110,594 +113,197 @@ public class JnlpProtocolHandlerTest {
             .around(notYetValidServerCtx)
             .around(untrustingClientCtx)
             .around(untrustingServerCtx);
-    @Rule
-    public RepeatRule repeater = new RepeatRule();
-    private ServerSocketChannel eastServer;
-    private SocketChannel westChannel;
-    private SocketChannel eastChannel;
-    private Channel eastRemoting;
-    private Channel westRemoting;
+
+    private ServerSocketChannel baseServerSocket;
+    private SocketChannel clientSocketChannel;
+    private SocketChannel serverSocketChannel;
+    private Channel serverRemotingChannel;
+    private Channel clientRemotingChannel;
 
     @BeforeClass
-    public static void setUpClass() throws Exception {
+    public static void setUpClass() {
+        Logger.getLogger(ConnectionHeadersFilterLayer.class.getName()).setLevel(Level.WARNING);
         executorService = Executors.newCachedThreadPool();
     }
 
     @AfterClass
-    public static void tearDownClass() throws Exception {
+    public static void tearDownClass() {
         executorService.shutdownNow();
     }
-
 
     @Before
     public void setUp() throws Exception {
         selector = IOHub.create(executorService);
         hub = new NioChannelHub(executorService);
         executorService.submit(hub);
-        eastServer = ServerSocketChannel.open();
-        eastServer.socket().bind(new InetSocketAddress(0));
-        westChannel = SocketChannel.open();
-        westChannel.connect(eastServer.getLocalAddress());
-        eastChannel = eastServer.accept();
+        baseServerSocket = ServerSocketChannel.open();
+        baseServerSocket.socket().bind(new InetSocketAddress(0));
+        clientSocketChannel = SocketChannel.open();
+        clientSocketChannel.connect(baseServerSocket.getLocalAddress());
+        serverSocketChannel = baseServerSocket.accept();
     }
 
     @After
-    public void tearDown() throws Exception {
-        IOUtils.closeQuietly(eastRemoting);
-        IOUtils.closeQuietly(westRemoting);
-        Thread.sleep(10);
-        IOUtils.closeQuietly(westChannel);
-        IOUtils.closeQuietly(eastChannel);
-        IOUtils.closeQuietly(eastServer);
+    public void tearDown() {
+        IOUtils.closeQuietly(serverRemotingChannel);
+        IOUtils.closeQuietly(clientRemotingChannel);
+        IOUtils.closeQuietly(clientSocketChannel);
+        IOUtils.closeQuietly(serverSocketChannel);
+        IOUtils.closeQuietly(baseServerSocket);
         IOUtils.closeQuietly(hub);
         IOUtils.closeQuietly(selector);
     }
 
-    private static void printFactoryInfoMessage(Factory factory, boolean useNioHubServer, boolean useNioHubClient) {
-        LOGGER.log(Level.WARNING, "Testing factory {0}, nio_server={1}, nio_client={2}", new Object[] {factory, useNioHubServer, useNioHubClient});
-    }
-
     @Theory
-    @Repeat(value = 25, stopAfter = 10, stopAfterUnits = TimeUnit.SECONDS)
     public void happyPath(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        if (useNioHubClient) {
-            assumeThat(factory.toString(), not(is("JNLP4-connect")));
-        }
-        if (lastFactory != factory) {
-            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
-            lastFactory = factory;
-        }
-        JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
-            @Override
-            public boolean exists(String clientName) {
-                return true;
-            }
-
-            @Override
-            public String getSecretOf(@Nonnull String clientName) {
-                return "SuperSecret-" + clientName;
-            }
-        }, executorService, selector, hub, serverCtx.context(), useNioHubServer);
-        JnlpProtocolHandler<? extends JnlpConnectionState> westProto =
-                factory.create(null, executorService, selector, useNioHubClient ? hub : null, clientCtx.context()
-                        , useNioHubClient);
-        HashMap<String, String> westProps = new HashMap<String, String>();
-        westProps.put(JnlpConnectionState.CLIENT_NAME_KEY, "happy-path-" + factory);
-        westProps.put(JnlpConnectionState.SECRET_KEY, "SuperSecret-happy-path-" + factory);
-        Future<Channel> westChan = westProto
-                .connect(westChannel.socket(), westProps, new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.approve();
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.BINARY);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        ByteBuffer len = ByteBuffer.wrap(new byte[2]);
-        while (len.hasRemaining()) {
-            eastChannel.read(len);
-        }
-        byte[] bytes = new byte[((len.get(0) << 8) & 0xff00) + (len.get(1) & 0xff)];
-        ByteBuffer content = ByteBuffer.wrap(bytes);
-        while (content.hasRemaining()) {
-            eastChannel.read(content);
-        }
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
-        Future<Channel> eastChan = eastProto
-                .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.approve();
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.NEGOTIATE);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
-        assertThat(eastRemoting, notNullValue());
-        eastRemoting.callAsync(new TestCallable());
-        westRemoting = westChan.get(10, TimeUnit.SECONDS);
-        assertThat(westRemoting, notNullValue());
+        JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
+        JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
+        HashMap<String, String> clientProps = createClientProperties(factory, SECRET_KEY);
+        Future<Channel> clientChannelFuture = createChannelConnector(clientSocketChannel, clientProtocolHandler, clientProps, APPROVING_STATE_CONSUMER);
+        readAndCheckProtocol(factory);
+        Future<Channel> serverChannelFuture = createChannelHandler(serverSocketChannel, serverProtocolHandler, new HashMap<>(), APPROVING_STATE_CONSUMER);
+        serverRemotingChannel = serverChannelFuture.get(10, TimeUnit.SECONDS);
+        assertThat(serverRemotingChannel, notNullValue());
+        serverRemotingChannel.call(new TestCallable());
+        clientRemotingChannel = clientChannelFuture.get(10, TimeUnit.SECONDS);
+        assertThat(clientRemotingChannel, notNullValue());
     }
-
-    private Factory lastFactory;
 
     @Theory
     public void serverRejects(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        if (lastFactory != factory) {
-            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
-            lastFactory = factory;
-        }
-        JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
-            @Override
-            public boolean exists(String clientName) {
-                return true;
-            }
-
-            @Override
-            public String getSecretOf(@Nonnull String clientName) {
-                return "SuperSecret-" + clientName;
-            }
-        }, executorService, selector, hub, serverCtx.context(), useNioHubServer);
-        JnlpProtocolHandler<? extends JnlpConnectionState> westProto =
-                factory.create(null, executorService, selector, useNioHubClient ? hub : null, clientCtx.context(),
-                        useNioHubClient);
-        HashMap<String, String> westProps = new HashMap<String, String>();
-        westProps.put(JnlpConnectionState.CLIENT_NAME_KEY, "happy-path-" + factory);
-        westProps.put(JnlpConnectionState.SECRET_KEY, "SuperSecret-happy-path-" + factory);
-        Future<Channel> westChan = westProto
-                .connect(westChannel.socket(), westProps, new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.approve();
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.BINARY);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        ByteBuffer len = ByteBuffer.wrap(new byte[2]);
-        while (len.hasRemaining()) {
-            eastChannel.read(len);
-        }
-        byte[] bytes = new byte[((len.get(0) << 8) & 0xff00) + (len.get(1) & 0xff)];
-        ByteBuffer content = ByteBuffer.wrap(bytes);
-        while (content.hasRemaining()) {
-            eastChannel.read(content);
-        }
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
-        Future<Channel> eastChan = eastProto
-                .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.reject(new ConnectionRefusalException("I don't like you"));
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.NEGOTIATE);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        try {
-            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(IOException.class));
-        }
-        try {
-            westRemoting = westChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
+        JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
+        JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
+        HashMap<String, String> clientProps = createClientProperties(factory, SECRET_KEY);
+        Future<Channel> clientChannelFuture = createChannelConnector(clientSocketChannel, clientProtocolHandler, clientProps, APPROVING_STATE_CONSUMER);
+        readAndCheckProtocol(factory);
+        Future<Channel> serverChannelFuture = createChannelHandler(serverSocketChannel, serverProtocolHandler, new HashMap<>(), REJECTING_STATE_CONSUMER);
+        assertChannelFails(clientChannelFuture, serverChannelFuture, ConnectionRefusalException.class);
     }
 
     @Theory
     public void serverIgnores(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        if (lastFactory != factory) {
-            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
-            lastFactory = factory;
-        }
-        JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
-            @Override
-            public boolean exists(String clientName) {
-                return true;
-            }
-
-            @Override
-            public String getSecretOf(@Nonnull String clientName) {
-                return "SuperSecret-" + clientName;
-            }
-        }, executorService, selector, hub, serverCtx.context(), useNioHubServer);
-        JnlpProtocolHandler<? extends JnlpConnectionState> westProto =
-                factory.create(null, executorService, selector, useNioHubClient ? hub : null, clientCtx.context(),
-                        useNioHubClient);
-        HashMap<String, String> westProps = new HashMap<String, String>();
-        westProps.put(JnlpConnectionState.CLIENT_NAME_KEY, "happy-path-" + factory);
-        westProps.put(JnlpConnectionState.SECRET_KEY, "SuperSecret-happy-path-" + factory);
-        Future<Channel> westChan = westProto
-                .connect(westChannel.socket(), westProps, new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.BINARY);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        ByteBuffer len = ByteBuffer.wrap(new byte[2]);
-        while (len.hasRemaining()) {
-            eastChannel.read(len);
-        }
-        byte[] bytes = new byte[((len.get(0) << 8) & 0xff00) + (len.get(1) & 0xff)];
-        ByteBuffer content = ByteBuffer.wrap(bytes);
-        while (content.hasRemaining()) {
-            eastChannel.read(content);
-        }
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
-        Future<Channel> eastChan = eastProto
-                .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.reject(new ConnectionRefusalException("I don't like you"));
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.NEGOTIATE);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        try {
-            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(IOException.class));
-        }
-        try {
-            westRemoting = westChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
+        JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
+        JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
+        HashMap<String, String> clientProps = createClientProperties(factory, SECRET_KEY);
+        Future<Channel> clientChannelFuture = createChannelConnector(clientSocketChannel, clientProtocolHandler, clientProps, IGNORING_STATE_CONSUMER);
+        readAndCheckProtocol(factory);
+        Future<Channel> serverChannelFuture = createChannelHandler(serverSocketChannel, serverProtocolHandler, new HashMap<>(), APPROVING_STATE_CONSUMER);
+        assertChannelFails(clientChannelFuture, serverChannelFuture, IOException.class);
     }
 
     @Theory
     public void clientRejects(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        if (lastFactory != factory) {
-            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
-            lastFactory = factory;
-        }
-        JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
-            @Override
-            public boolean exists(String clientName) {
-                return true;
-            }
-
-            @Override
-            public String getSecretOf(@Nonnull String clientName) {
-                return "SuperSecret-" + clientName;
-            }
-        }, executorService, selector, hub, serverCtx.context(), useNioHubServer);
-        JnlpProtocolHandler<? extends JnlpConnectionState> westProto =
-                factory.create(null, executorService, selector, useNioHubClient ? hub : null, clientCtx.context(),
-                        useNioHubClient);
-        HashMap<String, String> westProps = new HashMap<String, String>();
-        westProps.put(JnlpConnectionState.CLIENT_NAME_KEY, "happy-path-" + factory);
-        westProps.put(JnlpConnectionState.SECRET_KEY, "SuperSecret-happy-path-" + factory);
-        Future<Channel> westChan = westProto
-                .connect(westChannel.socket(), westProps, new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.reject(new ConnectionRefusalException("I don't like you"));
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.BINARY);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        ByteBuffer len = ByteBuffer.wrap(new byte[2]);
-        while (len.hasRemaining()) {
-            eastChannel.read(len);
-        }
-        byte[] bytes = new byte[((len.get(0) << 8) & 0xff00) + (len.get(1) & 0xff)];
-        ByteBuffer content = ByteBuffer.wrap(bytes);
-        while (content.hasRemaining()) {
-            eastChannel.read(content);
-        }
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
-        Future<Channel> eastChan = eastProto
-                .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.approve();
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.NEGOTIATE);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        try {
-            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(IOException.class));
-        }
-        try {
-            westRemoting = westChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
+        JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
+        JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
+        HashMap<String, String> clientProps = createClientProperties(factory, SECRET_KEY);
+        Future<Channel> clientChannelFuture = createChannelConnector(clientSocketChannel, clientProtocolHandler, clientProps, APPROVING_STATE_CONSUMER);
+        readAndCheckProtocol(factory);
+        Future<Channel> serverChannelFuture = createChannelHandler(serverSocketChannel, serverProtocolHandler, new HashMap<>(), REJECTING_STATE_CONSUMER);
+        assertChannelFails(clientChannelFuture, serverChannelFuture, IOException.class);
     }
 
     @Theory
     public void clientIgnores(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        if (lastFactory != factory) {
-            printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
-            lastFactory = factory;
-        }
-        JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
-            @Override
-            public boolean exists(String clientName) {
-                return true;
-            }
-
-            @Override
-            public String getSecretOf(@Nonnull String clientName) {
-                return "SuperSecret-" + clientName;
-            }
-        }, executorService, selector, hub, serverCtx.context(), useNioHubServer);
-        JnlpProtocolHandler<? extends JnlpConnectionState> westProto =
-                factory.create(null, executorService, selector, useNioHubClient ? hub : null, clientCtx.context(),
-                        useNioHubClient);
-        HashMap<String, String> westProps = new HashMap<String, String>();
-        westProps.put(JnlpConnectionState.CLIENT_NAME_KEY, "happy-path-" + factory);
-        westProps.put(JnlpConnectionState.SECRET_KEY, "SuperSecret-happy-path-" + factory);
-        Future<Channel> westChan = westProto
-                .connect(westChannel.socket(), westProps, new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.reject(new ConnectionRefusalException("I don't like you"));
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.BINARY);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        ByteBuffer len = ByteBuffer.wrap(new byte[2]);
-        while (len.hasRemaining()) {
-            eastChannel.read(len);
-        }
-        byte[] bytes = new byte[((len.get(0) << 8) & 0xff00) + (len.get(1) & 0xff)];
-        ByteBuffer content = ByteBuffer.wrap(bytes);
-        while (content.hasRemaining()) {
-            eastChannel.read(content);
-        }
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
-        Future<Channel> eastChan = eastProto
-                .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.approve();
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.NEGOTIATE);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        try {
-            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(IOException.class));
-        }
-        try {
-            westRemoting = westChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
+        JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
+        JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
+        HashMap<String, String> clientProps = createClientProperties(factory, SECRET_KEY);
+        Future<Channel> clientChannelFuture = createChannelConnector(clientSocketChannel, clientProtocolHandler, clientProps, APPROVING_STATE_CONSUMER);
+        readAndCheckProtocol(factory);
+        Future<Channel> serverChannelFuture = createChannelHandler(serverSocketChannel, serverProtocolHandler, new HashMap<>(), IGNORING_STATE_CONSUMER);
+        assertChannelFails(clientChannelFuture, serverChannelFuture, ConnectionRefusalException.class);
     }
 
     @Theory
     public void doesNotExist(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
-        JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
-            @Override
-            public boolean exists(String clientName) {
-                return false;
-            }
-
-            @Override
-            public String getSecretOf(@Nonnull String clientName) {
-                return "SuperSecret-" + clientName;
-            }
-        }, executorService, selector, hub, serverCtx.context(), useNioHubServer);
-        JnlpProtocolHandler<? extends JnlpConnectionState> westProto =
-                factory.create(null, executorService, selector, useNioHubClient ? hub : null, clientCtx.context(),
-                        useNioHubClient);
-        HashMap<String, String> westProps = new HashMap<String, String>();
-        westProps.put(JnlpConnectionState.CLIENT_NAME_KEY, "happy-path-" + factory);
-        westProps.put(JnlpConnectionState.SECRET_KEY, "SuperSecret-happy-path-" + factory);
-        Future<Channel> westChan = westProto
-                .connect(westChannel.socket(), westProps, new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.approve();
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.BINARY);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        ByteBuffer len = ByteBuffer.wrap(new byte[2]);
-        while (len.hasRemaining()) {
-            eastChannel.read(len);
-        }
-        byte[] bytes = new byte[((len.get(0) << 8) & 0xff00) + (len.get(1) & 0xff)];
-        ByteBuffer content = ByteBuffer.wrap(bytes);
-        while (content.hasRemaining()) {
-            eastChannel.read(content);
-        }
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
-        Future<Channel> eastChan = eastProto
-                .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.approve();
-                    }
-
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.NEGOTIATE);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
-        try {
-            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
-        try {
-            westRemoting = westChan.get(10, TimeUnit.SECONDS);
-            fail();
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
+        JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, false);
+        JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
+        HashMap<String, String> clientProps = createClientProperties(factory, SECRET_KEY);
+        Future<Channel> clientChannelFuture = createChannelConnector(clientSocketChannel, clientProtocolHandler, clientProps, APPROVING_STATE_CONSUMER);
+        readAndCheckProtocol(factory);
+        Future<Channel> serverChannelFuture = createChannelHandler(serverSocketChannel, serverProtocolHandler, new HashMap<>(), APPROVING_STATE_CONSUMER);
+        assertChannelFails(clientChannelFuture, serverChannelFuture, ConnectionRefusalException.class);
     }
 
     @Theory
     public void wrongSecret(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        printFactoryInfoMessage(factory, useNioHubServer, useNioHubClient);
-        JnlpProtocolHandler<? extends JnlpConnectionState> eastProto = factory.create(new JnlpClientDatabase() {
+        Logger.getLogger(JnlpProtocol4PlainHandler.class.getName()).setLevel(Level.SEVERE);
+        Logger.getLogger(JnlpProtocol4Handler.class.getName()).setLevel(Level.SEVERE);
+        JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
+        JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
+        HashMap<String, String> clientProps = createClientProperties(factory, "WrongSecret");
+        Future<Channel> clientChannelFuture = createChannelConnector(clientSocketChannel, clientProtocolHandler, clientProps, APPROVING_STATE_CONSUMER);
+        readAndCheckProtocol(factory);
+        Future<Channel> serverChannelFuture = createChannelHandler(serverSocketChannel, serverProtocolHandler, new HashMap<>(), APPROVING_STATE_CONSUMER);
+        assertChannelFails(clientChannelFuture, serverChannelFuture, ConnectionRefusalException.class);
+    }
+
+    private Future<Channel> createChannelConnector(SocketChannel channel, JnlpProtocolHandler<? extends JnlpConnectionState> protocolHandler,
+                                                   HashMap<String, String> properties,
+                                                   Consumer<JnlpConnectionState> afterPropertiesConsumer) throws IOException {
+        return protocolHandler.connect(channel.socket(), properties, new StateListener(afterPropertiesConsumer, Channel.Mode.BINARY));
+    }
+
+    private Future<Channel> createChannelHandler(SocketChannel channel, JnlpProtocolHandler<? extends JnlpConnectionState> protocolHandler,
+                                                 HashMap<String, String> properties,
+                                                 Consumer<JnlpConnectionState> afterPropertiesConsumer) throws IOException {
+        return protocolHandler.handle(channel.socket(), properties, new StateListener(afterPropertiesConsumer, Channel.Mode.NEGOTIATE));
+    }
+
+    private HashMap<String, String> createClientProperties(Factory factory, String secretKey) {
+        HashMap<String, String> clientProps = new HashMap<>();
+        clientProps.put(JnlpConnectionState.CLIENT_NAME_KEY, "client-" + factory);
+        clientProps.put(JnlpConnectionState.SECRET_KEY, secretKey);
+        return clientProps;
+    }
+
+    private JnlpProtocolHandler<? extends JnlpConnectionState> createClientProtocolHandler(Factory factory, boolean useNioHubClient) {
+        return factory.create(null, executorService, selector, useNioHubClient ? hub : null, clientCtx.context(), useNioHubClient);
+    }
+
+    private JnlpProtocolHandler<? extends JnlpConnectionState> createServerProtocolHandler(Factory factory,
+                                                                                           boolean useNioHubServer,
+                                                                                           String secretKey,
+                                                                                           boolean exists) {
+        return factory.create(new JnlpClientDatabase() {
             @Override
             public boolean exists(String clientName) {
-                return true;
+                return exists;
             }
 
             @Override
             public String getSecretOf(@Nonnull String clientName) {
-                return "SuperSecret-" + clientName;
+                return secretKey;
             }
         }, executorService, selector, hub, serverCtx.context(), useNioHubServer);
-        JnlpProtocolHandler<? extends JnlpConnectionState> westProto =
-                factory.create(null, executorService, selector, useNioHubClient ? hub : null, clientCtx.context(), useNioHubClient);
-        HashMap<String, String> westProps = new HashMap<String, String>();
-        westProps.put(JnlpConnectionState.CLIENT_NAME_KEY, "happy-path-" + factory);
-        westProps.put(JnlpConnectionState.SECRET_KEY, "WrongSecret-happy-path-" + factory);
-        Future<Channel> westChan = westProto
-                .connect(westChannel.socket(), westProps, new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.approve();
-                    }
+    }
 
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.BINARY);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
+    private void readAndCheckProtocol(Factory factory) throws IOException {
         ByteBuffer len = ByteBuffer.wrap(new byte[2]);
         while (len.hasRemaining()) {
-            eastChannel.read(len);
+            serverSocketChannel.read(len);
         }
         byte[] bytes = new byte[((len.get(0) << 8) & 0xff00) + (len.get(1) & 0xff)];
         ByteBuffer content = ByteBuffer.wrap(bytes);
         while (content.hasRemaining()) {
-            eastChannel.read(content);
+            serverSocketChannel.read(content);
         }
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("Protocol:" + factory.toString()));
-        Future<Channel> eastChan = eastProto
-                .handle(eastChannel.socket(), new HashMap<String, String>(), new JnlpConnectionStateListener() {
-                    @Override
-                    public void afterProperties(@NonNull JnlpConnectionState event) {
-                        event.approve();
-                    }
+    }
 
-                    @Override
-                    public void beforeChannel(@NonNull JnlpConnectionState event) {
-                        event.getChannelBuilder().withMode(Channel.Mode.NEGOTIATE);
-                    }
-
-                    @Override
-                    public void afterChannel(@NonNull JnlpConnectionState event) {
-                    }
-                });
+    private void assertChannelFails(Future<Channel> clientChannelFuture,
+                                    Future<Channel> serverChannelFuture,
+                                    Class<? extends Exception> serverExceptionType) throws InterruptedException, java.util.concurrent.TimeoutException {
         try {
-            eastRemoting = eastChan.get(10, TimeUnit.SECONDS);
+            serverRemotingChannel = serverChannelFuture.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
+            assertThat(e.getCause(), instanceOf(serverExceptionType));
         }
         try {
-            westRemoting = westChan.get(10, TimeUnit.SECONDS);
+            clientRemotingChannel = clientChannelFuture.get(10, TimeUnit.SECONDS);
             fail();
         } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
+            assertThat(e.getCause(), instanceOf(IOException.class));
         }
     }
 
@@ -709,53 +315,6 @@ public class JnlpProtocolHandlerTest {
     @DataPoints
     public static Factory[] protocols() {
         return new Factory[]{
-                //TODO: Disable JNLP-1 tests by default?
-                new Factory() {
-                    @Override
-                    public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
-                                                                                     ExecutorService svc,
-                                                                                     IOHub selector, NioChannelHub hub,
-                                                                                     SSLContext ctx,
-                                                                                     boolean preferNio) {
-                        return new JnlpProtocol1Handler(db, svc, hub, preferNio);
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "JNLP-connect";
-                    }
-                },
-                new Factory() {
-                    @Override
-                    public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
-                                                                                     ExecutorService svc,
-                                                                                     IOHub selector, NioChannelHub hub,
-                                                                                     SSLContext ctx,
-                                                                                     boolean preferNio) {
-                        return new JnlpProtocol2Handler(db, svc, hub, preferNio);
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "JNLP2-connect";
-                    }
-                },
-                //TODO: Disable JNLP3 tests by default?
-                new Factory() {
-                    @Override
-                    public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
-                                                                                     ExecutorService svc,
-                                                                                     IOHub selector, NioChannelHub hub,
-                                                                                     SSLContext ctx,
-                                                                                     boolean preferNio) {
-                        return new JnlpProtocol3Handler(db, svc, hub, preferNio);
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "JNLP3-connect";
-                    }
-                },
                 new Factory() {
                     @Override
                     public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
@@ -791,6 +350,29 @@ public class JnlpProtocolHandlerTest {
         };
     }
 
+    private class StateListener extends JnlpConnectionStateListener {
+        private Channel.Mode mode;
+        private Consumer<JnlpConnectionState> afterPropertiesConsumer;
+
+        StateListener(Consumer<JnlpConnectionState> afterPropertiesConsumer, Channel.Mode mode) {
+            this.mode = mode;
+            this.afterPropertiesConsumer = afterPropertiesConsumer;
+        }
+
+        @Override
+        public void afterProperties(@NonNull JnlpConnectionState event) {
+            afterPropertiesConsumer.accept(event);
+        }
+
+        @Override
+        public void beforeChannel(@NonNull JnlpConnectionState event) {
+            event.getChannelBuilder().withMode(mode);
+        }
+
+        @Override
+        public void afterChannel(@NonNull JnlpConnectionState event) {
+        }
+    }
 
     public interface Factory {
         JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db, ExecutorService svc,
