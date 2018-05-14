@@ -21,5 +21,6 @@ pct:
   plugins:
     - "ssh-slaves"
     - "command-launcher"
-    - "windows-slaves"
+# JENKINS-50933
+#    - "windows-slaves"
     # TODO: JTH/PCT does not work reliably against non-bundled plugins (if something else is bundled) - "compress-artifacts"
