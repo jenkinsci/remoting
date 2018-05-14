@@ -35,7 +35,8 @@ for (int i = 0; i < platforms.size(); ++i) {
 
 stage("Build Remoting") {
     /* Execute our platforms in parallel */
-    //TODO uncomment parallel(branches)
+    parallel(branches)
 }
 
+// Run integration tests
 essentialsTest(baseDir: "src/test/it")
