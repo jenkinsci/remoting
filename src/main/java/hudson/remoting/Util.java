@@ -30,7 +30,8 @@ import java.nio.file.Path;
  *
  * @author Kohsuke Kawaguchi
  */
-class Util {
+@Restricted(NoExternalUse.class)
+public class Util {
     /**
      * Gets the file name portion from a qualified '/'-separate resource path name.
      *
@@ -108,7 +109,7 @@ class Util {
      *
      * Warning: this method won't match shortened representation of IPV6 address
      */
-    static boolean inNoProxyEnvVar(@Nonnull  String host) {
+    public static boolean inNoProxyEnvVar(@Nonnull  String host) {
         String noProxy = System.getenv("no_proxy");
         if (noProxy != null) {
             noProxy = noProxy.trim()
@@ -124,6 +125,7 @@ class Util {
                 }
                 else {
                     int depth = 0;
+                    String originalHost = host;
                     // Loop while we have a valid domain name: acme.com
                     // We add a safeguard to avoid a case where the host would always be valid because the regex would
                     // for example fail to remove subdomains.
@@ -135,8 +137,13 @@ class Util {
                         if (noProxy.matches(".*(^|,)\\Q" + host + "\\E($|,).*"))
                             return true;
                         // Remove first subdomain: master.jenkins.acme.com -> jenkins.acme.com
-                        else
-                            host = host.replaceFirst("^[a-z0-9]+(-[a-z0-9]+)*\\.", "");
+                        host = host.replaceFirst("^[a-z0-9]+(-[a-z0-9]+)*\\.", "");
+                    }
+                    
+                    String[] noProxyArray = noProxy.split(",");
+                    // fix for https://issues.jenkins-ci.org/browse/JENKINS-51223, basic suffix match
+                    if (depth > 0 && suffixMatch(originalHost, noProxyArray)) {
+                    	return true;
                     }
                 }
             }
@@ -144,6 +151,20 @@ class Util {
 
         return false;
     }
+
+    // fix for https://issues.jenkins-ci.org/browse/JENKINS-51223
+    // adds curl-like algorithm for matching to existing regexp used in
+    // inNoProxyEnvVars
+    static boolean suffixMatch(String host, String[] noProxyArray) {
+		for (String proxy : noProxyArray) {
+			// still needs to capture some form of subdomain, like ".svc"
+			if (!proxy.contains("."))
+				continue;
+			if (host.endsWith(proxy))
+				return true;
+		}
+		return false;
+	}
 
     /**
      * Gets URL connection.

@@ -24,6 +24,8 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Base64;
+import hudson.remoting.Util;
+
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
 
@@ -498,58 +500,8 @@ public class JnlpAgentEndpointResolver {
         return con;
     }
 
-    /**
-     * Check if given URL is in the exclusion list defined by the no_proxy environment variable.
-     * On most *NIX system wildcards are not supported but if one top domain is added, all related subdomains will also
-     * be ignored. Both "mit.edu" and ".mit.edu" are valid syntax.
-     * http://www.gnu.org/software/wget/manual/html_node/Proxies.html
-     *
-     * Regexp:
-     * - \Q and \E: https://docs.oracle.com/javase/7/docs/api/java/util/regex/Pattern.html
-     * - To match IPV4/IPV/FQDN: Regular Expressions Cookbook, 2nd Edition (ISBN: 9781449327453)
-     *
-     * Warning: this method won't match shortened representation of IPV6 address
-     *
-     * FIXME: duplicate of hudson.remoting.Util.inNoProxyEnvVar
-     */
     static boolean inNoProxyEnvVar(String host) {
-        String noProxy = System.getenv("no_proxy");
-        if (noProxy != null) {
-            noProxy = noProxy.trim()
-                    // Remove spaces
-                    .replaceAll("\\s+", "")
-                    // Convert .foobar.com to foobar.com
-                    .replaceAll("((?<=^|,)\\.)*(([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,})(?=($|,))", "$2");
-
-            if (!noProxy.isEmpty()) {
-                // IPV4 and IPV6
-                if (host.matches("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$") || host
-                        .matches("^(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}$")) {
-                    return noProxy.matches(".*(^|,)\\Q" + host + "\\E($|,).*");
-                } else {
-                    int depth = 0;
-                    // Loop while we have a valid domain name: acme.com
-                    // We add a safeguard to avoid a case where the host would always be valid because the regex would
-                    // for example fail to remove subdomains.
-                    // According to Wikipedia (no RFC defines it), 128 is the max number of subdivision for a valid
-                    // FQDN:
-                    // https://en.wikipedia.org/wiki/Subdomain#Overview
-                    while (host.matches("^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$") && depth < 128) {
-                        ++depth;
-                        // Check if the no_proxy contains the host
-                        if (noProxy.matches(".*(^|,)\\Q" + host + "\\E($|,).*")) {
-                            return true;
-                        }
-                        // Remove first subdomain: master.jenkins.acme.com -> jenkins.acme.com
-                        else {
-                            host = host.replaceFirst("^[a-z0-9]+(-[a-z0-9]+)*\\.", "");
-                        }
-                    }
-                }
-            }
-        }
-
-        return false;
+    	return Util.inNoProxyEnvVar(host);
     }
 
     @CheckForNull
