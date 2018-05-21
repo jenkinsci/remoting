@@ -121,6 +121,47 @@ public class UtilTest extends TestCase {
 
         assertEquals(false, Util.inNoProxyEnvVar("foobar.com"));
     }
+    
+    @Test
+    public void testSubFWDNWithDotMinimalSuffix() {
+    	PowerMockito.when(System.getenv("no_proxy")).thenReturn(".svc");
+    	
+    	assertEquals(true, Util.inNoProxyEnvVar("bn-myproj.svc"));
+    }
+
+    @Test
+    public void testSubFWDNWithDotMinimalSuffixMixedCase() {
+    	PowerMockito.when(System.getenv("no_proxy")).thenReturn(".svc,.default,.local,localhost,.boehringer.com,10.250.0.0/16,10.251.0.0/16,10.183.195.106,10.183.195.107,10.183.195.108,10.183.195.109,10.183.195.11,10.183.195.111,10.183.195.112,10.183.195.113,10.183.195.13,10.250.127.");
+    	
+    	assertEquals(true, Util.inNoProxyEnvVar("bn-myproj.svc"));
+    }
+
+    @Test
+    public void testNoProxyWithInvalidChars() {
+        PowerMockito.when(System.getenv("no_proxy")).thenReturn("foo+.co=m");
+
+        assertEquals(false, Util.inNoProxyEnvVar("foo+.co=m"));
+    }
+
+    @Test
+    public void testNoProxyWithInvalidChar() {
+        PowerMockito.when(System.getenv("no_proxy")).thenReturn("foo.co=m");
+
+        assertEquals(false, Util.inNoProxyEnvVar("foo.co=m"));
+    }
+
+    @Test
+    public void testNoProxyWithInvalidCharInMinimalSuffix() {
+        PowerMockito.when(System.getenv("no_proxy")).thenReturn(".sv=c");
+
+        assertEquals(false, Util.inNoProxyEnvVar("foo.sv=c"));
+    }
+    @Test
+    public void testSubFWDNWithoutDotMinimalSuffix() {
+    	PowerMockito.when(System.getenv("no_proxy")).thenReturn("svc");
+    	
+    	assertEquals(false, Util.inNoProxyEnvVar("bn-myproj.svc"));
+    }
 
     @Test
     public void testMixed() {
