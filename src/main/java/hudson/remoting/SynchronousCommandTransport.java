@@ -31,7 +31,7 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
     /**
      * Called by {@link Channel} to read the next command to arrive from the stream.
      */
-    abstract Command read() throws IOException, ClassNotFoundException, InterruptedException;
+    protected abstract Command read() throws IOException, ClassNotFoundException, InterruptedException;
 
     @Override
     public void setup(Channel channel, CommandReceiver receiver) {
