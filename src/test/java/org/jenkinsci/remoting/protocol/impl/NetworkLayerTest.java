@@ -87,6 +87,7 @@ public class NetworkLayerTest {
                         .on(clientFactory.create(hub, serverToClient.source(), clientToServer.sink()))
                         .build(new IOBufferMatcherLayer());
 
+
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(hub, clientToServer.source(), serverToClient.sink()))
@@ -99,7 +100,8 @@ public class NetworkLayerTest {
         server.get().send(data);
         client.get().awaitByteContent(is(expected));
         assertThat(client.get().asByteArray(), is(expected));
-        server.get().close(null);
+        server.get().close();
+        client.get().awaitClose();
     }
 
 }
