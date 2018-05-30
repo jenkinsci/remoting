@@ -7,3 +7,4 @@ target
 /.project
 /.settings
 .fbExcludeFilterFile
+src/test/it/out
