@@ -423,7 +423,13 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     }
 
     private String getThreadNameBase(String executorThreadName) {
-        return "IOHub#" + _id + ": Selector[keys:" + selector.keys().size() + ", gen:" + gen + "] / " + executorThreadName;
+        int keySize;
+        try {
+            keySize = selector.keys().size();
+        } catch (ClosedSelectorException x) {
+            keySize = -1; // possibly a race condition, ignore
+        }
+        return "IOHub#" + _id + ": Selector[keys:" + keySize + ", gen:" + gen + "] / " + executorThreadName;
     }
 
     /**
