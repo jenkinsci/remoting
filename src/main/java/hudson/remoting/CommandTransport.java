@@ -140,7 +140,7 @@ public abstract class CommandTransport {
      *      Informational flag that indicates that this is the last
      *      call of the {@link #write(Command, boolean)}.
      */
-    protected abstract void write(Command cmd, boolean last) throws IOException;
+    public abstract void write(Command cmd, boolean last) throws IOException;
 
     /**
      * Called to close the write side of the transport, allowing the underlying transport
