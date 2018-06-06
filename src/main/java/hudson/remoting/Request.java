@@ -383,7 +383,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                 } catch (IOException e) {
                     // communication error.
                     // this means the caller will block forever
-                    if (e instanceof ChannelClosedException) {
+                    if (e instanceof ChannelClosedException && !logger.isLoggable(Level.FINE)) {
                         logger.log(Level.INFO, "Failed to send back a reply to the request {0}: {1}", new Object[] {this, e});
                     } else {
                         logger.log(Level.WARNING, "Failed to send back a reply to the request " + this, e);
