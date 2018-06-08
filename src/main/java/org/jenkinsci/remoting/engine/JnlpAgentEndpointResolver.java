@@ -34,9 +34,11 @@ import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
+import java.net.UnknownHostException;
 import java.net.NoRouteToHostException;
 import java.net.Proxy;
 import java.net.ProxySelector;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.URI;
@@ -279,6 +281,11 @@ public class JnlpAgentEndpointResolver {
                     firstError = chain(firstError, new IOException(jenkinsUrl + " is publishing an invalid port"));
                     continue;
                 }
+                if (!isPortVisible(host, port, 5000)) {
+                    firstError = chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
+                            + " is not reachable"));
+                    continue;
+                }
                 // sort the URLs so that the winner is the one we try first next time
                 final String winningJenkinsUrl = jenkinsUrl;
                 Collections.sort(jenkinsUrls, new Comparator<String>() {
@@ -310,6 +317,45 @@ public class JnlpAgentEndpointResolver {
             throw firstError;
         }
         return null;
+    }
+
+    private boolean isPortVisible(String hostname, int port, int timeout) {
+        boolean exitStatus = false;
+        Socket s = null;
+        String reason = null;
+
+        try {
+            s = new Socket();
+            s.setReuseAddress(true);
+            SocketAddress sa = new InetSocketAddress(hostname, port);
+            s.connect(sa, timeout);
+        } catch (IOException e) {
+            if (e.getMessage().equals("Connection refused")) {
+                reason = "port " + port + " on " + hostname + " is closed.";
+            }
+            if (e instanceof UnknownHostException) {
+                reason = "node " + hostname + " is unresolved.";
+            }
+            if (e instanceof SocketTimeoutException) {
+                reason = "timeout while attempting to reach node " + hostname + " on port " + port;
+            }
+        } finally {
+            if (s != null) {
+                if (s.isConnected()) {
+                    LOGGER.info("Port " + port + " on " + hostname + " is reachable!");
+                    exitStatus = true;
+                } else {
+                    LOGGER.warning("Port " + port + " on " + hostname + " is not reachable; reason: " + reason);
+                }
+                try {
+                    s.close();
+                } catch (IOException e) {
+                    LOGGER.warning(e.getMessage());
+                }
+            }
+        }
+
+        return exitStatus;
     }
 
     @Nonnull
