@@ -34,7 +34,6 @@ import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
-import java.net.UnknownHostException;
 import java.net.NoRouteToHostException;
 import java.net.Proxy;
 import java.net.ProxySelector;
@@ -322,7 +321,6 @@ public class JnlpAgentEndpointResolver {
     private boolean isPortVisible(String hostname, int port, int timeout) {
         boolean exitStatus = false;
         Socket s = null;
-        String reason = null;
 
         try {
             s = new Socket();
@@ -330,22 +328,11 @@ public class JnlpAgentEndpointResolver {
             SocketAddress sa = new InetSocketAddress(hostname, port);
             s.connect(sa, timeout);
         } catch (IOException e) {
-            if (e.getMessage().equals("Connection refused")) {
-                reason = "port " + port + " on " + hostname + " is closed.";
-            }
-            if (e instanceof UnknownHostException) {
-                reason = "node " + hostname + " is unresolved.";
-            }
-            if (e instanceof SocketTimeoutException) {
-                reason = "timeout while attempting to reach node " + hostname + " on port " + port;
-            }
+            LOGGER.warning(e.getMessage());
         } finally {
             if (s != null) {
                 if (s.isConnected()) {
-                    LOGGER.info("Port " + port + " on " + hostname + " is reachable!");
                     exitStatus = true;
-                } else {
-                    LOGGER.warning("Port " + port + " on " + hostname + " is not reachable; reason: " + reason);
                 }
                 try {
                     s.close();
@@ -354,7 +341,6 @@ public class JnlpAgentEndpointResolver {
                 }
             }
         }
-
         return exitStatus;
     }
 
