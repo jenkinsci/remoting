@@ -25,6 +25,7 @@ package hudson.remoting;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
@@ -121,15 +122,30 @@ public abstract class Command implements Serializable {
      */
     public static Command readFrom(@Nonnull Channel channel, @Nonnull byte[] payload)
             throws IOException, ClassNotFoundException {
-        Command cmd = Command.readFrom(channel, new ObjectInputStreamEx(
-                new ByteArrayInputStream(payload),
+        return readFrom(channel, new ByteArrayInputStream(payload), payload.length);
+    }
+
+    /**
+     * Reads command from the specified payload.
+     * @param channel Channel
+     * @param istream Input stream
+     * @param payloadSize Payload size to be read. Used only for logging
+     * @return Read command
+     * @throws IOException Read exception
+     * @throws ClassNotFoundException Deserialization error: class not found
+     */
+    /*package*/ static Command readFrom(@Nonnull Channel channel, @Nonnull InputStream istream, int payloadSize)
+            throws IOException, ClassNotFoundException {
+        Command cmd = Command.readFromObjectStream(channel, new ObjectInputStreamEx(
+                istream,
                 channel.baseClassLoader,channel.classFilter));
-        channel.notifyRead(cmd, payload.length);
+        channel.notifyRead(cmd, payloadSize);
         return cmd;
     }
 
+
     /** Consider calling {@link Channel#notifyRead} afterwards. */
-    static Command readFrom(Channel channel, ObjectInputStream ois) throws IOException, ClassNotFoundException {
+    static Command readFromObjectStream(Channel channel, ObjectInputStream ois) throws IOException, ClassNotFoundException {
         Channel old = Channel.setCurrent(channel);
         try {
             return (Command)ois.readObject();

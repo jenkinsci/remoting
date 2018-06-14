@@ -60,10 +60,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
         setup(new ByteArrayReceiver() {
             public void handle(byte[] payload) {
                 try {
-                    Command cmd = Command.readFrom(channel, new ObjectInputStreamEx(
-                            new ByteArrayInputStream(payload),channel.baseClassLoader,channel.classFilter));
-                    receiver.handle(cmd);
-                    channel.notifyRead(cmd, payload.length);
+                    Command cmd = Command.readFrom(channel, payload);
                 } catch (IOException | ClassNotFoundException e) {
                     LOGGER.log(Level.WARNING, "Failed to construct Command in channel " + channel.getName(), e);
                 }
