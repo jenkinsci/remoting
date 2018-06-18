@@ -48,6 +48,7 @@ public class ChannelBuilder {
     private ClassLoader base = this.getClass().getClassLoader();
     private Mode mode = Mode.NEGOTIATE;
     private Capability capability = new Capability();
+    @CheckForNull
     private OutputStream header;
     @CheckForNull
     private JarCache jarCache;
@@ -125,11 +126,12 @@ public class ChannelBuilder {
      * when the established communication channel might include some data that might
      * be useful for debugging/trouble-shooting.
      */
-    public ChannelBuilder withHeaderStream(OutputStream header) {
+    public ChannelBuilder withHeaderStream(@CheckForNull OutputStream header) {
         this.header = header;
         return this;
     }
 
+    @CheckForNull
     public OutputStream getHeaderStream() {
         return header;
     }

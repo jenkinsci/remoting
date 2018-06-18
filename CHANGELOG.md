@@ -6,6 +6,31 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.21
+
+Enhancements:
+
+* [JENKINS-51551](https://issues.jenkins-ci.org/browse/JENKINS-51551) -
+Developer API: Allow creating custom `CommandTransport` implementation in external 
+components.
+  * Reference implementation: [Remoting Kafka Plugin](https://github.com/jenkinsci/remoting-kafka-plugin)
+* [PR #274](https://github.com/jenkinsci/remoting/pull/274) -
+Do not print channel close reason stack traces for non-sent request responses when
+`hudson.remoting.Request` logging level is lower than `FINE`.
+
+Fixed issues:
+
+* [JENKINS-51223](https://issues.jenkins-ci.org/browse/JENKINS-51223) -
+`no_proxy` environment variable parsing logic did not properly support
+domain suffixes in fully-qualified names. 
+Now it is possible to set suffixes like `.com` in `no_proxy`.
+* [JENKINS-50965](https://issues.jenkins-ci.org/browse/JENKINS-50965) -
+Fix malformed log message when loading of classes is forced by
+the `hudson.remoting.RemoteClassLoader.force` system property.
+* [PR #274](https://github.com/jenkinsci/remoting/pull/274) -
+Prevent exception in IOHub when retrieving base thread name for handlers
+when NIO selector is already closed (race condition).
+
 ##### 3.20
 
 Release date: Apr 18, 2018
