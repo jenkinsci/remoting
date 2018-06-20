@@ -93,7 +93,7 @@ These properties require independent configuration on both sides of the channel.
     <tr>
       <td>${PROTOCOL_FULLY_QUALIFIED_NAME}.disabled, 
       where PROTOCOL_FULLY_QUALIFIED_NAME equals 
-      <code>PROTOCOL_HANDLER_CLASSNAME</code> without the <code>Handler</code> suffix.</td>,
+      <code>PROTOCOL_HANDLER_CLASSNAME</code> without the <code>Handler</code> suffix.</td>
       <td>false</td>
       <td>2.59</td>
       <td>2.4</td>
