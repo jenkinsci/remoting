@@ -68,7 +68,7 @@ import java.io.StreamCorruptedException;
 
     public final Command read() throws IOException, ClassNotFoundException {
         try {
-            Command cmd = Command.readFrom(channel, ois);
+            Command cmd = Command.readFromObjectStream(channel, ois);
             // TODO notifyRead using CountingInputStream
             if (rawIn!=null)
                 rawIn.clear();

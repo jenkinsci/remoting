@@ -33,11 +33,7 @@ public abstract class AbstractSynchronousByteArrayCommandTransport extends Synch
     @Override
     public Command read() throws IOException, ClassNotFoundException {
         byte[] block = readBlock(channel);
-        Command cmd = Command.readFrom(channel, new ObjectInputStreamEx(
-                new ByteArrayInputStream(block),
-                channel.baseClassLoader,channel.classFilter));
-        channel.notifyRead(cmd, block.length);
-        return cmd;
+        return Command.readFrom(channel, block);
     }
 
     @Override

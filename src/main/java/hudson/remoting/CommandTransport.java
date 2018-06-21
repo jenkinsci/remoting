@@ -43,7 +43,8 @@ import javax.annotation.CheckForNull;
  * {@link Command} objects need to be serialized and deseralized in a specific environment
  * so that {@link Command}s can access {@link Channel} that's using it. Because of this,
  * a transport needs to use {@link Command#writeTo(Channel, ObjectOutputStream)} and
- * {@link Command#readFrom(Channel, ObjectInputStream)}.
+ * {@link Command#readFromObjectStream(Channel, ObjectInputStream)} or
+ * {@link Command#readFrom(Channel, byte[])}.
  *
  * @author Kohsuke Kawaguchi
  * @since 2.13
@@ -69,8 +70,8 @@ public abstract class CommandTransport {
          * concurrently.
          * 
          * @param cmd
-         *      The command received. This object must be read from {@link ObjectInputStream} via
-         *      {@link Command#readFrom(Channel, ObjectInputStream)}
+         *      The command received. This object must be read from the payload
+         *      using {@link Command#readFrom(Channel, byte[])}.
          */
         void handle(Command cmd);
         
