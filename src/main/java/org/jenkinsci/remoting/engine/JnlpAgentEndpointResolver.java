@@ -37,6 +37,7 @@ import java.net.MalformedURLException;
 import java.net.NoRouteToHostException;
 import java.net.Proxy;
 import java.net.ProxySelector;
+import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.URI;
@@ -279,6 +280,11 @@ public class JnlpAgentEndpointResolver {
                     firstError = chain(firstError, new IOException(jenkinsUrl + " is publishing an invalid port"));
                     continue;
                 }
+                if (!isPortVisible(host, port, 5000)) {
+                    firstError = chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
+                            + " is not reachable"));
+                    continue;
+                }
                 // sort the URLs so that the winner is the one we try first next time
                 final String winningJenkinsUrl = jenkinsUrl;
                 Collections.sort(jenkinsUrls, new Comparator<String>() {
@@ -310,6 +316,32 @@ public class JnlpAgentEndpointResolver {
             throw firstError;
         }
         return null;
+    }
+
+    private boolean isPortVisible(String hostname, int port, int timeout) {
+        boolean exitStatus = false;
+        Socket s = null;
+
+        try {
+            s = new Socket();
+            s.setReuseAddress(true);
+            SocketAddress sa = new InetSocketAddress(hostname, port);
+            s.connect(sa, timeout);
+        } catch (IOException e) {
+            LOGGER.warning(e.getMessage());
+        } finally {
+            if (s != null) {
+                if (s.isConnected()) {
+                    exitStatus = true;
+                }
+                try {
+                    s.close();
+                } catch (IOException e) {
+                    LOGGER.warning(e.getMessage());
+                }
+            }
+        }
+        return exitStatus;
     }
 
     @Nonnull
