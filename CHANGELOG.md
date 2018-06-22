@@ -11,7 +11,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 Release date: Jun 22, 2018
 
 * [JENKINS-51818](https://issues.jenkins-ci.org/browse/JENKINS-51818) -
-When connectiong over TCP, add a masters TCP Agent Listener port availability check
+When connecting over TCP, agents will check availability of the master's TCP Agent Listener port
 * [JENKINS-51841](https://issues.jenkins-ci.org/browse/JENKINS-51841) -
 Extensibility: Offer a new `Channel#readFrom(Channel, byte[] payload)` method for a standardized command deserialization from the channel
 * [PR #277](https://github.com/jenkinsci/remoting/pull/277) -
