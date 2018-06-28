@@ -135,11 +135,12 @@ public class JnlpAgentEndpointResolver {
         this.proxyCredentials = user + ":" + pass;
     }
 
+    @CheckForNull
     public String getTunnel() {
         return tunnel;
     }
 
-    public void setTunnel(String tunnel) {
+    public void setTunnel(@CheckForNull String tunnel) {
         this.tunnel = tunnel;
     }
 
