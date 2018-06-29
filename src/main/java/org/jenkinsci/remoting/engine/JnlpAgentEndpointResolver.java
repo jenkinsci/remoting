@@ -135,11 +135,12 @@ public class JnlpAgentEndpointResolver {
         this.proxyCredentials = user + ":" + pass;
     }
 
+    @CheckForNull
     public String getTunnel() {
         return tunnel;
     }
 
-    public void setTunnel(String tunnel) {
+    public void setTunnel(@CheckForNull String tunnel) {
         this.tunnel = tunnel;
     }
 
@@ -280,10 +281,17 @@ public class JnlpAgentEndpointResolver {
                     firstError = chain(firstError, new IOException(jenkinsUrl + " is publishing an invalid port"));
                     continue;
                 }
-                if (!isPortVisible(host, port, 5000)) {
-                    firstError = chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
-                            + " is not reachable"));
-                    continue;
+                if (tunnel == null) {
+                    if (!isPortVisible(host, port, 5000)) {
+                        firstError = chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
+                                + " is not reachable"));
+                        continue;
+                    } else {
+                        LOGGER.log(Level.FINE, "TCP Agent Listener Port availability check passed");
+                    }
+                } else {
+                    LOGGER.log(Level.INFO, "Remoting TCP connection tunneling is enabled. " +
+                            "Skipping the TCP Agent Listener Port availability check");
                 }
                 // sort the URLs so that the winner is the one we try first next time
                 final String winningJenkinsUrl = jenkinsUrl;
@@ -306,6 +314,8 @@ public class JnlpAgentEndpointResolver {
                     if (tokens[0].length() > 0) host = tokens[0];
                     if (tokens[1].length() > 0) port = Integer.parseInt(tokens[1]);
                 }
+
+                //TODO: all the checks above do not make much sense if tunneling is enabled (JENKINS-52246)
                 
                 return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames, selectedJenkinsURL);
             } finally {
