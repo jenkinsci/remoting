@@ -6,9 +6,17 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.23
+
+Release date: June 29, 2018
+
+* [JENKINS-52204](https://issues.jenkins-ci.org/browse/JENKINS-52204) -
+Skip Tcp Agent Listener port availability check when `-tunnel` option is set
+(regression in 3.22)
+
 ##### 3.22
 
-Release date: Jun 22, 2018
+Release date: Jun 22, 2018 => 2.129
 
 * [JENKINS-51818](https://issues.jenkins-ci.org/browse/JENKINS-51818) -
 When connecting over TCP, agents will check availability of the master's TCP Agent Listener port
