@@ -6,9 +6,28 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.23
+
+Release date: June 29, 2018
+
+* [JENKINS-52204](https://issues.jenkins-ci.org/browse/JENKINS-52204) -
+Skip Tcp Agent Listener port availability check when `-tunnel` option is set
+(regression in 3.22)
+
+##### 3.22
+
+Release date: Jun 22, 2018 => 2.129
+
+* [JENKINS-51818](https://issues.jenkins-ci.org/browse/JENKINS-51818) -
+When connecting over TCP, agents will check availability of the master's TCP Agent Listener port
+* [JENKINS-51841](https://issues.jenkins-ci.org/browse/JENKINS-51841) -
+Extensibility: Offer a new `Channel#readFrom(Channel, byte[] payload)` method for a standardized command deserialization from the channel
+* [PR #277](https://github.com/jenkinsci/remoting/pull/277) -
+API: be explicit that `ChannelBuilder#getHeaderStream()` may return null
+
 ##### 3.21
 
-Enhancements:
+Enhancements: Jun 8, 2018 => Jenkins 2.127
 
 * [JENKINS-51551](https://issues.jenkins-ci.org/browse/JENKINS-51551) -
 Developer API: Allow creating custom `CommandTransport` implementation in external 
@@ -33,14 +52,14 @@ when NIO selector is already closed (race condition).
 
 ##### 3.20
 
-Release date: Apr 18, 2018
+Release date: Apr 18, 2018 => Jenkins 2.118, 2.121.1 LTS
 
 * Refresh the Code-signing certificate
 * No functional changes
 
 ##### 3.19
 
-Release date: Mar 22, 2018
+Release date: Mar 22, 2018 => Jenkins 2.113
 
 * [JENKINS-49618](https://issues.jenkins-ci.org/browse/JENKINS-49618) -
 Display Remoting version in the agent log when starting up the agent

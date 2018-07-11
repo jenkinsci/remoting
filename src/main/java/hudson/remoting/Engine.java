@@ -135,8 +135,9 @@ public class Engine extends Thread {
 	private String proxyCredentials = System.getProperty("proxyCredentials");
 
     /**
-     * See Main#tunnel in the jnlp-agent module for the details.
+     * See {@link hudson.remoting.jnlp.Main#tunnel} for the documentation.
      */
+    @CheckForNull
     private String tunnel;
 
     private boolean disableHttpsCertValidation;
@@ -305,7 +306,11 @@ public class Engine extends Thread {
         return hudsonUrl;
     }
 
-    public void setTunnel(String tunnel) {
+    /**
+     * If set, connect to the specified host and port instead of connecting directly to Jenkins.
+     * @param tunnel Value. {@code null} to disable tunneling
+     */
+    public void setTunnel(@CheckForNull String tunnel) {
         this.tunnel = tunnel;
     }
 

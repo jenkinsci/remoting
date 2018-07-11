@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>3.22-SNAPSHOT</version>
+  <version>3.24-SNAPSHOT</version>
 
   <name>Jenkins remoting layer</name>
   <description>
