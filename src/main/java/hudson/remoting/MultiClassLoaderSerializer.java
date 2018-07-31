@@ -9,6 +9,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.lang.reflect.Proxy;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -88,6 +89,9 @@ class MultiClassLoaderSerializer {
         Input(Channel channel, InputStream in) throws IOException {
             super(in);
             this.channel = channel;
+
+            // by default, the resolveObject is not called
+            enableResolveObject(true);
         }
 
         @CheckForNull
@@ -166,6 +170,15 @@ class MultiClassLoaderSerializer {
                 return Channel.jarLoaderProxy;
 
             return Proxy.getProxyClass(cl, classes);
+        }
+
+        @Override
+        protected Object resolveObject(Object obj) throws IOException {
+            if(obj instanceof URL){
+                // SECURITY-637, URL deserialization could lead to DNS query
+                return URLDeserializationHelper.wrapIfRequired((URL) obj);
+            }
+            return super.resolveObject(obj);
         }
     }
 
