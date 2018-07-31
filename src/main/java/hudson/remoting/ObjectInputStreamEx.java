@@ -29,6 +29,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectStreamClass;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
+import java.net.URL;
 
 /**
  * {@link ObjectInputStream} that uses a specific class loader.
@@ -48,6 +49,9 @@ public class ObjectInputStreamEx extends ObjectInputStream {
         super(in);
         this.cl = cl;
         this.filter = filter;
+        
+        // by default, the resolveObject is not called
+        enableResolveObject(true);
     }
 
     @Override
@@ -90,5 +94,14 @@ public class ObjectInputStreamEx extends ObjectInputStream {
         } catch (IllegalArgumentException e) {
             throw new ClassNotFoundException(null, e);
         }
+    }
+    
+    @Override 
+    protected Object resolveObject(Object obj) throws IOException {
+        if(obj instanceof URL){
+            // SECURITY-637, URL deserialization could lead to DNS query
+            return URLDeserializationHelper.wrapIfRequired((URL) obj);
+        }
+        return super.resolveObject(obj);
     }
 }
