@@ -104,9 +104,7 @@ JNLP3 cannot be used on IBM Java, which doesn't support AES/CTR/PKCS5Padding.
 
 * [Remoting Kafka Plugin](https://github.com/jenkinsci/remoting-kafka-plugin) uses Kafka as fault-tolerant communication layer to support command invocation between Jenkins master and agent.
 * The plugin gets rid of current direct TCP connection between master and agent.
-* Below picture is the overview architecture of the plugin.
-
-![Screenshot](remoting-kafka-architecture.png)
+* More info can be found in the technical [documentation](https://github.com/jenkinsci/remoting-kafka-plugin/blob/master/docs/DOCUMENTATION.md) of the plugin.
 
 ## Test Protocols
 
