@@ -341,7 +341,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         protected void execute(final Channel channel) {
             channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid,createdAt);
+                    channel.unexport(oid,createdAt, false);
                 }
             });
         }
