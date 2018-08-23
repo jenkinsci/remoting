@@ -70,7 +70,7 @@ public class AnonymousClassWarnings {
     }
 
     private static void doCheck(@Nonnull Class<?> c) {
-        if (c.isEnum()) { // e.g., com.cloudbees.plugins.credentials.CredentialsScope$1 ~ CredentialsScope.SYSTEM
+        if (Enum.class.isAssignableFrom(c)) { // e.g., com.cloudbees.plugins.credentials.CredentialsScope$1 ~ CredentialsScope.SYSTEM
             // ignore, enums serialize specially
         } else if (c.isAnonymousClass()) { // e.g., pkg.Outer$1
             warn(c, "anonymous");
