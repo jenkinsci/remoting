@@ -1,10 +1,23 @@
 Changelog
 ====
 
-Below you can changelogs for the trunk version of remoting.
+Below you can read the changelogs for the trunk version of remoting.
 This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
+
+##### 3.25
+
+Release date: July 31, 2018 => Weekly 2.138 / LTS 2.121.3
+
+* [SECURITY-637](https://jenkins.io/security/advisory/2018-08-15/) - Prevent deserialization of URL objects with host components
+
+##### 3.24
+
+Release date: July 12, 2018
+
+* Refresh the code-signing certificate
+* No functional changes
 
 ##### 3.23
 
