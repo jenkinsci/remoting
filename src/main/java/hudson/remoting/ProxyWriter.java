@@ -377,7 +377,7 @@ final class ProxyWriter extends Writer {
         protected void execute(final Channel channel) {
             channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid,createdAt);
+                    channel.unexport(oid,createdAt,false);
                 }
             });
         }
