@@ -8,6 +8,13 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 ##### 3.25
 
+Release date: August 31, 2018
+
+* [JENKINS-52945](https://issues.jenkins-ci.org/browse/JENKINS-52945) - AnonymousClassWarnings should not warn about enums.
+* [JENKINS-42533](https://issues.jenkins-ci.org/browse/JENKINS-42533) - Eliminate another excessively severe warning about trying to export already unexported object.
+
+##### 3.25
+
 Release date: July 31, 2018 => Weekly 2.138 / LTS 2.121.3
 
 * [SECURITY-637](https://jenkins.io/security/advisory/2018-08-15/) - Prevent deserialization of URL objects with host components
