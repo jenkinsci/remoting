@@ -6,7 +6,7 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
-##### 3.25
+##### 3.26
 
 Release date: August 31, 2018
 
