@@ -1,6 +1,6 @@
 #
 # This Dockerfile builds Experimental Remoting image for jenkins4eval/remoting
-# This image is similar to jenkins/slave
+# This image is similar to jenkins/slave, so extra tweaks need to be applied for better UX
 #
 FROM maven:3.5.4-jdk-8 as builder
 
