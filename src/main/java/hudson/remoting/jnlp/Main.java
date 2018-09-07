@@ -78,6 +78,15 @@ public class Main {
     public boolean headlessMode = Boolean.getBoolean("hudson.agent.headless")
                     || Boolean.getBoolean("hudson.webstart.headless");
 
+    /**
+     * Disables HTTP Endpoint for the remoting connection.
+     * In such case Remoting will connect straight to the TCP endpoint using CLI arguments.
+     * @since TODO
+     */
+    @Option(name="-noHttpEndpoint",
+            usage="Indicates that the master is running in the headless mode without TCP Agent Listener endpoint")
+    public boolean disableHttpEndpointCheck = Boolean.getBoolean("jenkins.agent.disableHttpEndpointCheck");
+
     @Option(name="-url",
             usage="Specify the Jenkins root URLs to connect to.")
     public final List<URL> urls = new ArrayList<URL>();
@@ -217,7 +226,7 @@ public class Main {
         p.parseArgument(args);
         if(m.args.size()!=2)
             throw new CmdLineException("two arguments required, but got "+m.args);
-        if(m.urls.isEmpty())
+        if(m.urls.isEmpty() && !m.disableHttpEndpointCheck)
             throw new CmdLineException("At least one -url option is required.");
 
         m.main();
@@ -258,7 +267,7 @@ public class Main {
             LOGGER.log(WARNING, "Certificate validation for HTTPs endpoints is disabled");
         }
         engine.setDisableHttpsCertValidation(disableHttpsCertValidation);
-
+        engine.setDisableHttpEndpointCheck(disableHttpEndpointCheck);
         
         // TODO: ideally logging should be initialized before the "Setting up agent" entry
         if (agentLog != null) {

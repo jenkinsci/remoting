@@ -145,6 +145,11 @@ public class Engine extends Thread {
     private boolean noReconnect;
 
     /**
+     * {@code true} if the target master has no Tcp Agent Listener endpoint
+     */
+    private boolean disableHttpEndpointCheck;
+
+    /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
      *
      * @since 2.62.1
@@ -304,6 +309,23 @@ public class Engine extends Thread {
     @CheckForNull
     public URL getHudsonUrl() {
         return hudsonUrl;
+    }
+
+    /**
+     * Disable Http Enfpoint check if needed.
+     * In this case Remoting will not have metadata from the master.
+     * @since TODO
+     */
+    public void setDisableHttpEndpointCheck(boolean disableHttpEndpointCheck) {
+        this.disableHttpEndpointCheck = disableHttpEndpointCheck;
+    }
+
+    /**
+     * Check whether the Tcp Agent listener endpoint is not available.
+     * @since TODO
+     */
+    public boolean isDisableHttpEndpointCheck() {
+        return disableHttpEndpointCheck;
     }
 
     /**
@@ -499,6 +521,7 @@ public class Engine extends Thread {
         resolver.setCredentials(credentials);
         resolver.setProxyCredentials(proxyCredentials);
         resolver.setTunnel(tunnel);
+        resolver.setDisableHttpEndpointCheck(disableHttpEndpointCheck);
         try {
             resolver.setSslSocketFactory(getSSLSocketFactory());
             resolver.setDisableHttpsCertValidation(disableHttpsCertValidation);

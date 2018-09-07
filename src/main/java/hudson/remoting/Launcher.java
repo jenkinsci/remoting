@@ -148,6 +148,15 @@ public class Launcher {
     @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
     public String proxyCredentials = null;
 
+    /**
+     * Disables HTTP Endpoint for the remoting connection.
+     * In such case Remoting will connect straight to the TCP endpoint using CLI arguments.
+     * @since TODO
+     */
+    @Option(name="-noHttpEndpoint",
+            usage="Indicates that the master is running in the headless mode without TCP Agent Listener endpoint")
+    public boolean disableHttpEndpointCheck;
+
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader.")
     public void addClasspath(String pathList) throws Exception {
@@ -323,6 +332,9 @@ public class Launcher {
             if (jarCache != null) {
               jnlpArgs.add("-jar-cache");
               jnlpArgs.add(jarCache.getPath());
+            }
+            if (this.disableHttpEndpointCheck) {
+                jnlpArgs.add("-disableHttpEndpointCheck");
             }
             if (this.noReconnect) {
                 jnlpArgs.add("-noreconnect");

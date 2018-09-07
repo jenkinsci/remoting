@@ -87,6 +87,11 @@ public class JnlpAgentEndpointResolver {
     private boolean disableHttpsCertValidation;
 
     /**
+     * Indicates that the target server is headless and offers no TcpAgentListener.
+     */
+    private boolean disableHttpEndpointCheck;
+
+    /**
      * If specified, only the protocols from the list will be tried during the connection.
      * The option provides protocol names, but the order of the check is defined internally and cannot be changed.
      * This option can be also used in order to workaround issues when the headers cannot be delivered
@@ -140,6 +145,22 @@ public class JnlpAgentEndpointResolver {
         return tunnel;
     }
 
+    /**
+     * Sets whether the target server is headless.
+     * @param disableHttpEndpointCheck {@code true} if the target master is headless and hence has no Tcp Agent Listener endpoint.
+     */
+    public void setDisableHttpEndpointCheck(boolean disableHttpEndpointCheck) {
+        this.disableHttpEndpointCheck = disableHttpEndpointCheck;
+    }
+
+    /**
+     * Checks if the target server is headless and hence has no Tcp Agent Listener endpoint.
+     * @since TODO
+     */
+    public boolean isDisableHttpEndpointCheck() {
+        return disableHttpEndpointCheck;
+    }
+
     public void setTunnel(@CheckForNull String tunnel) {
         this.tunnel = tunnel;
     }
@@ -168,6 +189,34 @@ public class JnlpAgentEndpointResolver {
     @CheckForNull
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
+
+        if (disableHttpEndpointCheck) {
+            if (jenkinsUrls.size() > 1) {
+                throw new IOException("Only one URL or Tunnel must be specified when HTTP Endpoint Check is disabled");
+            }
+
+            final String host;
+            final int port;
+            if (tunnel != null) {
+                String[] tokens = tunnel.split(":", 3);
+                if (tokens.length != 2)
+                    throw new IOException("Illegal tunneling parameter: " + tunnel);
+                host = tokens[0];
+                port = Integer.parseInt(tokens[1]);
+            } else if (!jenkinsUrls.isEmpty()) {
+               // URL like tcp://myjenkins:50000
+               URL url = new URL(jenkinsUrls.get(0));
+               host = url.getHost();
+               port = url.getPort();
+            } else {
+                throw new IOException("Cannot locate URL, tunnel or URL are not set");
+            }
+
+            //TODO: enforce protocols in such configuration (via CLI arg?)
+            return new JnlpAgentEndpoint(host, port, null, null, null);
+        }
+
+        // Mode with TCP Agent Listener
         for (String jenkinsUrl : jenkinsUrls) {
             if (jenkinsUrl == null) {
                 continue;
@@ -362,6 +411,11 @@ public class JnlpAgentEndpointResolver {
     }
 
     public void waitForReady() throws InterruptedException {
+        if (disableHttpEndpointCheck) {
+            LOGGER.log(Level.INFO, "HTTP Endpoint Check is disabled, assuming that the target master is reasy");
+            return;
+        }
+
         Thread t = Thread.currentThread();
         String oldName = t.getName();
         try {
