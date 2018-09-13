@@ -92,7 +92,7 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
                 LOGGER.log(Level.SEVERE, "I/O error in channel "+name,e);
                 channel.terminate((InterruptedIOException) new InterruptedIOException().initCause(e));
             } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "I/O error in channel "+name,e);
+                LOGGER.log(Level.INFO, "I/O error in channel "+name,e);
                 channel.terminate(e);
             } catch (RuntimeException e) {
                 LOGGER.log(Level.SEVERE, "Unexpected error in channel "+name,e);
