@@ -597,7 +597,6 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         /**
          * Flag to track this {@link ProtocolLayer} as removed from the stack.
          */
-        @GuardedBy("ProtocolStack.stackLock")
         private boolean removed;
 
         /**
@@ -752,22 +751,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * Requests removal of this {@link ProtocolLayer} from the {@link ProtocolStack}
          */
         public void remove() {
-            stackLock.readLock().lock();
-            try {
-                if (removed) {
-                    return;
-                }
-                if (nextSend == null) {
-                    throw new UnsupportedOperationException("Network layer is not supposed to call remove");
-                }
-                if (nextRecv == null) {
-                    throw new UnsupportedOperationException("Application layer is not supposed to call remove");
-                }
-                // we just want to have a lock, we abuse the read lock here as the readers are eventually consistent
-                removed = true;
-            } finally {
-                stackLock.readLock().unlock();
-            }
+            removed = true;
         }
 
         /**
