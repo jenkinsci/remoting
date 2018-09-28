@@ -6,6 +6,14 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.27
+
+Release date: September 28, 2018
+
+* Channel.notifyJar was being called too often.
+* Downgrade error messages from SynchronousCommandTransport.
+* [JENKINS-53569](https://issues.jenkins-ci.org/browse/JENKINS-53569) - Remove unnecessary locking that could cause deadlock when removing a filter from the ProtocolStack.
+
 ##### 3.26
 
 Release date: August 31, 2018
