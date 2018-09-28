@@ -867,7 +867,6 @@ final class RemoteClassLoader extends URLClassLoader {
                         if (referer == null && !channel.jarLoader.isPresentOnRemote(sum)) {
                             // for the class being requested, if the remote doesn't have the jar yet
                             // send the image as well, so as not to require another call to get this class loaded
-                            channel.notifyJar(jar);
                             imageRef = new ResourceImageBoth(urlOfClassFile,sum);
                         } else { // otherwise just send the checksum and save space
                             imageRef = new ResourceImageInJar(sum,null /* TODO: we need to check if the URL of c points to the expected location of the file */);
@@ -948,7 +947,6 @@ final class RemoteClassLoader extends URLClassLoader {
                     Checksum sum = channel.jarLoader.calcChecksum(jar);
                     ResourceImageRef ir;
                     if (!channel.jarLoader.isPresentOnRemote(sum)) {
-                        channel.notifyJar(jar);
                         ir = new ResourceImageBoth(resource, sum);   // remote probably doesn't have
                     } else {
                         ir = new ResourceImageInJar(sum, null);
