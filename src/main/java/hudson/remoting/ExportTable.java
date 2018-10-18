@@ -498,7 +498,7 @@ final class ExportTable {
      * Logs error if the object has been already unexported.
      */
     void unexportByOid(Integer oid, Throwable callSite) {
-        unexportByOid(oid, callSite, true);
+        unexportByOid(oid, callSite, false);
     }
     
     /**

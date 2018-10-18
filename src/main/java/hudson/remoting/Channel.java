@@ -790,7 +790,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /*package*/ void unexport(int id, @CheckForNull Throwable cause) {
-        unexport(id, cause, true);
+        unexport(id, cause, false);
     }
     
     /**
