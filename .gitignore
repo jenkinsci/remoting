@@ -7,3 +7,5 @@ target
 /.project
 /.settings
 .fbExcludeFilterFile
+qemu-*
+manifest-tool
