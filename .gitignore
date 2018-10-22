@@ -9,3 +9,4 @@ target
 .fbExcludeFilterFile
 qemu-*
 manifest-tool
+Dockerfile-amd64*

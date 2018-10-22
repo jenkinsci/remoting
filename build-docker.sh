@@ -139,7 +139,7 @@ docker-tag() {
     local to="$2/$IMAGE:$3"
     local out
 
-    docker pull "$from"
+    docker pull "$from" || echo "Not pulled from the remote"
     if out=$(docker tag -f "$from" "$to" 2>&1); then
         echo "$out"
     else
@@ -154,11 +154,14 @@ is-published() {
         opts="-v"
     fi
     local http_code;
-    http_code=$(curl $opts -q -fsL -o /dev/null -w "%{http_code}" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" -H "Authorization: Bearer $TOKEN" "https://index.docker.io/v2/jenkins4eval/remoting/manifests/$tag")
+    http_code=$(curl $opts -q -fsL -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.docker.distribution.manifest.v2+json" "https://index.docker.io/v2/jenkins4eval/remoting/manifests/$tag")
     if [ "$http_code" -eq "404" ]; then
         false
     elif [ "$http_code" -eq "200" ]; then
         true
+    elif [ "$http_code" -eq "401" ]; then
+        echo "Cannot check the release, will go forward as is"
+        false
     else
         echo "Received unexpected http code from Docker hub: $http_code"
         exit 1
@@ -185,7 +188,7 @@ get-digest() {
 }
 
 get-latest-versions() {
-    curl -q -fsSL https://repo.jenkins-ci.org/releases/org/jenkins-ci/main/jenkins-war/maven-metadata.xml | grep '<version>.*</version>' | grep -E -o '[0-9]+(\.[0-9]+)+' | sort-versions | uniq | tail -n 1
+    curl -q -fsSL https://repo.jenkins-ci.org/releases/org/jenkins-ci/main/remoting/maven-metadata.xml | grep '<version>.*</version>' | grep -E -o '[0-9]+(\.[0-9]+)+' | sort-versions | uniq | tail -n 1
 }
 
 # Make a list of platforms for manifest-tool to publish
@@ -208,7 +211,7 @@ publish() {
         build_opts=()
     fi
 
-    sha=$(curl -q -fsSL "https://repo.jenkins-ci.org/releases/org/jenkins-ci/remoting/${version}/remoting-${version}.jar.sha256" )
+    sha=$(curl -q -fsSL "https://repo.jenkins-ci.org/releases/org/jenkins-ci/main/remoting/${version}/remoting-${version}.jar.sha256" )
 
     for jdk in ${JDKS[*]}; do
     for arch in ${ARCHS[*]}; do
@@ -389,6 +392,13 @@ if [ "$debug" = true ]; then
     set -x
 fi
 
+login-token() {
+    # could use jq .token
+    curl -q -sSL "https://auth.docker.io/token?service=registry.docker.io&scope=repository:jenkins4eval/remoting:pull" | grep -o '"token":"[^"]*"' | cut -d':' -f 2 | xargs echo
+}
+
+TOKEN=$(login-token)
+
 get-manifest-tool
 get-qemu-handlers
 
@@ -397,7 +407,18 @@ docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
 lts_version=""
 version="2.36"
-# Version retrieval logic was removed
+for version in $(get-latest-versions); do
+    if is-published "$version$variant"; then
+        echo "Tag is already published: $version$variant"
+    else
+        echo "Publishing version: $version$variant"
+        publish "$version" "$variant"
+    fi
+     # Update lts tag
+    if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        lts_version="${version}"
+    fi
+done
 
 push-manifest "${version}" "${variant}"
 
