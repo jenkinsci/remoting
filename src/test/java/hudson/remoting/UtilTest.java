@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, Schneider Electric
+ * Copyright (c) 2016-2018, Schneider Electric, CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,160 +24,21 @@
 
 package hudson.remoting;
 
-import junit.framework.TestCase;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 
 import java.io.File;
 import java.io.IOException;
 
+import static org.junit.Assert.*;
+
 /**
  * @author Etienne Bec
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(Util.class)
-public class UtilTest extends TestCase {
+public class UtilTest {
 
     @Rule public TemporaryFolder temp = new TemporaryFolder();
-
-    @Before
-    public void mockSystem() {
-        PowerMockito.mockStatic(System.class);
-    }
-
-    @Test
-    public void testIPV4() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn("10.0.0.1");
-
-        assertEquals(true, Util.inNoProxyEnvVar("10.0.0.1"));
-    }
-
-    @Test
-    public void testWrongIPV4() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn("127.0.0.1");
-
-        assertEquals(false, Util.inNoProxyEnvVar("10.0.0.1"));
-    }
-
-    @Test
-    public void testIPV6() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn("2001:0db8:85a3:0000:0000:8a2e:0370:7334");
-        assertEquals(true, Util.inNoProxyEnvVar("2001:0db8:85a3:0000:0000:8a2e:0370:7334"));
-    }
-
-    @Test
-    public void testWrongIPV6() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn("0:0:0:0:0:0:0:1");
-
-        assertEquals(false, Util.inNoProxyEnvVar("2001:0db8:85a3:0000:0000:8a2e:0370:7334"));
-    }
-
-    @Test
-    public void testFQDN() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn("foobar.com");
-
-        assertEquals(true, Util.inNoProxyEnvVar("foobar.com"));
-        assertEquals(true, Util.inNoProxyEnvVar("sub.foobar.com"));
-        assertEquals(true, Util.inNoProxyEnvVar("sub.sub.foobar.com"));
-
-        assertEquals(false, Util.inNoProxyEnvVar("foobar.org"));
-        assertEquals(false, Util.inNoProxyEnvVar("jenkins.com"));
-    }
-
-    @Test
-    public void testSubFQDN() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn("sub.foobar.com");
-
-        assertEquals(true, Util.inNoProxyEnvVar("sub.foobar.com"));
-        assertEquals(true, Util.inNoProxyEnvVar("sub.sub.foobar.com"));
-
-        assertEquals(false, Util.inNoProxyEnvVar("foobar.com"));
-    }
-
-    @Test
-    public void testFQDNWithDot() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn(".foobar.com");
-
-        assertEquals(true, Util.inNoProxyEnvVar("foobar.com"));
-        assertEquals(true, Util.inNoProxyEnvVar("sub.foobar.com"));
-        assertEquals(true, Util.inNoProxyEnvVar("sub.sub.foobar.com"));
-
-        assertEquals(false, Util.inNoProxyEnvVar("foobar.org"));
-        assertEquals(false, Util.inNoProxyEnvVar("jenkins.com"));
-    }
-
-    @Test
-    public void testSubFQDNWithDot() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn(".sub.foobar.com");
-
-        assertEquals(true, Util.inNoProxyEnvVar("sub.foobar.com"));
-        assertEquals(true, Util.inNoProxyEnvVar("sub.sub.foobar.com"));
-
-        assertEquals(false, Util.inNoProxyEnvVar("foobar.com"));
-    }
-    
-    @Test
-    public void testSubFWDNWithDotMinimalSuffix() {
-    	PowerMockito.when(System.getenv("no_proxy")).thenReturn(".svc");
-    	
-    	assertEquals(true, Util.inNoProxyEnvVar("bn-myproj.svc"));
-    }
-
-    @Test
-    public void testSubFWDNWithDotMinimalSuffixMixedCase() {
-    	PowerMockito.when(System.getenv("no_proxy")).thenReturn(".svc,.default,.local,localhost,.boehringer.com,10.250.0.0/16,10.251.0.0/16,10.183.195.106,10.183.195.107,10.183.195.108,10.183.195.109,10.183.195.11,10.183.195.111,10.183.195.112,10.183.195.113,10.183.195.13,10.250.127.");
-    	
-    	assertEquals(true, Util.inNoProxyEnvVar("bn-myproj.svc"));
-    }
-
-    @Test
-    public void testNoProxyWithInvalidChars() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn("foo+.co=m");
-
-        assertEquals(false, Util.inNoProxyEnvVar("foo+.co=m"));
-    }
-
-    @Test
-    public void testNoProxyWithInvalidChar() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn("foo.co=m");
-
-        assertEquals(false, Util.inNoProxyEnvVar("foo.co=m"));
-    }
-
-    @Test
-    public void testNoProxyWithInvalidCharInMinimalSuffix() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn(".sv=c");
-
-        assertEquals(false, Util.inNoProxyEnvVar("foo.sv=c"));
-    }
-    @Test
-    public void testSubFWDNWithoutDotMinimalSuffix() {
-    	PowerMockito.when(System.getenv("no_proxy")).thenReturn("svc");
-    	
-    	assertEquals(false, Util.inNoProxyEnvVar("bn-myproj.svc"));
-    }
-
-    @Test
-    public void testMixed() {
-        PowerMockito.when(System.getenv("no_proxy")).thenReturn(" 127.0.0.1,  0:0:0:0:0:0:0:1,\tfoobar.com, .jenkins.com");
-
-        assertEquals(true, Util.inNoProxyEnvVar("127.0.0.1"));
-        assertEquals(true, Util.inNoProxyEnvVar("0:0:0:0:0:0:0:1"));
-        assertEquals(true, Util.inNoProxyEnvVar("foobar.com"));
-        assertEquals(true, Util.inNoProxyEnvVar("sub.foobar.com"));
-        assertEquals(true, Util.inNoProxyEnvVar("sub.jenkins.com"));
-
-        assertEquals(false, Util.inNoProxyEnvVar("foobar.org"));
-        assertEquals(false, Util.inNoProxyEnvVar("jenkins.org"));
-        assertEquals(false, Util.inNoProxyEnvVar("sub.foobar.org"));
-        assertEquals(false, Util.inNoProxyEnvVar("sub.jenkins.org"));
-    }
 
     @Test
     public void mkdirs() throws IOException {
