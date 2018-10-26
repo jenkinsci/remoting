@@ -42,13 +42,21 @@ public class SocketClientMain {
     }
 
     private static String echo(Channel ch, final String arg) throws Exception {
-        return ch.call(new CallableBase<String, Exception>() {
-            public String call() throws Exception {
-                LOGGER.info("Echoing back "+arg);
-                return arg;
-            }
-        });
+        return ch.call(new EchoingCallable(arg));
     }
 
     private static final Logger LOGGER = Logger.getLogger(SocketClientMain.class.getName());
+
+    private static class EchoingCallable extends CallableBase<String, Exception> {
+        private final String arg;
+
+        public EchoingCallable(String arg) {
+            this.arg = arg;
+        }
+
+        public String call() throws Exception {
+            LOGGER.info("Echoing back "+ arg);
+            return arg;
+        }
+    }
 }

@@ -52,18 +52,7 @@ public class ForwarderFactory {
      * Creates a connector on the remote side that connects to the speicied host and port.
      */
     public static Forwarder create(VirtualChannel channel, final String remoteHost, final int remotePort) throws IOException, InterruptedException {
-        return channel.call(new Callable<Forwarder,IOException>() {
-            public Forwarder call() throws IOException {
-                return new ForwarderImpl(remoteHost,remotePort);
-            }
-
-            @Override
-            public void checkRoles(RoleChecker checker) throws SecurityException {
-                checker.check(this,ROLE);
-            }
-
-            private static final long serialVersionUID = 1L;
-        });
+        return channel.call(new ForwarderCallable(remoteHost, remotePort));
     }
 
     public static Forwarder create(String remoteHost, int remotePort) {
@@ -111,4 +100,25 @@ public class ForwarderFactory {
      * Role that's willing to open a socket to arbitrary node nad forward that to the other side.
      */
     public static final Role ROLE = new Role(ForwarderFactory.class);
+
+    private static class ForwarderCallable implements Callable<Forwarder,IOException> {
+
+        private static final long serialVersionUID = 1L;
+        private final String remoteHost;
+        private final int remotePort;
+
+        public ForwarderCallable(String remoteHost, int remotePort) {
+            this.remoteHost = remoteHost;
+            this.remotePort = remotePort;
+        }
+
+        public Forwarder call() throws IOException {
+            return new ForwarderImpl(remoteHost, remotePort);
+        }
+
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+            checker.check(this,ROLE);
+        }
+    }
 }
