@@ -118,7 +118,7 @@ public class ForwarderFactory {
 
         @Override
         public void checkRoles(RoleChecker checker) throws SecurityException {
-            checker.check(this,ROLE);
+            checker.check(this, ROLE);
         }
     }
 }

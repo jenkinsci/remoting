@@ -161,7 +161,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
 
         @Override
         public void checkRoles(RoleChecker checker) throws SecurityException {
-            checker.check(this,ROLE);
+            checker.check(this, ROLE);
         }
     }
 }

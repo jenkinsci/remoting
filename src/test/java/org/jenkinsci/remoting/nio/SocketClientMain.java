@@ -55,7 +55,7 @@ public class SocketClientMain {
         }
 
         public String call() throws Exception {
-            LOGGER.info("Echoing back "+ arg);
+            LOGGER.info("Echoing back " + arg);
             return arg;
         }
     }
