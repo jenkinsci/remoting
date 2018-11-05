@@ -217,7 +217,11 @@ public class ChannelBuilder {
      * @throws IOException Default JAR Cache location cannot be initialized
      */
     public ChannelBuilder withJarCacheOrDefault(@CheckForNull JarCache jarCache) throws IOException {
-        this.jarCache = jarCache != null ? jarCache : JarCache.getDefault();
+        try {
+            this.jarCache = jarCache != null ? jarCache : JarCache.getDefault();
+        } catch (IOException ioe) {
+            LOGGER.log(Level.WARNING, "Could not create jar cache. Running without cache.", ioe);
+        }
         return this;
     }
 
