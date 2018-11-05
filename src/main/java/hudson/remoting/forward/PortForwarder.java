@@ -132,19 +132,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
         // need a remotable reference
         final Forwarder proxy = ch.export(Forwarder.class, forwarder);
 
-        return ch.call(new Callable<ListeningPort,IOException>() {
-            public ListeningPort call() throws IOException {
-                final Channel channel = getOpenChannelOrFail(); // We initialize it early, so the forwarder won's start its daemon if the channel is shutting down
-                PortForwarder t = new PortForwarder(acceptingPort, proxy);
-                t.start();
-                return channel.export(ListeningPort.class,t);
-            }
-
-            @Override
-            public void checkRoles(RoleChecker checker) throws SecurityException {
-                checker.check(this,ROLE);
-            }
-        });
+        return ch.call(new ListeningPortCallable(acceptingPort, proxy));
     }
 
     private static final Logger LOGGER = Logger.getLogger(PortForwarder.class.getName());
@@ -153,4 +141,27 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
      * Role that's willing to listen on a socket and forward that to the other side.
      */
     public static final Role ROLE = new Role(PortForwarder.class);
+
+    private static class ListeningPortCallable implements Callable<ListeningPort,IOException> {
+        private static final long serialVersionUID = 1L;
+        private final int acceptingPort;
+        private final Forwarder proxy;
+
+        public ListeningPortCallable(int acceptingPort, Forwarder proxy) {
+            this.acceptingPort = acceptingPort;
+            this.proxy = proxy;
+        }
+
+        public ListeningPort call() throws IOException {
+            final Channel channel = getOpenChannelOrFail(); // We initialize it early, so the forwarder won's start its daemon if the channel is shutting down
+            PortForwarder t = new PortForwarder(acceptingPort, proxy);
+            t.start();
+            return channel.export(ListeningPort.class,t);
+        }
+
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+            checker.check(this, ROLE);
+        }
+    }
 }

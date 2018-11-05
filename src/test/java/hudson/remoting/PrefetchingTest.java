@@ -45,12 +45,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         dir.mkdirs();
 
         channel.setJarCache(new FileSystemJarCache(dir, true));
-        channel.call(new CallableBase<Void, IOException>() {
-            public Void call() throws IOException {
-                Channel.currentOrFail().setJarCache(new FileSystemJarCache(dir, true));
-                return null;
-            }
-        });
+        channel.call(new JarCacherCallable());
         sum1 = channel.jarLoader.calcChecksum(jar1);
         sum2 = channel.jarLoader.calcChecksum(jar2);
     }
@@ -233,6 +228,13 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
             } catch (ExecutionException e) {
                 throw new IOException(e);
             }
+        }
+    }
+
+    private class JarCacherCallable extends CallableBase<Void, IOException> {
+        public Void call() throws IOException {
+            Channel.currentOrFail().setJarCache(new FileSystemJarCache(dir, true));
+            return null;
         }
     }
 }

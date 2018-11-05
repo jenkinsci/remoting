@@ -160,13 +160,7 @@ public class ClassFilterTest implements Serializable {
      */
     private void fire(String name, Channel from) throws Exception {
         final Security218 a = new Security218(name);
-        from.call(new CallableBase<Void, IOException>() {
-            @Override
-            public Void call() throws IOException {
-                a.toString();   // this will ensure 'a' gets sent over
-                return null;
-            }
-        });
+        from.call(new Security218Callable(a));
     }
 
     /**
@@ -280,5 +274,19 @@ public class ClassFilterTest implements Serializable {
 
     private void clearRecord() {
         System.setProperty("attack", "");
+    }
+
+    private static class Security218Callable extends CallableBase<Void, IOException> {
+        private final Security218 a;
+
+        public Security218Callable(Security218 a) {
+            this.a = a;
+        }
+
+        @Override
+        public Void call() throws IOException {
+            a.toString();   // this will ensure 'a' gets sent over
+            return null;
+        }
     }
 }
