@@ -24,6 +24,7 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Base64;
+import hudson.remoting.NoProxyEvaluator;
 import hudson.remoting.Util;
 
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
@@ -543,7 +544,7 @@ public class JnlpAgentEndpointResolver {
     }
 
     static boolean inNoProxyEnvVar(String host) {
-    	return Util.inNoProxyEnvVar(host);
+    	return !NoProxyEvaluator.shouldProxy(host);
     }
 
     @CheckForNull
