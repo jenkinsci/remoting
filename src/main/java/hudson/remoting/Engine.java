@@ -664,7 +664,14 @@ public class Engine extends Thread {
                 // try to connect back to the server every 10 secs.
                 resolver.waitForReady();
 
-                events.onReconnect();
+                try {
+                    events.status("Performing onReconnect operation.");
+                    events.onReconnect();
+                    events.status("onReconnect operation completed.");
+                } catch (NoClassDefFoundError e) {
+                    events.status("onReconnect operation failed.");
+                    LOGGER.log(Level.FINE, "Reconnection error.", e);
+                }
             }
         } catch (Throwable e) {
             events.error(e);
