@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>3.28-SNAPSHOT</version>
+  <version>${revision}${changelist}</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -71,6 +71,8 @@ THE SOFTWARE.
     <findbugs.threshold>Low</findbugs.threshold>
     <!-- TODO: Required to override by a version with certchain support (MJARSIGNER-53) on @oleg-nenashev's machine. Remove once it's in upstream -->
     <maven-jarsigner-plugin.version>1.4</maven-jarsigner-plugin.version>
+    <revision>3.28</revision>
+    <changelist>-SNAPSHOT</changelist>
   </properties>
 
   <repositories>
