@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.49</version>
+    <version>1.50</version>
     <relativePath />
   </parent>
 
@@ -77,12 +77,6 @@ THE SOFTWARE.
     <repository>
       <id>repo.jenkins-ci.org</id>
       <url>https://repo.jenkins-ci.org/public/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
     </repository>
   </repositories>
   <pluginRepositories>
@@ -424,6 +418,7 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.0.0-M1</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
