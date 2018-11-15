@@ -25,7 +25,6 @@ package hudson.remoting;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.util.concurrent.ExecutionException;
@@ -152,8 +151,9 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
     }
 
     public synchronized void flush() throws IOException {
-        if(channel!=null)
-            channel.send(new Flush(channel.newIoId(),oid));
+        if (channel != null && /* see #finalize */ oid != -1) {
+            channel.send(new Flush(channel.newIoId(), oid));
+        }
     }
 
     public synchronized void close() throws IOException {
