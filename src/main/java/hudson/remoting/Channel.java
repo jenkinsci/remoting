@@ -568,7 +568,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                     }
                 } catch (Throwable t) {
                     logger.log(Level.SEVERE, "Failed to execute command " + cmd + " (channel " + Channel.this.name + ")", t);
-                    logger.log(Level.SEVERE, "This command is created here", cmd.createdAt);
+                    if (cmd.createdAt != null) {
+                        logger.log(Level.SEVERE, "This command is created here", cmd.createdAt);
+                    }
                 }
             }
 
