@@ -839,19 +839,20 @@ final class RemoteClassLoader extends URLClassLoader {
         /**
          * Fetch a single class and creates a {@link ClassFile2} for it.
          */
-        public ClassFile2 fetch4(String className, ClassFile2 referer) throws ClassNotFoundException {
+        public ClassFile2 fetch4(String className, @CheckForNull ClassFile2 referer) throws ClassNotFoundException {
+            Class<?> referrerClass = referer == null ? null : referer.clazz;
             Class<?> c;
             try {
                 c = (referer==null?this.cl:referer.clazz.getClassLoader()).loadClass(className);
             } catch (LinkageError e) {
-                throw (LinkageError)new LinkageError("Failed to load "+className).initCause(e);
+                throw new LinkageError("Failed to load " + className + " via " + referrerClass, e);
             }
             ClassLoader ecl = c.getClassLoader();
             if (ecl == null) {
             	if (USE_BOOTSTRAP_CLASSLOADER) {
             		ecl = PSEUDO_BOOTSTRAP;
             	} else {
-            		throw new ClassNotFoundException("Classloading from system classloader disabled");
+            		throw new ClassNotFoundException("Bootstrap pseudo-classloader disabled: " + className + " via " + referrerClass);
             	}
             }
 
@@ -880,7 +881,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 }
                 return fetch2(className).upconvert(referer,c,urlOfClassFile);
             } catch (IOException e) {
-                throw new ClassNotFoundException();
+                throw new ClassNotFoundException("Failed to load " + className + " via " + referrerClass, e);
             }
         }
 
