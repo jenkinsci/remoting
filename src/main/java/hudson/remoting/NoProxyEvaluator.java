@@ -23,8 +23,8 @@
  */
 package hudson.remoting;
 
-import org.apache.commons.net.util.SubnetUtils;
-import org.apache.http.conn.util.InetAddressUtils;
+import org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils;
+import org.jenkinsci.remoting.org.apache.commons.validator.routines.InetAddressValidator;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -149,7 +149,7 @@ public class NoProxyEvaluator {
     }
 
     private boolean isIpAddress(String host) {
-        return InetAddressUtils.isIPv4Address(host) || InetAddressUtils.isIPv6Address(host);
+        return InetAddressValidator.getInstance().isValid(host);
     }
 
 }
