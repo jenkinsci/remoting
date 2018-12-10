@@ -120,12 +120,12 @@ These properties require independent configuration on both sides of the channel.
       <td>If specified, only the protocols from the list will be tried during the connection. The option provides protocol names, but the order of the check is defined internally and cannot be changed.</td>
     </tr>
     <tr>
-      <td>[NO_PROXY](no_proxy.md) (or no_proxy)</td>
+        <td><a href="no_proxy.md">NO_PROXY</a> (or no_proxy)</td>
       <td></td>
       <td></td>
       <td></td>
-      <td></a></td>
-      <td>Provides specifications for hosts that should not be proxied. See the [NO_PROXY](no_proxy.md) page for details on supported specifications.</td>
+      <td></td>
+      <td>Provides specifications for hosts that should not be proxied. See the <a href="no_proxy.md">NO_PROXY Environment Variable</a> page for details on supported specifications.</td>
     </tr>
     <!--Template
     <tr>
