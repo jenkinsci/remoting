@@ -17,7 +17,7 @@ Release date: December 10, 2018
 * [JENKINS-47977](https://issues.jenkins-ci.org/browse/JENKINS-47977) - Jenkins build failed if Remoting could not create the JAR cache.
 * [JENKINS-50730](https://issues.jenkins-ci.org/browse/JENKINS-50730) - Improve log messaging on reconnect.
 * [JENKINS-49987](https://issues.jenkins-ci.org/browse/JENKINS-49987) - Clean up warnings about anonymous callable.
-* [JENKINS-54005](https://issues.jenkins-ci.org/browse/JENKINS-49987) - Another instance of an unnecessarily severe warning when unexporting.
+* [JENKINS-54005](https://issues.jenkins-ci.org/browse/JENKINS-54005) - Another instance of an unnecessarily severe warning when unexporting.
 
 ##### 3.27
 
