@@ -6,6 +6,19 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.28
+
+Release date: December 10, 2018
+
+* [JENKINS-48778](https://issues.jenkins-ci.org/browse/JENKINS-48778) Enhance the no_proxy configurations. See [NO_PROXY Environment Variable](docs/no_proxy.md) for documentation.
+* Better diagnostics for errors from RemoteClassLoader.fetch4.
+* Ignore attempts to flush a ProxyOutputStream which has already been finalized.
+* [JENKINS-51108](https://issues.jenkins-ci.org/browse/JENKINS-51108) - Allow remoting to publish incrementals.
+* [JENKINS-47977](https://issues.jenkins-ci.org/browse/JENKINS-47977) - Jenkins build failed if Remoting could not create the JAR cache.
+* [JENKINS-50730](https://issues.jenkins-ci.org/browse/JENKINS-50730) - Improve log messaging on reconnect.
+* [JENKINS-49987](https://issues.jenkins-ci.org/browse/JENKINS-49987) - Clean up warnings about anonymous callable.
+* [JENKINS-54005](https://issues.jenkins-ci.org/browse/JENKINS-49987) - Another instance of an unnecessarily severe warning when unexporting.
+
 ##### 3.27
 
 Release date: September 28, 2018
