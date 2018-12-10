@@ -61,7 +61,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <revision>3.28</revision>
+    <revision>3.29</revision>
     <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
     <build.type>private</build.type>
