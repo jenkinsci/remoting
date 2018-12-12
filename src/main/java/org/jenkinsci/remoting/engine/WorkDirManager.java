@@ -282,13 +282,13 @@ public class WorkDirManager {
         }
         
         if (overrideLogPath != null) { // Legacy behavior
-            System.out.println("Using " + overrideLogPath + " as an agent Error log destination. 'Out' log won't be generated");
+            LOGGER.log(Level.INFO, "Using {0} as an agent error log destination; output log will not be generated", overrideLogPath);
             System.out.flush(); // Just in case the channel
             System.err.flush();
             System.setErr(legacyCreateTeeStream(System.err, overrideLogPath));
             this.loggingInitialized = true;
         } else if (internalDirPath != null) { // New behavior
-            System.out.println("Both error and output logs will be printed to " + internalDirPath);
+            LOGGER.log(Level.INFO, "Both error and output logs will be printed to {0}", internalDirPath);
             System.out.flush();
             System.err.flush();
 
