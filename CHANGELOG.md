@@ -6,6 +6,12 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.29
+
+Release date: February 5, 2019
+
+* [JENKINS-55976](https://issues.jenkins-ci.org/browse/JENKINS-55976) Add missing log call.
+
 ##### 3.28
 
 Release date: December 10, 2018
