@@ -19,6 +19,8 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
+import java.io.NotSerializableException;
+import java.io.ObjectStreamException;
 import java.io.OutputStream;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
@@ -38,6 +40,9 @@ import java.util.logging.Logger;
 
 import static java.nio.channels.SelectionKey.*;
 import static java.util.logging.Level.*;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 
 /**
  * Switch board of multiple {@link Channel}s through NIO select.
@@ -114,7 +119,8 @@ public class NioChannelHub implements Runnable, Closeable {
          */
         final FifoBuffer wb = new FifoBuffer(16*1024,256*1024);
 
-        private ByteArrayReceiver receiver;
+        @CheckForNull
+        private ByteArrayReceiver receiver = null;
 
         /**
          * To ensure serial execution order within each {@link Channel}, we submit
@@ -195,6 +201,7 @@ public class NioChannelHub implements Runnable, Closeable {
             return channel;
         }
 
+        //TODO: do not just ignore the exceptions below
         @SelectorThreadOnly
         public void abort(Throwable e) {
             try {
@@ -206,6 +213,9 @@ public class NioChannelHub implements Runnable, Closeable {
                 closeW();
             } catch (IOException ignored) {
                 // ignore
+            }
+            if (receiver == null) {
+                throw new IllegalStateException("Aborting connection before it has been actually set up");
             }
             receiver.terminate((IOException)new IOException("Connection aborted: "+this).initCause(e));
         }
@@ -247,16 +257,9 @@ public class NioChannelHub implements Runnable, Closeable {
 
         @Override
         public void closeRead() throws IOException {
-            scheduleSelectorTask(new Callable<Void, IOException>() {
-                public Void call() throws IOException {
-                    closeR();
-                    return null;
-                }
-
-                @Override
-                public void checkRoles(RoleChecker checker) throws SecurityException {
-                    throw new AssertionError();    // not actually used over remoting
-                }
+            scheduleSelectorTask(() -> {
+                closeR();
+                return null;
             });
         }
 
@@ -264,16 +267,9 @@ public class NioChannelHub implements Runnable, Closeable {
          * Update the operations for which we are registered.
          */
         private void scheduleReregister() {
-            scheduleSelectorTask(new Callable<Void, IOException>() {
-                public Void call() throws IOException {
-                    reregister();
-                    return null;
-                }
-
-                @Override
-                public void checkRoles(RoleChecker checker) throws SecurityException {
-                    throw new AssertionError();    // not actually used over remoting
-                }
+            scheduleSelectorTask(() -> {
+                reregister();
+                return null;
             });
         }
 
@@ -502,9 +498,53 @@ public class NioChannelHub implements Runnable, Closeable {
         };
     }
 
-    private void scheduleSelectorTask(Callable<Void, IOException> task) {
-        selectorTasks.add(task);
+    // TODO: This logic should use Executor service
+    private void scheduleSelectorTask(java.util.concurrent.Callable<Void> task) {
+        selectorTasks.add(new CallableRemotingWrapper(task));
         selector.wakeup();
+    }
+
+    /**
+     * Provides a wrapper for submitting {@link java.util.concurrent.Callable}s over Remoting execution queues.
+     *
+     * @deprecated It is just a hack, which schedules non-serializable tasks over the Remoting Task queue.
+     *             There is no sane reason to reuse this wrapper class anywhere.
+     */
+    @Deprecated
+    private static final class CallableRemotingWrapper implements Callable<Void, IOException> {
+        private static final long serialVersionUID = -7331104479109353930L;
+        final transient java.util.concurrent.Callable<Void> task;
+
+        CallableRemotingWrapper(@Nonnull java.util.concurrent.Callable<Void> task) {
+            this.task = task;
+        }
+
+        @Override
+        public Void call() throws IOException {
+            if (task == null) {
+                throw new IOException("The callable " + this + " has been serialized somehow, but it is actually not serializable");
+            }
+            try {
+                return task.call();
+            } catch (IOException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                throw new IOException(ex);
+            }
+        }
+
+        private Object readResolve() throws ObjectStreamException {
+            throw new NotSerializableException("The class should not be serialized over Remoting");
+        }
+        
+        private Object writeReplace() throws ObjectStreamException {
+            throw new NotSerializableException("The class should not be serialized over Remoting");
+        }
+
+        @Override
+        public void checkRoles(RoleChecker checker) throws SecurityException {
+            throw new SecurityException("The class should not be serialized over Remoting");
+        }
     }
 
     /**
@@ -592,9 +632,14 @@ public class NioChannelHub implements Runnable, Closeable {
                                         } while (!last);
                                         assert packetSize==0;
                                         if (packet.length > 0) {
-                                            t.swimLane.submit(new Runnable() {
+                                            ExecutorServiceUtils.submitAsync(t.swimLane, new Runnable() {
+                                                @Override
                                                 public void run() {
-                                                    t.receiver.handle(packet);
+                                                    final ByteArrayReceiver receiver = t.receiver;
+                                                    if (receiver == null) {
+                                                        throw new IllegalStateException("NIO transport layer has not been set up yet");
+                                                    }
+                                                    receiver.handle(packet);
                                                 }
                                             });
                                         }
@@ -609,8 +654,9 @@ public class NioChannelHub implements Runnable, Closeable {
                                     t.abort(new IOException(msg));
                                 }
                                 if (t.rb.isClosed()) {
-                                    // EOF. process this synchronously with respect to packets
-                                    t.swimLane.submit(new Runnable() {
+                                    // EOF. process this synchronously with respect to packets waiting for handling in the queue
+                                    ExecutorServiceUtils.submitAsync(t.swimLane, new Runnable() {
+                                        @Override
                                         public void run() {
                                             // if this EOF is unexpected, report an error.
                                             if (!t.getChannel().isInClosed()) {
@@ -632,6 +678,11 @@ public class NioChannelHub implements Runnable, Closeable {
                         } catch (IOException e) {
                             // It causes the channel failure, hence it is severe
                             LOGGER.log(SEVERE, "Communication problem in " + t + ". NIO Transport will be aborted.", e);
+                            t.abort(e);
+                        } catch (ExecutorServiceUtils.ExecutionRejectedException e) {
+                            // TODO: should we try to reschedule the task if the issue is not fatal?
+                            // The swimlane has rejected the execution, e.g. due to the "shutting down" state.
+                            LOGGER.log(SEVERE, "The underlying executor service rejected the task in " + t + ". NIO Transport will be aborted.", e);
                             t.abort(e);
                         } catch (CancelledKeyException e) {
                             // see JENKINS-24050. I don't understand how this can happen, given that the selector

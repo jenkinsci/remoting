@@ -42,7 +42,9 @@ class ResourceImageBoth extends ResourceImageDirect {
     @Nonnull
     private Future<URL> initiateJarRetrieval(@Nonnull Channel channel) throws IOException, InterruptedException {
         JarCache c = channel.getJarCache();
-        assert c !=null : "we don't advertise jar caching to the other side unless we have a cache with us";
+        if (c == null) {
+            throw new IOException("Failed to initiate retrieval. JAR Cache is disabled for the channel " + channel.getName());
+        }
 
         try {
             return c.resolve(channel, sum1, sum2);

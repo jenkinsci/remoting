@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.ByteBufferQueueOutputStream;
 import org.jenkinsci.remoting.util.FastByteBufferQueueInputStream;
@@ -198,12 +199,10 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         try {
             FastByteBufferQueueInputStream is = new FastByteBufferQueueInputStream(receiveQueue, readCommandSizes[0]);
             try {
-                ObjectInputStreamEx ois = new ObjectInputStreamEx(is, channel.baseClassLoader, channel.classFilter);
-                receiver.handle(Command.readFrom(channel, ois));
-            } catch (IOException e1) {
-                LOGGER.log(Level.WARNING, "Failed to construct Command", e1);
-            } catch (ClassNotFoundException e11) {
-                LOGGER.log(Level.WARNING, "Failed to construct Command", e11);
+                Command cmd = Command.readFrom(channel, is, readCommandSizes[0]);
+                receiver.handle(cmd);
+            } catch (IOException | ClassNotFoundException e) {
+                LOGGER.log(Level.WARNING, "Failed to construct Command in channel " + channel.getName(), e);
             } finally {
                 int available = is.available();
                 if (available > 0) {
@@ -283,13 +282,14 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     @Override
     public final void write(Command cmd, boolean last) throws IOException {
         ByteBufferQueueOutputStream bqos = new ByteBufferQueueOutputStream(sendStaging);
-        ObjectOutputStream oos = new ObjectOutputStream(bqos);
+        ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(bqos);
         try {
             cmd.writeTo(channel, oos);
         } finally {
             oos.close();
         }
         long remaining = sendStaging.remaining();
+        channel.notifyWrite(cmd, remaining);
         while (remaining > 0L) {
             int frame = remaining > transportFrameSize
                     ? transportFrameSize

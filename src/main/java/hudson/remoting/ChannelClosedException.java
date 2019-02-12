@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.ChannelStateException;
+
 import java.io.IOException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -9,7 +11,7 @@ import javax.annotation.Nonnull;
  *
  * @author Kohsuke Kawaguchi
  */
-public class ChannelClosedException extends IOException {
+public class ChannelClosedException extends ChannelStateException {
     /**
      * @deprecated
      *      Use {@link #ChannelClosedException(Throwable)} or {@link #ChannelClosedException(java.lang.String, java.lang.Throwable)}.
@@ -17,11 +19,25 @@ public class ChannelClosedException extends IOException {
      */
     @Deprecated
     public ChannelClosedException() {
-        super("channel is already closed");
+        this(null, "channel is already closed", null);
     }
 
+    /**
+     * @deprecated Use {@link #ChannelClosedException(Channel, Throwable)}
+     */
+    @Deprecated
     public ChannelClosedException(Throwable cause) {
-        super("channel is already closed", cause);
+        this((Channel) null, cause);
+    }
+
+    /**
+     * Constructor.
+     * @param channel Reference to the channel. {@code null} if the channel is unknown.
+     * @param cause Cause
+     * @since TODO
+     */
+    public ChannelClosedException(@CheckForNull Channel channel, @CheckForNull Throwable cause) {
+        super(channel, "channel is already closed", cause);
     }
     
     /**
@@ -30,9 +46,24 @@ public class ChannelClosedException extends IOException {
      * @param message Message
      * @param cause Cause of the channel close/termination. 
      *              May be {@code null} if it cannot be determined when the exception is constructed.
+     * @since 3.11
+     * @deprecated Use {@link #ChannelClosedException(Channel, String, Throwable)}
+     */
+    @Deprecated
+    public ChannelClosedException(@Nonnull String message, @CheckForNull Throwable cause) {
+        this(null, message, cause);
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param channel Reference to the channel. {@code null} if the channel is unknown.
+     * @param message Message
+     * @param cause Cause of the channel close/termination.
+     *              May be {@code null} if it cannot be determined when the exception is constructed.
      * @since TODO
      */
-    public ChannelClosedException(@Nonnull String message, @CheckForNull Throwable cause) {
-        super(message, cause);
+    public ChannelClosedException(@CheckForNull Channel channel, @Nonnull String message, @CheckForNull Throwable cause) {
+        super(channel, message, cause);
     }
 }

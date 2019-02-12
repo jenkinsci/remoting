@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Ref;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -59,6 +60,8 @@ import org.jenkinsci.remoting.RoleChecker;
  *
  * @author Kohsuke Kawaguchi
  */
+//TODO: Likely should be serializable over Remoting logic, but this class has protection logic
+// Use-cases need to be investigated
 final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Our logger.
@@ -115,29 +118,47 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Diagnostic information that remembers where the proxy was created.
      */
-    private final Throwable origin;
+    private final @CheckForNull Throwable origin;
+
+    /**
+     * Indicates that the handler operates in the user space.
+     * In such case the requests will be automatically failed if the
+     * Remoting channel is not fully operational.
+     */
+    private final boolean userSpace;
+
+    /** @see Command#Command(boolean) */
+    private final boolean recordCreatedAt;
 
     /**
      * Creates a proxy that wraps an existing OID on the remote.
      */
-    RemoteInvocationHandler(Channel channel, int id, boolean userProxy, boolean autoUnexportByCaller, Class proxyType) {
+    private RemoteInvocationHandler(Channel channel, int id, boolean userProxy,
+                            boolean autoUnexportByCaller, boolean userSpace,
+                            Class proxyType, boolean recordCreatedAt) {
         this.channel = channel == null ? null : channel.ref();
         this.oid = id;
         this.userProxy = userProxy;
-        this.origin = new Exception("Proxy "+toString()+" was created for "+proxyType);
+        this.origin = recordCreatedAt ? new Exception("Proxy " + toString() + " was created for " + proxyType) : null;
         this.autoUnexportByCaller = autoUnexportByCaller;
+        this.userSpace = userSpace;
+        this.recordCreatedAt = recordCreatedAt;
     }
 
     /**
      * Wraps an OID to the typed wrapper.
+     *
+     * @param userProxy If {@code true} (recommended), all commands will be wrapped into {@link UserRequest}s.
+     * @param userSpace If {@code true} (recommended), the requests will be executed in a user scope
+     * @param recordCreatedAt as in {@link Command#Command(boolean)}
      */
     @Nonnull
-    public static <T> T wrap(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller) {
+    static <T> T wrap(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller, boolean userSpace, boolean recordCreatedAt) {
         ClassLoader cl = type.getClassLoader();
         // if the type is a JDK-defined type, classloader should be for IReadResolve
         if(cl==null || cl==ClassLoader.getSystemClassLoader())
             cl = IReadResolve.class.getClassLoader();
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(channel, id, userProxy, autoUnexportByCaller, type);
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(channel, id, userProxy, autoUnexportByCaller, userSpace, type, recordCreatedAt);
         if (channel != null) {
             if (!autoUnexportByCaller) {
                 UNEXPORTER.watch(handler);
@@ -231,7 +252,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         if(method.getDeclaringClass()==IReadResolve.class) {
             // readResolve on the proxy.
             // if we are going back to where we came from, replace the proxy by the real object
-            if(goingHome)   return Channel.current().getExportedObject(oid);
+            if(goingHome)   return Channel.currentOrFail().getExportedObject(oid);
             else            return proxy;
         }
 
@@ -253,7 +274,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         // delegate the rest of the methods to the remote object
 
         boolean async = method.isAnnotationPresent(Asynchronous.class);
-        RPCRequest req = new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null);
+        RPCRequest req = userSpace
+                ? new UserRPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null, recordCreatedAt)
+                : new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null, recordCreatedAt);
         try {
             if(userProxy) {
                 if (async)  channelOrFail().callAsync(req);
@@ -335,7 +358,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         /**
          * The origin from where the object was created.
          */
-        private Throwable origin;
+        private @CheckForNull Throwable origin;
         /**
          * The reference to the channel on which to unexport.
          */
@@ -825,17 +848,24 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * The downside of this is that the classes used as a parameter/return value
      * must be available to both JVMs.
      *
-     * If used as {@link Callable} in conjunction with {@link UserRequest},
-     * this can be used to send a method call to user-level objects, and
-     * classes for the parameters and the return value are sent remotely if needed.
+     * For user-space commands and operations, there is a {@link UserRPCRequest} implementation.
+     *
+     * @see UserRPCRequest
      */
-    static final class RPCRequest extends Request<Serializable,Throwable> implements DelegatingCallable<Serializable,Throwable> {
+    static class RPCRequest extends Request<Serializable,Throwable> implements DelegatingCallable<Serializable,Throwable> {
         /**
          * Target object id to invoke.
          */
-        private final int oid;
+        protected final int oid;
 
-        private final String methodName;
+        /**
+         * Type name of declaring class.
+         * Null if deserialized historically.
+         */
+        @CheckForNull
+        private final String declaringClassName;
+
+        protected final String methodName;
         /**
          * Type name of the arguments to invoke. They are names because
          * neither {@link Method} nor {@link Class} is serializable.
@@ -850,15 +880,15 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * If this is used as {@link Callable}, we need to remember what classloader
          * to be used to serialize the request and the response.
          */
+        @CheckForNull
+        @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
         private transient ClassLoader classLoader;
 
-        public RPCRequest(int oid, Method m, Object[] arguments) {
-            this(oid,m,arguments,null);
-        }
-
-        public RPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl) {
+        private RPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl, boolean recordCreatedAt) {
+            super(recordCreatedAt);
             this.oid = oid;
             this.arguments = arguments;
+            declaringClassName = m.getDeclaringClass().getName();
             this.methodName = m.getName();
             this.classLoader = cl;
 
@@ -870,7 +900,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         }
 
         public Serializable call() throws Throwable {
-            return perform(Channel.current());
+            return perform(getChannelOrFail());
         }
 
         @Override
@@ -886,7 +916,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 return getClass().getClassLoader();
         }
 
-        protected Serializable perform(Channel channel) throws Throwable {
+        protected Serializable perform(@Nonnull Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
             Class[] clazz = channel.getExportedTypes(oid);
             try {
@@ -935,11 +965,52 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             return arguments;
         }
 
+        @Override
         public String toString() {
-            return "RPCRequest("+oid+","+methodName+")";
+            StringBuilder b = new StringBuilder(getClass().getSimpleName()).append(':').append(declaringClassName).append('.').append(methodName).append('[');
+            for (int i = 0; i < types.length; i++) {
+                if (i > 0) {
+                    b.append(',');
+                }
+                b.append(types[i]);
+            }
+            b.append("](").append(oid).append(')');
+            return b.toString();
         }
 
         private static final long serialVersionUID = 1L; 
+    }
+
+    /**
+     * User-space version of {@link RPCRequest}.
+     *
+     * This is an equivalent of {@link UserRequest} for RPC calls.
+     * Such kind of requests will not be send over closing or malfunctional channel.
+     *
+     * If used as {@link Callable} in conjunction with {@link UserRequest},
+     * this can be used to send a method call to user-level objects, and
+     * classes for the parameters and the return value are sent remotely if needed.
+     */
+    private static class UserRPCRequest extends RPCRequest {
+
+        private static final long serialVersionUID = -9185841650347902580L;
+
+        UserRPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl, boolean recordCreatedAt) {
+            super(oid, m, arguments, cl, recordCreatedAt);
+        }
+
+        // Same implementation as UserRequest
+        @Override
+        public void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
+            // Default check for all requests
+            super.checkIfCanBeExecutedOnChannel(channel);
+
+            // We also do not want to run UserRequests when the channel is being closed
+            if (channel.isClosingOrClosed()) {
+                throw new ChannelClosedException("The request cannot be executed on channel " + channel + ". "
+                        + "The channel is closing down or has closed down", channel.getCloseRequestCause());
+            }
+        }
     }
 
     private static final Object[] EMPTY_ARRAY = new Object[0];

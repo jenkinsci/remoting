@@ -23,15 +23,11 @@
  */
 package hudson.remoting;
 
-import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Path;
@@ -80,7 +76,7 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
 
 /**
- * Slave agent engine that proactively connects to Jenkins master.
+ * Agent engine that proactively connects to Jenkins master.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -92,14 +88,13 @@ public class Engine extends Thread {
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
         public Thread newThread(final Runnable r) {
-            Thread t = defaultFactory.newThread(new Runnable() {
-                public void run() {
-                    CURRENT.set(Engine.this);
-                    r.run();
-                }
+            Thread thread = defaultFactory.newThread(() -> {
+                CURRENT.set(Engine.this);
+                r.run();
             });
-            t.setDaemon(true);
-            return t;
+            thread.setDaemon(true);
+            thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in thread " + t, e));
+            return thread;
         }
     });
 
@@ -126,7 +121,7 @@ public class Engine extends Thread {
     private List<X509Certificate> candidateCertificates;
 
     /**
-     * URL that points to Jenkins's tcp slave agent listener, like <tt>http://myhost/hudson/</tt>
+     * URL that points to Jenkins's tcp agent listener, like <tt>http://myhost/hudson/</tt>
      *
      * <p>
      * This value is determined from {@link #candidateUrls} after a successful connection.
@@ -134,28 +129,27 @@ public class Engine extends Thread {
      */
     @CheckForNull
     private URL hudsonUrl;
-
     private final String secretKey;
     public final String slaveName;
     private String credentials;
 	private String proxyCredentials = System.getProperty("proxyCredentials");
 
     /**
-     * See Main#tunnel in the jnlp-agent module for the details.
+     * See {@link hudson.remoting.jnlp.Main#tunnel} for the documentation.
      */
+    @CheckForNull
     private String tunnel;
+
+    private boolean disableHttpsCertValidation;
 
     private boolean noReconnect;
 
     /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
      *
-     * @since TODO
+     * @since 2.62.1
      */
     private boolean keepAlive = true;
-
-    
-    
     
     @CheckForNull
     private JarCache jarCache = null;
@@ -164,14 +158,14 @@ public class Engine extends Thread {
      * Specifies a destination for the agent log.
      * If specified, this option overrides the default destination within {@link #workDir}.
      * If both this options and {@link #workDir} is not set, the log will not be generated.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     private Path agentLog;
     
     /**
      * Specified location of the property file with JUL settings.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     private Path loggingConfigFilePath = null;
@@ -183,7 +177,7 @@ public class Engine extends Thread {
      * In order to retain compatibility, the option is disabled by default.
      * <p>
      * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     public Path workDir = null;
@@ -193,7 +187,7 @@ public class Engine extends Thread {
      * <p>
      * This option is not expected to be used frequently, but it allows remoting users to specify a custom
      * storage directory if the default {@code remoting} directory is consumed by other stuff.
-     * @since TODO
+     * @since 3.8
      */
     @Nonnull
     public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
@@ -202,7 +196,7 @@ public class Engine extends Thread {
      * Fail the initialization if the workDir or internalDir are missing.
      * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
      * (e.g. if a filesystem mount gets disconnected).
-     * @since TODO
+     * @since 3.8
      */
     @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
@@ -217,13 +211,17 @@ public class Engine extends Thread {
         this.slaveName = slaveName;
         if(candidateUrls.isEmpty())
             throw new IllegalArgumentException("No URLs given");
+        setUncaughtExceptionHandler((t, e) -> {
+            LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
+            interrupt();
+        });
     }
 
     /**
      * Starts the engine.
      * The procedure initializes the working directory and all the required environment
      * @throws IOException Initialization error
-     * @since TODO
+     * @since 3.9
      */
     public synchronized void startEngine() throws IOException {
         startEngine(false);
@@ -235,6 +233,7 @@ public class Engine extends Thread {
      *               This method can be used for testing startup logic.
      */
     /*package*/ void startEngine(boolean dryRun) throws IOException {
+        LOGGER.log(Level.INFO, "Using Remoting version: {0}", Launcher.VERSION);
         @CheckForNull File jarCacheDirectory = null;
         
         // Prepare the working directory if required
@@ -263,7 +262,11 @@ public class Engine extends Thread {
                 throw new IOException("Cannot find the JAR Cache location");
             }
             LOGGER.log(Level.FINE, "Using standard File System JAR Cache. Root Directory is {0}", jarCacheDirectory);
-            jarCache = new FileSystemJarCache(jarCacheDirectory, true);
+            try {
+                jarCache = new FileSystemJarCache(jarCacheDirectory, true);
+            } catch (IllegalArgumentException ex) {
+                throw new IOException("Failed to initialize FileSystem JAR Cache in " + jarCacheDirectory, ex);
+            }
         } else {
             LOGGER.log(Level.INFO, "Using custom JAR Cache: {0}", jarCache);
         }
@@ -287,7 +290,7 @@ public class Engine extends Thread {
     /**
      * Sets path to the property file with JUL settings.
      * @param filePath JAR Cache to be used
-     * @since TODO
+     * @since 3.8
      */
     public void setLoggingConfigFile(@Nonnull Path filePath) {
         this.loggingConfigFilePath = filePath;
@@ -303,7 +306,11 @@ public class Engine extends Thread {
         return hudsonUrl;
     }
 
-    public void setTunnel(String tunnel) {
+    /**
+     * If set, connect to the specified host and port instead of connecting directly to Jenkins.
+     * @param tunnel Value. {@code null} to disable tunneling
+     */
+    public void setTunnel(@CheckForNull String tunnel) {
         this.tunnel = tunnel;
     }
 
@@ -320,10 +327,30 @@ public class Engine extends Thread {
     }
 
     /**
+     * Determines if JNLPAgentEndpointResolver will not perform certificate validation in the HTTPs mode.
+     *
+     * @return {@code true} if the certificate validation is disabled.
+     * @since TODO
+     */
+    public boolean isDisableHttpsCertValidation() {
+        return disableHttpsCertValidation;
+    }
+
+    /**
+     * Sets if JNLPAgentEndpointResolver will not perform certificate validation in the HTTPs mode.
+     *
+     * @param disableHttpsCertValidation {@code true} if the certificate validation is disabled.
+     * @since TODO
+     */
+    public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
+        this.disableHttpsCertValidation = disableHttpsCertValidation;
+    }
+
+    /**
      * Sets the destination for agent logs.
      * @param agentLog Path to the agent log.
      *      If {@code null}, the engine will pick the default behavior depending on the {@link #workDir} value
-     * @since TODO
+     * @since 3.8
      */
     public void setAgentLog(@CheckForNull Path agentLog) {
         this.agentLog = agentLog;
@@ -333,7 +360,7 @@ public class Engine extends Thread {
      * Specified a path to the work directory.
      * @param workDir Path to the working directory of the remoting instance.
      *                {@code null} Disables the working directory.
-     * @since TODO
+     * @since 3.8
      */
     public void setWorkDir(@CheckForNull Path workDir) {
         this.workDir = workDir;
@@ -342,7 +369,7 @@ public class Engine extends Thread {
     /**
      * Specifies name of the internal data directory within {@link #workDir}.
      * @param internalDir Directory name
-     * @since TODO
+     * @since 3.8
      */
     public void setInternalDir(@Nonnull String internalDir) {
         this.internalDir = internalDir;
@@ -353,7 +380,7 @@ public class Engine extends Thread {
      * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
      * (e.g. if a filesystem mount gets disconnected).
      * @param failIfWorkDirIsMissing Flag
-     * @since TODO
+     * @since 3.8
      */
     public void setFailIfWorkDirIsMissing(boolean failIfWorkDirIsMissing) { this.failIfWorkDirIsMissing = failIfWorkDirIsMissing; }
 
@@ -474,6 +501,7 @@ public class Engine extends Thread {
         resolver.setTunnel(tunnel);
         try {
             resolver.setSslSocketFactory(getSSLSocketFactory());
+            resolver.setDisableHttpsCertValidation(disableHttpsCertValidation);
         } catch (Exception e) {
             events.error(e);
         }
@@ -567,7 +595,10 @@ public class Engine extends Thread {
 
                                 @Override
                                 public void beforeChannel(@Nonnull JnlpConnectionState event) {
-                                    event.getChannelBuilder().withJarCache(jarCache).withMode(Mode.BINARY);
+                                    ChannelBuilder bldr = event.getChannelBuilder().withMode(Mode.BINARY);
+                                    if (jarCache != null) {
+                                        bldr.withJarCache(jarCache);
+                                    }
                                 }
 
                                 @Override
@@ -633,7 +664,14 @@ public class Engine extends Thread {
                 // try to connect back to the server every 10 secs.
                 resolver.waitForReady();
 
-                events.onReconnect();
+                try {
+                    events.status("Performing onReconnect operation.");
+                    events.onReconnect();
+                    events.status("onReconnect operation completed.");
+                } catch (NoClassDefFoundError e) {
+                    events.status("onReconnect operation failed.");
+                    LOGGER.log(Level.FINE, "Reconnection error.", e);
+                }
             }
         } catch (Throwable e) {
             events.error(e);
@@ -646,7 +684,7 @@ public class Engine extends Thread {
     }
 
     /**
-     * Connects to TCP slave host:port, with a few retries.
+     * Connects to TCP agent host:port, with a few retries.
      * @param endpoint Connection endpoint
      * @throws IOException Connection failure or invalid parameter specification
      */
@@ -798,8 +836,8 @@ public class Engine extends Thread {
             trustManagerFactory.init(keyStore);
             // prepare the SSL context
             SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
             // now we have our custom socket factory
+            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
             sslSocketFactory = ctx.getSocketFactory();
         }
         return sslSocketFactory;

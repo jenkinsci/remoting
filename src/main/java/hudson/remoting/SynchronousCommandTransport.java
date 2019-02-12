@@ -31,7 +31,7 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
     /**
      * Called by {@link Channel} to read the next command to arrive from the stream.
      */
-    abstract Command read() throws IOException, ClassNotFoundException, InterruptedException;
+    public abstract Command read() throws IOException, ClassNotFoundException, InterruptedException;
 
     @Override
     public void setup(Channel channel, CommandReceiver receiver) {
@@ -47,6 +47,10 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
         public ReaderThread(CommandReceiver receiver) {
             super("Channel reader thread: "+channel.getName());
             this.receiver = receiver;
+            setUncaughtExceptionHandler((t, e) -> {
+                LOGGER.log(Level.SEVERE, "Uncaught exception in SynchronousCommandTransport.ReaderThread " + t, e);
+                channel.terminate(new IOException("Unexpected reader termination", e));
+            });
         }
 
         @Override
@@ -70,9 +74,7 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
                         LOGGER.log(Level.WARNING, "Socket timeout in the Synchronous channel reader", ex);
                         continue;
                     } catch (EOFException e) {
-                        IOException ioe = new IOException("Unexpected termination of the channel");
-                        ioe.initCause(e);
-                        throw ioe;
+                        throw new IOException("Unexpected termination of the channel", e);
                     } catch (ClassNotFoundException e) {
                         LOGGER.log(Level.SEVERE, "Unable to read a command (channel " + name + ")",e);
                         continue;
@@ -88,15 +90,15 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
                 LOGGER.log(Level.SEVERE, "I/O error in channel "+name,e);
                 channel.terminate((InterruptedIOException) new InterruptedIOException().initCause(e));
             } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, "I/O error in channel "+name,e);
+                LOGGER.log(Level.INFO, "I/O error in channel "+name,e);
                 channel.terminate(e);
             } catch (RuntimeException e) {
                 LOGGER.log(Level.SEVERE, "Unexpected error in channel "+name,e);
-                channel.terminate((IOException) new IOException("Unexpected reader termination").initCause(e));
+                channel.terminate(new IOException("Unexpected reader termination", e));
                 throw e;
             } catch (Error e) {
                 LOGGER.log(Level.SEVERE, "Unexpected error in channel "+name,e);
-                channel.terminate((IOException) new IOException("Unexpected reader termination").initCause(e));
+                channel.terminate(new IOException("Unexpected reader termination", e));
                 throw e;
             } finally {
                 channel.pipeWriter.shutdown();

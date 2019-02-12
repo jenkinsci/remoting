@@ -25,7 +25,9 @@
 
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.TeeOutputStream;
+import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -33,8 +35,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -124,6 +128,19 @@ public class WorkDirManager {
     public File getLocation(@Nonnull DirType type) {
         return directories.get(type);
     }
+
+    /**
+     * Get {@link Path} of the directory.
+     * @param type Type of the directory
+     * @return Path
+     * @since TODO
+     * @throws IOException Invalid path, e.g. ig the root directory is incorrect
+     */
+    @CheckForNull
+    public Path getLocationPath(@Nonnull DirType type) throws IOException {
+        File location = directories.get(type);
+        return location != null ? PathUtils.fileToPath(location) : null;
+    }
     
     /**
      * Sets path to the Logging JUL property file with logging settings.
@@ -191,7 +208,7 @@ public class WorkDirManager {
             directories.put(DirType.INTERNAL_DIR, internalDirFile);
 
             // Create the directory on-demand
-            final Path internalDirPath = internalDirFile.toPath();
+            final Path internalDirPath = PathUtils.fileToPath(internalDirFile);
             Files.createDirectories(internalDirPath);
             LOGGER.log(Level.INFO, "Using {0} as a remoting work directory", internalDirPath);
             
@@ -208,7 +225,7 @@ public class WorkDirManager {
         if (!disabledDirectories.contains(type)) {
             final File directory = new File(internalDir, type.getDefaultLocation());
             verifyDirectory(directory, type, false);
-            Files.createDirectories(directory.toPath());
+            Files.createDirectories(PathUtils.fileToPath(directory));
             directories.put(type, directory);
         } else {
             LOGGER.log(Level.FINE, "Skipping the disabled directory: {0}", type.getName());
@@ -268,7 +285,7 @@ public class WorkDirManager {
             System.out.println("Using " + overrideLogPath + " as an agent Error log destination. 'Out' log won't be generated");
             System.out.flush(); // Just in case the channel
             System.err.flush();
-            System.setErr(new PrintStream(new TeeOutputStream(System.err, new FileOutputStream(overrideLogPath.toFile()))));
+            System.setErr(legacyCreateTeeStream(System.err, overrideLogPath));
             this.loggingInitialized = true;
         } else if (internalDirPath != null) { // New behavior
             System.out.println("Both error and output logs will be printed to " + internalDirPath);
@@ -279,13 +296,7 @@ public class WorkDirManager {
             final File internalDirFile = internalDirPath.toFile();
             createInternalDirIfRequired(internalDirFile, DirType.LOGS_DIR);
             final File logsDir = getLocation(DirType.LOGS_DIR);
-            
-            // TODO: Forward these logs? Likely no, we do not expect something to get there
-            //System.setErr(new PrintStream(new TeeOutputStream(System.err,
-            //        new FileOutputStream(new File(logsDir, "remoting.err.log")))));
-            //System.setOut(new PrintStream(new TeeOutputStream(System.out,
-            //        new FileOutputStream(new File(logsDir, "remoting.out.log")))));
-             
+
             if (configFile == null) {
                 final Logger rootLogger = Logger.getLogger("");
                 final File julLog = new File(logsDir, "remoting.log");
@@ -293,14 +304,7 @@ public class WorkDirManager {
                                          10*1024*1024, 5, false); 
                 logHandler.setFormatter(new SimpleFormatter()); 
                 logHandler.setLevel(Level.INFO); 
-                rootLogger.addHandler(logHandler); 
-                
-                // TODO: Uncomment if there is TeeOutputStream added
-                // Remove console handler since the logs are going to the file now
-                // ConsoleHandler consoleHandler = findConsoleHandler(rootLogger);
-                // if (consoleHandler != null) {
-                //    rootLogger.removeHandler(consoleHandler);
-                // }
+                rootLogger.addHandler(logHandler);
             }
 
             this.loggingInitialized = true;
@@ -310,19 +314,14 @@ public class WorkDirManager {
         }
     }
 
-    @CheckForNull
-    private static ConsoleHandler findConsoleHandler(Logger logger) {
-        for (Handler h : logger.getHandlers()) {
-            if (h instanceof ConsoleHandler) {
-                return (ConsoleHandler)h;
-            }
-        }
-        return null;
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "It is a legacy logging mode. Relying on the default is not fine, but it just behaves as it used to behave for years")
+    private PrintStream legacyCreateTeeStream(OutputStream ostream, Path destination) throws FileNotFoundException {
+        return new PrintStream(new TeeOutputStream(ostream, new FileOutputStream(destination.toFile())));
     }
     
     /**
      * Defines components of the Working directory.
-     * @since TODO
+     * @since 3.8
      */
     @Restricted(NoExternalUse.class)
     public enum DirType {

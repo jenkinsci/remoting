@@ -93,7 +93,7 @@ These properties require independent configuration on both sides of the channel.
     <tr>
       <td>${PROTOCOL_FULLY_QUALIFIED_NAME}.disabled, 
       where PROTOCOL_FULLY_QUALIFIED_NAME equals 
-      <code>PROTOCOL_HANDLER_CLASSNAME</code> without the <code>Handler</code> suffix.</td>,
+      <code>PROTOCOL_HANDLER_CLASSNAME</code> without the <code>Handler</code> suffix.</td>
       <td>false</td>
       <td>2.59</td>
       <td>2.4</td>
@@ -118,6 +118,14 @@ These properties require independent configuration on both sides of the channel.
       <td>TODO</td>
       <td><a href="https://issues.jenkins-ci.org/browse/JENKINS-41730">JENKINS-41730</a></td>
       <td>If specified, only the protocols from the list will be tried during the connection. The option provides protocol names, but the order of the check is defined internally and cannot be changed.</td>
+    </tr>
+    <tr>
+        <td><a href="no_proxy.md">NO_PROXY</a> (or no_proxy)</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>Provides specifications for hosts that should not be proxied. See the <a href="no_proxy.md">NO_PROXY Environment Variable</a> page for details on supported specifications.</td>
     </tr>
     <!--Template
     <tr>

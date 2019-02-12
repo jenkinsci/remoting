@@ -43,23 +43,22 @@ import javax.annotation.CheckForNull;
  * {@link Command} objects need to be serialized and deseralized in a specific environment
  * so that {@link Command}s can access {@link Channel} that's using it. Because of this,
  * a transport needs to use {@link Command#writeTo(Channel, ObjectOutputStream)} and
- * {@link Command#readFrom(Channel, ObjectInputStream)}.
+ * {@link Command#readFromObjectStream(Channel, ObjectInputStream)} or
+ * {@link Command#readFrom(Channel, byte[])}.
  *
  * @author Kohsuke Kawaguchi
  * @since 2.13
  */
 public abstract class CommandTransport {
-    /**
-     * Package private so as not to allow direct subtyping (just yet.)
-     */
-    /*package*/ CommandTransport() {
+
+    protected CommandTransport() {
     }
 
     /**
      * SPI implemented by {@link Channel} so that the transport can pass the received command
      * to {@link Channel} for processing.
      */
-    static interface CommandReceiver {
+    protected static interface CommandReceiver {
         /**
          * Notifies the channel that a new {@link Command} was received from the other side.
          * 
@@ -71,8 +70,8 @@ public abstract class CommandTransport {
          * concurrently.
          * 
          * @param cmd
-         *      The command received. This object must be read from {@link ObjectInputStream} via
-         *      {@link Command#readFrom(Channel, ObjectInputStream)}
+         *      The command received. This object must be read from the payload
+         *      using {@link Command#readFrom(Channel, byte[])}.
          */
         void handle(Command cmd);
         
@@ -142,7 +141,7 @@ public abstract class CommandTransport {
      *      Informational flag that indicates that this is the last
      *      call of the {@link #write(Command, boolean)}.
      */
-    abstract void write(Command cmd, boolean last) throws IOException;
+    public abstract void write(Command cmd, boolean last) throws IOException;
 
     /**
      * Called to close the write side of the transport, allowing the underlying transport

@@ -1,15 +1,20 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+
 import java.io.File;
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.io.OutputStream;
-import java.io.Serializable;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Implements {@link JarLoader} to be called from the other side.
@@ -17,7 +22,10 @@ import java.util.concurrent.ConcurrentMap;
  * @author Kohsuke Kawaguchi
  */
 @edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_BAD_FIELD")
-class JarLoaderImpl implements JarLoader, Serializable {
+class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
+
+    private static final Logger LOGGER = Logger.getLogger(JarLoaderImpl.class.getName());
+
     private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<>();
 
     @edu.umd.cs.findbugs.annotations.SuppressWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
@@ -31,6 +39,20 @@ class JarLoaderImpl implements JarLoader, Serializable {
         if (url==null)
             throw new IOException("Unadvertised jar file "+k);
 
+        Channel channel = Channel.current();
+        if (channel != null) {
+            if (url.getProtocol().equals("file")) {
+                try {
+                    channel.notifyJar(new File(url.toURI()));
+                } catch (URISyntaxException | IllegalArgumentException x) {
+                    LOGGER.log(Level.WARNING, "cannot properly report " + url, x);
+                }
+            } else {
+                LOGGER.log(Level.FINE, "serving non-file URL {0}", url);
+            }
+        } else {
+            LOGGER.log(Level.WARNING, "no active channel");
+        }
         Util.copy(url.openStream(), sink);
         presentOnRemote.add(k);
     }
@@ -71,8 +93,8 @@ class JarLoaderImpl implements JarLoader, Serializable {
     /**
      * When sent to the remote node, send a proxy.
      */
-    private Object writeReplace() {
-        return Channel.current().export(JarLoader.class, this);
+    private Object writeReplace() throws NotSerializableException {
+        return getChannelForSerialization().export(JarLoader.class, this);
     }
 
     public static final String DIGEST_ALGORITHM = System.getProperty(JarLoaderImpl.class.getName()+".algorithm","SHA-256");

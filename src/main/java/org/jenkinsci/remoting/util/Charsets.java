@@ -24,17 +24,20 @@
 package org.jenkinsci.remoting.util;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
 import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Local implementation of standard charsets as the remoting library currently needs to be compiled against Java 6
  * signatures.
  *
- * @since FIXME
+ * @deprecated Use {@link StandardCharsets}
  */
-// TODO replace with StandardCharsets once Java 7
-@Restricted(NoExternalUse.class)
+@Deprecated
+@Restricted(DoNotUse.class)
 public final class Charsets {
     /**
      * Utility class.
@@ -46,26 +49,26 @@ public final class Charsets {
     /**
      * Seven-bit ASCII.
      */
-    public static final Charset US_ASCII = Charset.forName("US-ASCII");
+    public static final Charset US_ASCII = StandardCharsets.US_ASCII;
     /**
      * ISO Latin Alphabet 1.
      */
-    public static final Charset ISO_8859_1 = Charset.forName("ISO-8859-1");
+    public static final Charset ISO_8859_1 = StandardCharsets.ISO_8859_1;
     /**
      * UTF-8.
      */
-    public static final Charset UTF_8 = Charset.forName("UTF-8");
+    public static final Charset UTF_8 = StandardCharsets.UTF_8;
     /**
      * Big-endian byte order UTF-16.
      */
-    public static final Charset UTF_16BE = Charset.forName("UTF-16BE");
+    public static final Charset UTF_16BE = StandardCharsets.UTF_16BE;
     /**
      * Little-endian byte order UTF-16.
      */
-    public static final Charset UTF_16LE = Charset.forName("UTF-16LE");
+    public static final Charset UTF_16LE = StandardCharsets.UTF_16LE;
     /**
      * Byte order mark detected UTF-16.
      */
-    public static final Charset UTF_16 = Charset.forName("UTF-16");
+    public static final Charset UTF_16 = StandardCharsets.UTF_16;
 
 }

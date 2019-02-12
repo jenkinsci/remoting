@@ -29,6 +29,8 @@ import java.nio.ByteBuffer;
 
 /**
  * An {@link ApplicationLayer} that produces a {@link IOBufferMatcher}
+ *
+ * @since 3.0
  */
 public class IOBufferMatcherLayer extends ApplicationLayer<IOBufferMatcher> {
 
@@ -50,11 +52,6 @@ public class IOBufferMatcherLayer extends ApplicationLayer<IOBufferMatcher> {
                 super.close();
             }
 
-            @Override
-            public void closeRead() throws IOException {
-                doCloseRead();
-                super.closeRead();
-            }
         };
     }
 

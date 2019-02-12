@@ -46,6 +46,10 @@ import java.util.logging.Logger;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matcher;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
+
 /**
  * An {@link IOBufferMatcher} can {@link #send(ByteBuffer)} and {@link #receive(ByteBuffer)} streams of data as
  * {@link ByteBuffer}s. All the received data is accumulated. When there is no more data to receive then the
@@ -88,15 +92,21 @@ public abstract class IOBufferMatcher {
         return !closed.isDone();
     }
 
-
-    public void close(IOException cause) {
-        if (name != null) {
-            LOGGER.log(Level.INFO, "[{0}] Closed", name);
+    /**
+     * Closes the buffer.
+     * @param cause Cause. If {@code null}, an artificial cause will be added
+     */
+    public void close(@CheckForNull IOException cause) {
+        // If the close cause is not specified, just add an artificial one to capture the stacktrace
+        // We do not close IOHub in production often, so it does not impact the performance
+        final IOException causeToReport = cause != null ? cause : new IOException("Close requested");
+        if (name != null && LOGGER.isLoggable(Level.INFO)) {
+            LOGGER.log(Level.INFO, String.format("[%s] Closed", name), causeToReport);
         }
-        innerClose(cause);
+        innerClose(causeToReport);
     }
 
-    private void innerClose(IOException cause) {
+    private void innerClose(@Nonnull IOException cause) {
         if (!closed.isDone()) {
             closed.set(cause);
             anything.countDown();
@@ -115,6 +125,12 @@ public abstract class IOBufferMatcher {
         }
     }
 
+    /**
+     * Closes the buffer.
+     * @throws IOException Never happens in the current code
+     * @deprecated Use {@link #close(IOException)} instead
+     */
+    @Deprecated
     public void close() throws IOException {
         close(null);
     }
@@ -162,6 +178,13 @@ public abstract class IOBufferMatcher {
         return sb.toString();
     }
 
+    /**
+     * Waits till the buffer is closed.
+     *
+     * This method will wait infinitely, so it's a responsibility of the API user to call it properly.
+     * {@link #awaitClose(long, TimeUnit)} is recommended if you are not sure.
+     * @throws InterruptedException Wait is interrupted.
+     */
     public void awaitClose() throws InterruptedException {
         try {
             closed.get();
@@ -170,6 +193,14 @@ public abstract class IOBufferMatcher {
         }
     }
 
+    /**
+     * Waits till the buffer is clsoed, with a timeout.
+     * @param timeout Wait timeout
+     * @param unit Timeout unit
+     * @return {@code true} if the bugffer has been closed successfully, {@code false} otherwise.
+     * @throws InterruptedException Wait has been interrupted.
+     */
+    @CheckReturnValue
     public boolean awaitClose(long timeout, TimeUnit unit) throws InterruptedException {
         try {
             closed.get(timeout, unit);
@@ -253,7 +284,4 @@ public abstract class IOBufferMatcher {
         }
     }
 
-    public void closeRead() throws IOException {
-        //innerClose(null);
-    }
 }

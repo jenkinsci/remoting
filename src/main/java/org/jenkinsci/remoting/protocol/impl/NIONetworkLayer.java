@@ -48,7 +48,7 @@ import org.jenkinsci.remoting.util.IOUtils;
 /**
  * A {@link NetworkLayer} that uses the NIO {@link Selector} of a {@link IOHub} to manage I/O.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener {
 
@@ -184,6 +184,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                                 LogRecord record = new LogRecord(Level.SEVERE, "[{0}] Uncaught {1}");
                                 record.setThrown(t);
                                 record.setParameters(new Object[]{stack().name(), t.getClass().getSimpleName()});
+                                LOGGER.log(record);
                             }
                         } finally {
                             // incase this was an OOMErr and logging caused another OOMErr

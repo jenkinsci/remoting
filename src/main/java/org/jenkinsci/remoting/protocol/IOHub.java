@@ -55,6 +55,7 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.OverridingMethodsMustInvokeSuper;
 import javax.annotation.concurrent.GuardedBy;
+
 import org.jenkinsci.remoting.util.ByteBufferPool;
 import org.jenkinsci.remoting.util.DirectByteBufferPool;
 import org.kohsuke.accmod.Restricted;
@@ -71,6 +72,13 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * Our logger.
      */
     private static final Logger LOGGER = Logger.getLogger(IOHub.class.getName());
+
+    /**
+     * Defines the Selector wakeup timeout via a system property. Defaults to {@code 1000ms}.
+     * @since TODO
+     */
+    private static final long SELECTOR_WAKEUP_TIMEOUT_MS = Long.getLong(IOHub.class.getName() + ".selectorWakeupTimeout", 1000);
+
     /**
      * The next ID to use.
      */
@@ -83,6 +91,9 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * Our selector.
      */
     private final Selector selector;
+    private volatile boolean ioHubRunning = false;
+    private final Object selectorLockObject = new Object();
+
     /**
      * Our executor.
      */
@@ -126,6 +137,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      */
     private IOHub(Executor executor) throws IOException {
         this.selector = Selector.open();
+        this.ioHubRunning = true;
         this.executor = executor;
         this.bufferPool = new DirectByteBufferPool(16916, Runtime.getRuntime().availableProcessors() * 4);
     }
@@ -140,6 +152,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     public static IOHub create(Executor executor) throws IOException {
         IOHub result = new IOHub(executor);
         executor.execute(result);
+        LOGGER.log(Level.FINE, "Staring an additional Selector wakeup thread. See JENKINS-47965 for more info");
+        executor.execute(new IOHubSelectorWatcher(result));
         return result;
     }
 
@@ -408,6 +422,16 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         selectionKey.attach(null);
     }
 
+    private String getThreadNameBase(String executorThreadName) {
+        int keySize;
+        try {
+            keySize = selector.keys().size();
+        } catch (ClosedSelectorException x) {
+            keySize = -1; // possibly a race condition, ignore
+        }
+        return "IOHub#" + _id + ": Selector[keys:" + keySize + ", gen:" + gen + "] / " + executorThreadName;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -419,9 +443,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         long cpuOverheatProtection = System.nanoTime();
         try {
             while (isOpen()) {
-                selectorThread.setName(
-                        "IOHub#" + _id + ": Selector[keys:" + selector.keys().size() + ", gen:" + gen + "] / " + oldName
-                );
+                selectorThread.setName(getThreadNameBase(oldName));
                 try {
                     processScheduledTasks();
                     boolean wantSelectNow = processRegistrations();
@@ -433,8 +455,12 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         // in an immediately ready selection key, hence we use the non-blocking form
                         selected = selector.selectNow();
                     } else {
-                        selected = selector.select(); // WINDOWS!!! Waiting the whole timeout anyway if timeout specified?!?
+                        // On Windows the select(timeout) operation ALWAYS waits for the timeout,
+                        // so we workaround it by IOHubSelectorWatcher
+                        // "Ubuntu on Windows also qualifies as Windows, so we just rely on the wakeup thread ad use infinite timeout"
+                        selected = selector.select();
                     }
+
                     if (selected == 0) {
                         // don't stress the GC by creating instantiating the selected keys
                         continue;
@@ -489,6 +515,54 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             // ignore, happens routinely
         } finally {
             selectorThread.setName(oldName);
+            ioHubRunning = false;
+            synchronized (selectorLockObject) {
+                selectorLockObject.notifyAll();
+            }
+        }
+    }
+
+    /**
+     * This is an artificial thread, which monitors IOHub Selector and wakes it up if it waits for more than 1 second.
+     * It is a workaround for Selector#select(long timeout) on Windows, where the call always waits for the entire timeout before returning back.
+     * Since the same behavior happens on Unix emulation layer in Windows, we run this thread on Unix platforms as well.
+     */
+    private static class IOHubSelectorWatcher implements Runnable {
+
+        private final IOHub iohub;
+
+        public IOHubSelectorWatcher(IOHub iohub) {
+            this.iohub = iohub;
+        }
+
+        @Override
+        public void run() {
+            final Thread watcherThread = Thread.currentThread();
+            final String oldName = watcherThread.getName();
+            final String watcherName = "Windows IOHub Watcher for " + iohub.getThreadNameBase(oldName);
+            LOGGER.log(Level.FINEST, "{0}: Started", watcherName);
+            try {
+                watcherThread.setName(watcherName);
+                while (true) {
+                    synchronized (iohub.selectorLockObject) {
+                        if (iohub.ioHubRunning) {
+                            iohub.selectorLockObject.wait(SELECTOR_WAKEUP_TIMEOUT_MS);
+                        } else {
+                            break;
+                        }
+                    }
+                    iohub.selector.wakeup();
+                }
+            } catch (InterruptedException ex) {
+                // interrupted
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "{0}: Interrupted", ex);
+                }
+                return;
+            } finally {
+                watcherThread.setName(oldName);
+                LOGGER.log(Level.FINEST, "{0}: Finished", watcherName);
+            }
         }
     }
 

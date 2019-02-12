@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link SynchronousCommandTransport} that works with {@code byte[]} instead of command object.
@@ -31,17 +32,18 @@ public abstract class AbstractSynchronousByteArrayCommandTransport extends Synch
 
     @Override
     public Command read() throws IOException, ClassNotFoundException {
-        return Command.readFrom(channel,new ObjectInputStreamEx(
-                new ByteArrayInputStream(readBlock(channel)),
-                channel.baseClassLoader,channel.classFilter));
+        byte[] block = readBlock(channel);
+        return Command.readFrom(channel, block);
     }
 
     @Override
     public void write(Command cmd, boolean last) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(baos);
         cmd.writeTo(channel,oos);
         oos.close();
-        writeBlock(channel,baos.toByteArray());
+        byte[] block = baos.toByteArray();
+        channel.notifyWrite(cmd, block.length);
+        writeBlock(channel, block);
     }
 }

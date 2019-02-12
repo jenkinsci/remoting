@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.annotation.Nonnull;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link CommandTransport} that works with {@code byte[]} instead of command object.
@@ -35,7 +37,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
      * 
      * In this subtype, we pass in {@link ByteArrayReceiver} that uses byte[] instead of {@link Command}
      */
-    public abstract void setup(ByteArrayReceiver receiver);
+    public abstract void setup(@Nonnull ByteArrayReceiver receiver);
     
     public static interface ByteArrayReceiver {
         /**
@@ -58,12 +60,10 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
         setup(new ByteArrayReceiver() {
             public void handle(byte[] payload) {
                 try {
-                    receiver.handle(Command.readFrom(channel, new ObjectInputStreamEx(
-                            new ByteArrayInputStream(payload),channel.baseClassLoader,channel.classFilter)));
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Failed to construct Command", e);
-                } catch (ClassNotFoundException e) {
-                    LOGGER.log(Level.WARNING, "Failed to construct Command", e);
+                    Command cmd = Command.readFrom(channel, payload);
+                    receiver.handle(cmd);
+                } catch (IOException | ClassNotFoundException e) {
+                    LOGGER.log(Level.WARNING, "Failed to construct Command in channel " + channel.getName(), e);
                 }
             }
 
@@ -76,10 +76,12 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
     @Override
     public final void write(Command cmd, boolean last) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(baos);
         cmd.writeTo(channel,oos);
         oos.close();
-        writeBlock(channel,baos.toByteArray());
+        byte[] block = baos.toByteArray();
+        channel.notifyWrite(cmd, block.length);
+        writeBlock(channel, block);
     }
 
     private static final Logger LOGGER = Logger.getLogger(AbstractByteArrayCommandTransport.class.getName());

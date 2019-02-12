@@ -23,8 +23,8 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.util.concurrent.ExecutionException;
@@ -67,14 +67,14 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      * @param oid
      *      The object id of the exported {@link OutputStream}.
      */
-    public ProxyOutputStream(Channel channel, int oid) throws IOException {
+    public ProxyOutputStream(@Nonnull Channel channel, int oid) throws IOException {
         connect(channel,oid);
     }
 
     /**
      * Connects this stream to the specified remote object.
      */
-    synchronized void connect(Channel channel, int oid) throws IOException {
+    synchronized void connect(@Nonnull Channel channel, int oid) throws IOException {
         if(this.channel!=null)
             throw new IllegalStateException("Cannot connect twice");
         if(oid==0)
@@ -151,8 +151,9 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
     }
 
     public synchronized void flush() throws IOException {
-        if(channel!=null)
-            channel.send(new Flush(channel.newIoId(),oid));
+        if (channel != null && /* see #finalize */ oid != -1) {
+            channel.send(new Flush(channel.newIoId(), oid));
+        }
     }
 
     public synchronized void close() throws IOException {
@@ -180,9 +181,8 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         super.finalize();
         // if we haven't done so, release the exported object on the remote side.
         // if the object is auto-unexported, the export entry could have already been removed.
-        if(channel!=null) {
+        if(channel != null && oid != -1) {
             channel.send(new Unexport(channel.newIoId(),oid));
-            channel = null;
             oid = -1;
         }
     }
@@ -341,7 +341,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         protected void execute(final Channel channel) {
             channel.pipeWriter.submit(ioId,new Runnable() {
                 public void run() {
-                    channel.unexport(oid,createdAt);
+                    channel.unexport(oid,createdAt,false);
                 }
             });
         }
@@ -442,7 +442,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         @Override
         protected void execute(Channel channel) {
             PipeWindow w = channel.getPipeWindow(oid);
-            w.dead(createdAt.getCause());
+            w.dead(createdAt != null ? createdAt.getCause() : null);
         }
 
         public String toString() {

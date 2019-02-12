@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import javax.annotation.Nullable;
 import org.jenkinsci.remoting.protocol.ApplicationLayer;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
 import org.jenkinsci.remoting.util.SettableFuture;
 import org.jenkinsci.remoting.util.ThrowableUtils;
@@ -49,7 +50,7 @@ import org.jenkinsci.remoting.util.ThrowableUtils;
 /**
  * An {@link ApplicationLayer} that produces a {@link Channel}.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
 
@@ -219,7 +220,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
     public void start() throws IOException {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = new ObjectOutputStream(BinarySafeStream.wrap(bos));
+            ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos));
             try {
                 oos.writeObject(new Capability());
             } finally {
@@ -291,15 +292,17 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          */
         @Override
         protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
+            //TODO: Any way to get channel information here
             if (isWriteOpen()) {
                 try {
                     ChannelApplicationLayer.this.write(header);
                     ChannelApplicationLayer.this.write(data);
                 } catch (ClosedChannelException e) {
-                    throw new ChannelClosedException(e);
+                    // Probably it should be another exception type at all
+                    throw new ChannelClosedException(null, "Protocol stack cannot write data anymore. ChannelApplicationLayer reports that the NIO Channel is closed", e);
                 }
             } else {
-                throw new ChannelClosedException(new ClosedChannelException());
+                throw new ChannelClosedException(null, "Protocol stack cannot write data anymore. It is not open for write", null);
             }
         }
 

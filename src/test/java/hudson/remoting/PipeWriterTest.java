@@ -23,7 +23,8 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
     @Override
     protected void setUp() throws Exception {
         super.setUp();
-        checker = channel.export(PipeWriterTestChecker.class, this, false);
+        // Checker operates using the user-space RMI
+        checker = channel.export(PipeWriterTestChecker.class, this, false, true, true);
     }
 
     /**
@@ -74,11 +75,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
      * coordinated.
      */
     public void testResponseIoCoord() throws Exception {
-        channel.call(new ResponseIoCoordCallable() {
-            void touch() throws IOException {
-                ros.write(0);
-            }
-        });
+        channel.call(new ResponseCallableWriter());
         // but I/O should be complete before the call returns.
         assertTrue(slow.written);
     }
@@ -87,11 +84,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
      * Ditto for {@link OutputStream#flush()}
      */
     public void testResponseIoCoordFlush() throws Exception {
-        channel.call(new ResponseIoCoordCallable() {
-            void touch() throws IOException {
-                ros.flush();
-            }
-        });
+        channel.call(new ResponseCallableFlusher());
         assertTrue(slow.flushed);
     }
 
@@ -99,11 +92,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
      * Ditto for {@link OutputStream#close()}
      */
     public void testResponseIoCoordClose() throws Exception {
-        channel.call(new ResponseIoCoordCallable() {
-            void touch() throws IOException {
-                ros.close();
-            }
-        });
+        channel.call(new ResponseCallableCloser());
         assertTrue(slow.closed);
     }
 
@@ -130,29 +119,17 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
     }
 
     public void testRequestIoCoord() throws Exception {
-        channel.call(new RequestIoCoordCallable() {
-            void touch() throws IOException {
-                ros.write(0);
-            }
-        });
+        channel.call(new RequestCallableWriter());
         assertSlowStreamTouched();
     }
 
     public void testRequestIoCoordFlush() throws Exception {
-        channel.call(new RequestIoCoordCallable() {
-            void touch() throws IOException {
-                ros.flush();
-            }
-        });
+        channel.call(new RequestCallableFlusher());
         assertSlowStreamTouched();
     }
 
     public void testRequestIoCoordClose() throws Exception {
-        channel.call(new RequestIoCoordCallable() {
-            void touch() throws IOException {
-                ros.close();
-            }
-        });
+        channel.call(new RequestCallableCloser());
         assertSlowStreamTouched();
     }
 
@@ -196,6 +173,42 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
             } catch (InterruptedException e) {
                 throw new InterruptedIOException();
             }
+        }
+    }
+
+    private class ResponseCallableWriter extends ResponseIoCoordCallable {
+        void touch() throws IOException {
+            ros.write(0);
+        }
+    }
+
+    private class ResponseCallableFlusher extends ResponseIoCoordCallable {
+        void touch() throws IOException {
+            ros.flush();
+        }
+    }
+
+    private class ResponseCallableCloser extends ResponseIoCoordCallable {
+        void touch() throws IOException {
+            ros.close();
+        }
+    }
+
+    private class RequestCallableWriter extends RequestIoCoordCallable {
+        void touch() throws IOException {
+            ros.write(0);
+        }
+    }
+
+    private class RequestCallableFlusher extends RequestIoCoordCallable {
+        void touch() throws IOException {
+            ros.flush();
+        }
+    }
+
+    private class RequestCallableCloser extends RequestIoCoordCallable {
+        void touch() throws IOException {
+            ros.close();
         }
     }
 }

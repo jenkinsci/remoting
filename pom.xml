@@ -28,12 +28,13 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.38</version>
+    <version>1.50</version>
+    <relativePath />
   </parent>
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>3.12-SNAPSHOT</version>
+  <version>${revision}${changelist}</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -56,16 +57,20 @@ THE SOFTWARE.
     <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
     <url>https://github.com/jenkinsci/remoting</url>
-    <tag>HEAD</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <properties>
+    <revision>3.30</revision>
+    <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
     <build.type>private</build.type>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <findbugs.failOnError>false</findbugs.failOnError>
+    <findbugs.effort>Max</findbugs.effort>
+    <findbugs.excludeFilterFile>${basedir}/src/findbugs/excludeFilter.xml</findbugs.excludeFilterFile>
+    <findbugs.threshold>Low</findbugs.threshold>
     <!-- TODO: Required to override by a version with certchain support (MJARSIGNER-53) on @oleg-nenashev's machine. Remove once it's in upstream -->
     <maven-jarsigner-plugin.version>1.4</maven-jarsigner-plugin.version>
   </properties>
@@ -73,21 +78,20 @@ THE SOFTWARE.
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
+      <url>https://repo.jenkins-ci.org/public/</url>
     </repository>
   </repositories>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
 
   <dependencies>
     <dependency>
       <groupId>org.codehaus.mojo</groupId>
       <artifactId>animal-sniffer-annotations</artifactId>
-      <version>1.15</version>
       <scope>provided</scope>
     </dependency>
     <!-- test dependencies -->
@@ -146,18 +150,6 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-module-junit4</artifactId>
-      <version>1.6.2</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.powermock</groupId>
-      <artifactId>powermock-api-mockito</artifactId>
-      <version>1.6.2</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <!-- for JRE requirement check annotation -->
       <groupId>org.jvnet</groupId>
       <artifactId>animal-sniffer-annotation</artifactId>
@@ -190,7 +182,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.kohsuke</groupId>
       <artifactId>access-modifier-annotation</artifactId>
-      <version>1.7</version>
+      <version>1.12</version>
       <type>jar</type>
       <optional>true</optional><!-- no need to have this at runtime -->
     </dependency>
@@ -282,7 +274,7 @@ THE SOFTWARE.
           <providerClass>${hudson.sign.providerClass}</providerClass>
           <providerArg>${hudson.sign.providerArg}</providerArg>
           <tsa>${hudson.sign.tsa}</tsa>
-          <!-- 
+          <!--
             This option is required for JENKINS-37567, not required on any release machine.
             In order to take effect, a version with MJARSIGNER-53 should be used.
             See the "maven-jarsigner-plugin.version" parameter.
@@ -417,53 +409,8 @@ THE SOFTWARE.
         </executions>
       </plugin>
       <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.2</version>
-        <configuration>
-          <releaseProfiles>release</releaseProfiles>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.jacoco</groupId>
-        <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.7.0.201403182114</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>prepare-agent</goal>
-            </goals>
-          </execution>
-          <execution>
-            <id>report</id>
-            <phase>prepare-package</phase>
-            <goals>
-              <goal>report</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>findbugs-maven-plugin</artifactId>
-        <version>3.0.4</version>
-        <configuration>
-          <xmlOutput>true</xmlOutput>
-          <effort>Max</effort>
-          <excludeFilterFile>${basedir}/src/findbugs/excludeFilter.xml</excludeFilterFile>
-          <threshold>Low</threshold><!-- we want to find serialization related problems -->
-        </configuration>
-        <executions>
-          <execution>
-            <phase>verify</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.19.1</version>
+        <version>3.0.0-M1</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
@@ -474,9 +421,9 @@ THE SOFTWARE.
         <executions>
           <execution>
             <id>run-javadoc</id>
+            <phase>package</phase>
             <goals>
               <goal>jar</goal>
-              <goal>javadoc</goal>
             </goals>
           </execution>
         </executions>
@@ -536,6 +483,12 @@ THE SOFTWARE.
                 <goals>
                   <goal>sign</goal>
                 </goals>
+                <configuration>
+                  <gpgArguments>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                  </gpgArguments>
+                </configuration>
               </execution>
             </executions>
           </plugin>
@@ -570,8 +523,34 @@ THE SOFTWARE.
                   <keystore>${hudson.sign.keystore}</keystore>
                   <storetype>${hudson.sign.storetype}</storetype>
                   <providerClass>${hudson.sign.providerClass}</providerClass>
-                  <providerArg>${hudson.sign.providerArg}</providerArg> 
+                  <providerArg>${hudson.sign.providerArg}</providerArg>
                 </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>jacoco</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>0.7.9</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>prepare-agent</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>report</id>
+                <phase>prepare-package</phase>
+                <goals>
+                  <goal>report</goal>
+                </goals>
               </execution>
             </executions>
           </plugin>

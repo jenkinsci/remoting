@@ -197,7 +197,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
         }
 
         public ISaturationTest call() throws IOException {
-            return Channel.current().export(ISaturationTest.class, new ISaturationTest() {
+            return Channel.currentOrFail().export(ISaturationTest.class, new ISaturationTest() {
                 private InputStream in;
                 public void ensureConnected() throws IOException {
                     in = pipe.getIn();
@@ -222,7 +222,12 @@ public class PipeTest extends RmiTestBase implements Serializable {
         }
 
         public Integer call() throws IOException {
-            read(pipe);
+            try {
+                read(pipe);
+            } catch(AssertionError ex) {
+                // Propagate the assetion to the remote side
+                throw new IOException("Assertion failed", ex);
+            }
             return 5;
         }
 
@@ -238,12 +243,13 @@ public class PipeTest extends RmiTestBase implements Serializable {
         os.close();
     }
 
-    private static void read(Pipe p) throws IOException {
-        InputStream in = p.getIn();
-        for( int cnt=0; cnt<256*256; cnt++ )
-            assertEquals(cnt/256,in.read());
-        assertEquals(-1,in.read());
-        in.close();
+    private static void read(Pipe p) throws IOException, AssertionError {
+        try (InputStream in = p.getIn()) {
+            for( int cnt=0; cnt<256*256; cnt++ ) {
+                assertEquals(cnt/256,in.read());
+            }
+            assertEquals(-1,in.read());
+        }
     }
 
 
@@ -260,13 +266,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
      */
     public void testQuickBurstWrite() throws Exception {
         final Pipe p = Pipe.createLocalToRemote();
-        Future<Integer> f = channel.callAsync(new CallableBase<Integer, IOException>() {
-            public Integer call() throws IOException {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                IOUtils.copy(p.getIn(), baos);
-                return baos.size();
-            }
-        });
+        Future<Integer> f = channel.callAsync(new QuickBurstCallable(p));
         OutputStream os = p.getOut();
         os.write(1);
         os.close();
@@ -290,5 +290,19 @@ public class PipeTest extends RmiTestBase implements Serializable {
 
     private Object writeReplace() {
         return null;
+    }
+
+    private static class QuickBurstCallable extends CallableBase<Integer, IOException> {
+        private final Pipe p;
+
+        public QuickBurstCallable(Pipe p) {
+            this.p = p;
+        }
+
+        public Integer call() throws IOException {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            IOUtils.copy(p.getIn(), baos);
+            return baos.size();
+        }
     }
 }

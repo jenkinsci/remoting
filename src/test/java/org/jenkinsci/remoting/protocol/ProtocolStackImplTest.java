@@ -51,7 +51,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 import org.junit.ClassRule;
@@ -1176,7 +1175,7 @@ public class ProtocolStackImplTest {
 
         @Override
         public String call() throws IOException {
-            System.out.println("Hello from: " + Channel.current());
+            System.out.println("Hello from: " + getChannelOrFail());
             return null;
         }
 
@@ -1194,7 +1193,7 @@ public class ProtocolStackImplTest {
         }
 
         public ISaturationTest call() throws IOException {
-            return Channel.current().export(ISaturationTest.class, new ISaturationTest() {
+            return getOpenChannelOrFail().export(ISaturationTest.class, new ISaturationTest() {
                 private InputStream in;
 
                 public void ensureConnected() throws IOException {

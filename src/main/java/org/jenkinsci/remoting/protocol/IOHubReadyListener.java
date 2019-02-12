@@ -42,7 +42,7 @@ import java.nio.channels.SelectionKey;
  * @see IOHub#removeInterestWrite(SelectionKey)
  * @see IOHub#unregister(SelectableChannel)
  *
- * @since FIXME
+ * @since 3.0
  */
 public interface IOHubReadyListener {
     /**

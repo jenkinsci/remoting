@@ -24,12 +24,22 @@ public abstract class JarCache {
     /**
      * Default JAR cache location for disabled workspace Manager.
      */
-    /*package*/ static final File DEFAULT_NOWS_JAR_CACHE_LOCATION = 
+    public static final File DEFAULT_NOWS_JAR_CACHE_LOCATION =
         new File(System.getProperty("user.home"),".jenkins/cache/jars");
-    
+
+    //TODO: replace by checked exception
+    /**
+     * Gets a default value for {@link FileSystemJarCache} to be initialized on agents.
+     * @return Created JAR Cache
+     * @throws IOException Default JAR Cache location cannot be initialized
+     */
     @Nonnull
-    /*package*/ static JarCache getDefault() {
-        return new FileSystemJarCache(DEFAULT_NOWS_JAR_CACHE_LOCATION, true);
+    /*package*/ static JarCache getDefault() throws IOException {
+        try {
+            return new FileSystemJarCache(DEFAULT_NOWS_JAR_CACHE_LOCATION, true);
+        } catch (IllegalArgumentException ex) {
+            throw new IOException("Failed to initialize the default JAR Cache location", ex);
+        }
     }
     
     /**

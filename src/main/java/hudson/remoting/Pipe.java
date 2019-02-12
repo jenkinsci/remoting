@@ -23,12 +23,13 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -96,7 +97,7 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
-public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
+public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatingOutputStream {
     private InputStream in;
     private OutputStream out;
 
@@ -149,6 +150,8 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
+        final Channel ch = getChannelForSerialization();
+
         // TODO: there's a discrepancy in the pipe window size and FastPipedInputStream buffer size.
         // The former uses 1M, while the latter uses 64K, so if the sender is too fast, it'll cause
         // the pipe IO thread to block other IO activities. Fix this by first using adaptive growing buffer
@@ -156,14 +159,14 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
         if(in!=null && out==null) {
             // remote will write to local
             FastPipedOutputStream pos = new FastPipedOutputStream((FastPipedInputStream)in);
-            int oid = Channel.current().internalExport(Object.class, pos, false);  // this export is unexported in ProxyOutputStream.finalize()
+            int oid = ch.internalExport(Object.class, pos, false);  // this export is unexported in ProxyOutputStream.finalize()
 
             oos.writeBoolean(true); // marker
             oos.writeInt(oid);
         } else {
             // remote will read from local this object gets unexported when the pipe is connected.
             // see ConnectCommand
-            int oid = Channel.current().internalExport(Object.class, out, false);
+            int oid = ch.internalExport(Object.class, out, false);
 
             oos.writeBoolean(false);
             oos.writeInt(oid);
@@ -171,8 +174,7 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        final Channel channel = Channel.current();
-        assert channel !=null;
+        final Channel channel = getChannelForSerialization();
 
         if(ois.readBoolean()) {
             // local will write to remote
@@ -228,6 +230,11 @@ public final class Pipe implements Serializable, ErrorPropagatingOutputStream {
                     }
                 }
             });
+        }
+
+        @Override
+        public String toString() {
+            return "Pipe.Connect";
         }
 
         static final long serialVersionUID = -9128735897846418140L;

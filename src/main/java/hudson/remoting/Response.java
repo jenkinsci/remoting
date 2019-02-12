@@ -23,6 +23,10 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import javax.annotation.CheckForNull;
+import javax.annotation.Nullable;
+
 /**
  * Request/response pattern over {@link Command}.
  *
@@ -30,8 +34,9 @@ package hudson.remoting;
  *
  * @author Kohsuke Kawaguchi
  * @see Request
+ * @since 3.17
  */
-final class Response<RSP,EXC extends Throwable> extends Command {
+public final class Response<RSP,EXC extends Throwable> extends Command {
     /**
      * ID of the {@link Request} for which
      */
@@ -51,14 +56,21 @@ final class Response<RSP,EXC extends Throwable> extends Command {
     final RSP returnValue;
     final EXC exception;
 
-    Response(int id, int lastIoId, RSP returnValue) {
+    @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED", justification="Only supposed to be defined on one side.")
+    private transient long totalTime;
+    @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED", justification="Bound after deserialization, in execute.")
+    private transient Request<?, ?> request;
+
+    Response(Request request, int id, int lastIoId, RSP returnValue) {
+        this.request = request;
         this.id = id;
         this.lastIoId = lastIoId;
         this.returnValue = returnValue;
         this.exception = null;
     }
 
-    Response(int id, int lastIoId, EXC exception) {
+    Response(Request request, int id, int lastIoId, EXC exception) {
+        this.request = request;
         this.id = id;
         this.lastIoId = lastIoId;
         this.returnValue = null;
@@ -69,7 +81,7 @@ final class Response<RSP,EXC extends Throwable> extends Command {
      * Notifies the waiting {@link Request}.
      */
     @Override
-    protected void execute(Channel channel) {
+    void execute(Channel channel) {
         Request req = channel.pendingCalls.get(id);
         if(req==null)
             return; // maybe aborted
@@ -77,15 +89,50 @@ final class Response<RSP,EXC extends Throwable> extends Command {
 
         req.onCompleted(this);
         channel.pendingCalls.remove(id);
+        request = req;
+        long startTime = req.startTime;
+        if (startTime != 0) {
+            long time = System.nanoTime() - startTime;
+            totalTime = time;
+            channel.notifyResponse(req, this, time);
+        }
     }
 
+    @Override
     public String toString() {
-        return "Response[retVal="+toString(returnValue)+",exception="+toString(exception)+"]";
+        return "Response" + (request != null ? ":" + request : "") + "(" + (returnValue != null ? returnValue.getClass().getName() : exception != null ? exception.getClass().getName() : null) + ")";
     }
 
-    private static String toString(Object o) {
-        if(o==null) return "null";
-        else        return o.toString();
+    /**
+     * Obtains the matching request.
+     * @return null if this response has not been processed successfully
+     */
+    public @CheckForNull Request<?, ?> getRequest() {
+        return request;
+    }
+
+    /**
+     * Gets the return value of the response.
+     * @return null in case {@link #getException} is non-null
+     */
+    public @Nullable RSP getReturnValue() {
+        return returnValue;
+    }
+
+    /**
+     * Gets the exception thrown by the response.
+     * @return null in case {@link #getReturnValue} is non-null
+     */
+    public @Nullable EXC getException() {
+        return exception;
+    }
+
+    /**
+     * Gets the total time taken on the local side to send the request and receive the response.
+     * @return the total time in nanoseconds, or zero if unknown, including if this response is being sent to a remote request
+     */
+    public long getTotalTime() {
+        return totalTime;
     }
 
     private static final long serialVersionUID = 1L;

@@ -27,7 +27,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.FileSystemJarCache;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -35,6 +34,7 @@ import java.security.cert.X509Certificate;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
+import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Argument;
@@ -44,6 +44,8 @@ import java.io.File;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
+
 import java.util.List;
 import java.util.ArrayList;
 import java.net.URL;
@@ -51,13 +53,12 @@ import java.io.IOException;
 
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
-import java.nio.file.Path;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
- * Entry point to JNLP slave agent.
+ * Entry point to JNLP agent.
  *
  * <p>
  * See also <tt>slave-agent.jnlp.jelly</tt> in the core.
@@ -68,7 +69,7 @@ public class Main {
 
     @Option(name="-tunnel",metaVar="HOST:PORT",
             usage="Connect to the specified host and port, instead of connecting directly to Jenkins. " +
-                  "Useful when connection to Hudson needs to be tunneled. Can be also HOST: or :PORT, " +
+                  "Useful when connection to Jenkins needs to be tunneled. Can be also HOST: or :PORT, " +
                   "in which case the missing portion will be auto-configured like the default behavior")
     public String tunnel;
 
@@ -103,10 +104,20 @@ public class Main {
     public List<String> candidateCertificates;
 
     /**
+     * Disables HTTPs Certificate validation of the server when using {@link org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver}.
+     *
+     * This option is not recommended for production use.
+     * @since TODO
+     */
+    @Option(name="-disableHttpsCertValidation",
+            usage="Ignore SSL validation errors - use as a last resort only.")
+    public boolean disableHttpsCertValidation = false;
+
+    /**
      * Specifies a destination for error logs.
      * If specified, this option overrides the default destination within {@link #workDir}.
      * If both this options and {@link #workDir} is not set, the log will not be generated.
-     * @since TODO
+     * @since 3.8
      */
     @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
     @CheckForNull
@@ -114,7 +125,7 @@ public class Main {
     
     /**
      * Specified location of the property file with JUL settings.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
@@ -127,7 +138,7 @@ public class Main {
      * In order to retain compatibility, the option is disabled by default.
      * <p>
      * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-workDir",
             usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
@@ -139,7 +150,7 @@ public class Main {
      * <p>
      * This option is not expected to be used frequently, but it allows remoting users to specify a custom
      * storage directory if the default {@code remoting} directory is consumed by other stuff.
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-internalDir",
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
@@ -151,7 +162,7 @@ public class Main {
      * Fail the initialization if the workDir or internalDir are missing.
      * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
      * (e.g. if a filesystem mount gets disconnected).
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
@@ -168,7 +179,7 @@ public class Main {
 
     /**
      * 4 mandatory parameters.
-     * Host name (deprecated), Jenkins URL, secret key, and slave name.
+     * Host name (deprecated), Jenkins URL, secret key, and agent name.
      */
     @Argument
     public final List<String> args = new ArrayList<String>();
@@ -178,7 +189,7 @@ public class Main {
             _main(args);
         } catch (CmdLineException e) {
             System.err.println(e.getMessage());
-            System.err.println("java -jar slave.jar [options...] <secret key> <slave name>");
+            System.err.println("java -jar agent.jar [options...] <secret key> <agent name>");
             new CmdLineParser(new Main()).printUsage(System.err);
         }
     }
@@ -227,11 +238,11 @@ public class Main {
     }
 
     public Engine createEngine() {
-        String slaveName = args.get(1);
-        LOGGER.log(INFO, "Setting up slave: {0}", slaveName);
+        String agentName = args.get(1);
+        LOGGER.log(INFO, "Setting up agent: {0}", agentName);
         Engine engine = new Engine(
                 headlessMode ? new CuiListener() : new GuiListener(),
-                urls, args.get(0), slaveName);
+                urls, args.get(0), agentName);
         if(tunnel!=null)
             engine.setTunnel(tunnel);
         if(credentials!=null)
@@ -242,13 +253,27 @@ public class Main {
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
         engine.setKeepAlive(!noKeepAlive);
+
+        if (disableHttpsCertValidation) {
+            LOGGER.log(WARNING, "Certificate validation for HTTPs endpoints is disabled");
+        }
+        engine.setDisableHttpsCertValidation(disableHttpsCertValidation);
+
         
-        // TODO: ideally logging should be initialized before the "Setting up slave" entry
+        // TODO: ideally logging should be initialized before the "Setting up agent" entry
         if (agentLog != null) {
-            engine.setAgentLog(agentLog.toPath());
+            try {
+                engine.setAgentLog(PathUtils.fileToPath(agentLog));
+            } catch (IOException ex) {
+                throw new IllegalStateException("Cannot retrieve custom log destination", ex);
+            }
         }
         if (loggingConfigFile != null) {
-            engine.setLoggingConfigFile(loggingConfigFile.toPath());
+            try {
+                engine.setLoggingConfigFile(PathUtils.fileToPath(loggingConfigFile));
+            } catch (IOException ex) {
+                throw new IllegalStateException("Logging config file is invalid", ex);
+            }
         }
         
         if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
@@ -321,7 +346,11 @@ public class Main {
 
         // Working directory settings
         if (workDir != null) {
-            engine.setWorkDir(workDir.toPath());
+            try {
+                engine.setWorkDir(PathUtils.fileToPath(workDir));
+            } catch (IOException ex) {
+                throw new IllegalStateException("Work directory path is invalid", ex);
+            }
         }
         engine.setInternalDir(internalDir);
         engine.setFailIfWorkDirIsMissing(failIfWorkDirIsMissing);

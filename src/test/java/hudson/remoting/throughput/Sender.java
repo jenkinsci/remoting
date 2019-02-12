@@ -41,11 +41,7 @@ public class Sender {
                     new BufferedOutputStream(SocketChannelStream.out(s)));
 
             final Pipe p = Pipe.createLocalToRemote();
-            Future<byte[]> f = ch.callAsync(new CallableBase<byte[], Throwable>() {
-                public byte[] call() throws Exception {
-                    return digest(p.getIn());
-                }
-            });
+            Future<byte[]> f = ch.callAsync(new DigestCallable(p));
 
             System.out.println("Started");
             long start = System.nanoTime();
@@ -72,5 +68,17 @@ public class Sender {
         byte[] buf = new byte[10*1024*1024];
         new Random(0).nextBytes(buf);
         return buf;
+    }
+
+    private static class DigestCallable extends CallableBase<byte[], Throwable> {
+        private final Pipe p;
+
+        public DigestCallable(Pipe p) {
+            this.p = p;
+        }
+
+        public byte[] call() throws Exception {
+            return digest(p.getIn());
+        }
     }
 }

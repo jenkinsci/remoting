@@ -1,14 +1,283 @@
 Changelog
 ====
 
-Below you can changelogs for the trunk version of remoting.
+Below you can read the changelogs for the trunk version of remoting.
 This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.29
+
+Release date: February 5, 2019
+
+* [JENKINS-55976](https://issues.jenkins-ci.org/browse/JENKINS-55976) Add missing log call.
+
+##### 3.28
+
+Release date: December 10, 2018
+
+* [JENKINS-48778](https://issues.jenkins-ci.org/browse/JENKINS-48778) Enhance the no_proxy configurations. See [NO_PROXY Environment Variable](docs/no_proxy.md) for documentation.
+* Better diagnostics for errors from RemoteClassLoader.fetch4.
+* Ignore attempts to flush a ProxyOutputStream which has already been finalized.
+* [JENKINS-51108](https://issues.jenkins-ci.org/browse/JENKINS-51108) - Allow remoting to publish incrementals.
+* [JENKINS-47977](https://issues.jenkins-ci.org/browse/JENKINS-47977) - Jenkins build failed if Remoting could not create the JAR cache.
+* [JENKINS-50730](https://issues.jenkins-ci.org/browse/JENKINS-50730) - Improve log messaging on reconnect.
+* [JENKINS-49987](https://issues.jenkins-ci.org/browse/JENKINS-49987) - Clean up warnings about anonymous callable.
+* [JENKINS-54005](https://issues.jenkins-ci.org/browse/JENKINS-54005) - Another instance of an unnecessarily severe warning when unexporting.
+
+##### 3.27
+
+Release date: September 28, 2018
+
+* Channel.notifyJar was being called too often.
+* Downgrade error messages from SynchronousCommandTransport.
+* [JENKINS-53569](https://issues.jenkins-ci.org/browse/JENKINS-53569) - Remove unnecessary locking that could cause deadlock when removing a filter from the ProtocolStack.
+
+##### 3.26
+
+Release date: August 31, 2018
+
+* [JENKINS-52945](https://issues.jenkins-ci.org/browse/JENKINS-52945) - AnonymousClassWarnings should not warn about enums.
+* [JENKINS-42533](https://issues.jenkins-ci.org/browse/JENKINS-42533) - Eliminate another excessively severe warning about trying to export already unexported object.
+
+##### 3.25
+
+Release date: July 31, 2018 => Weekly 2.138 / LTS 2.121.3
+
+* [SECURITY-637](https://jenkins.io/security/advisory/2018-08-15/) - Prevent deserialization of URL objects with host components
+
+##### 3.24
+
+Release date: July 12, 2018
+
+* Refresh the code-signing certificate
+* No functional changes
+
+##### 3.23
+
+Release date: June 29, 2018
+
+* [JENKINS-52204](https://issues.jenkins-ci.org/browse/JENKINS-52204) -
+Skip Tcp Agent Listener port availability check when `-tunnel` option is set
+(regression in 3.22)
+
+##### 3.22
+
+Release date: Jun 22, 2018 => 2.129
+
+* [JENKINS-51818](https://issues.jenkins-ci.org/browse/JENKINS-51818) -
+When connecting over TCP, agents will check availability of the master's TCP Agent Listener port
+* [JENKINS-51841](https://issues.jenkins-ci.org/browse/JENKINS-51841) -
+Extensibility: Offer a new `Channel#readFrom(Channel, byte[] payload)` method for a standardized command deserialization from the channel
+* [PR #277](https://github.com/jenkinsci/remoting/pull/277) -
+API: be explicit that `ChannelBuilder#getHeaderStream()` may return null
+
+##### 3.21
+
+Enhancements: Jun 8, 2018 => Jenkins 2.127
+
+* [JENKINS-51551](https://issues.jenkins-ci.org/browse/JENKINS-51551) -
+Developer API: Allow creating custom `CommandTransport` implementation in external 
+components.
+  * Reference implementation: [Remoting Kafka Plugin](https://github.com/jenkinsci/remoting-kafka-plugin)
+* [PR #274](https://github.com/jenkinsci/remoting/pull/274) -
+Do not print channel close reason stack traces for non-sent request responses when
+`hudson.remoting.Request` logging level is lower than `FINE`.
+
+Fixed issues:
+
+* [JENKINS-51223](https://issues.jenkins-ci.org/browse/JENKINS-51223) -
+`no_proxy` environment variable parsing logic did not properly support
+domain suffixes in fully-qualified names. 
+Now it is possible to set suffixes like `.com` in `no_proxy`.
+* [JENKINS-50965](https://issues.jenkins-ci.org/browse/JENKINS-50965) -
+Fix malformed log message when loading of classes is forced by
+the `hudson.remoting.RemoteClassLoader.force` system property.
+* [PR #274](https://github.com/jenkinsci/remoting/pull/274) -
+Prevent exception in IOHub when retrieving base thread name for handlers
+when NIO selector is already closed (race condition).
+
+##### 3.20
+
+Release date: Apr 18, 2018 => Jenkins 2.118, 2.121.1 LTS
+
+* Refresh the Code-signing certificate
+* No functional changes
+
+##### 3.19
+
+Release date: Mar 22, 2018 => Jenkins 2.113
+
+* [JENKINS-49618](https://issues.jenkins-ci.org/browse/JENKINS-49618) -
+Display Remoting version in the agent log when starting up the agent
+* [JENKINS-50237](https://issues.jenkins-ci.org/browse/JENKINS-50237) -
+Include a ProxyException to responses when returning an exception to a `UserRequest`s.
+  * This allows returning the exception details even if Jenkins 2.102+ refuses to deserialize the original exception
+    due to the whitelist violation
+  * More info: [JEP-200 announcement](https://jenkins.io/blog/2018/03/15/jep-200-lts/)
+
+##### 3.18
+
+Release date: Mar 9, 2018 => Jenkins 2.112
+
+* [JENKINS-49415](https://issues.jenkins-ci.org/browse/JENKINS-49415) -
+Add uncaught exception handler to the Engine's executor service 
+* [JENKINS-49472](https://issues.jenkins-ci.org/browse/JENKINS-49472) -
+Log channel name in StreamCorruptedExceptions
+* [JENKINS-48561](https://issues.jenkins-ci.org/browse/JENKINS-48561) -
+Give precedence to proxy exclusion list system property over environmental vars.
+* [JENKINS-49994](https://issues.jenkins-ci.org/browse/JENKINS-49994) -
+Add infrastructure for warning about remoting serialization of anonymous inner classes.
+* [PR #258](https://github.com/jenkinsci/remoting/pull/258) -
+Improve performance by disabling expensive diagnostics in `RemoteClassLoader`
+
+##### 3.17
+
+Release date: Jan 30, 2018 => Jenkins 2.106
+
+* [JENKINS-49027](https://issues.jenkins-ci.org/browse/JENKINS-49027) -
+Improve reporting of JEP-200 violations in Remoting serialization.
+  * More info: [Announcement Blogpost](https://jenkins.io/blog/2018/01/13/jep-200/)
+* [JENKINS-27035](https://issues.jenkins-ci.org/browse/JENKINS-27035) -
+Add read/write events to [Channel.Listener](http://javadoc.jenkins.io/component/remoting/hudson/remoting/Channel.Listener.html)
+to support collection of Request/Response statistics.
+  * More info: [Event Listeners Documentation](/docs/logging.md#event-listeners)
+* [JENKINS-45897](https://issues.jenkins-ci.org/browse/JENKINS-45897) -
+Improve string representation of `Request` types to improve log messages
+
+##### 3.16
+
+Release date: Jan 10, 2018 => Jenkins 2.102
+
+* [PR #208](https://github.com/jenkinsci/remoting/pull/208) -
+Introduce the new `ClassFilter.setDefault` API which allows replacing the default Class Filter
+  * This is a foundation work for [JEP-200](https://github.com/jenkinsci/jep/tree/master/jep/200)/[JENKINS-47736](https://issues.jenkins-ci.org/browse/JENKINS-47736), 
+  which switches the default Remoting/XStream blacklist to whitelist in the Jenkins core
+  * Other Remoting API users are adviced to do the same
+* [PR #208](https://github.com/jenkinsci/remoting/pull/208) -
+Update the blacklist in the default Class Filter to align it with the Jenkins core. 
+New entries:
+  * `^java[.]lang[.]reflect[.]Method$`
+  * `^net[.]sf[.]json[.].*`
+  * `^java[.]security[.]SignedObject$` ([SECURITY-429 advisory](https://jenkins.io/security/advisory/2017-04-26/#cli-unauthenticated-remote-code-execution))
+* [JENKINS-48686](https://issues.jenkins-ci.org/browse/JENKINS-48686) -
+Replace the _slave_ term by _agent_ in logging, UI and Javadocs
+
+
+##### 3.15
+
+Release date: Dec 22, 2017 => Jenkins 2.98
+
+Enhancements:
+
+* [JENKINS-48133](https://issues.jenkins-ci.org/browse/JENKINS-48133) -
+Channel exceptions now record the channel name and other information when possible
+* [PR #210](https://github.com/jenkinsci/remoting/pull/210) - 
+Allow disabling HTTPs certificate validation of JNLP endpoint when starting Remoting
+  * **WARNING**: This option undermines the HTTPs security and opens the connection to MiTM attacks.
+    Use it at your own risk
+* [JENKINS-48055](https://issues.jenkins-ci.org/browse/JENKINS-48055) -
+API: Introduce new `getChannelOrFail()` and `getOpenChannelOrFail()` methods in
+[hudson.remoting.Callable](http://javadoc.jenkins.io/component/remoting/hudson/remoting/Callable.html).
+* [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) -
+API: `Channel#current()` now explicitly requires checking for `null`.
+* [PR #227](https://github.com/jenkinsci/remoting/pull/227) - 
+API: Deprecate and restrict the obsolete [JNLP3 protocol](docs/protocols.md) utility classes
+
+Fixed issues:
+
+* [JENKINS-48309](https://issues.jenkins-ci.org/browse/JENKINS-48309) -
+Prevent timeout in `AsyncFutureImpl#get(timeout)` when a spurious thread wakeup happens 
+before the timeout expiration.
+  * The issue also impacts [FutureImpl](http://javadoc.jenkins.io/hudson/model/queue/FutureImpl.html) in the Jenkins core
+* [JENKINS-47965](https://issues.jenkins-ci.org/browse/JENKINS-47965) -
+Prevent infinite hanging of JNLP4 `IOHub` selector threads when `IOHub` does not get closed properly 
+  * Affected [protocols](docs/protocols.md): JNLP4 only
+* [JENKINS-48130](https://issues.jenkins-ci.org/browse/JENKINS-48130) -
+Prevent fatal failure of `NIOChannelHub` when an underlying executor service rejects a task execution.
+After the change such failure terminates only a single channel
+  * Affected [protocols](docs/protocols.md): JNLP, JNLP2, CLI and CLI2. JNLP4 is not affected
+  * The change also improves diagnostics of `RejectedExecutionException` in other execution services
+* [JENKINS-37670](https://issues.jenkins-ci.org/browse/JENKINS-37670) -
+Throw the standard `UnsupportedClassVersionError` in `RemoteClassLoader` 
+when the bytecode is not supported.
+* [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) - 
+Clean up all issues reported by FindBugs. Notable issues:
+  * Prevent infinite hanging of `Channel#waitForProperty()` when the channel hangs in the closing state.
+  * Prevent `NullPointerException`s in `Command#createdAt` handling logic and API
+  * Prevent serialization of `Callable`s in `NioChannelHub` selectors (JNLP1 and JNLP2 protocols)
+* [JENKINS-46724](https://issues.jenkins-ci.org/browse/JENKINS-46724) - 
+Remove obsolete reflection calls in `RemoteClassloader` and `Launcher#checkTty()`
+* [PR #234](https://github.com/jenkinsci/remoting/pull/234) - 
+`hudson.remoting.Capability` preamble initialization cannot longer throw exceptions
+
+Build flow:
+
+* [JENKINS-38696](https://issues.jenkins-ci.org/browse/JENKINS-38696) -
+Fix Windows tests and enable them in the pull request builder
+* [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) -
+Enforce FindBugs in the pull request builder
+
+
+##### 3.14
+
+Release date: Nov 10, 2017 => [Jenkins 2.90](https://jenkins.io/changelog/#v2.90)
+
+Fixed issues:
+
+* [JENKINS-45294](https://issues.jenkins-ci.org/browse/JENKINS-45294) -
+User-space RMI calls (including Jenkins core ones) will be rejected when the channel is being closed 
+(similar to [JENKINS-45023](https://issues.jenkins-ci.org/browse/JENKINS-45023) in 3.11).
+It prevents channel hanging in edge cases.
+* [JENKINS-47425](https://issues.jenkins-ci.org/browse/JENKINS-47425) - 
+Do not print full stack traces on network connection errors.
+* [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) - 
+Cleanup a number of issues reported by FindBugs.
+Notable ones: Unchecked file operations, improper synchronization.
+* [JENKINS-47901](https://issues.jenkins-ci.org/browse/JENKINS-47901) -
+Prevent uncaught `InvalidPathException` for file operations if and invalid path is passed from command line or API.
+* [JENKINS-47942](https://issues.jenkins-ci.org/browse/JENKINS-47942) -
+Performance: Reduce scope of Channel instance locks by property management.
+
+Build flow:
+
+* [PR #207](https://github.com/jenkinsci/remoting/pull/207) -
+Jacoco does not longer run by default in the build, `jacoco` profile should be used.
+* [PR #207](https://github.com/jenkinsci/remoting/pull/207) -
+Update Jacoco version to make the reports compatible with Jenkins [Jacoco Plugin](https://plugins.jenkins.io/jacoco).
+
+
+##### 3.13 => [Jenkins 2.85](https://jenkins.io/changelog/#v2.85)
+
+Release date: Oct 05, 2017
+
+Improvements:
+
+* [JENKINS-38711](https://issues.jenkins-ci.org/browse/JENKINS-38711) -
+Add uncaught exception handling logic to remoting threads.
+Threads now either have failover or proper termination.
+
+Fixed issues:
+
+* [JENKINS-47132](https://issues.jenkins-ci.org/browse/JENKINS-47132) -
+When an agent is waiting for master to be ready, 
+the port was not filled in the `Master isnt ready to talk to us on {0}. Will retry again` log message.
+
+##### 3.12 => [Jenkins 2.79](https://jenkins.io/changelog/#v2.79)
+
+Release date: Sep 14, 2017 => [Jenkins 2.79](https://jenkins.io/changelog/#v2.79)
+
+* [JENKINS-45755](https://issues.jenkins-ci.org/browse/JENKINS-45755) -
+Prevent channel initialization failure when JAR Cache directory is not writable and the channel does not need this cache
+(regression in 3.10).
+  * This issue causes a regression in Jenkins LTS 2.73.1
+  See the [upgrade guide](https://jenkins.io/doc/upgrade-guide/2.73/#known-issue-agent-connection-failures-involving-jenkins-masters-with-undefined-or-non-writable-home-directory) for more info.
+* [JENKINS-46140](https://issues.jenkins-ci.org/browse/JENKINS-46140) -
+Improve representation of remote operation exceptions in logs.
+
 ##### 3.11
 
-Release date: Coming Soon
+Release date: Aug 18, 2017 => [Jenkins 2.76](https://jenkins.io/changelog/#v2.76)
 
 :exclamation: **Warning!** Starting from this release, Jenkins Remoting requires Java 8 to run.
 In edge cases it may require manual actions during the upgrade.
@@ -47,6 +316,34 @@ Code signing: [@oleg-nenashev](https://github.com/oleg-nenashev) will be releasi
 Remoting build was failing when user name contained metacharacters.
 * [PR #190](https://github.com/jenkinsci/remoting/pull/190) -
 Enforce code signing verification when building Remoting with the `release` profile.
+
+##### 3.10.2
+
+Release date: Oct 05, 2017
+
+:exclamation: This is a backport release for Jenkins 2.73.2, 
+which integrates changes from 3.11 and 3.12.
+
+* [JENKINS-45755](https://issues.jenkins-ci.org/browse/JENKINS-45755) -
+Prevent channel initialization failure when JAR Cache directory is not writable and the channel does not need this cache
+(regression in 3.10).
+* [JENKINS-45023](https://issues.jenkins-ci.org/browse/JENKINS-45023) -
+Prevent execution of `UserRequest`s when the channel is closed or being closed.
+It prevents hanging of the channel in some cases.
+* [JENKINS-46259](https://issues.jenkins-ci.org/browse/JENKINS-46259) -
+ Log all linkage errors when executing `UserRequest`s (generic remote operations started from API).
+* [JENKINS-45233](https://issues.jenkins-ci.org/browse/JENKINS-45233) -
+ Log errors when Response message cannot be delivered due to the closed channel.
+
+Build Flow:
+
+* [JENKINS-37567](https://issues.jenkins-ci.org/browse/JENKINS-37567) -
+Code signing: [@oleg-nenashev](https://github.com/oleg-nenashev) will be releasing Remoting JARs signed with his certificate 
+for the next 3.10.x releases.
+
+##### 3.10.1
+
+This release is burned.
 
 ##### 3.10
 
@@ -109,6 +406,8 @@ See the [Logging page](./docs/logging.md) for more details.
 Cleanup FindBugs-reported issues in ExportTable implementation (regression in 2.40).
 * [PR #153](https://github.com/jenkinsci/remoting/pull/153) -
 Prevent `NullPointerException` in `hudson.remoting.Channel.Ref()` when creating a reference to a `null` channel.
+* [JENKINS-5374](https://issues.jenkins-ci.org/browse/JENKINS-5374) - 
+Plrevent `NullPointerException` when executing a `UserRequest` constructed with a null classloader reference.
 
 ##### 3.7
 

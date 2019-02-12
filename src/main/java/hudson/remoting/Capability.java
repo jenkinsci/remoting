@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,6 +10,8 @@ import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * Represents additional features implemented on {@link Channel}.
@@ -33,7 +36,7 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER|MASK_PIPE_THROTTLING|MASK_MIMIC_EXCEPTION|MASK_PREFETCH|GREEDY_REMOTE_INPUTSTREAM| MASK_PROXY_WRITER_2_35|MASK_CHUNKED_ENCODING);
+        this(MASK_MULTI_CLASSLOADER | MASK_PIPE_THROTTLING | MASK_MIMIC_EXCEPTION | MASK_PREFETCH | GREEDY_REMOTE_INPUTSTREAM | MASK_PROXY_WRITER_2_35 | MASK_CHUNKED_ENCODING | PROXY_EXCEPTION_FALLBACK);
     }
 
     /**
@@ -109,21 +112,43 @@ public final class Capability implements Serializable {
     }
 
     /**
+     * Supports {@link ProxyException} as a fallback when failing to deserialize {@link UserRequest} exceptions.
+     * @since 3.19
+     * @see <a href="https://issues.jenkins-ci.org/browse/JENKINS-50237">JENKINS-50237</a>
+     */
+    public boolean supportsProxyExceptionFallback() {
+        return (mask & PROXY_EXCEPTION_FALLBACK) != 0;
+    }
+
+    //TODO: ideally preamble handling needs to be reworked in order to avoid FB suppression
+    /**
      * Writes out the capacity preamble.
      */
     void writePreamble(OutputStream os) throws IOException {
         os.write(PREAMBLE);
-        ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os));
-        oos.writeObject(this);
-        oos.flush();
+        try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os)) {
+            @Override
+            public void close() throws IOException {
+                flush();
+                // TODO: Cannot invoke the private clear() method, but GC well do it for us. Not worse than the original solution
+                // Here the code does not close the proxied stream OS on completion
+            }
+            @Override
+            protected void annotateClass(Class<?> c) throws IOException {
+                AnonymousClassWarnings.check(c);
+                super.annotateClass(c);
+            }
+        }) {
+            oos.writeObject(this);
+            oos.flush();
+        }
     }
 
     /**
      * The opposite operation of {@link #writePreamble(OutputStream)}.
      */
     public static Capability read(InputStream is) throws IOException {
-        try {
-            ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
+        try (ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
                 // during deserialization, only accept Capability to protect ourselves
                 // from malicious payload. Allow java.lang.String so that
                 // future versions of Capability can send more complex data structure.
@@ -136,7 +161,12 @@ public final class Capability implements Serializable {
                         return super.resolveClass(desc);
                     throw new SecurityException("Rejected: "+n);
                 }
-            };
+
+                @Override
+                public void close() throws IOException {
+                    // Do not close the stream since we continue reading from the input stream "is" 
+                }   
+            }) {
             return (Capability)ois.readObject();
         } catch (ClassNotFoundException e) {
             throw (Error)new NoClassDefFoundError(e.getMessage()).initCause(e);
@@ -208,11 +238,13 @@ public final class Capability implements Serializable {
     /**
      * Supports chunked encoding.
      *
-     * @sine 2.38
+     * @since 2.38
      */
     private static final long MASK_CHUNKED_ENCODING = 1L << 7;
 
-    static final byte[] PREAMBLE;
+    private static final long PROXY_EXCEPTION_FALLBACK = 1L << 8;
+
+    static final byte[] PREAMBLE = "<===[JENKINS REMOTING CAPACITY]===>".getBytes(StandardCharsets.UTF_8);
 
     public static final Capability NONE = new Capability(0);
 
@@ -275,15 +307,15 @@ public final class Capability implements Serializable {
             }
             sb.append("Chunked encoding");
         }
+        if ((mask & PROXY_EXCEPTION_FALLBACK) != 0) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(", ");
+            }
+            sb.append("ProxyException fallback");
+        }
         sb.append('}');
         return sb.toString();
-    }
-
-    static {
-        try {
-            PREAMBLE = "<===[JENKINS REMOTING CAPACITY]===>".getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new AssertionError(e);
-        }
     }
 }

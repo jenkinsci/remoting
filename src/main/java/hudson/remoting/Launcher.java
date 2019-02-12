@@ -25,10 +25,11 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
+
+import java.io.Console;
 import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
 import java.io.FileNotFoundException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -42,6 +43,9 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
+import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
+import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+import org.jenkinsci.remoting.util.PathUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -60,7 +64,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -71,7 +74,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.FileWriter;
-import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
@@ -127,7 +129,7 @@ public class Launcher {
     public File slaveLog = null;
 
     @Option(name="-text",usage="encode communication with the master with base64. " +
-            "Useful for running slave over 8-bit unsafe protocol like telnet")
+            "Useful for running agent over 8-bit unsafe protocol like telnet")
     public void setTextMode(boolean b) {
         mode = b?Mode.TEXT:Mode.BINARY;
         System.out.println("Running in "+mode.name().toLowerCase(Locale.ENGLISH)+" mode");
@@ -141,7 +143,7 @@ public class Launcher {
     @Option(name="-jnlpCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String slaveJnlpCredentials = null;
 
-    @Option(name="-secret", metaVar="HEX_SECRET", usage="Slave connection secret to use instead of -jnlpCredentials.")
+    @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret to use instead of -jnlpCredentials.")
     public String secret;
 
     @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
@@ -180,7 +182,7 @@ public class Launcher {
 
     /**
      * Specified location of the property file with JUL settings.
-     * @since TODO
+     * @since 3.8
      */
     @CheckForNull
     @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
@@ -191,6 +193,12 @@ public class Launcher {
                     "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
                     "certificate file to read.", forbids = "-noCertificateCheck")
     public List<String> candidateCertificates;
+
+    /**
+     * Disables HTTPs Certificate validation of the server when using {@link org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver}.
+     * This option is managed by the {@code -noCertificateCheck} option.
+     */
+    private boolean noCertificateCheck = false;
 
     public InetSocketAddress connectionTarget = null;
 
@@ -213,15 +221,13 @@ public class Launcher {
     @Option(name="-noCertificateCheck", forbids = "-cert")
     public void setNoCertificateCheck(boolean ignored) throws NoSuchAlgorithmException, KeyManagementException {
         System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
+
+        this.noCertificateCheck = true;
         SSLContext context = SSLContext.getInstance("TLS");
         context.init(null, new TrustManager[]{new NoCheckTrustManager()}, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
         // bypass host name check, too.
-        HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
-            public boolean verify(String s, SSLSession sslSession) {
-                return true;
-            }
-        });
+        HttpsURLConnection.setDefaultHostnameVerifier(new NoCheckHostnameVerifier());
     }
 
     @Option(name="-noReconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
@@ -238,7 +244,7 @@ public class Launcher {
      * In order to retain compatibility, the option is disabled by default.
      * <p>
      * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-workDir",
             usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
@@ -250,7 +256,7 @@ public class Launcher {
      * <p>
      * This option is not expected to be used frequently, but it allows remoting users to specify a custom
      * storage directory if the default {@code remoting} directory is consumed by other stuff.
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-internalDir",
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
@@ -262,7 +268,7 @@ public class Launcher {
      * Fail the initialization if the workDir or internalDir are missing.
      * This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
      * (e.g. if a filesystem mount gets disconnected).
-     * @since TODO
+     * @since 3.8
      */
     @Option(name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
@@ -278,7 +284,7 @@ public class Launcher {
             launcher.run();
         } catch (CmdLineException e) {
             System.err.println(e.getMessage());
-            System.err.println("java -jar slave.jar [options...]");
+            System.err.println("java -jar agent.jar [options...]");
             parser.printUsage(System.err);
             System.err.println();
         }
@@ -296,7 +302,7 @@ public class Launcher {
         if (slaveLog != null) {
             workDirManager.disable(WorkDirManager.DirType.LOGS_DIR);
         }
-        workDirManager.setupLogging(internalDirPath, slaveLog != null ? slaveLog.toPath() : null);
+        workDirManager.setupLogging(internalDirPath, slaveLog != null ? PathUtils.fileToPath(slaveLog) : null);
 
         if(auth!=null) {
             final int idx = auth.indexOf(':');
@@ -347,6 +353,11 @@ public class Launcher {
                     jnlpArgs.add("-cert");
                     jnlpArgs.add(c);
                 }
+            }
+            if (noCertificateCheck) {
+		// Generally it is not required since the default settings have been changed anyway.
+		// But we set it up just in case there are overrides somewhere in the logic
+                jnlpArgs.add("-disableHttpsCertValidation");
             }
             try {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
@@ -583,9 +594,9 @@ public class Launcher {
         return r;
     }
 
-    private static Document loadDom(URL slaveJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
+    private static Document loadDom(URL agentJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-        return db.parse(is, slaveJnlpURL.toExternalForm());
+        return db.parse(is, agentJnlpURL.toExternalForm());
     }
 
     /**
@@ -689,29 +700,19 @@ public class Launcher {
         main(System.in, os, mode, ping, jarCache != null ? new FileSystemJarCache(jarCache,true) : null);
     }
 
+    /**
+     * Checks if there is any {@link java.io.Console Console} object associated with JVM.
+     * If yes, prints a warning to STDOUT.
+     */
     private static void ttyCheck() {
-        try {
-            Method m = System.class.getMethod("console");
-            Object console = m.invoke(null);
-            if(console!=null) {
-                // we seem to be running from interactive console. issue a warning.
-                // but since this diagnosis could be wrong, go on and do what we normally do anyway. Don't exit.
-                System.out.println(
-                        "WARNING: Are you running slave agent from an interactive console?\n" +
-                        "If so, you are probably using it incorrectly.\n" +
-                        "See http://wiki.jenkins-ci.org/display/JENKINS/Launching+slave.jar+from+from+console");
-            }
-        } catch (LinkageError e) {
-            // we are probably running on JDK5 that doesn't have System.console()
-            // we can't check
-        } catch (InvocationTargetException e) {
-            // this is impossible
-            throw new AssertionError(e);
-        } catch (NoSuchMethodException e) {
-            // must be running on JDK5
-        } catch (IllegalAccessException e) {
-            // this is impossible
-            throw new AssertionError(e);
+        final Console console = System.console();
+        if(console != null) {
+            // we seem to be running from interactive console. issue a warning.
+            // but since this diagnosis could be wrong, go on and do what we normally do anyway. Don't exit.
+            System.out.println(
+                    "WARNING: Are you running agent from an interactive console?\n" +
+                            "If so, you are probably using it incorrectly.\n" +
+                            "See https://wiki.jenkins.io/display/JENKINS/Launching+agent+from+console");
         }
     }
 
@@ -741,7 +742,7 @@ public class Launcher {
         ExecutorService executor = Executors.newCachedThreadPool();
         ChannelBuilder cb = new ChannelBuilder("channel", executor)
                 .withMode(mode)
-                .withJarCache(cache);
+                .withJarCacheOrDefault(cache);
 
         // expose StandardOutputStream as a channel property, which is a better way to make this available
         // to the user of Channel than Channel#getUnderlyingOutput()
@@ -777,21 +778,6 @@ public class Launcher {
         System.err.println("channel stopped");
     }
 
-    /**
-     * {@link X509TrustManager} that performs no check at all.
-     */
-    private static class NoCheckTrustManager implements X509TrustManager {
-        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-        }
-
-        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-        }
-
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
-    }
-
     public static boolean isWindows() {
         return File.pathSeparatorChar==';';
     }
@@ -824,7 +810,7 @@ public class Launcher {
     }
 
     /**
-     * Version number of Hudson this slave.jar is from.
+     * Version number of Hudson this agent.jar is from.
      */
     public static final String VERSION = computeVersion();
     

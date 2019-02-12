@@ -62,9 +62,18 @@ public class ChannelFilterTest extends RmiTestBase {
         try {
             channel.call(new ReverseGunImporter());
             fail("should have failed");
-        } catch (SecurityException e) {
-            assertEquals("Rejecting "+GunImporter.class.getName(),e.getMessage());
+        } catch (Exception e) {
+            assertEquals("Rejecting "+GunImporter.class.getName(), findSecurityException(e).getMessage());
 //            e.printStackTrace();
+        }
+    }
+    private static SecurityException findSecurityException(Throwable x) {
+        if (x instanceof SecurityException) {
+            return (SecurityException) x;
+        } else if (x == null) {
+            throw new AssertionError("no SecurityException detected");
+        } else {
+            return findSecurityException(x.getCause());
         }
     }
 
@@ -86,7 +95,7 @@ public class ChannelFilterTest extends RmiTestBase {
 
     static class ReverseGunImporter extends CallableBase<String, Exception> {
         public String call() throws Exception {
-            return Channel.current().call(new GunImporter());
+            return Channel.currentOrFail().call(new GunImporter());
         }
     }
 }

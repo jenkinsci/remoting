@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnegative;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -78,13 +80,27 @@ public class AsyncFutureImpl<V> implements Future<V> {
         return value;
     }
 
-    public synchronized V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-        if(!completed)
-            wait(unit.toMillis(timeout));
+    @CheckForNull
+    public synchronized V get(@Nonnegative long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        // The accuracy of wait(long) operation is milliseconds anyway, but ok.
+        long endWaitTime = System.nanoTime() + unit.toNanos(timeout);
+        while (!completed) {
+            long timeToWait = endWaitTime - System.nanoTime();
+            if (timeToWait < 0) {
+                break;
+            }
+
+            wait(timeToWait / 1000000, (int)(timeToWait % 1000000));
+        }
+
         if(!completed)
             throw new TimeoutException();
         if(cancelled)
             throw new CancellationException();
+
+        //TODO: we may be calling a complex get() implementation in the override, which may hang the code
+        // The only missing behavior is "problem!=null" branch, but probably we cannot just replace the code without
+        // an override issue risk.
         return get();
     }
 
