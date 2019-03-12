@@ -30,6 +30,7 @@ import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
@@ -49,6 +50,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.logging.Level;
@@ -85,6 +87,8 @@ public class JnlpAgentEndpointResolver {
     private String tunnel;
 
     private boolean disableHttpsCertValidation;
+
+    private String instanceIdentity;
 
     /**
      * Indicates that the target server is headless and offers no TcpAgentListener.
@@ -165,6 +169,10 @@ public class JnlpAgentEndpointResolver {
         this.tunnel = tunnel;
     }
 
+    public void setInstanceIdentity(@CheckForNull String instanceIdentity) {
+        this.instanceIdentity = instanceIdentity;
+    }
+
     /**
      *  Determine if certificate checking should be ignored for JNLP endpoint
      *
@@ -190,30 +198,30 @@ public class JnlpAgentEndpointResolver {
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
 
-        if (disableHttpEndpointCheck) {
+        if (tunnel != null) {
             if (jenkinsUrls.size() > 1) {
                 throw new IOException("Only one URL or Tunnel must be specified when HTTP Endpoint Check is disabled");
             }
 
             final String host;
             final int port;
-            if (tunnel != null) {
-                String[] tokens = tunnel.split(":", 3);
-                if (tokens.length != 2)
-                    throw new IOException("Illegal tunneling parameter: " + tunnel);
+            String[] tokens = tunnel.split(":", 3);
+            if (tokens.length != 2)
+                throw new IOException("Illegal tunneling parameter: " + tunnel);
                 host = tokens[0];
                 port = Integer.parseInt(tokens[1]);
-            } else if (!jenkinsUrls.isEmpty()) {
-               // URL like tcp://myjenkins:50000
-               URL url = new URL(jenkinsUrls.get(0));
-               host = url.getHost();
-               port = url.getPort();
-            } else {
-                throw new IOException("Cannot locate URL, tunnel or URL are not set");
+
+            RSAPublicKey identity = null;
+            try {
+                identity = getIdentity(instanceIdentity);
+                if(identity == null) throw new IOException("X-Instance-Identity parameter seems to be invalid");
+            }
+            catch (InvalidKeySpecException e) {
+                throw new IOException("X-Instance-Identity parameter seems to be invalid");
             }
 
             //TODO: enforce protocols in such configuration (via CLI arg?)
-            return new JnlpAgentEndpoint(host, port, null, null, null);
+            return new JnlpAgentEndpoint(host, port, identity, null, null);
         }
 
         // Mode with TCP Agent Listener
@@ -292,29 +300,22 @@ public class JnlpAgentEndpointResolver {
                         } 
                     }
                 }
-                
+
                 String idHeader = first(header(con, "X-Instance-Identity"));
-                RSAPublicKey identity = null;
-                if (idHeader != null) {
-                    try {
-                        byte[] encodedKey = Base64.decode(idHeader);
-                        if (encodedKey == null) {
-                            firstError = chain(firstError, new IOException(
-                                    salURL + " appears to be publishing an invalid X-Instance-Identity."));
-                            continue;
-                        }
-                        X509EncodedKeySpec spec = new X509EncodedKeySpec(encodedKey);
-                        KeyFactory kf = KeyFactory.getInstance("RSA");
-                        identity = (RSAPublicKey) kf.generatePublic(spec);
-                    } catch (InvalidKeySpecException e) {
+                RSAPublicKey identity;
+                try {
+                    identity = getIdentity(idHeader);
+                    if (identity == null) {
                         firstError = chain(firstError, new IOException(
                                 salURL + " appears to be publishing an invalid X-Instance-Identity."));
                         continue;
-                    } catch (NoSuchAlgorithmException e) {
-                        throw new IllegalStateException(
-                                "The Java Language Specification mandates RSA as a supported algorithm", e);
                     }
+                } catch (InvalidKeySpecException e) {
+                    firstError = chain(firstError, new IOException(
+                            salURL + " appears to be publishing an invalid X-Instance-Identity."));
+                    continue;
                 }
+
                 if (portStr == null) {
                     firstError = chain(firstError, new IOException(jenkinsUrl + " is not Jenkins"));
                     continue;
@@ -375,6 +376,20 @@ public class JnlpAgentEndpointResolver {
             throw firstError;
         }
         return null;
+    }
+
+    private RSAPublicKey getIdentity(String base64EncodedIdentity) throws InvalidKeySpecException {
+        if (base64EncodedIdentity == null) return null;
+        try {
+            byte[] encodedKey = Base64.decode(base64EncodedIdentity);
+            if (encodedKey == null) return null;
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(encodedKey);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return (RSAPublicKey) kf.generatePublic(spec);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(
+                    "The Java Language Specification mandates RSA as a supported algorithm", e);
+        }
     }
 
     private boolean isPortVisible(String hostname, int port, int timeout) {

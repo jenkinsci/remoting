@@ -73,8 +73,14 @@ public class Main {
                   "in which case the missing portion will be auto-configured like the default behavior")
     public String tunnel;
 
+    @Option(name="-instanceIdentity",
+            usage="The Base64 encoded InstanceIdentity byte array of the Jenkins master. " +
+                  "This parameter is only required if the Jenkins master does not expose an http(s) endpoint" +
+                  "(see also parameter -noHttpEndpoint)")
+    public String instanceIdentity;
+    
     @Option(name="-headless",
-            usage="Run in headless mode, without GUI")
+            usage="Run agent in headless mode, without GUI")
     public boolean headlessMode = Boolean.getBoolean("hudson.agent.headless")
                     || Boolean.getBoolean("hudson.webstart.headless");
 
@@ -83,7 +89,7 @@ public class Main {
      * In such case Remoting will connect straight to the TCP endpoint using CLI arguments.
      * @since TODO
      */
-    @Option(name="-noHttpEndpoint",
+    @Option(name="-noHttpEndpoint", //TODO: -headlessMaster
             usage="Indicates that the master is running in the headless mode without TCP Agent Listener endpoint")
     public boolean disableHttpEndpointCheck = Boolean.getBoolean("jenkins.agent.disableHttpEndpointCheck");
 
@@ -254,6 +260,8 @@ public class Main {
                 urls, args.get(0), agentName);
         if(tunnel!=null)
             engine.setTunnel(tunnel);
+        if(instanceIdentity!=null)
+            engine.setInstanceIdentity(instanceIdentity);
         if(credentials!=null)
             engine.setCredentials(credentials);
         if(proxyCredentials!=null)

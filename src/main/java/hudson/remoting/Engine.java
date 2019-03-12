@@ -139,6 +139,13 @@ public class Engine extends Thread {
      */
     @CheckForNull
     private String tunnel;
+    
+    /**
+     * The base64 encoded byte array of the Instance Identities public key of the Jenkins master. 
+     * See https://wiki.jenkins.io/display/JENKINS/Instance+Identity
+     */
+    @CheckForNull
+    private String instanceIdentity;
 
     private boolean disableHttpsCertValidation;
 
@@ -214,8 +221,8 @@ public class Engine extends Thread {
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
         this.slaveName = slaveName;
-        if(candidateUrls.isEmpty())
-            throw new IllegalArgumentException("No URLs given");
+        //if(candidateUrls.isEmpty())
+        //    throw new IllegalArgumentException("No URLs given");
         setUncaughtExceptionHandler((t, e) -> {
             LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
             interrupt();
@@ -335,6 +342,15 @@ public class Engine extends Thread {
     public void setTunnel(@CheckForNull String tunnel) {
         this.tunnel = tunnel;
     }
+    
+    /**
+     * @param instanceIdentity The base64 encoded byte array of the Instance Identities public key of the Jenkins master. 
+     *        See https://wiki.jenkins.io/display/JENKINS/Instance+Identity
+     */
+    public void setInstanceIdentity(@CheckForNull String instanceIdentity) {
+        this.instanceIdentity = instanceIdentity;
+    }
+        
 
     public void setCredentials(String creds) {
         this.credentials = creds;
@@ -521,6 +537,7 @@ public class Engine extends Thread {
         resolver.setCredentials(credentials);
         resolver.setProxyCredentials(proxyCredentials);
         resolver.setTunnel(tunnel);
+        resolver.setInstanceIdentity(instanceIdentity);
         resolver.setDisableHttpEndpointCheck(disableHttpEndpointCheck);
         try {
             resolver.setSslSocketFactory(getSSLSocketFactory());
