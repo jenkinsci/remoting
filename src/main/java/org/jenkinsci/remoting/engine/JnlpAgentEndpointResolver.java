@@ -26,11 +26,10 @@ package org.jenkinsci.remoting.engine;
 import hudson.remoting.Base64;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
-import hudson.remoting.Util;
-import hudson.util.VersionNumber;
 
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+import org.jenkinsci.remoting.util.VersionNumber;
 
 import java.io.IOException;
 import java.net.ConnectException;

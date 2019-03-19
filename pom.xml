@@ -162,11 +162,6 @@ THE SOFTWARE.
       <version>1.2</version>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci</groupId>
-      <artifactId>version-number</artifactId>
-      <version>1.6</version>
-    </dependency>
-    <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>annotations</artifactId>
       <version>3.0.1</version>
@@ -346,18 +341,6 @@ THE SOFTWARE.
             <configuration>
               <outputDirectory>${project.build.outputDirectory}</outputDirectory>
               <includeArtifactIds>constant-pool-scanner</includeArtifactIds>
-              <includeGroupIds>org.jenkins-ci</includeGroupIds>
-            </configuration>
-          </execution>
-          <execution>
-            <id>bundle-vn</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-              <includeArtifactIds>version-number</includeArtifactIds>
               <includeGroupIds>org.jenkins-ci</includeGroupIds>
             </configuration>
           </execution>
