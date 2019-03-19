@@ -312,7 +312,7 @@ public class Engine extends Thread {
     }
 
     /**
-     * Disable Http Enfpoint check if needed.
+     * Disable Http Endpoint check if needed.
      * In this case Remoting will not have metadata from the master.
      * @since TODO
      */
