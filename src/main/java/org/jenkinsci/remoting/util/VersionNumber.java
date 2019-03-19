@@ -160,7 +160,9 @@ public class VersionNumber implements Comparable<VersionNumber> {
 
             switch (item.getType()) {
                 case INTEGER_ITEM:
-                    return value.compareTo(((IntegerItem) item).value);
+                    if (item instanceof IntegerItem) {
+                        return value.compareTo(((IntegerItem) item).value);
+                    }
 
                 case STRING_ITEM:
                     return 1; // 1.1 > 1-sp
@@ -263,7 +265,9 @@ public class VersionNumber implements Comparable<VersionNumber> {
                     return -1; // 1.any < 1.1 ?
 
                 case STRING_ITEM:
-                    return comparableQualifier(value).compareTo(comparableQualifier(((StringItem) item).value));
+                    if (item instanceof StringItem) {
+                        return comparableQualifier(value).compareTo(comparableQualifier(((StringItem) item).value));
+                    }
 
                 case LIST_ITEM:
                     return -1; // 1.any < 1-1
@@ -324,31 +328,33 @@ public class VersionNumber implements Comparable<VersionNumber> {
                     return 1; // 1-1 > 1-sp
 
                 case LIST_ITEM:
-                    Iterator left = iterator();
-                    Iterator right = ((ListItem) item).iterator();
+                    if (item instanceof ListItem) {
+                        Iterator left = iterator();
+                        Iterator right = ((ListItem) item).iterator();
 
-                    while (left.hasNext() || right.hasNext()) {
-                        Item l = left.hasNext() ? (Item) left.next() : null;
-                        Item r = right.hasNext() ? (Item) right.next() : null;
+                        while (left.hasNext() || right.hasNext()) {
+                            Item l = left.hasNext() ? (Item) left.next() : null;
+                            Item r = right.hasNext() ? (Item) right.next() : null;
 
-                        // if this is shorter, then invert the compare and mul with -1
-                        int result;
-                        if (l == null) {
-                            if (r == null) {
-                                result = 0;
+                            // if this is shorter, then invert the compare and mul with -1
+                            int result;
+                            if (l == null) {
+                                if (r == null) {
+                                    result = 0;
+                                } else {
+                                    result = -1 * r.compare(null);
+                                }
                             } else {
-                                result = -1 * r.compare(null);
+                                result = l.compare(r);
                             }
-                        } else {
-                            result = l.compare(r);
+
+                            if (result != 0) {
+                                return result;
+                            }
                         }
 
-                        if (result != 0) {
-                            return result;
-                        }
+                        return 0;
                     }
-
-                    return 0;
 
                 case WILDCARD_ITEM:
                     return -1;
