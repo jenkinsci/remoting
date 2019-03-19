@@ -84,7 +84,8 @@ public class VersionNumber implements Comparable<VersionNumber> {
 
         int WILDCARD_ITEM = 3;
 
-        int compareTo(Item item);
+        // Cannot set name to compareTo because FindBugs will think this interface extend Comparable and fire CO_ABSTRACT_SELF bug
+        int compare(Item item);
 
         int getType();
 
@@ -96,7 +97,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
      */
     private static class WildCardItem implements Item {
 
-        public int compareTo(Item item) {
+        public int compare(Item item) {
             if (item==null) // 1.* ( > 1.99) > 1
                 return 1;
             switch (item.getType()) {
@@ -152,7 +153,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
             return BigInteger_ZERO.equals(value);
         }
 
-        public int compareTo(Item item) {
+        public int compare(Item item) {
             if (item == null) {
                 return BigInteger_ZERO.equals(value) ? 0 : 1; // 1.0 == 1, 1.1 > 1
             }
@@ -252,7 +253,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
             return i == -1 ? _QUALIFIERS.size() + "-" + qualifier : String.valueOf(i);
         }
 
-        public int compareTo(Item item) {
+        public int compare(Item item) {
             if (item == null) {
                 // 1-rc < 1, 1-ga > 1
                 return comparableQualifier(value).compareTo(RELEASE_VERSION_INDEX);
@@ -285,6 +286,8 @@ public class VersionNumber implements Comparable<VersionNumber> {
      * with '-(number)' in the version specification).
      */
     private static class ListItem extends ArrayList<Item> implements Item {
+        private static final long serialVersionUID = 1;
+
         public int getType() {
             return LIST_ITEM;
         }
@@ -304,13 +307,13 @@ public class VersionNumber implements Comparable<VersionNumber> {
             }
         }
 
-        public int compareTo(Item item) {
+        public int compare(Item item) {
             if (item == null) {
                 if (size() == 0) {
                     return 0; // 1-0 = 1- (normalize) = 1
                 }
                 Item first = (Item) get(0);
-                return first.compareTo(null);
+                return first.compare(null);
             }
 
             switch (item.getType()) {
@@ -334,10 +337,10 @@ public class VersionNumber implements Comparable<VersionNumber> {
                             if (r == null) {
                                 result = 0;
                             } else {
-                                result = -1 * r.compareTo(null);
+                                result = -1 * r.compare(null);
                             }
                         } else {
-                            result = l.compareTo(r);
+                            result = l.compare(r);
                         }
 
                         if (result != 0) {
@@ -471,7 +474,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
     }
 
     public int compareTo(VersionNumber o) {
-        int result = items.compareTo(o.items);
+        int result = items.compare(o.items);
         if (result != 0) {
             return result;
         }
