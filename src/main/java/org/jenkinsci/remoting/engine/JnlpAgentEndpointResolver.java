@@ -207,13 +207,15 @@ public class JnlpAgentEndpointResolver {
 
                 // Check if current version of agent is supported
                 String minimumSupportedVersionHeader = first(header(con, "X-Remoting-Minimum-Version"));
-                VersionNumber minimumSupportedVersion = new VersionNumber(minimumSupportedVersionHeader);
-                VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
-                if (currentVersion.isOlderThan(minimumSupportedVersion)) {
-                    firstError = chain(firstError, new IOException(
-                        "Agent version " + minimumSupportedVersion + " or newer is required."
-                    ));
-                    continue;
+                if (minimumSupportedVersionHeader != null) {
+                    VersionNumber minimumSupportedVersion = new VersionNumber(minimumSupportedVersionHeader);
+                    VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
+                    if (currentVersion.isOlderThan(minimumSupportedVersion)) {
+                        firstError = chain(firstError, new IOException(
+                                "Agent version " + minimumSupportedVersion + " or newer is required."
+                        ));
+                        continue;
+                    }
                 }
 
                 String host;
