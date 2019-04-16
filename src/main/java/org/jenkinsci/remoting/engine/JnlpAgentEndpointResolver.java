@@ -30,7 +30,6 @@ import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
@@ -50,7 +49,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.logging.Level;
@@ -88,6 +86,10 @@ public class JnlpAgentEndpointResolver {
 
     private boolean disableHttpsCertValidation;
 
+    /**
+     * The base64 encoded byte array of the <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identities</a> public key of the Jenkins master.<br>
+     * This parameter is only required if the master does not expose an http(s) port.
+     */
     private String instanceIdentity;
 
     /**
@@ -169,6 +171,13 @@ public class JnlpAgentEndpointResolver {
         this.tunnel = tunnel;
     }
 
+    /**
+     * This parameter is only required if the master does not expose an http(s) port. 
+     * @param instanceIdentity The base64 encoded byte array of the <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identities</a> public key of the Jenkins master.
+     * @see <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identity</a>
+     * @see #setDisableHttpEndpointCheck
+     * @since TODO
+     */
     public void setInstanceIdentity(@CheckForNull String instanceIdentity) {
         this.instanceIdentity = instanceIdentity;
     }
@@ -198,19 +207,27 @@ public class JnlpAgentEndpointResolver {
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
 
-        if (tunnel != null) {
+        if (disableHttpEndpointCheck) {
             if (jenkinsUrls.size() > 1) {
                 throw new IOException("Only one URL or Tunnel must be specified when HTTP Endpoint Check is disabled");
             }
 
             final String host;
             final int port;
-            String[] tokens = tunnel.split(":", 3);
-            if (tokens.length != 2)
-                throw new IOException("Illegal tunneling parameter: " + tunnel);
+            if (tunnel != null) {
+                String[] tokens = tunnel.split(":", 3);
+                if (tokens.length != 2)
+                    throw new IOException("Illegal tunneling parameter: " + tunnel);
                 host = tokens[0];
                 port = Integer.parseInt(tokens[1]);
-
+            } else if (!jenkinsUrls.isEmpty()) {
+                // URL like tcp://myjenkins:50000
+                URL url = new URL(jenkinsUrls.get(0));
+                host = url.getHost();
+                port = url.getPort();
+            } else {
+                throw new IOException("Cannot locate URL, tunnel or URL are not set");
+            }
             RSAPublicKey identity = null;
             try {
                 identity = getIdentity(instanceIdentity);

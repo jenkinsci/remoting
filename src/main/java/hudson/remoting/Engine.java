@@ -141,8 +141,13 @@ public class Engine extends Thread {
     private String tunnel;
     
     /**
-     * The base64 encoded byte array of the Instance Identities public key of the Jenkins master. 
-     * See https://wiki.jenkins.io/display/JENKINS/Instance+Identity
+     * The base64 encoded byte array of the <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identities</a> public key of the Jenkins master.<br>
+     * This parameter is only required if the master does not expose an http(s) port. The correct value can be figured out by:
+     * <pre>
+     *   hudson.remoting.Base64.encode(org.jenkinsci.main.modules.instance_identity.InstanceIdentity.get().getPublic().getEncoded())
+     * </pre>
+     * @see <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identity</a>
+     * @see #disableHttpEndpointCheck
      */
     @CheckForNull
     private String instanceIdentity;
@@ -221,8 +226,8 @@ public class Engine extends Thread {
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
         this.slaveName = slaveName;
-        //if(candidateUrls.isEmpty())
-        //    throw new IllegalArgumentException("No URLs given");
+        if(candidateUrls.isEmpty() && !this.disableHttpEndpointCheck)
+            throw new IllegalArgumentException("No URLs given");
         setUncaughtExceptionHandler((t, e) -> {
             LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
             interrupt();
@@ -344,13 +349,19 @@ public class Engine extends Thread {
     }
     
     /**
-     * @param instanceIdentity The base64 encoded byte array of the Instance Identities public key of the Jenkins master. 
-     *        See https://wiki.jenkins.io/display/JENKINS/Instance+Identity
+     * This parameter is only required if the master does not expose an http(s) port. 
+     * @param instanceIdentity The base64 encoded byte array of the <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identities</a> public key of the Jenkins master.
+     *        The correct value can be figured out by:
+     *        <pre>
+     *          hudson.remoting.Base64.encode(org.jenkinsci.main.modules.instance_identity.InstanceIdentity.get().getPublic().getEncoded())
+     *        </pre>
+     * @see <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identity</a>
+     * @see #disableHttpEndpointCheck
+     * @since TODO
      */
     public void setInstanceIdentity(@CheckForNull String instanceIdentity) {
         this.instanceIdentity = instanceIdentity;
     }
-        
 
     public void setCredentials(String creds) {
         this.credentials = creds;

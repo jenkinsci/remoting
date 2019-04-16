@@ -33,7 +33,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
-import org.jenkinsci.remoting.util.IOUtils;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
@@ -72,12 +71,6 @@ public class Main {
                   "Useful when connection to Jenkins needs to be tunneled. Can be also HOST: or :PORT, " +
                   "in which case the missing portion will be auto-configured like the default behavior")
     public String tunnel;
-
-    @Option(name="-instanceIdentity",
-            usage="The Base64 encoded InstanceIdentity byte array of the Jenkins master. " +
-                  "This parameter is only required if the Jenkins master does not expose an http(s) endpoint" +
-                  "(see also parameter -noHttpEndpoint)")
-    public String instanceIdentity;
     
     @Option(name="-headless",
             usage="Run agent in headless mode, without GUI")
@@ -89,9 +82,26 @@ public class Main {
      * In such case Remoting will connect straight to the TCP endpoint using CLI arguments.
      * @since TODO
      */
-    @Option(name="-noHttpEndpoint", //TODO: -headlessMaster
+    @Option(name="-noHttpEndpoint",
             usage="Indicates that the master is running in the headless mode without TCP Agent Listener endpoint")
     public boolean disableHttpEndpointCheck = Boolean.getBoolean("jenkins.agent.disableHttpEndpointCheck");
+
+    /**
+     * If the master does not expose an http(s) port the <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">instance identity</a>
+     * has to be explicitly passed as parameter.<br>
+     * To get the base64 encoded value manually the following code can be executed in the script console:
+     * <pre>
+     *   def key = org.jenkinsci.main.modules.instance_identity.InstanceIdentity.get().getPublic()
+     *   return hudson.remoting.Base64.encode(key.getEncoded())
+     * </pre>
+     * @see #disableHttpEndpointCheck -noHttpEndpoint
+     * @since TODO
+     */
+    @Option(name="-instanceIdentity",
+            usage="The base64 encoded InstanceIdentity byte array of the Jenkins master. " +
+                  "This parameter is only required if the Jenkins master does not expose an http(s) endpoint" +
+                  "(see also -noHttpEndpoint)")
+    public String instanceIdentity;
 
     @Option(name="-url",
             usage="Specify the Jenkins root URLs to connect to.")
