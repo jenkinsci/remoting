@@ -226,8 +226,6 @@ public class Engine extends Thread {
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
         this.slaveName = slaveName;
-        if(candidateUrls.isEmpty() && !this.disableHttpEndpointCheck)
-            throw new IllegalArgumentException("No URLs given");
         setUncaughtExceptionHandler((t, e) -> {
             LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
             interrupt();
@@ -241,6 +239,8 @@ public class Engine extends Thread {
      * @since 3.9
      */
     public synchronized void startEngine() throws IOException {
+        if(candidateUrls.isEmpty() && !disableHttpEndpointCheck)
+            throw new IllegalArgumentException("No URLs given");
         startEngine(false);
     }
      
