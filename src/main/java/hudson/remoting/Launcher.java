@@ -26,9 +26,14 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 
+import java.io.BufferedReader;
 import java.io.Console;
 import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -144,6 +149,9 @@ public class Launcher {
 
     @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret to use instead of -jnlpCredentials.")
     public String secret;
+
+    @Option(name="-secretFile", metaVar="SECRET_FILE_PATH", usage="Path to file containing agent connection secret to use instead of -secret or -jnlpCredentials.")
+    public String secretFile;
 
     @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
     public String proxyCredentials = null;
@@ -465,6 +473,12 @@ public class Launcher {
      * Parses the connection arguments from JNLP file given in the URL.
      */
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
+        if (secretFile != null) {
+            if (slaveJnlpCredentials != null || secret != null) {
+                throw new IOException("-jnlpCredentials, -secret, and -secretFile are mutually exclusive");
+            }
+            secret = readSecretFromFile(secretFile);
+        }
         if (secret != null) {
             slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
             if (slaveJnlpCredentials != null) {
@@ -566,6 +580,23 @@ public class Launcher {
                 }
             }
         }
+    }
+
+    private String readSecretFromFile(String secretFile) throws IOException {
+        BufferedReader reader = null;
+        String line = null;
+        try {
+            reader = new BufferedReader(new InputStreamReader(new FileInputStream(secretFile), StandardCharsets.UTF_8));
+            line = reader.readLine();
+        } finally {
+            if (reader != null) {
+                reader.close();
+            }
+        }
+        if (line == null || line.trim().isEmpty()) {
+            throw new IOException("Empty secret file.");
+        }
+        return line.trim();
     }
 
     private byte[] toByteArray(InputStream input) throws IOException {
