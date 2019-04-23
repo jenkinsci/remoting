@@ -473,17 +473,12 @@ public class Launcher {
      * Parses the connection arguments from JNLP file given in the URL.
      */
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
+        checkTooManySecrets();
         if (secretFile != null) {
-            if (slaveJnlpCredentials != null || secret != null) {
-                throw new IOException("-jnlpCredentials, -secret, and -secretFile are mutually exclusive");
-            }
             secret = readSecretFromFile(secretFile);
         }
         if (secret != null) {
             slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
-            if (slaveJnlpCredentials != null) {
-                throw new IOException("-jnlpCredentials and -secret are mutually exclusive");
-            }
         }
         while (true) {
             URLConnection con = null;
@@ -582,21 +577,21 @@ public class Launcher {
         }
     }
 
+    private void checkTooManySecrets() throws IOException {
+        if ((secretFile != null && secret != null) || (secretFile != null && slaveJnlpCredentials != null) ||
+                (secret != null && slaveJnlpCredentials != null) ) {
+            throw new IOException("-jnlpCredentials, -secret, and -secretFile are mutually exclusive");
+        }
+    }
+
     private String readSecretFromFile(String secretFile) throws IOException {
-        BufferedReader reader = null;
-        String line = null;
-        try {
-            reader = new BufferedReader(new InputStreamReader(new FileInputStream(secretFile), StandardCharsets.UTF_8));
-            line = reader.readLine();
-        } finally {
-            if (reader != null) {
-                reader.close();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(secretFile), StandardCharsets.UTF_8))){
+            String line = reader.readLine();
+            if (line == null || line.trim().isEmpty()) {
+                throw new IOException("Empty secret file.");
             }
+            return line.trim();
         }
-        if (line == null || line.trim().isEmpty()) {
-            throw new IOException("Empty secret file.");
-        }
-        return line.trim();
     }
 
     private byte[] toByteArray(InputStream input) throws IOException {
