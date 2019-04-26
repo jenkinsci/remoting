@@ -29,11 +29,9 @@ import hudson.remoting.Channel.Mode;
 import java.io.BufferedReader;
 import java.io.Console;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -65,9 +63,6 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509TrustManager;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -78,7 +73,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.FileWriter;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLConnection;
@@ -95,7 +89,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.security.cert.X509Certificate;
 import java.security.cert.CertificateException;
 import java.security.NoSuchAlgorithmException;
 import java.security.KeyManagementException;
@@ -149,9 +142,6 @@ public class Launcher {
 
     @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret to use instead of -jnlpCredentials.")
     public String secret;
-
-    @Option(name="-secretFile", metaVar="SECRET_FILE_PATH", usage="Path to file containing agent connection secret to use instead of -secret or -jnlpCredentials.")
-    public String secretFile;
 
     @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
     public String proxyCredentials = null;
@@ -473,12 +463,14 @@ public class Launcher {
      * Parses the connection arguments from JNLP file given in the URL.
      */
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
-        checkTooManySecrets();
-        if (secretFile != null) {
-            secret = readSecretFromFile(secretFile);
-        }
         if (secret != null) {
             slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
+            if (slaveJnlpCredentials != null) {
+                throw new IOException("-jnlpCredentials and -secret are mutually exclusive");
+            }
+            if (parameterReferencesFile(secret)){
+                secret = readParameterFromFile(secret);
+            }
         }
         while (true) {
             URLConnection con = null;
@@ -577,18 +569,15 @@ public class Launcher {
         }
     }
 
-    private void checkTooManySecrets() throws IOException {
-        if ((secretFile != null && secret != null) || (secretFile != null && slaveJnlpCredentials != null) ||
-                (secret != null && slaveJnlpCredentials != null) ) {
-            throw new IOException("-jnlpCredentials, -secret, and -secretFile are mutually exclusive");
-        }
+    private boolean parameterReferencesFile(String parameter) {
+        return parameter.charAt(0) == '@';
     }
 
-    private String readSecretFromFile(String secretFile) throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(secretFile), StandardCharsets.UTF_8))){
+    private String readParameterFromFile(String fileString) throws IOException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(fileString), StandardCharsets.UTF_8))){
             String line = reader.readLine();
             if (line == null || line.trim().isEmpty()) {
-                throw new IOException("Empty secret file.");
+                throw new IOException("Empty file.");
             }
             return line.trim();
         }
