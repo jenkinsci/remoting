@@ -6,6 +6,14 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.30
+
+Release date: April 30, 2019
+
+* [JENKINS-51004](https://issues.jenkins-ci.org/browse/JENKINS-51004) Pass "-loggingConfig" argument for protocols besides JNLP.
+* [JENKINS-57107](https://issues.jenkins-ci.org/browse/JENKINS-57107) Improve URL proxy handling.
+* [JENKINS-46515](https://issues.jenkins-ci.org/browse/JENKINS-46515) Exit the Launcher process on 4xx errors but continue trying on 5xx.
+
 ##### 3.29
 
 Release date: February 5, 2019
