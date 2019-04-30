@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
+import java.net.Proxy;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
@@ -67,6 +68,12 @@ public class URLDeserializationHelper {
     }
     
     private static class SafeURLStreamHandler extends URLStreamHandler {
+        @Override
+        protected URLConnection openConnection(URL u, Proxy p) throws IOException
+        {
+            return new URL(u.toString()).openConnection(p);
+        }
+
         @Override
         protected URLConnection openConnection(URL u) throws IOException {
             return new URL(u.toString()).openConnection();
