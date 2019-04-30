@@ -29,6 +29,7 @@ import hudson.remoting.Channel.Mode;
 import java.io.Console;
 import java.io.FileInputStream;
 import java.io.UnsupportedEncodingException;
+import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -491,9 +492,12 @@ public class Launcher {
 
                 if (con instanceof HttpURLConnection) {
                     HttpURLConnection http = (HttpURLConnection) con;
-                    if(http.getResponseCode()>=400)
+                    if(http.getResponseCode()>=500)
                         // got the error code. report that (such as 401)
                         throw new IOException("Failed to load "+slaveJnlpURL+": "+http.getResponseCode()+" "+http.getResponseMessage());
+                    if(http.getResponseCode()>=400)
+                        // got the error code. report that (such as 401)
+                        throw new FileNotFoundException("Failed to load "+slaveJnlpURL+": "+http.getResponseCode()+" "+http.getResponseMessage());
                 }
 
                 Document dom;
@@ -550,6 +554,11 @@ public class Launcher {
                     throw x;
                 } else
                     throw e;
+            } catch (FileNotFoundException e) {
+                System.err.println("Failing to obtain "+slaveJnlpURL);
+                e.printStackTrace(System.err);
+                System.err.println("Will silently exit without errors");
+                System.exit(0);
             } catch (IOException e) {
                 if (this.noReconnect)
                     throw (IOException)new IOException("Failing to obtain "+slaveJnlpURL).initCause(e);
