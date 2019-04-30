@@ -302,6 +302,9 @@ public class Launcher {
         if (slaveLog != null) {
             workDirManager.disable(WorkDirManager.DirType.LOGS_DIR);
         }
+        if (loggingConfigFilePath != null) {
+            workDirManager.setLoggingConfig(loggingConfigFilePath);
+        }
         workDirManager.setupLogging(internalDirPath, slaveLog != null ? PathUtils.fileToPath(slaveLog) : null);
 
         if(auth!=null) {
