@@ -178,8 +178,7 @@ public class Main {
 
 
     /**
-     * 4 mandatory parameters.
-     * Host name (deprecated), Jenkins URL, secret key, and agent name.
+     * Two mandatory parameters: secret key, and agent name.
      */
     @Argument
     public final List<String> args = new ArrayList<String>();
