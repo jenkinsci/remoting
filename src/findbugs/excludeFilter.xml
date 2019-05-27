@@ -7,7 +7,7 @@
     <Package name="~org\.jenkinsci\.constant_pool_scanner.*"/>
   </Match>
   <Match>
-    <Class name="hudson.util.VersionNumber"/>
+    <Class name="~.*hudson.util.VersionNumber.*"/>
   </Match>
   
   <Match>
