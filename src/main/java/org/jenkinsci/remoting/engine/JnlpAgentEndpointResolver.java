@@ -52,6 +52,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -154,6 +155,8 @@ public class JnlpAgentEndpointResolver {
     public boolean isDisableHttpsCertValidation() {
         return disableHttpsCertValidation;
     }
+
+    private static final AtomicBoolean returnedFalseOnce = new AtomicBoolean(false);
 
     /**
      * Sets if the HTTPs certificate check should be disabled.
@@ -351,6 +354,10 @@ public class JnlpAgentEndpointResolver {
                     LOGGER.warning(e.getMessage());
                 }
             }
+        }
+
+        if (returnedFalseOnce.compareAndSet(false, true)) {
+            return false;
         }
         return exitStatus;
     }
