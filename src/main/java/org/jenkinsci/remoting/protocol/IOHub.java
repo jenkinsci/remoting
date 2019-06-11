@@ -152,7 +152,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     public static IOHub create(Executor executor) throws IOException {
         IOHub result = new IOHub(executor);
         executor.execute(result);
-        LOGGER.log(Level.FINE, "Staring an additional Selector wakeup thread. See JENKINS-47965 for more info");
+        LOGGER.log(Level.FINE, "Starting an additional Selector wakeup thread. See JENKINS-47965 for more information.");
         executor.execute(new IOHubSelectorWatcher(result));
         return result;
     }
