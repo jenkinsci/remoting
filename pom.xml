@@ -164,8 +164,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>com.github.spotbugs</groupId>
       <artifactId>spotbugs-annotations</artifactId>
-      <version>3.1.12</version>
-      <scope>provided</scope>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
