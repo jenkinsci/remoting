@@ -80,7 +80,7 @@ public class Main {
 
     @Option(name="-url",
             usage="Specify the Jenkins root URLs to connect to.")
-    public final List<URL> urls = new ArrayList<URL>();
+    public List<URL> urls = new ArrayList<URL>();
 
     @Option(name="-credentials",metaVar="USER:PASSWORD",
             usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
@@ -181,7 +181,7 @@ public class Main {
      * Two mandatory parameters: secret key, and agent name.
      */
     @Argument
-    public final List<String> args = new ArrayList<String>();
+    public List<String> args = new ArrayList<String>();
 
     public static void main(String[] args) throws IOException, InterruptedException {
         try {
