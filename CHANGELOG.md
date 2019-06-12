@@ -6,6 +6,12 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.31
+
+Release date: June 12, 2019
+
+* [JENKINS-57713](https://issues.jenkins-ci.org/browse/JENKINS-57713) Revert change for [JENKINS-46515](https://issues.jenkins-ci.org/browse/JENKINS-57713) / [PR#193](https://github.com/jenkinsci/remoting/pull/193) because it broke the init sequence for some cloud agent scenarios.
+
 ##### 3.30
 
 Release date: April 30, 2019
