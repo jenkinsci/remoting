@@ -24,8 +24,9 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Base64;
+import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
-import hudson.remoting.Util;
+import hudson.util.VersionNumber;
 
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
@@ -202,6 +203,20 @@ public class JnlpAgentEndpointResolver {
                             salURL + " is invalid: " + con.getResponseCode() + " " + con.getResponseMessage()));
                     continue;
                 }
+
+                // Check if current version of agent is supported
+                String minimumSupportedVersionHeader = first(header(con, "X-Remoting-Minimum-Version"));
+                if (minimumSupportedVersionHeader != null) {
+                    VersionNumber minimumSupportedVersion = new VersionNumber(minimumSupportedVersionHeader);
+                    VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
+                    if (currentVersion.isOlderThan(minimumSupportedVersion)) {
+                        firstError = chain(firstError, new IOException(
+                                "Agent version " + minimumSupportedVersion + " or newer is required."
+                        ));
+                        continue;
+                    }
+                }
+
                 String host;
                 String portStr;
                 Set<String> agentProtocolNames = null;

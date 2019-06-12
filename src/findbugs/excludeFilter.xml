@@ -1,10 +1,13 @@
 <FindBugsFilter>
-  <!-- don't check anything about args4j, which doesn't come from this module -->
+  <!-- don't check anything about dependencies which don't come from this module -->
   <Match>
     <Package name="~org\.kohsuke\.args4j.*"/>
   </Match>
   <Match>
     <Package name="~org\.jenkinsci\.constant_pool_scanner.*"/>
+  </Match>
+  <Match>
+    <Class name="~.*hudson.util.VersionNumber.*"/>
   </Match>
   
   <Match>
