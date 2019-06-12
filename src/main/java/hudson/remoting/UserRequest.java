@@ -168,7 +168,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                 {
                     workaroundDone = true;
                     try {
-                        final Class<?> loaded = Class.forName( clazz, true, cl );
+                        Class.forName(clazz, true, cl);
                     } catch (final ClassNotFoundException cnfe) {
                         // not big deal, elevate log to warning and swallow exception
                         eventMsg = "Couldn't find";
