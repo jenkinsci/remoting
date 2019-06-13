@@ -162,11 +162,6 @@ THE SOFTWARE.
       <version>1.2</version>
     </dependency>
     <dependency>
-      <groupId>org.jenkins-ci</groupId>
-      <artifactId>version-number</artifactId>
-      <version>1.6</version>
-    </dependency>
-    <dependency>
       <groupId>com.github.spotbugs</groupId>
       <artifactId>spotbugs-annotations</artifactId>
       <optional>true</optional>
@@ -214,27 +209,6 @@ THE SOFTWARE.
       </resource>
     </resources>
     <plugins>
-      <plugin>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>2.3</version>
-        <executions>
-          <execution>
-            <id>shade</id>
-            <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <relocations>
-            <relocation>
-              <pattern>hudson.util</pattern>
-              <shadedPattern>shaded.hudson.util</shadedPattern>
-            </relocation>
-          </relocations>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-pmd-plugin</artifactId>
@@ -366,18 +340,6 @@ THE SOFTWARE.
             <configuration>
               <outputDirectory>${project.build.outputDirectory}</outputDirectory>
               <includeArtifactIds>constant-pool-scanner</includeArtifactIds>
-              <includeGroupIds>org.jenkins-ci</includeGroupIds>
-            </configuration>
-          </execution>
-          <execution>
-            <id>bundle-vn</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-              <includeArtifactIds>version-number</includeArtifactIds>
               <includeGroupIds>org.jenkins-ci</includeGroupIds>
             </configuration>
           </execution>
