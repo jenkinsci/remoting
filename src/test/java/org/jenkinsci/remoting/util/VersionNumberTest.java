@@ -28,6 +28,8 @@ import junit.framework.TestCase;
 /**
  * @author Xavier Le Vourch
  */
+// Copied from https://github.com/jenkinsci/lib-version-number/blob/master/src/test/java/hudson/util/VersionNumberTest.java
+// We didn't want to introduce a dependency on another library and had troubles getting shading to work.
 public class VersionNumberTest extends TestCase {
 
     public void testIsNewerThan() {

@@ -63,6 +63,8 @@ import java.util.regex.Pattern;
  * @author Kenney Westerhof (kenney@apache.org)
  * @author Hervé Boutemy (hboutemy@apache.org)
  */
+// Copied from https://github.com/jenkinsci/lib-version-number/blob/master/src/main/java/hudson/util/VersionNumber.java
+// We didn't want to introduce a dependency on another library and had troubles getting shading to work.
 public class VersionNumber implements Comparable<VersionNumber> {
 
     private static final Pattern SNAPSHOT = Pattern.compile("^.*((?:-\\d{8}\\.\\d{6}-\\d+)|-SNAPSHOT)( \\(.*\\))?$");
