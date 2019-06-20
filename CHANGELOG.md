@@ -6,6 +6,12 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.33
+
+Release date: June 20, 2019
+
+* [JENKINS-57959](https://issues.jenkins-ci.org/browse/JENKINS-50095) Upgrade args4j dependency to 2.33 (latest).
+
 ##### 3.32
 
 Release date: June 19, 2019
