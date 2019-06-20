@@ -6,6 +6,15 @@ This file also provides links to Jenkins versions,
 which bundle the specified remoting version.
 See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
+##### 3.32
+
+Release date: June 19, 2019
+
+* [JENKINS-50095](https://issues.jenkins-ci.org/browse/JENKINS-50095) Check for Remoting minimum version when connecting to master.
+* [JENKINS-57959](https://issues.jenkins-ci.org/browse/JENKINS-57959) Preparatory fix for JENKINS-57959 by removing "final" keyword from variables used with args4j.
+* Switch to Spotbugs from Findbugs.
+* Fix log message typo.
+
 ##### 3.31
 
 Release date: June 12, 2019
