@@ -10,7 +10,7 @@ See [Jenkins changelog](https://jenkins.io/changelog/) for more details.
 
 Release date: June 20, 2019
 
-* [JENKINS-57959](https://issues.jenkins-ci.org/browse/JENKINS-50095) Upgrade args4j dependency to 2.33 (latest).
+* [JENKINS-57959](https://issues.jenkins-ci.org/browse/JENKINS-57959) Upgrade args4j dependency to 2.33 (latest).
 
 ##### 3.32
 
@@ -25,7 +25,7 @@ Release date: June 19, 2019
 
 Release date: June 12, 2019
 
-* [JENKINS-57713](https://issues.jenkins-ci.org/browse/JENKINS-57713) Revert change for [JENKINS-46515](https://issues.jenkins-ci.org/browse/JENKINS-57713) / [PR#193](https://github.com/jenkinsci/remoting/pull/193) because it broke the init sequence for some cloud agent scenarios.
+* [JENKINS-57713](https://issues.jenkins-ci.org/browse/JENKINS-57713) Revert change for [JENKINS-46515](https://issues.jenkins-ci.org/browse/JENKINS-46515) / [PR#193](https://github.com/jenkinsci/remoting/pull/193) because it broke the init sequence for some cloud agent scenarios.
 
 ##### 3.30
 
@@ -192,7 +192,6 @@ New entries:
 * [JENKINS-48686](https://issues.jenkins-ci.org/browse/JENKINS-48686) -
 Replace the _slave_ term by _agent_ in logging, UI and Javadocs
 
-
 ##### 3.15
 
 Release date: Dec 22, 2017 => Jenkins 2.98
@@ -247,7 +246,6 @@ Fix Windows tests and enable them in the pull request builder
 * [JENKINS-37566](https://issues.jenkins-ci.org/browse/JENKINS-37566) -
 Enforce FindBugs in the pull request builder
 
-
 ##### 3.14
 
 Release date: Nov 10, 2017 => [Jenkins 2.90](https://jenkins.io/changelog/#v2.90)
@@ -274,7 +272,6 @@ Build flow:
 Jacoco does not longer run by default in the build, `jacoco` profile should be used.
 * [PR #207](https://github.com/jenkinsci/remoting/pull/207) -
 Update Jacoco version to make the reports compatible with Jenkins [Jacoco Plugin](https://plugins.jenkins.io/jacoco).
-
 
 ##### 3.13 => [Jenkins 2.85](https://jenkins.io/changelog/#v2.85)
 
@@ -449,8 +446,6 @@ Properly close the `URLConnection` when parsing connection arguments from the JN
 It was causing a descriptor leak in the case of multiple connection attempts.
 ([PR #152](https://github.com/jenkinsci/remoting/pull/152))
 
-
-
 ##### 3.6
 
 The release has been skipped due to the release process issue.
@@ -547,7 +542,6 @@ It was causing connection failures of Jenkins JNLP agents when using Java Web St
 * [JENKINS-39617](https://issues.jenkins-ci.org/browse/JENKINS-39617) -
 `hudson.remoting.Engine` was failing to establish connection if one of the URLs parameter in parameters was malformed.
 ([PR #131](https://github.com/jenkinsci/remoting/pull/131))
-
 
 Improvements:
 
