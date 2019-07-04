@@ -247,7 +247,7 @@ public class Main {
         if(credentials!=null)
             engine.setCredentials(credentials);
         if(proxyCredentials!=null)
-        	engine.setProxyCredentials(proxyCredentials);
+            engine.setProxyCredentials(proxyCredentials);
         if(jarCache!=null)
             engine.setJarCache(new FileSystemJarCache(jarCache,true));
         engine.setNoReconnect(noReconnect);
