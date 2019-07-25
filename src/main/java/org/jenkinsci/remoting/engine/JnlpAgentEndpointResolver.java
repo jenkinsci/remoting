@@ -87,6 +87,12 @@ public class JnlpAgentEndpointResolver {
     private boolean disableHttpsCertValidation;
 
     /**
+     * The base64 encoded byte array of the <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identities</a> public key of the Jenkins master.<br>
+     * This parameter is only required if the master does not expose an http(s) port.
+     */
+    private String instanceIdentity;
+
+    /**
      * Indicates that the target server is headless and offers no TcpAgentListener.
      */
     private boolean disableHttpEndpointCheck;
@@ -166,6 +172,17 @@ public class JnlpAgentEndpointResolver {
     }
 
     /**
+     * This parameter is only required if the master does not expose an http(s) port. 
+     * @param instanceIdentity The base64 encoded byte array of the <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identities</a> public key of the Jenkins master.
+     * @see <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identity</a>
+     * @see #setDisableHttpEndpointCheck
+     * @since TODO
+     */
+    public void setInstanceIdentity(@CheckForNull String instanceIdentity) {
+        this.instanceIdentity = instanceIdentity;
+    }
+
+    /**
      *  Determine if certificate checking should be ignored for JNLP endpoint
      *
      * @return {@code true} if the HTTPs certificate is disabled, endpoint check is ignored
@@ -204,16 +221,24 @@ public class JnlpAgentEndpointResolver {
                 host = tokens[0];
                 port = Integer.parseInt(tokens[1]);
             } else if (!jenkinsUrls.isEmpty()) {
-               // URL like tcp://myjenkins:50000
-               URL url = new URL(jenkinsUrls.get(0));
-               host = url.getHost();
-               port = url.getPort();
+                // URL like tcp://myjenkins:50000
+                URL url = new URL(jenkinsUrls.get(0));
+                host = url.getHost();
+                port = url.getPort();
             } else {
                 throw new IOException("Cannot locate URL, tunnel or URL are not set");
             }
+            RSAPublicKey identity = null;
+            try {
+                identity = getIdentity(instanceIdentity);
+                if(identity == null) throw new IOException("X-Instance-Identity parameter seems to be invalid");
+            }
+            catch (InvalidKeySpecException e) {
+                throw new IOException("X-Instance-Identity parameter seems to be invalid");
+            }
 
             //TODO: enforce protocols in such configuration (via CLI arg?)
-            return new JnlpAgentEndpoint(host, port, null, null, null);
+            return new JnlpAgentEndpoint(host, port, identity, null, null);
         }
 
         // Mode with TCP Agent Listener
@@ -292,29 +317,22 @@ public class JnlpAgentEndpointResolver {
                         } 
                     }
                 }
-                
+
                 String idHeader = first(header(con, "X-Instance-Identity"));
-                RSAPublicKey identity = null;
-                if (idHeader != null) {
-                    try {
-                        byte[] encodedKey = Base64.decode(idHeader);
-                        if (encodedKey == null) {
-                            firstError = chain(firstError, new IOException(
-                                    salURL + " appears to be publishing an invalid X-Instance-Identity."));
-                            continue;
-                        }
-                        X509EncodedKeySpec spec = new X509EncodedKeySpec(encodedKey);
-                        KeyFactory kf = KeyFactory.getInstance("RSA");
-                        identity = (RSAPublicKey) kf.generatePublic(spec);
-                    } catch (InvalidKeySpecException e) {
+                RSAPublicKey identity;
+                try {
+                    identity = getIdentity(idHeader);
+                    if (identity == null) {
                         firstError = chain(firstError, new IOException(
                                 salURL + " appears to be publishing an invalid X-Instance-Identity."));
                         continue;
-                    } catch (NoSuchAlgorithmException e) {
-                        throw new IllegalStateException(
-                                "The Java Language Specification mandates RSA as a supported algorithm", e);
                     }
+                } catch (InvalidKeySpecException e) {
+                    firstError = chain(firstError, new IOException(
+                            salURL + " appears to be publishing an invalid X-Instance-Identity."));
+                    continue;
                 }
+
                 if (portStr == null) {
                     firstError = chain(firstError, new IOException(jenkinsUrl + " is not Jenkins"));
                     continue;
@@ -375,6 +393,20 @@ public class JnlpAgentEndpointResolver {
             throw firstError;
         }
         return null;
+    }
+
+    private RSAPublicKey getIdentity(String base64EncodedIdentity) throws InvalidKeySpecException {
+        if (base64EncodedIdentity == null) return null;
+        try {
+            byte[] encodedKey = Base64.decode(base64EncodedIdentity);
+            if (encodedKey == null) return null;
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(encodedKey);
+            KeyFactory kf = KeyFactory.getInstance("RSA");
+            return (RSAPublicKey) kf.generatePublic(spec);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(
+                    "The Java Language Specification mandates RSA as a supported algorithm", e);
+        }
     }
 
     private boolean isPortVisible(String hostname, int port, int timeout) {
