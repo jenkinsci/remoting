@@ -244,7 +244,11 @@ public class Main {
             throw new CmdLineException("two arguments required, but got "+m.args);
         if(m.urls.isEmpty() && !m.disableHttpEndpointCheck)
             throw new CmdLineException("At least one -url option is required.");
-
+        if(m.disableHttpEndpointCheck && m.instanceIdentity == null)
+            throw new CmdLineException("-instanceIdentity is required if -noHttpEndpoint");
+        if(m.disableHttpEndpointCheck && m.urls.size() > 1)
+            throw new CmdLineException("only one -url or -tunnel must be specified when -noHttpEndpoint is true");
+        
         m.main();
     }
 

@@ -159,7 +159,7 @@ public class Engine extends Thread {
     /**
      * {@code true} if the target master has no Tcp Agent Listener endpoint
      */
-    private boolean disableHttpEndpointCheck;
+    private boolean disableHttpEndpointCheck = false;
 
     /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.

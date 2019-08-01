@@ -208,37 +208,7 @@ public class JnlpAgentEndpointResolver {
         IOException firstError = null;
 
         if (disableHttpEndpointCheck) {
-            if (jenkinsUrls.size() > 1) {
-                throw new IOException("Only one URL or Tunnel must be specified when HTTP Endpoint Check is disabled");
-            }
-
-            final String host;
-            final int port;
-            if (tunnel != null) {
-                String[] tokens = tunnel.split(":", 3);
-                if (tokens.length != 2)
-                    throw new IOException("Illegal tunneling parameter: " + tunnel);
-                host = tokens[0];
-                port = Integer.parseInt(tokens[1]);
-            } else if (!jenkinsUrls.isEmpty()) {
-                // URL like tcp://myjenkins:50000
-                URL url = new URL(jenkinsUrls.get(0));
-                host = url.getHost();
-                port = url.getPort();
-            } else {
-                throw new IOException("Cannot locate URL, tunnel or URL are not set");
-            }
-            RSAPublicKey identity = null;
-            try {
-                identity = getIdentity(instanceIdentity);
-                if(identity == null) throw new IOException("X-Instance-Identity parameter seems to be invalid");
-            }
-            catch (InvalidKeySpecException e) {
-                throw new IOException("X-Instance-Identity parameter seems to be invalid");
-            }
-
-            //TODO: enforce protocols in such configuration (via CLI arg?)
-            return new JnlpAgentEndpoint(host, port, identity, null, null);
+            return getJnlpAgentEndpointFromConfig();
         }
 
         // Mode with TCP Agent Listener
@@ -395,6 +365,40 @@ public class JnlpAgentEndpointResolver {
         return null;
     }
 
+    private JnlpAgentEndpoint getJnlpAgentEndpointFromConfig() throws IOException {
+        if (jenkinsUrls.size() > 1) {
+            throw new IOException("Only one URL or Tunnel must be specified when HTTP Endpoint Check is disabled");
+        }
+
+        final String host;
+        final int port;
+        if (tunnel != null) {
+            String[] tokens = tunnel.split(":", 3);
+            if (tokens.length != 2)
+                throw new IOException("Illegal tunneling parameter: " + tunnel);
+            host = tokens[0];
+            port = Integer.parseInt(tokens[1]);
+        } else if (!jenkinsUrls.isEmpty()) {
+            // URL like tcp://myjenkins:50000
+            URL url = new URL(jenkinsUrls.get(0));
+            host = url.getHost();
+            port = url.getPort();
+        } else {
+            throw new IOException("Cannot locate URL, tunnel or URL are not set");
+        }
+        RSAPublicKey identity = null;
+        try {
+            identity = getIdentity(instanceIdentity);
+            if(identity == null) throw new IOException("X-Instance-Identity parameter seems to be invalid");
+        }
+        catch (InvalidKeySpecException e) {
+            throw new IOException("X-Instance-Identity parameter seems to be invalid");
+        }
+
+        //TODO: enforce protocols in such configuration (via CLI arg?)
+        return new JnlpAgentEndpoint(host, port, identity, null, null);
+    }
+    
     private RSAPublicKey getIdentity(String base64EncodedIdentity) throws InvalidKeySpecException {
         if (base64EncodedIdentity == null) return null;
         try {
