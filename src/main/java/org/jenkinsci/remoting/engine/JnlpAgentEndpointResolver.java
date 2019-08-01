@@ -448,7 +448,8 @@ public class JnlpAgentEndpointResolver {
 
     public void waitForReady() throws InterruptedException {
         if (disableHttpEndpointCheck) {
-            LOGGER.log(Level.INFO, "HTTP Endpoint Check is disabled, assuming that the target master is ready");
+            LOGGER.log(Level.INFO, "HTTP Endpoint Check is disabled, sleeping 10s until next try");
+            Thread.sleep(1000 * 10);
             return;
         }
 
