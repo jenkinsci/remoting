@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -60,8 +61,11 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+
+import org.jenkinsci.remoting.engine.EndpointResolver;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
+import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.engine.JnlpConnectionStateListener;
@@ -106,7 +110,6 @@ public class Engine extends Thread {
     public final EngineListener listener;
 
     private final EngineListenerSplitter events = new EngineListenerSplitter();
-
     /**
      * To make Jenkins more graceful against user error,
      * JNLP agent can try to connect to multiple possible Jenkins URLs.
@@ -140,9 +143,9 @@ public class Engine extends Thread {
     @CheckForNull
     private String tunnel;
 
-    private boolean disableHttpsCertValidation;
+    private boolean disableHttpsCertValidation = false;
 
-    private boolean noReconnect;
+    private boolean noReconnect = false;
 
     /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
@@ -203,14 +206,27 @@ public class Engine extends Thread {
 
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
 
+    private URL directUrl;
+    private String instanceIdentity;
+    private final Set<String> protocols;
+
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
+        this(listener, hudsonUrls, secretKey, slaveName, null, null, null);
+    }
+
+    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName, URL directUrl, String instanceIdentity,
+                  Set<String> protocols) {
         this.listener = listener;
+        this.directUrl = directUrl;
         this.events.add(listener);
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
         this.slaveName = slaveName;
-        if(candidateUrls.isEmpty())
+        this.instanceIdentity = instanceIdentity;
+        this.protocols = protocols;
+        if(candidateUrls.isEmpty() && instanceIdentity == null) {
             throw new IllegalArgumentException("No URLs given");
+        }
         setUncaughtExceptionHandler((t, e) -> {
             LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
             interrupt();
@@ -488,24 +504,14 @@ public class Engine extends Thread {
                 .withSSLContext(context)
                 .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
                 .handlers();
-        final Map<String,String> headers = new HashMap<String,String>();
+        final Map<String,String> headers = new HashMap<>();
         headers.put(JnlpConnectionState.CLIENT_NAME_KEY, slaveName);
         headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
-        List<String> jenkinsUrls = new ArrayList<String>();
+        List<String> jenkinsUrls = new ArrayList<>();
         for (URL url: candidateUrls) {
             jenkinsUrls.add(url.toExternalForm());
         }
-        JnlpAgentEndpointResolver resolver = new JnlpAgentEndpointResolver(jenkinsUrls);
-        resolver.setCredentials(credentials);
-        resolver.setProxyCredentials(proxyCredentials);
-        resolver.setTunnel(tunnel);
-        try {
-            resolver.setSslSocketFactory(getSSLSocketFactory());
-            resolver.setDisableHttpsCertValidation(disableHttpsCertValidation);
-        } catch (Exception e) {
-            events.error(e);
-        }
-
+        EndpointResolver resolver = createEndpointResolver(jenkinsUrls);
 
         try {
             boolean first = true;
@@ -549,7 +555,7 @@ public class Engine extends Thread {
                 agentTrustManager.setDelegate(delegate);
 
                 events.status("Handshaking");
-                Socket jnlpSocket = connect(endpoint);
+                Socket jnlpSocket = connectTcp(endpoint);
                 Channel channel = null;
 
                 try {
@@ -561,7 +567,7 @@ public class Engine extends Thread {
                             continue;
                         }
                         if (jnlpSocket == null) {
-                            jnlpSocket = connect(endpoint);
+                            jnlpSocket = connectTcp(endpoint);
                         }
                         if (!endpoint.isProtocolSupported(protocol.getName())) {
                             events.status("Server reports protocol " + protocol.getName() + " not supported, skipping");
@@ -570,48 +576,7 @@ public class Engine extends Thread {
                         triedAtLeastOneProtocol = true;
                         events.status("Trying protocol: " + protocol.getName());
                         try {
-                            channel = protocol.connect(jnlpSocket, headers, new JnlpConnectionStateListener() {
-
-                                @Override
-                                public void beforeProperties(@Nonnull JnlpConnectionState event) {
-                                    if (event instanceof Jnlp4ConnectionState) {
-                                        X509Certificate certificate = ((Jnlp4ConnectionState) event).getCertificate();
-                                        if (certificate != null) {
-                                            String fingerprint = KeyUtils
-                                                    .fingerprint(certificate.getPublicKey());
-                                            if (!KeyUtils.equals(endpoint.getPublicKey(), certificate.getPublicKey())) {
-                                                event.reject(new ConnectionRefusalException(
-                                                        "Expecting identity " + fingerprint));
-                                            }
-                                            events.status("Remote identity confirmed: " + fingerprint);
-                                        }
-                                    }
-                                }
-
-                                @Override
-                                public void afterProperties(@Nonnull JnlpConnectionState event) {
-                                    event.approve();
-                                }
-
-                                @Override
-                                public void beforeChannel(@Nonnull JnlpConnectionState event) {
-                                    ChannelBuilder bldr = event.getChannelBuilder().withMode(Mode.BINARY);
-                                    if (jarCache != null) {
-                                        bldr.withJarCache(jarCache);
-                                    }
-                                }
-
-                                @Override
-                                public void afterChannel(@Nonnull JnlpConnectionState event) {
-                                    // store the new cookie for next connection attempt
-                                    String cookie = event.getProperty(JnlpConnectionState.COOKIE_KEY);
-                                    if (cookie == null) {
-                                        headers.remove(JnlpConnectionState.COOKIE_KEY);
-                                    } else {
-                                        headers.put(JnlpConnectionState.COOKIE_KEY, cookie);
-                                    }
-                                }
-                            }).get();
+                            channel = protocol.connect(jnlpSocket, headers, new EngineJnlpConnectionStateListener(endpoint.getPublicKey(), headers)).get();
                         } catch (IOException ioe) {
                             events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
                         } catch (RuntimeException e) {
@@ -678,6 +643,23 @@ public class Engine extends Thread {
         }
     }
 
+    private EndpointResolver createEndpointResolver(List<String> jenkinsUrls) {
+        EndpointResolver resolver;
+        if (instanceIdentity == null) {
+            SSLSocketFactory sslSocketFactory = null;
+            try {
+                sslSocketFactory = getSSLSocketFactory();
+            } catch (Exception e) {
+                events.error(e);
+            }
+            resolver = new JnlpAgentEndpointResolver(jenkinsUrls, credentials, proxyCredentials, tunnel,
+                    sslSocketFactory, disableHttpsCertValidation);
+        } else {
+            resolver = new JnlpAgentEndpointConfigurator(directUrl, instanceIdentity, protocols);
+        }
+        return resolver;
+    }
+
     private void onConnectionRejected(String greeting) throws InterruptedException {
         events.error(new Exception("The server rejected the connection: " + greeting));
         Thread.sleep(10*1000);
@@ -688,7 +670,7 @@ public class Engine extends Thread {
      * @param endpoint Connection endpoint
      * @throws IOException Connection failure or invalid parameter specification
      */
-    private Socket connect(@Nonnull JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
+    private Socket connectTcp(@Nonnull JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
 
         String msg = "Connecting to " + endpoint.getHost() + ':' + endpoint.getPort();
         events.status(msg);
@@ -849,4 +831,55 @@ public class Engine extends Thread {
      * @since 2.4
      */
     static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName()+".socketTimeout",30*60*1000);
+
+    private class EngineJnlpConnectionStateListener extends JnlpConnectionStateListener {
+
+        private final RSAPublicKey publicKey;
+        private final Map<String, String> headers;
+
+        public EngineJnlpConnectionStateListener(RSAPublicKey publicKey, Map<String, String> headers) {
+            this.publicKey = publicKey;
+            this.headers = headers;
+        }
+
+        @Override
+        public void beforeProperties(@Nonnull JnlpConnectionState event) {
+            if (event instanceof Jnlp4ConnectionState) {
+                X509Certificate certificate = ((Jnlp4ConnectionState) event).getCertificate();
+                if (certificate != null) {
+                    String fingerprint = KeyUtils
+                            .fingerprint(certificate.getPublicKey());
+                    if (!KeyUtils.equals(publicKey, certificate.getPublicKey())) {
+                        event.reject(new ConnectionRefusalException(
+                                "Expecting identity " + fingerprint));
+                    }
+                    events.status("Remote identity confirmed: " + fingerprint);
+                }
+            }
+        }
+
+        @Override
+        public void afterProperties(@Nonnull JnlpConnectionState event) {
+            event.approve();
+        }
+
+        @Override
+        public void beforeChannel(@Nonnull JnlpConnectionState event) {
+            ChannelBuilder bldr = event.getChannelBuilder().withMode(Mode.BINARY);
+            if (jarCache != null) {
+                bldr.withJarCache(jarCache);
+            }
+        }
+
+        @Override
+        public void afterChannel(@Nonnull JnlpConnectionState event) {
+            // store the new cookie for next connection attempt
+            String cookie = event.getProperty(JnlpConnectionState.COOKIE_KEY);
+            if (cookie == null) {
+                headers.remove(JnlpConnectionState.COOKIE_KEY);
+            } else {
+                headers.put(JnlpConnectionState.COOKIE_KEY, cookie);
+            }
+        }
+    }
 }

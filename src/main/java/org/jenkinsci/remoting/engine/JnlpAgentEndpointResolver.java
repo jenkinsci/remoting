@@ -71,7 +71,7 @@ import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
  * @author Stephen Connolly
  * @since 3.0
  */
-public class JnlpAgentEndpointResolver {
+public class JnlpAgentEndpointResolver extends EndpointResolver {
 
     private static final Logger LOGGER = Logger.getLogger(JnlpAgentEndpointResolver.class.getName());
 
@@ -102,7 +102,17 @@ public class JnlpAgentEndpointResolver {
     }
 
     public JnlpAgentEndpointResolver(@Nonnull List<String> jenkinsUrls) {
-        this.jenkinsUrls = new ArrayList<String>(jenkinsUrls);
+        this(jenkinsUrls, null, null, null, null, false);
+    }
+
+    public JnlpAgentEndpointResolver(List<String> jenkinsUrls, String credentials, String proxyCredentials,
+                                     String tunnel, SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) {
+        this.jenkinsUrls = new ArrayList<>(jenkinsUrls);
+        this.credentials = credentials;
+        this.proxyCredentials = proxyCredentials;
+        this.tunnel = tunnel;
+        this.sslSocketFactory = sslSocketFactory;
+        this.disableHttpsCertValidation = disableHttpsCertValidation;
     }
 
     public SSLSocketFactory getSslSocketFactory() {
@@ -159,7 +169,7 @@ public class JnlpAgentEndpointResolver {
     /**
      * Sets if the HTTPs certificate check should be disabled.
      *
-     * This behavior is no recommended.
+     * This behavior is not recommended.
      * @param disableHttpsCertValidation
      * @since TODO
      */
@@ -168,6 +178,7 @@ public class JnlpAgentEndpointResolver {
     }
 
     @CheckForNull
+    @Override
     public JnlpAgentEndpoint resolve() throws IOException {
         IOException firstError = null;
         for (String jenkinsUrl : jenkinsUrls) {
@@ -261,27 +272,20 @@ public class JnlpAgentEndpointResolver {
                 }
                 
                 String idHeader = first(header(con, "X-Instance-Identity"));
-                RSAPublicKey identity = null;
-                if (idHeader != null) {
-                    try {
-                        byte[] encodedKey = Base64.decode(idHeader);
-                        if (encodedKey == null) {
-                            firstError = chain(firstError, new IOException(
-                                    salURL + " appears to be publishing an invalid X-Instance-Identity."));
-                            continue;
-                        }
-                        X509EncodedKeySpec spec = new X509EncodedKeySpec(encodedKey);
-                        KeyFactory kf = KeyFactory.getInstance("RSA");
-                        identity = (RSAPublicKey) kf.generatePublic(spec);
-                    } catch (InvalidKeySpecException e) {
+                RSAPublicKey identity;
+                try {
+                    identity = getIdentity(idHeader);
+                    if (identity == null) {
                         firstError = chain(firstError, new IOException(
                                 salURL + " appears to be publishing an invalid X-Instance-Identity."));
                         continue;
-                    } catch (NoSuchAlgorithmException e) {
-                        throw new IllegalStateException(
-                                "The Java Language Specification mandates RSA as a supported algorithm", e);
                     }
+                } catch (InvalidKeySpecException e) {
+                    firstError = chain(firstError, new IOException(
+                            salURL + " appears to be publishing an invalid X-Instance-Identity."));
+                    continue;
                 }
+
                 if (portStr == null) {
                     firstError = chain(firstError, new IOException(jenkinsUrl + " is not Jenkins"));
                     continue;
@@ -332,7 +336,6 @@ public class JnlpAgentEndpointResolver {
                 }
 
                 //TODO: all the checks above do not make much sense if tunneling is enabled (JENKINS-52246)
-                
                 return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames, selectedJenkinsURL);
             } finally {
                 con.disconnect();
@@ -377,6 +380,7 @@ public class JnlpAgentEndpointResolver {
                 : new URL(jenkinsUrl + "/tcpSlaveAgentListener/");
     }
 
+    @Override
     public void waitForReady() throws InterruptedException {
         Thread t = Thread.currentThread();
         String oldName = t.getName();
