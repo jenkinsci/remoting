@@ -62,7 +62,7 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.jenkinsci.remoting.engine.EndpointResolver;
+import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
@@ -206,7 +206,7 @@ public class Engine extends Thread {
 
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
 
-    private URL directUrl;
+    private String directUrl;
     private String instanceIdentity;
     private final Set<String> protocols;
 
@@ -214,7 +214,7 @@ public class Engine extends Thread {
         this(listener, hudsonUrls, secretKey, slaveName, null, null, null);
     }
 
-    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName, URL directUrl, String instanceIdentity,
+    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName, String directUrl, String instanceIdentity,
                   Set<String> protocols) {
         this.listener = listener;
         this.directUrl = directUrl;
@@ -511,7 +511,7 @@ public class Engine extends Thread {
         for (URL url: candidateUrls) {
             jenkinsUrls.add(url.toExternalForm());
         }
-        EndpointResolver resolver = createEndpointResolver(jenkinsUrls);
+        JnlpEndpointResolver resolver = createEndpointResolver(jenkinsUrls);
 
         try {
             boolean first = true;
@@ -643,8 +643,8 @@ public class Engine extends Thread {
         }
     }
 
-    private EndpointResolver createEndpointResolver(List<String> jenkinsUrls) {
-        EndpointResolver resolver;
+    private JnlpEndpointResolver createEndpointResolver(List<String> jenkinsUrls) {
+        JnlpEndpointResolver resolver;
         if (instanceIdentity == null) {
             SSLSocketFactory sslSocketFactory = null;
             try {

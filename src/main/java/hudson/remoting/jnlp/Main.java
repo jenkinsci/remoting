@@ -180,16 +180,16 @@ public class Main {
      * Connect directly to the TCP port specified, skipping the HTTP(S) connection parameter download.
      * @since TODO
      */
-    @Option(name="-directUrl", depends = {"-instanceIdentity"}, forbids = {"-url", "-tunnel"},
-            usage="A TCP URL for direct connection, skipping the HTTP(S) connection parameter download. For example, tcp://myjenkins:50000")
-    public URL directUrl;
+    @Option(name="-direct", metaVar="HOST:PORT", aliases = "-directConnection", depends = {"-instanceIdentity"}, forbids = {"-url", "-tunnel"},
+            usage="Connect directly to this TCP agent port, skipping the HTTP(S) connection parameter download. For example, \"myjenkins:50000\".")
+    public String directConnection;
 
     /**
      * The master's instance identity.
      * @see <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identity</a>
      * @since TODO
      */
-    @Option(name="-instanceIdentity", depends = {"-directUrl"},
+    @Option(name="-instanceIdentity", depends = {"-direct"},
             usage="The base64 encoded InstanceIdentity byte array of the Jenkins master. When this is set, the agent skips connecting to an HTTP(S) port for connection info.")
     public String instanceIdentity;
 
@@ -199,7 +199,7 @@ public class Main {
      * it knows. Use this to limit the protocol list.
      * @since TODO
      */
-    @Option(name="-protocols", depends = {"-directUrl"},
+    @Option(name="-protocols", depends = {"-direct"},
             usage="Specify the remoting protocols to attempt when instanceIdentity is provided.")
     public List<String> protocols = new ArrayList<>();
 
@@ -243,7 +243,7 @@ public class Main {
         if(m.args.size()!=2) {
             throw new CmdLineException("two arguments required, but got " + m.args);
         }
-        if(m.urls.isEmpty() && m.directUrl == null) {
+        if(m.urls.isEmpty() && m.directConnection == null) {
             throw new CmdLineException("At least one -url option is required.");
         }
         m.main();
@@ -268,7 +268,7 @@ public class Main {
         LOGGER.log(INFO, "Setting up agent: {0}", agentName);
         Engine engine = new Engine(
                 headlessMode ? new CuiListener() : new GuiListener(),
-                urls, args.get(0), agentName, directUrl, instanceIdentity, new HashSet<>(protocols));
+                urls, args.get(0), agentName, directConnection, instanceIdentity, new HashSet<>(protocols));
         if(tunnel!=null)
             engine.setTunnel(tunnel);
         if(credentials!=null)

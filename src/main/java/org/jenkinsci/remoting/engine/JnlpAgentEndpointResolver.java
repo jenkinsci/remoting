@@ -45,13 +45,11 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.security.KeyFactory;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,7 +69,7 @@ import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
  * @author Stephen Connolly
  * @since 3.0
  */
-public class JnlpAgentEndpointResolver extends EndpointResolver {
+public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
     private static final Logger LOGGER = Logger.getLogger(JnlpAgentEndpointResolver.class.getName());
 
@@ -328,11 +326,9 @@ public class JnlpAgentEndpointResolver extends EndpointResolver {
                     }
                 });
                 if (tunnel != null) {
-                    String[] tokens = tunnel.split(":", 3);
-                    if (tokens.length != 2)
-                        throw new IOException("Illegal tunneling parameter: " + tunnel);
-                    if (tokens[0].length() > 0) host = tokens[0];
-                    if (tokens[1].length() > 0) port = Integer.parseInt(tokens[1]);
+                    HostPort hostPort = splitHostPort(tunnel);
+                    host = hostPort.host;
+                    port = hostPort.port;
                 }
 
                 //TODO: all the checks above do not make much sense if tunneling is enabled (JENKINS-52246)
