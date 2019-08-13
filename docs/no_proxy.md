@@ -16,8 +16,8 @@ Rules:
 1. A network is expressed in CIDR notation, for example, `192.168.17.0/24`.
 1. Localhost and loopback addresses are not proxied by default.
 1. All subdomains matching a domain or host are not proxied.
-1.1. A `NO_PROXY` setting of `jenkins.io` matches `repo.jenkins.io`, `sub.sub.jenkins.io`, and `jenkins.io`. It also matches `myjenkins.io`.
-1.1. The following forms are identical: `jenkins.io`, `.jenkins.io`, and `*.jenkins.io`.
+1. A `NO_PROXY` setting of `jenkins.io` matches `repo.jenkins.io`, `sub.sub.jenkins.io`, and `jenkins.io`. It also matches `myjenkins.io`.
+1. The following forms are identical: `jenkins.io`, `.jenkins.io`, and `*.jenkins.io`.
 1. All other notations are ignored.
 
 ## History
