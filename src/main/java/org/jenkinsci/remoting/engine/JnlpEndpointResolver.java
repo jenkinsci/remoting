@@ -51,20 +51,4 @@ public abstract class JnlpEndpointResolver {
         }
     }
 
-    protected static class HostPort {
-        String host;
-        int port;
-    }
-
-    protected HostPort splitHostPort(String value) throws IOException {
-        String[] tokens = value.split(":", 3);
-        if (tokens.length != 2) {
-            throw new IOException("Illegal host-port parameter: " + value);
-        }
-        HostPort hostPort = new HostPort();
-        hostPort.host = tokens[0];
-        hostPort.port = Integer.parseInt(tokens[1]);
-        return hostPort;
-    }
-
 }

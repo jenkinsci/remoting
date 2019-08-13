@@ -55,9 +55,9 @@ public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
         } catch (InvalidKeySpecException e) {
             throw new IOException("Invalid instanceIdentity.");
         }
-        HostPort hostPort = splitHostPort(directionConnection);
+        HostPort hostPort = new HostPort(directionConnection);
 
-        return new JnlpAgentEndpoint(hostPort.host, hostPort.port, identity, protocols);
+        return new JnlpAgentEndpoint(hostPort.getHost(), hostPort.getPort(), identity, protocols);
     }
 
     @Override

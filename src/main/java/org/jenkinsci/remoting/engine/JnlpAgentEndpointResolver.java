@@ -326,9 +326,9 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     }
                 });
                 if (tunnel != null) {
-                    HostPort hostPort = splitHostPort(tunnel);
-                    host = hostPort.host;
-                    port = hostPort.port;
+                    HostPort hostPort = new HostPort(tunnel);
+                    host = hostPort.getHost();
+                    port = hostPort.getPort();
                 }
 
                 //TODO: all the checks above do not make much sense if tunneling is enabled (JENKINS-52246)
