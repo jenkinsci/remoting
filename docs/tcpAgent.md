@@ -12,7 +12,7 @@ For additional information about Jenkins agents see [Distributed builds](https:/
 
 ## Launch mechanisms
 Part of the agent status page for TCP agents looks something like this:
-![Tcp agent status UI](docs/tcpAgentStatus.jpg)
+![Tcp agent status UI](tcpAgentStatus.jpg)
 This shows a couple of launch methods, but there are other mechanisms.
 If you use a different mechanism than clicking the "Launch" button, this page contains parameters that you will need. 
 The long string of hex digits is a secret key that the client needs to establish the connection. 
@@ -103,7 +103,7 @@ The parameters available and the default behavior may vary depending upon the en
 You can obtain usage information by executing `java -cp agent.jar hudson.remoting.jnlp.Main` or `java -jar agent.jar --help`. 
 Not all parameters work together and some parameters require the use of others.
 
-There are also system or environment variables that control some advanded behaviors documented at [Remoting Configuration](https://github.com/jenkinsci/remoting/blob/master/docs/configuration.md). 
+There are also system or environment variables that control some advanced behaviors documented at [Remoting Configuration](https://github.com/jenkinsci/remoting/blob/master/docs/configuration.md). 
 Many of these need to be set at both master and agent. 
 Changing some of these may result in unreliable behavior. 
 One of these parameters that is supported with defined behavior is [`NO_PROXY`](https://github.com/jenkinsci/remoting/blob/master/docs/no_proxy.md). 
@@ -121,7 +121,7 @@ This varies from the form shown above in "Download JNLP file" in that the secret
 
 The behavior is more general than shown on the agent status page. 
 Any argument passed to the program (not interpreted by Java) may start with an '@'. 
-The agent will intpret the rest of that argument as the name of a file, "secret-file" in this example. 
+The agent will interpret the rest of that argument as the name of a file, "secret-file" in this example. 
 The agent reads this file and augments the command-line with an argument for each line in the file.
 
 As an expanded example, you could incorporate this line in common agent management scripts
