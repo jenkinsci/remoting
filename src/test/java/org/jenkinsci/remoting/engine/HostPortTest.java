@@ -29,15 +29,46 @@ public class HostPortTest {
     }
 
     @Test
+    public void testHostWhitespace() {
+        HostPort hostPort = new HostPort("  1.2.3.4  :5555");
+        assertThat(hostPort.getHost(), is("1.2.3.4"));
+        assertThat(hostPort.getPort(), is(5555));
+    }
+
+    @Test
+    public void testPortWhitespace() {
+        HostPort hostPort = new HostPort("1.2.3.4:   5555  ");
+        assertThat(hostPort.getHost(), is("1.2.3.4"));
+        assertThat(hostPort.getPort(), is(5555));
+    }
+
+    @Test
     public void testIPv6() {
-        HostPort hostPort = new HostPort("1:2::3:4:5555");
+        HostPort hostPort = new HostPort("[1:2::3:4]:5555");
+        assertThat(hostPort.getHost(), is("1:2::3:4"));
+        assertThat(hostPort.getPort(), is(5555));
+    }
+
+    @Test
+    public void testIPv6Whitespace() {
+        HostPort hostPort = new HostPort("[  1:2::3:4  ]:5555");
         assertThat(hostPort.getHost(), is("1:2::3:4"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testIPv6NoPort() {
+        new HostPort("[1:2::3:4]");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testUnclosedIPv6() {
+        new HostPort("[1:2::3:4:5555");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testInvalidPort() {
-        new HostPort("1:2::3:4:host");
+        new HostPort("[1:2::3:4]:host");
     }
 
     @Test(expected = IllegalArgumentException.class)
