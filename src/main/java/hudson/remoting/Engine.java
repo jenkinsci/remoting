@@ -206,7 +206,7 @@ public class Engine extends Thread {
 
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
 
-    private String directUrl;
+    private String directConnection;
     private String instanceIdentity;
     private final Set<String> protocols;
 
@@ -214,10 +214,10 @@ public class Engine extends Thread {
         this(listener, hudsonUrls, secretKey, slaveName, null, null, null);
     }
 
-    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName, String directUrl, String instanceIdentity,
+    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName, String directConnection, String instanceIdentity,
                   Set<String> protocols) {
         this.listener = listener;
-        this.directUrl = directUrl;
+        this.directConnection = directConnection;
         this.events.add(listener);
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
@@ -645,7 +645,7 @@ public class Engine extends Thread {
 
     private JnlpEndpointResolver createEndpointResolver(List<String> jenkinsUrls) {
         JnlpEndpointResolver resolver;
-        if (instanceIdentity == null) {
+        if (directConnection == null) {
             SSLSocketFactory sslSocketFactory = null;
             try {
                 sslSocketFactory = getSSLSocketFactory();
@@ -655,7 +655,7 @@ public class Engine extends Thread {
             resolver = new JnlpAgentEndpointResolver(jenkinsUrls, credentials, proxyCredentials, tunnel,
                     sslSocketFactory, disableHttpsCertValidation);
         } else {
-            resolver = new JnlpAgentEndpointConfigurator(directUrl, instanceIdentity, protocols);
+            resolver = new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols);
         }
         return resolver;
     }
