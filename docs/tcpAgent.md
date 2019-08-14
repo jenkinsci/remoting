@@ -1,10 +1,10 @@
 # Launching inbound TCP agents
 Jenkins provides a number of ways of connecting remote agents.
-Two of the most popular are SSH agents and inbound TCP agents.
+Two of the most popular are outbound SSH agents and inbound TCP agents.
 SSH agents, most commonly used on Unix platforms, are master initiated.
 The master creates the connection when it needs.
-Inbound TCP agents, most commonly used on Windows platforms, are client initiated.
-The client must first connect to the master and then the master sends commands as needed.
+Inbound TCP agents, most commonly used on Windows platforms, are agent initiated.
+The agent must first connect to the master and then the master sends commands as needed.
 These were formerly known as JNLP agents, but that name was erroneous and confusing.
 This document describes some of the primary mechanisms for launching inbound TCP agents.
 
