@@ -12,7 +12,9 @@ For additional information about Jenkins agents see [Distributed builds](https:/
 
 ## Launch mechanisms
 Part of the agent status page for TCP agents looks something like this:
+
 ![Tcp agent status UI](tcpAgentStatus.jpg)
+
 This shows a couple of launch methods, but there are other mechanisms.
 If you use a different mechanism than clicking the "Launch" button, this page contains parameters that you will need. 
 The long string of hex digits is a secret key that the client needs to establish the connection. 
