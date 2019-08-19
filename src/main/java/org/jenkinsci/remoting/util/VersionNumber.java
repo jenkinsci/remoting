@@ -303,8 +303,8 @@ public class VersionNumber implements Comparable<VersionNumber> {
         }
 
         void normalize() {
-            for (ListIterator iterator = listIterator(size()); iterator.hasPrevious(); ) {
-                Item item = (Item) iterator.previous();
+            for (ListIterator<Item> iterator = listIterator(size()); iterator.hasPrevious(); ) {
+                Item item = iterator.previous();
                 if (item.isNull()) {
                     iterator.remove(); // remove null trailing items: 0, "", empty list
                 } else {
@@ -331,12 +331,12 @@ public class VersionNumber implements Comparable<VersionNumber> {
 
                 case LIST_ITEM:
                     if (item instanceof ListItem) {
-                        Iterator left = iterator();
-                        Iterator right = ((ListItem) item).iterator();
+                        Iterator<Item> left = iterator();
+                        Iterator<Item> right = ((ListItem) item).iterator();
 
                         while (left.hasNext() || right.hasNext()) {
-                            Item l = left.hasNext() ? (Item) left.next() : null;
-                            Item r = right.hasNext() ? (Item) right.next() : null;
+                            Item l = left.hasNext() ? left.next() : null;
+                            Item r = right.hasNext() ? right.next() : null;
 
                             // if this is shorter, then invert the compare and mul with -1
                             int result;
@@ -559,11 +559,11 @@ public class VersionNumber implements Comparable<VersionNumber> {
             return -1;
         }
 
-        Iterator it = items.iterator();
+        Iterator<Item> it = items.iterator();
         int i = 0;
         Item item = null;
         while (i <= idx && it.hasNext()) {
-            item  = (Item) it.next();
+            item = it.next();
             if (item instanceof IntegerItem) {
                 i++;
             } else {

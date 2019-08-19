@@ -25,12 +25,15 @@ package org.jenkinsci.remoting.engine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -40,7 +43,6 @@ import javax.annotation.Nonnull;
 import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.ThrowableUtils;
 
-import static org.jenkinsci.remoting.engine.EngineUtil.readLine;
 
 /**
  * Represents a {@code TcpSlaveAgentListener} endpoint details.
@@ -217,12 +219,13 @@ public class JnlpAgentEndpoint {
                         .write(connectCommand.getBytes("UTF-8")); // TODO: internationalized domain names
 
                 BufferedInputStream is = new BufferedInputStream(socket.getInputStream());
-                String line = readLine(is);
+                BufferedReader r = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+                String line = r.readLine();
                 String[] responseLineParts = line.split(" ");
                 if (responseLineParts.length < 2 || !responseLineParts[1].equals("200")) {
                     throw new IOException("Got a bad response from proxy: " + line);
                 }
-                while (!readLine(is).isEmpty()) {
+                while (r.readLine().isEmpty()) {
                     // Do nothing, scrolling through headers returned from proxy
                 }
             }
