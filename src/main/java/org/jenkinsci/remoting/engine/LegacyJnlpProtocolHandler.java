@@ -128,7 +128,7 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
                     try {
                         socket.close();
                     } catch (IOException e1) {
-                        ThrowableUtils.addSuppressed(e, e1);
+                        ThrowableUtils.chain(e, e1);
                     }
                     state.fireAfterDisconnect();
                     throw e;
@@ -136,7 +136,7 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
                     try {
                         socket.close();
                     } catch (IOException e1) {
-                        ThrowableUtils.addSuppressed(e, e1);
+                        ThrowableUtils.chain(e, e1);
                     }
                     state.fireAfterDisconnect();
                     throw new IOException(e);
@@ -182,7 +182,7 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
                     try {
                         socket.close();
                     } catch (IOException e1) {
-                        ThrowableUtils.addSuppressed(e, e1);
+                        ThrowableUtils.chain(e, e1);
                     }
                     state.fireAfterDisconnect();
                     throw e;
@@ -190,7 +190,7 @@ abstract class LegacyJnlpProtocolHandler<STATE extends LegacyJnlpConnectionState
                     try {
                         socket.close();
                     } catch (IOException e1) {
-                        ThrowableUtils.addSuppressed(e, e1);
+                        ThrowableUtils.chain(e, e1);
                     }
                     state.fireAfterDisconnect();
                     throw new IOException(e);

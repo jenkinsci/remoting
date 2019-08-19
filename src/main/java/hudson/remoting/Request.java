@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -117,9 +117,9 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
 
     /**
      * Checks if the request can be executed on the channel.
-     * 
+     *
      * @param channel Channel
-     * @throws IOException Error with explanation if the request cannot be executed. 
+     * @throws IOException Error with explanation if the request cannot be executed.
      * @since 3.11
      */
     void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
@@ -129,7 +129,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
             throw new ChannelClosedException(channel, senderCloseCause);
         }
     }
-    
+
     /**
      * Sends this request to a remote system, and blocks until we receives a response.
      *
@@ -229,7 +229,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      */
     final hudson.remoting.Future<RSP> callAsync(final Channel channel) throws IOException {
         checkIfCanBeExecutedOnChannel(channel);
-        
+
         response=null;
         lastIoId = channel.lastIoId();
 
@@ -334,7 +334,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
     }
 
     /**
-     * Aborts the processing. The calling thread will receive an exception. 
+     * Aborts the processing. The calling thread will receive an exception.
      */
     /*package*/ void abort(IOException e) {
         onCompleted(new Response(this, id, 0, new RequestAbortedException(e)));

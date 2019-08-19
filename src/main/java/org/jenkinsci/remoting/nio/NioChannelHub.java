@@ -11,11 +11,8 @@ import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 import hudson.remoting.SingleLaneExecutorService;
 import org.jenkinsci.remoting.RoleChecker;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import java.io.Closeable;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -536,7 +533,7 @@ public class NioChannelHub implements Runnable, Closeable {
         private Object readResolve() throws ObjectStreamException {
             throw new NotSerializableException("The class should not be serialized over Remoting");
         }
-        
+
         private Object writeReplace() throws ObjectStreamException {
             throw new NotSerializableException("The class should not be serialized over Remoting");
         }

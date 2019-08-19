@@ -25,7 +25,6 @@ package org.jenkinsci.remoting.util;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 
 /**
  * An {@link OutputStream} backed by a {@link ByteBufferQueue}.

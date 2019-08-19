@@ -21,14 +21,14 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
-@edu.umd.cs.findbugs.annotations.SuppressWarnings("SE_BAD_FIELD")
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings("SE_BAD_FIELD")
 class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
 
     private static final Logger LOGGER = Logger.getLogger(JarLoaderImpl.class.getName());
 
     private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<>();
 
-    @edu.umd.cs.findbugs.annotations.SuppressWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
+    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
     private final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<>();
 
     private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<Checksum>());

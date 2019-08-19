@@ -25,8 +25,6 @@ package org.jenkinsci.remoting.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.BufferUnderflowException;
-import java.nio.ByteBuffer;
 
 /**
  * An {@link InputStream} backed by a set number of bytes from the head of a {@link ByteBufferQueue}.

@@ -15,8 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
@@ -30,7 +28,7 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  * described in the comment from huybrechts in HUDSON-4293.
  *
  * @author Kohsuke Kawaguchi
- * @see Capability#supportsMultiClassLoaderRPC() 
+ * @see Capability#supportsMultiClassLoaderRPC()
  */
 class MultiClassLoaderSerializer {
     static final class Output extends ObjectOutputStream {
@@ -143,7 +141,7 @@ class MultiClassLoaderSerializer {
         protected Class<?> resolveProxyClass(String[] interfaces) throws IOException, ClassNotFoundException {
             ClassLoader cl = readClassLoader();
 
-            Class[] classes = new Class[interfaces.length];
+            Class<?>[] classes = new Class[interfaces.length];
             for (int i = 0; i < interfaces.length; i++)
                 // TODO: handle null classloader as a System one?
                 classes[i] = Class.forName(interfaces[i], false, cl);
@@ -165,7 +163,7 @@ class MultiClassLoaderSerializer {
 
                  So this is somewhat hack-ish, but in this change we look for a specific
                  proxy type that we use and resolve them outside Proxy.getProxyClass.
-             */
+            */
             if (classes.length==2 && classes[0]==JarLoader.class && classes[1]==IReadResolve.class)
                 return Channel.jarLoaderProxy;
 

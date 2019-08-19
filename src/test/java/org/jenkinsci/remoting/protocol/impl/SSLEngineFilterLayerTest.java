@@ -206,7 +206,7 @@ public class SSLEngineFilterLayerTest {
         server.get().send(data);
         client.get().awaitByteContent(is(expected));
         assertThat(client.get().asByteArray(), is(expected));
-        server.get().close();
+        server.get().close(null);
         client.get().awaitClose();
     }
 
@@ -506,8 +506,8 @@ public class SSLEngineFilterLayerTest {
         client.awaitByteContent(SequentialSender.matcher(serverLimit));
         server.awaitByteContent(SequentialSender.matcher(clientLimit));
 
-        client.close();
-        server.close();
+        client.close(null);
+        server.close(null);
 
         client.awaitClose();
         server.awaitClose();
@@ -556,8 +556,8 @@ public class SSLEngineFilterLayerTest {
 
         client.awaitByteContent(SequentialSender.matcher(amount));
 
-        client.close();
-        server.close();
+        client.close(null);
+        server.close(null);
 
         client.awaitClose();
         server.awaitClose();

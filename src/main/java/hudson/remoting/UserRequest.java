@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -56,7 +56,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
     private static final Logger LOGGER = Logger.getLogger(UserRequest.class.getName());
 
     private final byte[] request;
-    
+
     @Nonnull
     @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "RemoteClassLoader.export() always returns a serializable instance, but we cannot check it statically due to the java.lang.reflect.Proxy")
     private final IClassLoader classLoaderProxy;
@@ -82,11 +82,11 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                 // If Command API changes, the cause may be null here (e.g. if it stops recording cause by default)
                 createdAtValue = new IllegalStateException("Command is created for the channel being interrupted");
             }
-            throw new ChannelClosedException("Cannot create UserRequest for channel " + local + 
+            throw new ChannelClosedException(local, "Cannot create UserRequest for channel " + local +
                     ". The channel is closed or being closed.", createdAtValue);
         }
-        
-        
+
+
         // Before serializing anything, check that we actually have a classloader for it
         final ClassLoader cl = getClassLoader(c);
         if (cl == null) {
@@ -94,7 +94,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
             // It will cause failure in UserRequest#perform()
             throw new IOException("Cannot determine classloader for the command " + toString);
         }
-        
+
         // Serialize the command to the channel
         exports = local.startExportRecording();
         try {
@@ -112,14 +112,14 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
     public void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
         // Default check for all requests
         super.checkIfCanBeExecutedOnChannel(channel);
-        
+
         // We also do not want to run UserRequests when the channel is being closed
         if (channel.isClosingOrClosed()) {
-            throw new ChannelClosedException("The request cannot be executed on channel " + channel + ". "
+            throw new ChannelClosedException(channel, "The request cannot be executed on channel " + channel + ". "
                     + "The channel is closing down or has closed down", channel.getCloseRequestCause());
         }
     }
-    
+
     /**
      * Retrieves classloader for the callable.
      * For {@link DelegatingCallable} the method will try to retrieve a classloader specified there.
@@ -131,18 +131,18 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
     @CheckForNull
     /*package*/ static ClassLoader getClassLoader(@Nonnull Callable<?,?> c) {
     	ClassLoader result = null;
-        
+
     	if(c instanceof DelegatingCallable) {
         	result =((DelegatingCallable)c).getClassLoader();
         }
         if (result == null) {
         	result = c.getClass().getClassLoader();
         }
-        
+
         if (result == null) {
         	result = ClassLoader.getSystemClassLoader();
         }
-        
+
         return result;
     }
 
@@ -192,7 +192,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                     throw new ClassNotFoundException("Failed to deserialize the Callable object. Perhaps you needed to implement DelegatingCallable?", e);
                 } catch (RuntimeException e) {
                     // if the error is during deserialization, throw it in one of the types Channel.call will
-                    // capture its call site stack trace. See 
+                    // capture its call site stack trace. See
                     throw new Error("Failed to deserialize the Callable object.",e);
                 }
 

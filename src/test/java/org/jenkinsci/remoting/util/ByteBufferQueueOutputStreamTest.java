@@ -40,6 +40,7 @@ public class ByteBufferQueueOutputStreamTest {
         ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue);
 
         instance.write(str.getBytes(StandardCharsets.UTF_8));
+        instance.close();
 
         assertThat(read(queue), is(str));
     }
@@ -52,6 +53,7 @@ public class ByteBufferQueueOutputStreamTest {
         ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue);
 
         instance.write(str.getBytes(StandardCharsets.UTF_8), 0, 10);
+        instance.close();
         assertThat(read(queue), is("AbCdEfGhIj"));
     }
 
@@ -64,6 +66,7 @@ public class ByteBufferQueueOutputStreamTest {
         for (int i = 1; i < str.length(); i += 2) {
             instance.write(str.charAt(i));
         }
+        instance.close();
 
         assertThat(read(queue), is("bdfhjlnprtvxz"));
     }

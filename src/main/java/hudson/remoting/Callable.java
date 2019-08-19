@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,8 +28,6 @@ import org.jenkinsci.remoting.RoleSensitive;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.io.NotSerializableException;
 import java.io.Serializable;
 
 //TODO: Make it SerializableOnlyOverRemoting?
@@ -75,7 +73,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
      *
      * It is a convenience method for cases, when a callable needs to invoke call backs on the master.
      * In such case the requests will be likely failed by {@linkplain UserRequest} logic anyway, but it is better to fail fast.
-     * 
+     *
      * @return Channel instance
      * @throws ChannelStateException The channel is closing down or has been closed.
      *          Also happens if the channel is not associated with the thread at all.
