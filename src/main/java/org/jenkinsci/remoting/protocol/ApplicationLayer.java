@@ -228,7 +228,7 @@ public abstract class ApplicationLayer<T> implements ProtocolLayer, ProtocolLaye
                 doCloseWrite();
             } catch (IOException e) {
                 if (ioe != null) {
-                    throw ThrowableUtils.chain(ioe, e);
+                    e = ThrowableUtils.chain(ioe, e);
                 }
                 throw e;
             }
