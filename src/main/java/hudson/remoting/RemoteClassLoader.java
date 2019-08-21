@@ -817,11 +817,11 @@ final class RemoteClassLoader extends URLClassLoader {
         public ClassFile fetch2(String className) throws ClassNotFoundException {
             ClassLoader ecl = cl.loadClass(className).getClassLoader();
             if (ecl == null) {
-            	if (USE_BOOTSTRAP_CLASSLOADER) {
-            		ecl = PSEUDO_BOOTSTRAP;
-            	} else {
-            		throw new ClassNotFoundException("Classloading from system classloader disabled");
-            	}
+                if (USE_BOOTSTRAP_CLASSLOADER) {
+                    ecl = PSEUDO_BOOTSTRAP;
+                } else {
+                    throw new ClassNotFoundException("Classloading from system classloader disabled");
+                }
             }
 
             try {
@@ -849,11 +849,11 @@ final class RemoteClassLoader extends URLClassLoader {
             }
             ClassLoader ecl = c.getClassLoader();
             if (ecl == null) {
-            	if (USE_BOOTSTRAP_CLASSLOADER) {
-            		ecl = PSEUDO_BOOTSTRAP;
-            	} else {
-            		throw new ClassNotFoundException("Bootstrap pseudo-classloader disabled: " + className + " via " + referrerClass);
-            	}
+                if (USE_BOOTSTRAP_CLASSLOADER) {
+                    ecl = PSEUDO_BOOTSTRAP;
+                } else {
+                    throw new ClassNotFoundException("Bootstrap pseudo-classloader disabled: " + className + " via " + referrerClass);
+                }
             }
 
             try {
@@ -919,16 +919,16 @@ final class RemoteClassLoader extends URLClassLoader {
         @CheckForNull
         private URL getResourceURL(String name) throws IOException {
             URL resource = cl.getResource(name);
-           	if (resource == null) {
-           		return null;
-           	}
+            if (resource == null) {
+                return null;
+            }
 
-           	if (!USE_BOOTSTRAP_CLASSLOADER) {
-           		URL systemResource = PSEUDO_BOOTSTRAP.getResource(name);
-           		if (resource.equals(systemResource)) {
-           			return null;
-           		}
-           	}
+            if (!USE_BOOTSTRAP_CLASSLOADER) {
+                URL systemResource = PSEUDO_BOOTSTRAP.getResource(name);
+                if (resource.equals(systemResource)) {
+                    return null;
+                }
+            }
 
             return resource;
         }
@@ -965,8 +965,8 @@ final class RemoteClassLoader extends URLClassLoader {
                 justification = "Null return value is a part of the public interface")
         @CheckForNull
         public byte[] getResource(String name) throws IOException {
-        	URL resource = getResourceURL(name);
-        	if (resource == null)   return null;
+            URL resource = getResourceURL(name);
+            if (resource == null)   return null;
             return readFully(resource.openStream());
         }
 
@@ -975,19 +975,19 @@ final class RemoteClassLoader extends URLClassLoader {
 
             Set<URL> systemResources = null;
             if (!USE_BOOTSTRAP_CLASSLOADER) {
-            	systemResources = new HashSet<URL>();
-            	Enumeration<URL> e = PSEUDO_BOOTSTRAP.getResources(name);
-            	while (e.hasMoreElements()) {
-            		systemResources.add(e.nextElement());
-            	}
+                systemResources = new HashSet<URL>();
+                Enumeration<URL> e = PSEUDO_BOOTSTRAP.getResources(name);
+                while (e.hasMoreElements()) {
+                    systemResources.add(e.nextElement());
+                }
             }
 
             Enumeration<URL> e = cl.getResources(name);
             while(e.hasMoreElements()) {
-            	URL url = e.nextElement();
-            	if (systemResources == null || !systemResources.contains(url)) {
-            		images.add(url);
-            	}
+                URL url = e.nextElement();
+                if (systemResources == null || !systemResources.contains(url)) {
+                    images.add(url);
+                }
             }
 
             return images;

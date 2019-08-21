@@ -60,24 +60,24 @@ public abstract class ClassFilter {
      * @return the same {@code name}
      * @throws SecurityException if it is blacklisted
      */
-	public final String check(String name) {
+    public final String check(String name) {
         if (isBlacklisted(name)) {
             throw new SecurityException("Rejected: " + name + "; see https://jenkins.io/redirect/class-filter/");
         }
-		return name;
-	}
+        return name;
+    }
 
     /**
      * API version of {@link #isBlacklisted(Class)} SPI.
      * @return the same {@code c}
      * @throws SecurityException if it is blacklisted
      */
-	public final Class check(Class c) {
+    public final Class check(Class c) {
         if (isBlacklisted(c)) {
             throw new SecurityException("Rejected: " + c.getName() + "; see https://jenkins.io/redirect/class-filter/");
         }
-		return c;
-	}
+        return c;
+    }
 
     private static final String[] DEFAULT_PATTERNS = {
         "^bsh[.].*",

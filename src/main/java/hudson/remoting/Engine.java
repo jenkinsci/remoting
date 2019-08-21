@@ -132,7 +132,7 @@ public class Engine extends Thread {
     private final String secretKey;
     public final String slaveName;
     private String credentials;
-	private String proxyCredentials = System.getProperty("proxyCredentials");
+    private String proxyCredentials = System.getProperty("proxyCredentials");
 
     /**
      * See {@link hudson.remoting.jnlp.Main#tunnel} for the documentation.
@@ -318,9 +318,9 @@ public class Engine extends Thread {
         this.credentials = creds;
     }
 
-	public void setProxyCredentials(String proxyCredentials) {
-		this.proxyCredentials = proxyCredentials;
-	}
+    public void setProxyCredentials(String proxyCredentials) {
+        this.proxyCredentials = proxyCredentials;
+    }
 
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;

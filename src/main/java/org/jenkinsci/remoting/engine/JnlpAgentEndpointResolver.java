@@ -559,7 +559,7 @@ public class JnlpAgentEndpointResolver {
     }
 
     static boolean inNoProxyEnvVar(String host) {
-    	return !NoProxyEvaluator.shouldProxy(host);
+        return !NoProxyEvaluator.shouldProxy(host);
     }
 
     @CheckForNull

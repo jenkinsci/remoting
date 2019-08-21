@@ -352,8 +352,8 @@ public class Launcher {
                 }
             }
             if (noCertificateCheck) {
-		// Generally it is not required since the default settings have been changed anyway.
-		// But we set it up just in case there are overrides somewhere in the logic
+                // Generally it is not required since the default settings have been changed anyway.
+                // But we set it up just in case there are overrides somewhere in the logic
                 jnlpArgs.add("-disableHttpsCertValidation");
             }
             try {
@@ -476,13 +476,13 @@ public class Launcher {
                 if (con instanceof HttpURLConnection) {
                     HttpURLConnection http = (HttpURLConnection) con;
                     if  (slaveJnlpCredentials != null) {
-	                    String userPassword = slaveJnlpCredentials;
-	                    String encoding = Base64.encode(userPassword.getBytes("UTF-8"));
-	                    http.setRequestProperty("Authorization", "Basic " + encoding);
+                        String userPassword = slaveJnlpCredentials;
+                        String encoding = Base64.encode(userPassword.getBytes("UTF-8"));
+                        http.setRequestProperty("Authorization", "Basic " + encoding);
                     }
                     if (System.getProperty("proxyCredentials", proxyCredentials) != null) {
-	                    String encoding = Base64.encode(System.getProperty("proxyCredentials", proxyCredentials).getBytes("UTF-8"));
-	                    http.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+                        String encoding = Base64.encode(System.getProperty("proxyCredentials", proxyCredentials).getBytes("UTF-8"));
+                        http.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
                     }
                 }
                 con.connect();
