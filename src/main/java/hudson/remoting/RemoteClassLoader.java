@@ -799,9 +799,9 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         public byte[] fetch(String className) throws ClassNotFoundException {
-        	if (!USE_BOOTSTRAP_CLASSLOADER && cl==PSEUDO_BOOTSTRAP) {
-        		throw new ClassNotFoundException("Classloading from bootstrap classloader disabled");
-        	}
+            if (!USE_BOOTSTRAP_CLASSLOADER && cl==PSEUDO_BOOTSTRAP) {
+                throw new ClassNotFoundException("Classloading from bootstrap classloader disabled");
+            }
 
             InputStream in = cl.getResourceAsStream(className.replace('.', '/') + ".class");
             if(in==null)
