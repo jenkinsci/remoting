@@ -102,7 +102,7 @@ public class JnlpAgentEndpoint {
         this.host = host;
         this.port = port;
         this.publicKey = publicKey;
-        this.protocols = protocols == null ? null : Collections.unmodifiableSet(new LinkedHashSet<String>(protocols));
+        this.protocols = protocols == null || protocols.isEmpty() ? null : Collections.unmodifiableSet(new LinkedHashSet<String>(protocols));
         this.serviceUrl = serviceURL;
     }
 
