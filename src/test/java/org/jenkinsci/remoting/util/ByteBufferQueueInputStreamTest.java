@@ -84,6 +84,7 @@ public class ByteBufferQueueInputStreamTest {
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("KlMnOpQrSt"));
         assertThat(instance.read(bytes), is(6));
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("UvWxYzQrSt"));
+        instance.close();
     }
 
     @Test
@@ -105,6 +106,7 @@ public class ByteBufferQueueInputStreamTest {
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEnOpQrStU"));
         assertThat(instance.read(bytes, 2, 8), is(5));
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEvWxYzStU"));
+        instance.close();
     }
 
     @Test
@@ -127,6 +129,7 @@ public class ByteBufferQueueInputStreamTest {
                 }
             }
         } while (b != -1);
+        instance.close();
 
         assertThat(buf.toString(), is("bdfhjlnprtvxz"));
     }

@@ -155,7 +155,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
                     try {
                         doCloseWrite();
                     } catch (IOException suppressed) {
-                        ThrowableUtils.addSuppressed(e, suppressed);
+                        ThrowableUtils.chain(e, suppressed);
                     }
                     transport = null;
                     futureChannel.setException(e);

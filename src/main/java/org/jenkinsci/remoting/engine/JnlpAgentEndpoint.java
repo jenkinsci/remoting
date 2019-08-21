@@ -31,6 +31,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -66,7 +67,7 @@ public class JnlpAgentEndpoint {
      */
     @CheckForNull
     private final Set<String> protocols;
-    
+
     /**
      * Jenkins URL for the discovered endpoint.
      */
@@ -81,7 +82,7 @@ public class JnlpAgentEndpoint {
                              @CheckForNull Set<String> protocols) {
         this(host, port, publicKey, protocols, null);
     }
-    
+
     /**
      * Constructor for a remote {@code Jenkins} instance.
      *
@@ -123,7 +124,7 @@ public class JnlpAgentEndpoint {
     public URL getServiceUrl() {
         return serviceUrl;
     }
-    
+
     /**
      * Gets the hostname.
      *
@@ -232,7 +233,7 @@ public class JnlpAgentEndpoint {
                 try {
                     channel.close();
                 } catch (IOException suppressed) {
-                    e = ThrowableUtils.addSuppressed(e, suppressed);
+                    e = ThrowableUtils.chain(e, suppressed);
                 }
             }
             String suffix = "";

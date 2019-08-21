@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import org.jenkinsci.remoting.ChannelStateException;
 
-import java.io.IOException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -39,12 +38,12 @@ public class ChannelClosedException extends ChannelStateException {
     public ChannelClosedException(@CheckForNull Channel channel, @CheckForNull Throwable cause) {
         super(channel, "channel is already closed", cause);
     }
-    
+
     /**
      * Constructor.
-     * 
+     *
      * @param message Message
-     * @param cause Cause of the channel close/termination. 
+     * @param cause Cause of the channel close/termination.
      *              May be {@code null} if it cannot be determined when the exception is constructed.
      * @since 3.11
      * @deprecated Use {@link #ChannelClosedException(Channel, String, Throwable)}

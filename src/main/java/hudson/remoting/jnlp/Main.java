@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -33,7 +33,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
-import org.jenkinsci.remoting.util.IOUtils;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.args4j.Option;
 import org.kohsuke.args4j.CmdLineParser;
@@ -122,7 +121,7 @@ public class Main {
     @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
     @CheckForNull
     public File agentLog = null;
-    
+
     /**
      * Specified location of the property file with JUL settings.
      * @since 3.8
@@ -130,7 +129,7 @@ public class Main {
     @CheckForNull
     @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
     public File loggingConfigFile = null;
-    
+
     /**
      * Specifies a default working directory of the remoting instance.
      * If specified, this directory will be used to store logs, JAR cache, etc.
@@ -215,9 +214,9 @@ public class Main {
         CmdLineParser p = new CmdLineParser(m);
         p.parseArgument(args);
         if(m.args.size()!=2)
-            throw new CmdLineException("two arguments required, but got "+m.args);
+            throw new CmdLineException(p, "two arguments required, but got "+m.args, null);
         if(m.urls.isEmpty())
-            throw new CmdLineException("At least one -url option is required.");
+            throw new CmdLineException(p, "At least one -url option is required.", null);
 
         m.main();
     }
@@ -258,7 +257,7 @@ public class Main {
         }
         engine.setDisableHttpsCertValidation(disableHttpsCertValidation);
 
-        
+
         // TODO: ideally logging should be initialized before the "Setting up agent" entry
         if (agentLog != null) {
             try {
@@ -274,7 +273,7 @@ public class Main {
                 throw new IllegalStateException("Logging config file is invalid", ex);
             }
         }
-        
+
         if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
             CertificateFactory factory;
             try {

@@ -49,7 +49,7 @@ public class IOBufferMatcherLayer extends ApplicationLayer<IOBufferMatcher> {
             @Override
             public void close() throws IOException {
                 doCloseWrite();
-                super.close();
+                super.close(null);
             }
 
         };

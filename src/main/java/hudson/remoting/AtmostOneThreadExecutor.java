@@ -5,7 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;

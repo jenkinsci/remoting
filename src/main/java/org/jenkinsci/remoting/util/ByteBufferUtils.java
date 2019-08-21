@@ -28,7 +28,6 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-import org.jenkinsci.remoting.protocol.ProtocolLayer;
 
 /**
  * Utility methods to help working with {@link ByteBuffer}s.

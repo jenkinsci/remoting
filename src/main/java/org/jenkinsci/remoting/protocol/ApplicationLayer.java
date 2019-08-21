@@ -31,7 +31,6 @@ import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.concurrent.GuardedBy;
-import org.jenkinsci.remoting.util.ThrowableUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -228,7 +227,8 @@ public abstract class ApplicationLayer<T> implements ProtocolLayer, ProtocolLaye
                 doCloseWrite();
             } catch (IOException e) {
                 if (ioe != null) {
-                    throw ThrowableUtils.addSuppressed(ioe, e);
+                    ioe.addSuppressed(e);
+                    throw ioe;
                 }
                 throw e;
             }

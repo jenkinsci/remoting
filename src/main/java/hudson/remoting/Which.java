@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi, Ullrich Hafner
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -56,7 +56,7 @@ public class Which {
      * @since 2.24
      */
     @Nonnull
-    public static URL classFileUrl(Class clazz) throws IOException {
+    public static URL classFileUrl(Class<?> clazz) throws IOException {
         ClassLoader cl = clazz.getClassLoader();
         if(cl==null)
             cl = ClassLoader.getSystemClassLoader();
@@ -70,7 +70,7 @@ public class Which {
      * @deprecated Use {@link #classFileUrl(Class)}
      */
     @Deprecated
-    public static URL jarURL(Class clazz) throws IOException {
+    public static URL jarURL(Class<?> clazz) throws IOException {
         return classFileUrl(clazz);
     }
 
@@ -88,7 +88,7 @@ public class Which {
      *      JAR File, which contains the class.
      */
     @Nonnull
-    public static File jarFile(Class clazz) throws IOException {
+    public static File jarFile(Class<?> clazz) throws IOException {
         return jarFile(classFileUrl(clazz),clazz.getName().replace('.','/')+".class");
     }
 
@@ -120,7 +120,7 @@ public class Which {
             resURL = resURL.substring("code-source:/".length(), resURL.lastIndexOf('!')); // cut off jar: and the file name portion
             return new File(decode(new URL("file:/"+resURL).getPath()));
         }
-        
+
         if(resURL.startsWith("zip:")){
             // weblogic uses this. See http://www.nabble.com/patch-to-get-Hudson-working-on-weblogic-td23997258.html
             // also see http://www.nabble.com/Re%3A-Hudson-on-Weblogic-10.3-td25038378.html#a25043415
