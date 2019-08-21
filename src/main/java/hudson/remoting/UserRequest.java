@@ -130,17 +130,17 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
      */
     @CheckForNull
     /*package*/ static ClassLoader getClassLoader(@Nonnull Callable<?,?> c) {
-    	ClassLoader result = null;
+        ClassLoader result = null;
         
-    	if(c instanceof DelegatingCallable) {
-        	result =((DelegatingCallable)c).getClassLoader();
+        if(c instanceof DelegatingCallable) {
+            result =((DelegatingCallable)c).getClassLoader();
         }
         if (result == null) {
-        	result = c.getClass().getClassLoader();
+            result = c.getClass().getClassLoader();
         }
         
         if (result == null) {
-        	result = ClassLoader.getSystemClassLoader();
+            result = ClassLoader.getSystemClassLoader();
         }
         
         return result;
