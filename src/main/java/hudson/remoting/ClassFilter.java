@@ -154,7 +154,7 @@ public abstract class ClassFilter {
 
     /**
      * Adds an additional exclusion to {@link #STANDARD}.
-     * 
+     *
      * Does nothing if the default list has already been customized via {@link #FILE_OVERRIDE_LOCATION_PROPERTY}.
      * This API is not supposed to be used anywhere outside Jenkins core, calls for other sources may be rejected later.
      * @param filter a regular expression for {@link Class#getName} which, if matched according to {@link Matcher#matches}, will blacklist the class

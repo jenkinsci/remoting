@@ -28,7 +28,6 @@ import java.nio.charset.StandardCharsets;
 
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Local implementation of standard charsets as the remoting library currently needs to be compiled against Java 6

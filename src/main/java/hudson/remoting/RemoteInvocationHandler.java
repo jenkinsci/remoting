@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -85,7 +85,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * <p>
      * This field is null when a {@link RemoteInvocationHandler} is just
      * created and not working as a remote proxy. Once tranferred to the
-     * remote system, this field is set to non-null. 
+     * remote system, this field is set to non-null.
      * @since FIXME after merge
      */
     @CheckForNull
@@ -135,7 +135,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     private RemoteInvocationHandler(Channel channel, int id, boolean userProxy,
                             boolean autoUnexportByCaller, boolean userSpace,
-                            Class proxyType, boolean recordCreatedAt) {
+                            Class<?> proxyType, boolean recordCreatedAt) {
         this.channel = channel == null ? null : channel.ref();
         this.oid = id;
         this.userProxy = userProxy;
@@ -178,8 +178,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /*package*/ static void notifyChannelTermination(Channel channel) {
         UNEXPORTER.onChannelTermination(channel);
     }
-    
-    /*package*/ static Class getProxyClass(Class type) {
+
+    /*package*/ static Class<?> getProxyClass(Class<?> type) {
         return Proxy.getProxyClass(type.getClassLoader(), new Class[]{type,IReadResolve.class});
     }
 
@@ -194,7 +194,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         final Ref ch = this.channel;
         return ch == null ? null : ch.channel();
     }
-    
+
     /**
      * Returns the backing channel or throws an {@link IOException} if the channel is disconnected or
      * otherwise unavailable.
@@ -221,7 +221,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * return its object ID. Otherwise return -1.
      * <p>
      * This method can be used to get back the original reference when
-     * a proxy is sent back to the channel it came from. 
+     * a proxy is sent back to the channel it came from.
      */
     public static int unwrap(Object proxy, Channel src) {
         InvocationHandler h = Proxy.getInvocationHandler(proxy);
@@ -324,7 +324,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     }
 
     /**
-     * Two proxies are the same iff they represent the same remote object. 
+     * Two proxies are the same iff they represent the same remote object.
      */
     public boolean equals(Object o) {
         if(o!=null && Proxy.isProxyClass(o.getClass()))
@@ -487,7 +487,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         /**
          * The "live" {@link PhantomReferenceImpl} instances for each active {@link Channel}.
          */
-        private final ConcurrentMap<Channel.Ref,List<PhantomReferenceImpl>> referenceLists 
+        private final ConcurrentMap<Channel.Ref,List<PhantomReferenceImpl>> referenceLists
                 = new ConcurrentHashMap<Channel.Ref, List<PhantomReferenceImpl>>();
         /**
          * The 1 minute rolling average.
@@ -797,7 +797,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         /**
          * Watch the specified {@link RemoteInvocationHandler} for garbage collection so that it can be unexported
          * when collected.
-         * 
+         *
          * @param handler the {@link RemoteInvocationHandler} instance to watch.
          */
         private void watch(RemoteInvocationHandler handler) {
@@ -837,7 +837,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             cleanList(referenceLists.remove(channel.ref()));
         }
     }
-    
+
     private static final long serialVersionUID = 1L;
 
     /**
@@ -918,7 +918,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         protected Serializable perform(@Nonnull Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
-            Class[] clazz = channel.getExportedTypes(oid);
+            Class<?>[] clazz = channel.getExportedTypes(oid);
             try {
                 Method m = choose(clazz);
                 if(m==null)
@@ -978,7 +978,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             return b.toString();
         }
 
-        private static final long serialVersionUID = 1L; 
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -1007,7 +1007,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
             // We also do not want to run UserRequests when the channel is being closed
             if (channel.isClosingOrClosed()) {
-                throw new ChannelClosedException("The request cannot be executed on channel " + channel + ". "
+                throw new ChannelClosedException(channel, "The request cannot be executed on channel " + channel + ". "
                         + "The channel is closing down or has closed down", channel.getCloseRequestCause());
             }
         }

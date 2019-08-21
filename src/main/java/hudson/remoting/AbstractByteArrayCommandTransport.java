@@ -1,6 +1,5 @@
 package hudson.remoting;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -20,10 +19,10 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  */
 public abstract class AbstractByteArrayCommandTransport extends CommandTransport {
     protected Channel channel;
-    
+
     /**
      * Writes a byte[] to the transport.
-     * 
+     *
      * The block boundary is significant. A transport needs to ensure that that the same byte[] is
      * read by the peer (unlike TCP, where a single write can
      * be split into multiple read()s on the other side.)
@@ -32,17 +31,17 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
 
     /**
      * Starts the transport.
-     * 
+     *
      * See {@link #setup(Channel, CommandReceiver)} for more details.
-     * 
+     *
      * In this subtype, we pass in {@link ByteArrayReceiver} that uses byte[] instead of {@link Command}
      */
     public abstract void setup(@Nonnull ByteArrayReceiver receiver);
-    
+
     public static interface ByteArrayReceiver {
         /**
          * Notifies the {@link Channel} that the transport has received a new block.
-         * 
+         *
          * As discussed in {@link AbstractByteArrayCommandTransport#writeBlock(Channel, byte[])},
          * the block boundary is significant.
          */
@@ -53,7 +52,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
          */
         void terminate(IOException e);
     }
-    
+
     @Override
     public final void setup(final Channel channel, final CommandReceiver receiver) {
         this.channel = channel;

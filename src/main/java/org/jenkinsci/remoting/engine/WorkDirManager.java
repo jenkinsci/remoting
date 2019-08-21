@@ -46,9 +46,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
-import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -78,7 +76,7 @@ public class WorkDirManager {
      * Regular expression, which declares restrictions of the remoting internal directory symbols
      */
     public static final String SUPPORTED_INTERNAL_DIR_NAME_MASK = "[a-zA-Z0-9._-]*";
-    
+
     /**
      * Name of the standard System Property, which points to the {@code java.util.logging} config file.
      */
@@ -86,20 +84,20 @@ public class WorkDirManager {
 
     // Status data
     boolean loggingInitialized;
-    
+
     @CheckForNull
     private File loggingConfigFile = null;
-    
+
     /**
      * Provides a list of directories, which should not be initialized in the Work Directory.
      */
     private final Set<DirType> disabledDirectories = new HashSet<>();
-    
+
     /**
      * Cache of initialized directory locations.
      */
     private final Map<DirType, File> directories = new HashMap<>();
-    
+
 
     private WorkDirManager() {
         // Cannot be instantiated outside
@@ -114,16 +112,16 @@ public class WorkDirManager {
     public static WorkDirManager getInstance() {
         return INSTANCE;
     }
-    
+
     /*package*/ static void reset() {
         INSTANCE = new WorkDirManager();
         LogManager.getLogManager().reset();
     }
-    
+
     public void disable(@Nonnull DirType dir) {
         disabledDirectories.add(dir);
     }
-    
+
     @CheckForNull
     public File getLocation(@Nonnull DirType type) {
         return directories.get(type);
@@ -141,13 +139,13 @@ public class WorkDirManager {
         File location = directories.get(type);
         return location != null ? PathUtils.fileToPath(location) : null;
     }
-    
+
     /**
      * Sets path to the Logging JUL property file with logging settings.
      * @param configFile config file
      */
     public void setLoggingConfig(@Nonnull File configFile) {
-        this.loggingConfigFile = configFile;   
+        this.loggingConfigFile = configFile;
     }
 
     /**
@@ -162,15 +160,15 @@ public class WorkDirManager {
         if (loggingConfigFile != null) {
             return loggingConfigFile;
         }
-        
+
         String property = System.getProperty(JUL_CONFIG_FILE_SYSTEM_PROPERTY_NAME);
         if (property != null && !property.trim().isEmpty()) {
             return new File(property);
         }
-        
+
         return null;
     }
-    
+
     //TODO: New interfaces should ideally use Path instead of File
     /**
      * Initializes the working directory for the agent.
@@ -180,7 +178,7 @@ public class WorkDirManager {
      *                    The range of the supported symbols is restricted to {@link #SUPPORTED_INTERNAL_DIR_NAME_MASK}.
      * @param failIfMissing Fail the initialization if the workDir or internalDir are missing.
      *                      This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
-     *                      (e.g. if a mount gets disconnected).                 
+     *                      (e.g. if a mount gets disconnected).
      * @return Initialized directory for internal files within workDir or {@code null} if it is disabled
      * @throws IOException Workspace allocation issue (e.g. the specified directory is not writable).
      *                     In such case Remoting should not start up at all.
@@ -211,11 +209,11 @@ public class WorkDirManager {
             final Path internalDirPath = PathUtils.fileToPath(internalDirFile);
             Files.createDirectories(internalDirPath);
             LOGGER.log(Level.INFO, "Using {0} as a remoting work directory", internalDirPath);
-            
+
             // Create components of the internal directory
             createInternalDirIfRequired(internalDirFile, DirType.JAR_CACHE_DIR);
             createInternalDirIfRequired(internalDirFile, DirType.LOGS_DIR);
-            
+
             return internalDirPath;
         }
     }
@@ -231,7 +229,7 @@ public class WorkDirManager {
             LOGGER.log(Level.FINE, "Skipping the disabled directory: {0}", type.getName());
         }
     }
-    
+
     /**
      * Verifies that the directory is compliant with the specified requirements.
      * The directory is expected to have {@code RWX} permissions if exists.
@@ -280,7 +278,7 @@ public class WorkDirManager {
                 LogManager.getLogManager().readConfiguration(fis);
             }
         }
-        
+
         if (overrideLogPath != null) { // Legacy behavior
             LOGGER.log(Level.INFO, "Using {0} as an agent error log destination; output log will not be generated", overrideLogPath);
             System.out.flush(); // Just in case the channel
@@ -300,10 +298,10 @@ public class WorkDirManager {
             if (configFile == null) {
                 final Logger rootLogger = Logger.getLogger("");
                 final File julLog = new File(logsDir, "remoting.log");
-                final FileHandler logHandler = new FileHandler(julLog.getAbsolutePath(), 
-                                         10*1024*1024, 5, false); 
-                logHandler.setFormatter(new SimpleFormatter()); 
-                logHandler.setLevel(Level.INFO); 
+                final FileHandler logHandler = new FileHandler(julLog.getAbsolutePath(),
+                                         10*1024*1024, 5, false);
+                logHandler.setFormatter(new SimpleFormatter());
+                logHandler.setLevel(Level.INFO);
                 rootLogger.addHandler(logHandler);
             }
 
@@ -318,7 +316,7 @@ public class WorkDirManager {
     private PrintStream legacyCreateTeeStream(OutputStream ostream, Path destination) throws FileNotFoundException {
         return new PrintStream(new TeeOutputStream(ostream, new FileOutputStream(destination.toFile())));
     }
-    
+
     /**
      * Defines components of the Working directory.
      * @since 3.8
@@ -334,23 +332,23 @@ public class WorkDirManager {
          * This directory is located within {@link #WORK_DIR}.
          */
         INTERNAL_DIR("remoting internal directory", "remoting", WORK_DIR),
-        
+
         /**
          * Directory, which stores the JAR Cache.
          */
         JAR_CACHE_DIR("JAR Cache directory", "jarCache", INTERNAL_DIR),
-        
+
         /**
          * Directory, which stores logs.
          */
         LOGS_DIR("Log directory", "logs", INTERNAL_DIR);
-        
+
         @Nonnull
         private final String name;
 
         @Nonnull
         private final String defaultLocation;
-        
+
         @CheckForNull
         private final DirType parentDir;
 

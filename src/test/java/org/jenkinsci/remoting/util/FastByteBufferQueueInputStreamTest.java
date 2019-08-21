@@ -33,7 +33,6 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeThat;
 
 public class FastByteBufferQueueInputStreamTest {
     @Test
@@ -84,6 +83,7 @@ public class FastByteBufferQueueInputStreamTest {
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("KlMnOpQrSt"));
         assertThat(instance.read(bytes), is(6));
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("UvWxYzQrSt"));
+        instance.close();
     }
 
     @Test
@@ -105,6 +105,7 @@ public class FastByteBufferQueueInputStreamTest {
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEnOpQrStU"));
         assertThat(instance.read(bytes, 2, 8), is(5));
         assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEvWxYzStU"));
+        instance.close();
     }
 
     @Test
@@ -127,6 +128,7 @@ public class FastByteBufferQueueInputStreamTest {
                 }
             }
         } while (b != -1);
+        instance.close();
 
         assertThat(buf.toString(), is("bdfhjlnprtvxz"));
     }
@@ -139,6 +141,7 @@ public class FastByteBufferQueueInputStreamTest {
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
         assertThat(instance.markSupported(), is(false));
+        instance.close();
     }
 
     private static String read(InputStream is) throws IOException {

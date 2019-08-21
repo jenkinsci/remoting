@@ -1,20 +1,10 @@
 package org.jenkinsci.remoting.nio;
 
-import hudson.remoting.Callable;
 import hudson.remoting.CallableBase;
-import hudson.remoting.Capability;
 import hudson.remoting.Channel;
 import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChannelBuilder;
-import hudson.remoting.CommandTransport;
-import hudson.remoting.SocketInputStream;
-import hudson.remoting.SocketOutputStream;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

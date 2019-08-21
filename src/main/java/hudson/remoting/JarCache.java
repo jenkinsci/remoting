@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.URL;
 import javax.annotation.Nonnull;
 
@@ -20,7 +19,7 @@ import javax.annotation.Nonnull;
  * @since 2.24
  */
 public abstract class JarCache {
-    
+
     /**
      * Default JAR cache location for disabled workspace Manager.
      */
@@ -41,7 +40,7 @@ public abstract class JarCache {
             throw new IOException("Failed to initialize the default JAR Cache location", ex);
         }
     }
-    
+
     /**
      * Looks up the jar in cache, and if not found, use {@link JarLoader} to retrieve it
      * from the other side.

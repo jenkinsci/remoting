@@ -1,6 +1,5 @@
 package hudson.remoting;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.kohsuke.accmod.Restricted;

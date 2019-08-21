@@ -172,7 +172,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
                     super.onRecvClosed(cause);
                 } catch (IOException e) {
                     if (ioe != null) {
-                        ThrowableUtils.addSuppressed(e, ioe);
+                        ThrowableUtils.chain(e, ioe);
                     }
                     throw e;
                 }
@@ -219,7 +219,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
                     super.doCloseSend();
                 } catch (IOException e) {
                     if (ioe != null) {
-                        ThrowableUtils.addSuppressed(e, ioe);
+                        ThrowableUtils.chain(e, ioe);
                     }
                     throw e;
                 }

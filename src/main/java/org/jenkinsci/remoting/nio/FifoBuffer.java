@@ -12,8 +12,6 @@ import java.nio.channels.WritableByteChannel;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnegative;
 import javax.annotation.concurrent.GuardedBy;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * FIFO buffer for a reader thread and a writer thread to collaborate.
@@ -170,14 +168,14 @@ public class FifoBuffer implements Closeable {
      */
     @GuardedBy("lock")
     private boolean closed;
-    
+
     /**
      * Contains the reason why the buffer has been closed.
      * The cause also stores the stacktrace of the close command.
      */
     @CheckForNull
     private CloseCause closeCause;
-    
+
     private boolean closeRequested = false;
 
     public FifoBuffer(int pageSize, int limit) {
@@ -263,7 +261,7 @@ public class FifoBuffer implements Closeable {
     public CloseCause getCloseCause() {
         return closeCause;
     }
-    
+
     /**
      * Read from this buffer write as much as possible to the channel until
      * the channel gets filled up.
@@ -348,13 +346,13 @@ public class FifoBuffer implements Closeable {
                 int chunk = writable();
                 if (chunk==0)
                     return written; // no more space to write
-                
+
                 // If the buffer gets closed before we acquire lock, we are at risk of null "w" and NPE.
                 // So in such case we just interrupt the receive process
                 if (closed) {
                     throw new IOException("closed during the receive() operation");
                 }
-                
+
                 try {
                     int received = w.receive(ch, chunk);
                     if (received==0)
@@ -390,8 +388,7 @@ public class FifoBuffer implements Closeable {
         while (len>0) {
             int chunk;
 
-            final boolean shouldWaitToCleanTheBuffer;
-            synchronized (lock) { 
+            synchronized (lock) {
                 while ((chunk = Math.min(len,writable()))==0) {
                     if (closeRequested) {
                         handleCloseRequest();
@@ -409,8 +406,8 @@ public class FifoBuffer implements Closeable {
 
                 lock.notifyAll();
             }
-            
-            // 
+
+            //
         }
     }
 
@@ -424,11 +421,11 @@ public class FifoBuffer implements Closeable {
         // Async modification of the field in order to notify other threads that we are about closing this buffer
         closeRequested = true;
         closeCause = new CloseCause("Buffer close has been requested");
-        
+
         // Now perform close operation
         handleCloseRequest();
     }
-    
+
     /**
      * This is a close operation, which is guarded by the instance lock.
      * Actually this method may be invoked by multiple threads, not only by {@link #close()} when it requests it.
@@ -615,7 +612,7 @@ public class FifoBuffer implements Closeable {
             }
         };
     }
-    
+
     /**
      * Explains the reason of the buffer close.
      * @since 3.3
@@ -627,9 +624,9 @@ public class FifoBuffer implements Closeable {
         /*package*/ CloseCause(String message) {
             super(message);
         }
-        
+
         /*package*/ CloseCause(String message, Throwable cause) {
             super(message, cause);
-        }  
+        }
     }
 }

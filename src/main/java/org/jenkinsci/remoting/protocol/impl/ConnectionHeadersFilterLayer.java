@@ -425,13 +425,13 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
         if (aborted != null && !(cause instanceof ConnectionRefusalException)) {
             // handle the case where we have refuseded the incoming headers and actually aborted
             ConnectionRefusalException newCause = newAbortCause(aborted);
-            super.onRecvClosed(ThrowableUtils.addSuppressed(newCause, cause));
+            super.onRecvClosed(ThrowableUtils.chain(newCause, cause));
             return;
         }
         if (abortCause != null) {
             // handle the case where waiting on acknowledgement of the abort
             ConnectionRefusalException newCause = newAbortCause(abortCause);
-            super.onRecvClosed(ThrowableUtils.addSuppressed(newCause, cause));
+            super.onRecvClosed(ThrowableUtils.chain(newCause, cause));
             return;
         }
         if (cause instanceof ClosedChannelException) {
@@ -439,7 +439,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
             // the remote end has closed because it refused our end before flushing the streams
             ConnectionRefusalException newCause = new ConnectionRefusalException(
                     "Remote closed connection without specifying reason");
-            super.onRecvClosed(ThrowableUtils.addSuppressed(newCause, cause));
+            super.onRecvClosed(ThrowableUtils.chain(newCause, cause));
         } else {
             super.onRecvClosed(cause);
         }

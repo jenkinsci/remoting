@@ -1,6 +1,5 @@
 package hudson.remoting;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,7 +8,6 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
@@ -164,8 +162,8 @@ public final class Capability implements Serializable {
 
                 @Override
                 public void close() throws IOException {
-                    // Do not close the stream since we continue reading from the input stream "is" 
-                }   
+                    // Do not close the stream since we continue reading from the input stream "is"
+                }
             }) {
             return (Capability)ois.readObject();
         } catch (ClassNotFoundException e) {
@@ -186,11 +184,11 @@ public final class Capability implements Serializable {
      * the new {@link MultiClassLoaderSerializer} code.
      * <p>
      * If we ever use up all 64bits of long, we can probably come back and reuse this bit, as by then
-     * hopefully any such remoting.jar deployment is long gone. 
+     * hopefully any such remoting.jar deployment is long gone.
      */
     @SuppressWarnings("PointlessBitwiseExpression")
     private static final long MASK_UNUSED1 = 1L << 0;
-    
+
     /**
      * Bit that indicates the use of {@link MultiClassLoaderSerializer}.
      */

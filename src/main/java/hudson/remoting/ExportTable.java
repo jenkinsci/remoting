@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -147,7 +147,7 @@ final class ExportTable {
 
         /**
          * Releases the entry.
-         * @param callSite 
+         * @param callSite
          *      Optional location that indicates where the actual call site was that triggered the activity,
          *      in case it was requested from the other side of the channel.
          */
@@ -238,7 +238,7 @@ final class ExportTable {
             super(callSite);
             updateOurStackTraceCache();
         }
-        
+
         // TODO: We export the objects frequently, The current approach ALWAYS leads
         // to creation of two Stacktrace arrays in the memory: the original and the cloned one
         // Throwable API. Throwable API allows to workaround it only by using a heavy printStackTrace() method.
@@ -288,7 +288,7 @@ final class ExportTable {
     @SuppressFBWarnings(value = "SE_BAD_FIELD_INNER_CLASS",
             justification = "ExportList is supposed to be serializable as ArrayList, but it is not. "
                           + "The issue is ignored since the class does not belong to the public API")
-    public final class ExportList extends ArrayList<Entry> {
+    public final class ExportList extends ArrayList<Entry<?>> {
         private final ExportList old;
         private ExportList() {
             old=lists.get();
@@ -296,7 +296,7 @@ final class ExportTable {
         }
         void release(Throwable callSite) {
             synchronized(ExportTable.this) {
-                for (Entry e : this)
+                for (Entry<?> e : this)
                     e.release(callSite);
             }
         }
@@ -377,7 +377,7 @@ final class ExportTable {
     }
 
     /*package*/ synchronized void pin(@Nonnull Object t) {
-        Entry e = reverse.get(t);
+        Entry<?> e = reverse.get(t);
         if(e!=null)
             e.pin();
     }
@@ -391,7 +391,7 @@ final class ExportTable {
      */
     @Nonnull
     synchronized Object get(int id) throws ExecutionException {
-        Entry e = table.get(id);
+        Entry<?> e = table.get(id);
         if(e!=null) return e.object;
 
         throw diagnoseInvalidObjectId(id);
@@ -409,10 +409,10 @@ final class ExportTable {
 
         return null;
     }
-    
+
     @Nonnull
-    synchronized Class[] type(int id) throws ExecutionException {
-        Entry e = table.get(id);
+    synchronized Class<?>[] type(int id) throws ExecutionException {
+        Entry<?> e = table.get(id);
         if(e!=null) return e.getInterfaces();
 
         throw diagnoseInvalidObjectId(id);
@@ -420,14 +420,14 @@ final class ExportTable {
 
     /**
      * Propagate a channel termination error to all the exported objects.
-     * 
+     *
      * <p>
      * Exported {@link Pipe}s are vulnerable to infinite blocking
      * when the channel is lost and the sender side is cut off. The reader
      * end will not see that the writer has disappeared.
-     * 
+     *
      * @param e Termination error
-     * 
+     *
      */
     void abort(@CheckForNull Throwable e) {
         List<Entry<?>> values;
@@ -443,7 +443,7 @@ final class ExportTable {
                 }
             }
         }
-        
+
         // clear the references to allow exported objects to get GCed.
         // don't bother putting them into #unexportLog because this channel
         // is forever closed.
@@ -481,11 +481,11 @@ final class ExportTable {
     /**
      * Removes the exported object from the table.
      * @param t Object to be unexported. {@code null} instances will be ignored.
-     * @param callSite Stacktrace of the invocation source 
+     * @param callSite Stacktrace of the invocation source
      */
     synchronized void unexport(@CheckForNull Object t, Throwable callSite) {
         if(t==null)     return;
-        Entry e = reverse.get(t);
+        Entry<?> e = reverse.get(t);
         if(e==null) {
             LOGGER.log(SEVERE, "Trying to unexport an object that's not exported: "+t);
             return;
@@ -500,7 +500,7 @@ final class ExportTable {
     void unexportByOid(Integer oid, Throwable callSite) {
         unexportByOid(oid, callSite, false);
     }
-    
+
     /**
      * Removes the exported object for the specified oid from the table.
      * @param oid Object ID. If {@code null} the method will do nothing.
@@ -510,7 +510,7 @@ final class ExportTable {
      */
     synchronized void unexportByOid(@CheckForNull Integer oid, @CheckForNull Throwable callSite, boolean severeErrorIfMissing) {
         if(oid==null)     return;
-        Entry e = table.get(oid);
+        Entry<?> e = table.get(oid);
         if(e==null) {
             Level loggingLevel = severeErrorIfMissing ? SEVERE : FINE;
             LOGGER.log(loggingLevel, "Trying to unexport an object that's already unexported", diagnoseInvalidObjectId(oid));
@@ -526,7 +526,7 @@ final class ExportTable {
      * @throws IOException Output error
      */
     synchronized void dump(@Nonnull PrintWriter w) throws IOException {
-        for (Entry e : table.values()) {
+        for (Entry<?> e : table.values()) {
             e.dump(w);
         }
     }

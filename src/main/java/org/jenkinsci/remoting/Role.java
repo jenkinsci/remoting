@@ -55,7 +55,7 @@ public final class Role {
         this.name = name;
     }
 
-    public Role(Class name) {
+    public Role(Class<?> name) {
         this(name.getName());
     }
 

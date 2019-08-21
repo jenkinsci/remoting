@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.SocketChannelStream;
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;

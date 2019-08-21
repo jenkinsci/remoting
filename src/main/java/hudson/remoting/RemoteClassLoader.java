@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -65,7 +65,7 @@ import javax.annotation.Nonnull;
  *
  * @author Kohsuke Kawaguchi
  */
-@edu.umd.cs.findbugs.annotations.SuppressWarnings({"DMI_COLLECTION_OF_URLS","DMI_BLOCKING_METHODS_ON_URL"}) // TODO: fix this
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"DMI_COLLECTION_OF_URLS","DMI_BLOCKING_METHODS_ON_URL"}) // TODO: fix this
 final class RemoteClassLoader extends URLClassLoader {
 
     private static final Logger LOGGER = Logger.getLogger(RemoteClassLoader.class.getName());
@@ -393,12 +393,12 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * Defining a package is necessary to make {@link Class#getPackage()} work,
      * which is often used to retrieve package-level annotations.
-     * (for example, JAXB RI and Hadoop use them.) 
+     * (for example, JAXB RI and Hadoop use them.)
      */
     private void definePackage(String name) {
         int idx = name.lastIndexOf('.');
         if (idx<0)  return; // not in a package
-        
+
         String packageName = name.substring(0,idx);
         if (getPackage(packageName) != null)    // already defined
             return;
@@ -520,7 +520,7 @@ final class RemoteClassLoader extends URLClassLoader {
      *      and doesn't point to anything meaningful locally.
      * @return
      *      true if the prefetch happened. false if the jar is already prefetched.
-     * @see Channel#preloadJar(Callable, Class[]) 
+     * @see Channel#preloadJar(Callable, Class[])
      */
     /*package*/ boolean prefetch(URL jar) throws IOException {
         synchronized (prefetchedJars) {
@@ -584,7 +584,7 @@ final class RemoteClassLoader extends URLClassLoader {
 
         private static final long serialVersionUID = 1L;
 
-        public ClassFile2 upconvert(ClassFile2 referer, Class clazz, URL local) {
+        public ClassFile2 upconvert(ClassFile2 referer, Class<?> clazz, URL local) {
             return new ClassFile2(classLoader,new ResourceImageDirect(classImage),referer,clazz,local);
         }
     }
@@ -660,9 +660,9 @@ final class RemoteClassLoader extends URLClassLoader {
          * class that this {@link ClassFile2} represents.
          */
         @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
-        transient final Class clazz;
+        transient final Class<?> clazz;
 
-        ClassFile2(int classLoader, ResourceImageRef image, ClassFile2 referer, Class clazz, URL local) {
+        ClassFile2(int classLoader, ResourceImageRef image, ClassFile2 referer, Class<?> clazz, URL local) {
             super(image,local);
             this.classLoader = classLoader;
             this.clazz = clazz;
@@ -698,7 +698,7 @@ final class RemoteClassLoader extends URLClassLoader {
          */
         @CheckForNull
         byte[] getResource(String name) throws IOException;
-        
+
         @Nonnull
         byte[][] getResources(String name) throws IOException;
 
@@ -799,10 +799,10 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         public byte[] fetch(String className) throws ClassNotFoundException {
-        	if (!USE_BOOTSTRAP_CLASSLOADER && cl==PSEUDO_BOOTSTRAP) {
-        		throw new ClassNotFoundException("Classloading from bootstrap classloader disabled");
-        	}
-        	
+            if (!USE_BOOTSTRAP_CLASSLOADER && cl==PSEUDO_BOOTSTRAP) {
+                throw new ClassNotFoundException("Classloading from bootstrap classloader disabled");
+            }
+
             InputStream in = cl.getResourceAsStream(className.replace('.', '/') + ".class");
             if(in==null)
                 throw new ClassNotFoundException(className);
@@ -961,7 +961,7 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         @Override
-        @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS", 
+        @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS",
                 justification = "Null return value is a part of the public interface")
         @CheckForNull
         public byte[] getResource(String name) throws IOException {
@@ -1119,7 +1119,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return Collections.emptySet();
         }
     }
- 
+
     /**
      * If set to true, classes loaded by the bootstrap classloader will be also remoted to the remote JVM.
      * By default, classes that belong to the bootstrap classloader will NOT be remoted, as each JVM gets its own JRE

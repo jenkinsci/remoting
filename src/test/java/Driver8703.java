@@ -21,9 +21,9 @@ public class Driver8703 {
 //            System.out.println(i++);
 //            foo();
 //        }
-        
+
         ExecutorService es = Executors.newCachedThreadPool();
-        List<Future> flist = new ArrayList<Future>();
+        List<Future<Object>> flist = new ArrayList<Future<Object>>();
         for (int i=0; i<10000; i++) {
             flist.add(es.submit(new Callable<Object>() {
                 public Object call() throws Exception {
@@ -44,7 +44,7 @@ public class Driver8703 {
             }));
         }
 
-        for (Future ff : flist) {
+        for (Future<Object> ff : flist) {
             ff.get();
         }
 

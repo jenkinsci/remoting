@@ -138,10 +138,12 @@ public class IOHubTest {
         Socket client = new Socket();
         client.connect(srv.getLocalAddress(), 100);
         assertThat(IOUtils.toString(client.getInputStream()), is("Go away #1"));
+        client.close();
         client = new Socket();
         client.connect(srv.getLocalAddress(), 100);
         assertThat(IOUtils.toString(client.getInputStream()), is("Go away #2"));
         assertThat("Only ever called ready with accept true", oops.get(), is(false));
+        client.close();
     }
 
     @Test
@@ -188,6 +190,7 @@ public class IOHubTest {
         client.setSoTimeout(100);
         client.connect(srv.getLocalAddress(), 100);
         assertThat(IOUtils.toString(client.getInputStream()), is("Go away #1"));
+        client.close();
         client = new Socket();
         client.setSoTimeout(100);
         client.connect(srv.getLocalAddress(), 100);
@@ -200,6 +203,7 @@ public class IOHubTest {
         hub.hub().addInterestAccept(key.get());
         assertThat(IOUtils.toString(client.getInputStream()), is("Go away #2"));
         assertThat("Only ever called ready with accept true", oops.get(), is(false));
+        client.close();
     }
 
     @Test
@@ -243,16 +247,17 @@ public class IOHubTest {
 
             }
         });
-        
+
         // Wait for registration, in other case we get unpredictable timing related results due to late registration
         while (key.get() == null) {
             Thread.sleep(10);
         }
-        
+
         Socket client = new Socket();
         client.setSoTimeout(100);
         client.connect(srv.getLocalAddress(), 100);
         assertThat(IOUtils.toString(client.getInputStream()), is("Go away #1"));
+        client.close();
         hub.hub().removeInterestAccept(key.get());
         // wait for the interest accept to be removed
         while ((key.get().interestOps() & SelectionKey.OP_ACCEPT) != 0) {
@@ -270,5 +275,6 @@ public class IOHubTest {
         hub.hub().addInterestAccept(key.get());
         assertThat(IOUtils.toString(client.getInputStream()), is("Go away #2"));
         assertThat("Only ever called ready with accept true", oops.get(), is(false));
+        client.close();
     }
 }
