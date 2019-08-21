@@ -6,9 +6,6 @@
   <Match>
     <Package name="~org\.jenkinsci\.constant_pool_scanner.*"/>
   </Match>
-  <Match>
-    <Class name="~.*hudson.util.VersionNumber.*"/>
-  </Match>
   
   <Match>
     <!--We do not want do break API by converting potentially usefull classes-->
