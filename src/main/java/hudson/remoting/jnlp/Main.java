@@ -40,6 +40,7 @@ import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 import static java.util.logging.Level.INFO;
@@ -73,13 +74,13 @@ public class Main {
     public String tunnel;
 
     @Option(name="-headless",
-            usage="Run in headless mode, without GUI")
+            usage="Run agent in headless mode, without GUI")
     public boolean headlessMode = Boolean.getBoolean("hudson.agent.headless")
                     || Boolean.getBoolean("hudson.webstart.headless");
 
     @Option(name="-url",
             usage="Specify the Jenkins root URLs to connect to.")
-    public List<URL> urls = new ArrayList<URL>();
+    public List<URL> urls = new ArrayList<>();
 
     @Option(name="-credentials",metaVar="USER:PASSWORD",
             usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
@@ -175,6 +176,32 @@ public class Main {
     @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
     public File jarCache = null;
 
+    /**
+     * Connect directly to the TCP port specified, skipping the HTTP(S) connection parameter download.
+     * @since TODO
+     */
+    @Option(name="-direct", metaVar="HOST:PORT", aliases = "-directConnection", depends = {"-instanceIdentity"}, forbids = {"-url", "-tunnel"},
+            usage="Connect directly to this TCP agent port, skipping the HTTP(S) connection parameter download. For example, \"myjenkins:50000\".")
+    public String directConnection;
+
+    /**
+     * The master's instance identity.
+     * @see <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identity</a>
+     * @since TODO
+     */
+    @Option(name="-instanceIdentity", depends = {"-direct"},
+            usage="The base64 encoded InstanceIdentity byte array of the Jenkins master. When this is set, the agent skips connecting to an HTTP(S) port for connection info.")
+    public String instanceIdentity;
+
+    /**
+     * When instanceIdentity is set, the agent skips connecting via http(s) where it normally
+     * obtains the configured protocols. When no protocols are given the agent tries all protocols
+     * it knows. Use this to limit the protocol list.
+     * @since TODO
+     */
+    @Option(name="-protocols", depends = {"-direct"},
+            usage="Specify the remoting protocols to attempt when instanceIdentity is provided.")
+    public List<String> protocols = new ArrayList<>();
 
     /**
      * Two mandatory parameters: secret key, and agent name.
@@ -213,11 +240,12 @@ public class Main {
         Main m = new Main();
         CmdLineParser p = new CmdLineParser(m);
         p.parseArgument(args);
-        if(m.args.size()!=2)
-            throw new CmdLineException(p, "two arguments required, but got "+m.args, null);
-        if(m.urls.isEmpty())
+        if(m.args.size()!=2) {
+            throw new CmdLineException(p, "two arguments required, but got " + m.args, null);
+        }
+        if(m.urls.isEmpty() && m.directConnection == null) {
             throw new CmdLineException(p, "At least one -url option is required.", null);
-
+        }
         m.main();
     }
 
@@ -240,7 +268,7 @@ public class Main {
         LOGGER.log(INFO, "Setting up agent: {0}", agentName);
         Engine engine = new Engine(
                 headlessMode ? new CuiListener() : new GuiListener(),
-                urls, args.get(0), agentName);
+                urls, args.get(0), agentName, directConnection, instanceIdentity, new HashSet<>(protocols));
         if(tunnel!=null)
             engine.setTunnel(tunnel);
         if(credentials!=null)
