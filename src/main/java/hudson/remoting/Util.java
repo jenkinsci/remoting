@@ -21,6 +21,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 
 /**
  * Misc. I/O utilities
@@ -120,11 +121,11 @@ public class Util {
             con = url.openConnection();
         }
         if (credentials != null) {
-            String encoding = Base64.encode(credentials.getBytes("UTF-8"));
+            String encoding = Base64.getEncoder().encodeToString(credentials.getBytes("UTF-8"));
             con.setRequestProperty("Authorization", "Basic " + encoding);
         }
         if (proxyCredentials != null) {
-            String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
+            String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes("UTF-8"));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
         if (con instanceof HttpsURLConnection && sslSocketFactory != null) {

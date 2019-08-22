@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Random;
 
 /**
@@ -55,7 +56,7 @@ public class BinarySafeStreamTest extends TestCase {
 
     public void testSingleWrite() throws IOException {
         byte[] ds = getDataSet(65536);
-        String master = Base64.encode(ds);
+        String master = Base64.getEncoder().encodeToString(ds);
 
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         OutputStream o = BinarySafeStream.wrap(buf);
@@ -66,7 +67,7 @@ public class BinarySafeStreamTest extends TestCase {
 
     public void testChunkedWrites() throws IOException {
         byte[] ds = getDataSet(65536);
-        String master = Base64.encode(ds);
+        String master = Base64.getEncoder().encodeToString(ds);
 
         Random r = new Random(0);
         for( int i=0; i<16; i++) {
@@ -123,7 +124,7 @@ public class BinarySafeStreamTest extends TestCase {
         int ptr=0;
 
         for( int i=0; i<s.length(); i+=4 ) {
-            byte[] buf = Base64.decode(s.substring(i,i+4));
+            byte[] buf = Base64.getDecoder().decode(s.substring(i,i+4));
             for (int j = 0; j < buf.length; j++) {
                 if(buf[j]!=dataSet[ptr])
                     fail("encoding error at offset "+ptr);
