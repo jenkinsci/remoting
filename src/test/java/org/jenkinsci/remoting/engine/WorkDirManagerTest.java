@@ -55,7 +55,6 @@ import org.jvnet.hudson.test.Bug;
 /**
  * Tests of {@link WorkDirManager}
  * @author Oleg Nenashev.
- * @since TODO
  */
 public class WorkDirManagerTest {
 

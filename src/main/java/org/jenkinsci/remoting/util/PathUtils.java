@@ -48,7 +48,7 @@ public class PathUtils {
      * @param file File
      * @return Resulting path
      * @throws IOException Conversion error caused by {@link InvalidPathException}
-     * @since TODO
+     * @since 3.14
      */
     @Nonnull
     @Restricted(NoExternalUse.class)

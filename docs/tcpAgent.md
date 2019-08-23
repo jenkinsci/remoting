@@ -48,7 +48,7 @@ java -jar agent.jar \
 ```
 
 ### Connect directly to TCP port
-With the latest versions of the Remoting library (since TODO), it is possible to connect directly to the TCP port. 
+With the latest versions of the Remoting library (since 3.34), it is possible to connect directly to the TCP port. 
 This skips the download of the connection information file, described in step 1) above. 
 To use this you must provide some of the information that the downloaded file would contain.
 

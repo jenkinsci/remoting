@@ -75,7 +75,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
 
     /**
      * Defines the Selector wakeup timeout via a system property. Defaults to {@code 1000ms}.
-     * @since TODO
+     * @since 3.15
      */
     private static final long SELECTOR_WAKEUP_TIMEOUT_MS = Long.getLong(IOHub.class.getName() + ".selectorWakeupTimeout", 1000);
 

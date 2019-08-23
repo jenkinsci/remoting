@@ -169,7 +169,6 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      *
      * This behavior is not recommended.
      * @param disableHttpsCertValidation
-     * @since TODO
      */
     public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
         this.disableHttpsCertValidation = disableHttpsCertValidation;

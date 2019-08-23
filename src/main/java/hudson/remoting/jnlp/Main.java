@@ -107,7 +107,6 @@ public class Main {
      * Disables HTTPs Certificate validation of the server when using {@link org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver}.
      *
      * This option is not recommended for production use.
-     * @since TODO
      */
     @Option(name="-disableHttpsCertValidation",
             usage="Ignore SSL validation errors - use as a last resort only.")
@@ -178,7 +177,7 @@ public class Main {
 
     /**
      * Connect directly to the TCP port specified, skipping the HTTP(S) connection parameter download.
-     * @since TODO
+     * @since 3.34
      */
     @Option(name="-direct", metaVar="HOST:PORT", aliases = "-directConnection", depends = {"-instanceIdentity"}, forbids = {"-url", "-tunnel"},
             usage="Connect directly to this TCP agent port, skipping the HTTP(S) connection parameter download. For example, \"myjenkins:50000\".")
@@ -187,7 +186,7 @@ public class Main {
     /**
      * The master's instance identity.
      * @see <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identity</a>
-     * @since TODO
+     * @since 3.34
      */
     @Option(name="-instanceIdentity", depends = {"-direct"},
             usage="The base64 encoded InstanceIdentity byte array of the Jenkins master. When this is set, the agent skips connecting to an HTTP(S) port for connection info.")
@@ -197,7 +196,7 @@ public class Main {
      * When instanceIdentity is set, the agent skips connecting via http(s) where it normally
      * obtains the configured protocols. When no protocols are given the agent tries all protocols
      * it knows. Use this to limit the protocol list.
-     * @since TODO
+     * @since 3.34
      */
     @Option(name="-protocols", depends = {"-direct"},
             usage="Specify the remoting protocols to attempt when instanceIdentity is provided.")
