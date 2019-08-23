@@ -50,7 +50,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
      * Gets a channel for the operation inside callable.
      * @return Channel Instance
      * @throws ChannelStateException Channel is not associated with the thread
-     * @since TODO
+     * @since 3.15
      */
     @Nonnull
     default Channel getChannelOrFail() throws ChannelStateException {
@@ -77,7 +77,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
      * @return Channel instance
      * @throws ChannelStateException The channel is closing down or has been closed.
      *          Also happens if the channel is not associated with the thread at all.
-     * @since TODO
+     * @since 3.15
      */
     @Nonnull
     default Channel getOpenChannelOrFail() throws ChannelStateException {

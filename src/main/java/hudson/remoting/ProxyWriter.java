@@ -192,7 +192,7 @@ final class ProxyWriter extends Writer {
      *
      * @return Close cause. {@code null} if the writer close has not been requested yet.
      *         Nonnull values indicate that the writer may be still active, but it won't accept new write commands in such case.
-     * @since TODO
+     * @since 3.15
      */
     @CheckForNull
     public Throwable getCloseCause() {

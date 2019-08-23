@@ -40,7 +40,7 @@ import java.net.URLStreamHandler;
  * and {@link java.net.URLStreamHandler#equals(URL, URL)} but a version that use directly the {@code String} representation
  * instead of requesting the DNS to have name equivalence.
  * 
- * @since TODO
+ * @since 3.25
  */
 public class URLDeserializationHelper {
     // escape hatch for SECURITY-637 to keep legacy behavior

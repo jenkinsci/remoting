@@ -1381,7 +1381,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @throws IOException Error while creating or writing the channel information
      *
      * @since 2.62.3 - stable 2.x (restricted)
-     * @since TODO 3.x - public version
+     * @since 3.1
      */
     @Restricted(NoExternalUse.class)
     public void dumpDiagnostics(@Nonnull PrintWriter w) throws IOException {
@@ -1829,7 +1829,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param w Output destination
      *
      * @since 2.62.3 - stable 2.x (restricted)
-     * @since TODO 3.x - public version
+     * @since 3.1
      */
     @Restricted(NoExternalUse.class)
     public static void dumpDiagnosticsForAll(@Nonnull PrintWriter w) {

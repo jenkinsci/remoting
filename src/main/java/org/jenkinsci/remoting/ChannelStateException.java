@@ -41,7 +41,7 @@ import java.lang.ref.WeakReference;
  * The reference also will not be serialized.
  *
  * @author Oleg Nenashev
- * @since TODO
+ * @since 3.15
  */
 public class ChannelStateException extends IOException {
 

@@ -46,7 +46,6 @@ import java.util.logging.Logger;
  */
 @Restricted(NoExternalUse.class)
 @Deprecated
-//TODO: @RestrictedSince
 public class EngineUtil {
 
     /**

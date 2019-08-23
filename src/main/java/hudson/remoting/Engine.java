@@ -295,7 +295,7 @@ public class Engine extends Thread {
 
     /**
      * Configures custom JAR Cache location.
-     * Starting from TODO, this option disables JAR Caching in the working directory.
+     * This option disables JAR Caching in the working directory.
      * @param jarCache JAR Cache to be used
      * @since 2.24
      */
@@ -346,7 +346,6 @@ public class Engine extends Thread {
      * Determines if JNLPAgentEndpointResolver will not perform certificate validation in the HTTPs mode.
      *
      * @return {@code true} if the certificate validation is disabled.
-     * @since TODO
      */
     public boolean isDisableHttpsCertValidation() {
         return disableHttpsCertValidation;
@@ -356,7 +355,6 @@ public class Engine extends Thread {
      * Sets if JNLPAgentEndpointResolver will not perform certificate validation in the HTTPs mode.
      *
      * @param disableHttpsCertValidation {@code true} if the certificate validation is disabled.
-     * @since TODO
      */
     public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
         this.disableHttpsCertValidation = disableHttpsCertValidation;

@@ -33,7 +33,7 @@ public class ChannelClosedException extends ChannelStateException {
      * Constructor.
      * @param channel Reference to the channel. {@code null} if the channel is unknown.
      * @param cause Cause
-     * @since TODO
+     * @since 3.15
      */
     public ChannelClosedException(@CheckForNull Channel channel, @CheckForNull Throwable cause) {
         super(channel, "channel is already closed", cause);
@@ -60,7 +60,7 @@ public class ChannelClosedException extends ChannelStateException {
      * @param message Message
      * @param cause Cause of the channel close/termination.
      *              May be {@code null} if it cannot be determined when the exception is constructed.
-     * @since TODO
+     * @since 3.15
      */
     public ChannelClosedException(@CheckForNull Channel channel, @Nonnull String message, @CheckForNull Throwable cause) {
         super(channel, message, cause);

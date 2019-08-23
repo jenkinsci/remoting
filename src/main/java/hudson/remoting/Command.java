@@ -119,7 +119,7 @@ public abstract class Command implements Serializable {
      * @return Read command
      * @throws IOException Read exception
      * @throws ClassNotFoundException Deserialization error: class not found
-     * @since TODO
+     * @since 3.22
      */
     public static Command readFrom(@Nonnull Channel channel, @Nonnull byte[] payload)
             throws IOException, ClassNotFoundException {

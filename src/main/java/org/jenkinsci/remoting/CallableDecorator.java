@@ -8,7 +8,6 @@ import hudson.remoting.Channel;
  *
  * @author Kohsuke Kawaguchi
  * @see Channel#addLocalExecutionInterceptor(CallableDecorator)
- * @since TODO
  */
 public abstract class CallableDecorator {
     /**
