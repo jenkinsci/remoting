@@ -57,7 +57,7 @@ public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
         }
         HostPort hostPort = new HostPort(directionConnection);
 
-        return new JnlpAgentEndpoint(hostPort.getHost(), hostPort.getPort(), identity, protocols);
+        return new JnlpAgentEndpoint(hostPort.getHost(), hostPort.getPort(), identity, protocols, null);
     }
 
     @Override

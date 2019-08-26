@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 /**
