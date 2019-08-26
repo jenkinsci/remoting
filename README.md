@@ -1,6 +1,7 @@
 Jenkins Remoting layer
 ====
 
+[![GitHub release](https://img.shields.io/github/release/jenkinsci/remoting.svg?label=release)](https://github.com/jenkinsci/remoting/releases/latest)
 [![Join the chat at https://gitter.im/jenkinsci/remoting](https://badges.gitter.im/jenkinsci/remoting.svg)](https://gitter.im/jenkinsci/remoting?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Jenkins remoting is an executable JAR, 
