@@ -15,13 +15,10 @@ class HostPort {
             return;
         }
         int portSeparator = hostPortValue.lastIndexOf(':');
-        if (portSeparator <= 0) {
+        if (portSeparator < 0) {
             throw new IllegalArgumentException("Invalid HOST:PORT value: " + value);
         }
         host = hostPortValue.substring(0, portSeparator).trim();
-        if (host.isEmpty()) {
-            throw new IllegalArgumentException("Invalid HOST:PORT value: " + value);
-        }
         String portString = hostPortValue.substring(portSeparator + 1).trim();
         if (portString.length() > 0) {
             port = Integer.parseInt(portString);

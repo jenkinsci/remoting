@@ -72,18 +72,22 @@ public class HostPortTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testNoPort() {
+    public void testNoSeparator() {
         new HostPort("hostname");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNoHost() {
-        new HostPort(":5555");
+        HostPort hostPort = new HostPort(":5555");
+        assertThat(hostPort.getHost(), is(""));
+        assertThat(hostPort.getPort(), is(5555));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEmptyHost() {
-        new HostPort("    :5555");
+        HostPort hostPort = new HostPort("    :5555");
+        assertThat(hostPort.getHost(), is(""));
+        assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test
