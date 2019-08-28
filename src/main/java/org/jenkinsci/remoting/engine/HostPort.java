@@ -1,6 +1,10 @@
 package org.jenkinsci.remoting.engine;
 
 class HostPort {
+
+    private static final int PORT_MIN = 0;
+    private static final int PORT_MAX = (1 << 16) -1;
+
     private String host;
     private int port;
 
@@ -22,6 +26,9 @@ class HostPort {
         String portString = hostPortValue.substring(portSeparator + 1).trim();
         if (portString.length() > 0) {
             port = Integer.parseInt(portString);
+            if (port < PORT_MIN || port > PORT_MAX) {
+                throw new IllegalArgumentException("Invalid port value: " + value);
+            }
         }
     }
 
@@ -45,4 +52,5 @@ class HostPort {
     public int getPort() {
         return port;
     }
+
 }

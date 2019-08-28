@@ -104,4 +104,14 @@ public class HostPortTest {
         assertThat(hostPort.getPort(), is(0));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testNegativePort() {
+        new HostPort("hostname:-4");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPortTooHigh() {
+        new HostPort("hostname:100000");
+    }
+
 }
