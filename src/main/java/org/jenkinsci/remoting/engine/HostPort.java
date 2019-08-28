@@ -22,7 +22,10 @@ class HostPort {
         if (host.isEmpty()) {
             throw new IllegalArgumentException("Invalid HOST:PORT value: " + value);
         }
-        port = Integer.parseInt(hostPortValue.substring(portSeparator + 1).trim());
+        String portString = hostPortValue.substring(portSeparator + 1).trim();
+        if (portString.length() > 0) {
+            port = Integer.parseInt(portString);
+        }
     }
 
     private void extractIPv6(String hostPortValue) {
