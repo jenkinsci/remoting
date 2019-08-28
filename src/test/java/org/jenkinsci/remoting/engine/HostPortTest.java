@@ -88,7 +88,7 @@ public class HostPortTest {
 
     @Test
     public void testEmptyPort() {
-        HostPort hostPort = new HostPort("hostname:");
+        HostPort hostPort = new HostPort("hostname:   ");
         assertThat(hostPort.getHost(), is("hostname"));
         assertThat(hostPort.getPort(), is(0));
     }
