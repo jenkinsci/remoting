@@ -8,11 +8,11 @@ class HostPort {
     private String host;
     private int port;
 
-    public HostPort(String value) {
-        splitHostPort(value);
+    public HostPort(String value, String defaultHost, int defaultPort) {
+        splitHostPort(value, defaultHost, defaultPort);
     }
 
-    private void splitHostPort(String value) {
+    private void splitHostPort(String value, String defaultHost, int defaultPort) {
         String hostPortValue = value.trim();
         if (hostPortValue.charAt(0) == '[') {
             extractIPv6(hostPortValue);
@@ -22,13 +22,16 @@ class HostPort {
         if (portSeparator < 0) {
             throw new IllegalArgumentException("Invalid HOST:PORT value: " + value);
         }
-        host = hostPortValue.substring(0, portSeparator).trim();
+        String hostValue = hostPortValue.substring(0, portSeparator).trim();
+        host = hostValue.length() > 0 ? hostValue : defaultHost;
         String portString = hostPortValue.substring(portSeparator + 1).trim();
         if (portString.length() > 0) {
             port = Integer.parseInt(portString);
-            if (port < PORT_MIN || port > PORT_MAX) {
+            if (port <= PORT_MIN || port > PORT_MAX) {
                 throw new IllegalArgumentException("Invalid port value: " + value);
             }
+        } else {
+            port = defaultPort;
         }
     }
 

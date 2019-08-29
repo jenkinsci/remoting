@@ -9,109 +9,116 @@ public class HostPortTest {
 
     @Test
     public void testHostname() {
-        HostPort hostPort = new HostPort("hostname:5555");
+        HostPort hostPort = new HostPort("hostname:5555", null, -1);
         assertThat(hostPort.getHost(), is("hostname"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test
     public void testFqdn() {
-        HostPort hostPort = new HostPort("hostname.example.com:5555");
+        HostPort hostPort = new HostPort("hostname.example.com:5555", null, -1);
         assertThat(hostPort.getHost(), is("hostname.example.com"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test
     public void testIPv4() {
-        HostPort hostPort = new HostPort("1.2.3.4:5555");
+        HostPort hostPort = new HostPort("1.2.3.4:5555", null, -1);
         assertThat(hostPort.getHost(), is("1.2.3.4"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test
     public void testHostWhitespace() {
-        HostPort hostPort = new HostPort("  1.2.3.4  :5555");
+        HostPort hostPort = new HostPort("  1.2.3.4  :5555", null, -1);
         assertThat(hostPort.getHost(), is("1.2.3.4"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test
     public void testPortWhitespace() {
-        HostPort hostPort = new HostPort("1.2.3.4:   5555  ");
+        HostPort hostPort = new HostPort("1.2.3.4:   5555  ", null, -1);
         assertThat(hostPort.getHost(), is("1.2.3.4"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test
     public void testIPv6() {
-        HostPort hostPort = new HostPort("[1:2::3:4]:5555");
+        HostPort hostPort = new HostPort("[1:2::3:4]:5555", null, -1);
         assertThat(hostPort.getHost(), is("1:2::3:4"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test
     public void testIPv6Whitespace() {
-        HostPort hostPort = new HostPort("[  1:2::3:4  ]:5555");
+        HostPort hostPort = new HostPort("[  1:2::3:4  ]:5555", null, -1);
         assertThat(hostPort.getHost(), is("1:2::3:4"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testIPv6NoPort() {
-        new HostPort("[1:2::3:4]");
+        new HostPort("[1:2::3:4]", null, -1);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testUnclosedIPv6() {
-        new HostPort("[1:2::3:4:5555");
+        new HostPort("[1:2::3:4:5555", null, -1);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidPort() {
-        new HostPort("[1:2::3:4]:host");
+        new HostPort("[1:2::3:4]:host", null, -1);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNoSeparator() {
-        new HostPort("hostname");
+        new HostPort("hostname", null, -1);
     }
 
     @Test
     public void testNoHost() {
-        HostPort hostPort = new HostPort(":5555");
-        assertThat(hostPort.getHost(), is(""));
+        HostPort hostPort = new HostPort(":5555", "hostname", -1);
+        assertThat(hostPort.getHost(), is("hostname"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test
     public void testEmptyHost() {
-        HostPort hostPort = new HostPort("    :5555");
-        assertThat(hostPort.getHost(), is(""));
+        HostPort hostPort = new HostPort("    :5555", "hostname", -1);
+        assertThat(hostPort.getHost(), is("hostname"));
         assertThat(hostPort.getPort(), is(5555));
     }
 
     @Test
     public void testEmptyPort() {
-        HostPort hostPort = new HostPort("hostname:   ");
+        HostPort hostPort = new HostPort("hostname:   ", null, 7777);
         assertThat(hostPort.getHost(), is("hostname"));
-        assertThat(hostPort.getPort(), is(0));
+        assertThat(hostPort.getPort(), is(7777));
     }
 
     @Test
     public void testSeparatorNoPort() {
-        HostPort hostPort = new HostPort("hostname:");
+        HostPort hostPort = new HostPort("hostname:", null, 7777);
         assertThat(hostPort.getHost(), is("hostname"));
-        assertThat(hostPort.getPort(), is(0));
+        assertThat(hostPort.getPort(), is( 7777));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativePort() {
-        new HostPort("hostname:-4");
+        new HostPort("hostname:-4", null, -1);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testPortTooHigh() {
-        new HostPort("hostname:100000");
+        new HostPort("hostname:100000", null, -1);
+    }
+
+    @Test
+    public void testOnlySeparator() {
+        HostPort hostPort = new HostPort(":", "hostname", 7777);
+        assertThat(hostPort.getHost(), is("hostname"));
+        assertThat(hostPort.getPort(), is( 7777));
     }
 
 }
