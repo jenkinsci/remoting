@@ -28,7 +28,7 @@ class HostPort {
         if (portString.length() > 0) {
             port = Integer.parseInt(portString);
             if (port <= PORT_MIN || port > PORT_MAX) {
-                throw new IllegalArgumentException("Invalid port value: " + value);
+                throw new IllegalArgumentException("Port " + value + " out of valid range [" + PORT_MIN + ", " + PORT_MAX + ")");
             }
         } else {
             port = defaultPort;
