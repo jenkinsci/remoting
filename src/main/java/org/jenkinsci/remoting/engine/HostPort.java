@@ -3,7 +3,7 @@ package org.jenkinsci.remoting.engine;
 class HostPort {
 
     private static final int PORT_MIN = 0;
-    private static final int PORT_MAX = (1 << 16) -1;
+    private static final int PORT_MAX = (1 << 16) - 1;
 
     private String host;
     private int port;
