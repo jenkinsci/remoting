@@ -8,6 +8,10 @@ class HostPort {
     private String host;
     private int port;
 
+    public HostPort(String value) {
+        splitHostPort(value, null, 0);
+    }
+
     public HostPort(String value, String defaultHost, int defaultPort) {
         splitHostPort(value, defaultHost, defaultPort);
     }
