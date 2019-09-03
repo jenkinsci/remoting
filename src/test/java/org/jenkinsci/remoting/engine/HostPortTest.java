@@ -121,4 +121,9 @@ public class HostPortTest {
         assertThat(hostPort.getPort(), is( 7777));
     }
 
+    @Test(expected = NumberFormatException.class)
+    public void testPortNotANumber() {
+        new HostPort("hostname:notAPort");
+    }
+
 }
