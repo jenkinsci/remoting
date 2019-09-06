@@ -23,8 +23,10 @@
  */
 package hudson.remoting.jnlp;
 
-import javax.swing.*;
 import java.awt.event.KeyEvent;
+
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
 
 /**
  * Main menu of {@link MainDialog}.
