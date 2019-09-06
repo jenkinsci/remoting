@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.remoting.engine;
 
-import hudson.remoting.Base64;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
 
@@ -51,6 +50,7 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.*;
+import java.util.Base64;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -94,7 +94,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      */
     private static String PROTOCOL_NAMES_TO_TRY =
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
-    
+
     public JnlpAgentEndpointResolver(String... jenkinsUrls) {
         this.jenkinsUrls = new ArrayList<String>(Arrays.asList(jenkinsUrls));
     }
@@ -182,7 +182,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             if (jenkinsUrl == null) {
                 continue;
             }
-            
+
             final URL selectedJenkinsURL;
             final URL salURL;
             try {
@@ -243,7 +243,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                             }
                         }
                     }
-                    
+
                     if (agentProtocolNames.isEmpty()) {
                         LOGGER.log(Level.WARNING, "Received the empty list of supported protocols from the server. " +
                                 "All protocols are disabled on the master side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). " +
@@ -254,7 +254,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                         LOGGER.log(Level.INFO, "Remoting server accepts the following protocols: {0}", agentProtocolNames);
                     }
                 }
-                
+
                 if (PROTOCOL_NAMES_TO_TRY != null) {
                     // Take a list of protocols to try from the system property
                     agentProtocolNames = new HashSet<String>();
@@ -264,10 +264,10 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                         name = name.trim();
                         if (!name.isEmpty()) {
                             agentProtocolNames.add(name);
-                        } 
+                        }
                     }
                 }
-                
+
                 String idHeader = first(header(con, "X-Instance-Identity"));
                 RSAPublicKey identity;
                 try {
@@ -522,11 +522,11 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             con = url.openConnection();
         }
         if (credentials != null) {
-            String encoding = Base64.encode(credentials.getBytes("UTF-8"));
+            String encoding = Base64.getEncoder().encodeToString(credentials.getBytes("UTF-8"));
             con.setRequestProperty("Authorization", "Basic " + encoding);
         }
         if (proxyCredentials != null) {
-            String encoding = Base64.encode(proxyCredentials.getBytes("UTF-8"));
+            String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes("UTF-8"));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
 

@@ -90,6 +90,7 @@ import java.security.cert.CertificateException;
 import java.security.NoSuchAlgorithmException;
 import java.security.KeyManagementException;
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -477,11 +478,11 @@ public class Launcher {
                     HttpURLConnection http = (HttpURLConnection) con;
                     if  (slaveJnlpCredentials != null) {
                         String userPassword = slaveJnlpCredentials;
-                        String encoding = Base64.encode(userPassword.getBytes("UTF-8"));
+                        String encoding = Base64.getEncoder().encodeToString(userPassword.getBytes("UTF-8"));
                         http.setRequestProperty("Authorization", "Basic " + encoding);
                     }
                     if (System.getProperty("proxyCredentials", proxyCredentials) != null) {
-                        String encoding = Base64.encode(System.getProperty("proxyCredentials", proxyCredentials).getBytes("UTF-8"));
+                        String encoding = Base64.getEncoder().encodeToString(System.getProperty("proxyCredentials", proxyCredentials).getBytes("UTF-8"));
                         http.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
                     }
                 }
