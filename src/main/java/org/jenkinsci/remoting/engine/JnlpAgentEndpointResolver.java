@@ -325,7 +325,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     }
                 });
                 if (tunnel != null) {
-                    HostPort hostPort = new HostPort(tunnel);
+                    HostPort hostPort = new HostPort(tunnel, host, port);
                     host = hostPort.getHost();
                     port = hostPort.getPort();
                 }

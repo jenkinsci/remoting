@@ -72,28 +72,58 @@ public class HostPortTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testNoPort() {
+    public void testNoSeparator() {
         new HostPort("hostname");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testNoHost() {
-        new HostPort(":5555");
+        HostPort hostPort = new HostPort(":5555", "hostname", -1);
+        assertThat(hostPort.getHost(), is("hostname"));
+        assertThat(hostPort.getPort(), is(5555));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEmptyHost() {
-        new HostPort("    :5555");
+        HostPort hostPort = new HostPort("    :5555", "hostname", -1);
+        assertThat(hostPort.getHost(), is("hostname"));
+        assertThat(hostPort.getPort(), is(5555));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testEmptyPort() {
-        new HostPort("hostname:   ");
+        HostPort hostPort = new HostPort("hostname:   ", null, 7777);
+        assertThat(hostPort.getHost(), is("hostname"));
+        assertThat(hostPort.getPort(), is(7777));
+    }
+
+    @Test
+    public void testSeparatorNoPort() {
+        HostPort hostPort = new HostPort("hostname:", null, 7777);
+        assertThat(hostPort.getHost(), is("hostname"));
+        assertThat(hostPort.getPort(), is( 7777));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testSeparatorNoPort() {
-        new HostPort("hostname:");
+    public void testNegativePort() {
+        new HostPort("hostname:-4");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testPortTooHigh() {
+        new HostPort("hostname:100000");
+    }
+
+    @Test
+    public void testOnlySeparator() {
+        HostPort hostPort = new HostPort(":", "hostname", 7777);
+        assertThat(hostPort.getHost(), is("hostname"));
+        assertThat(hostPort.getPort(), is( 7777));
+    }
+
+    @Test(expected = NumberFormatException.class)
+    public void testPortNotANumber() {
+        new HostPort("hostname:notAPort");
     }
 
 }

@@ -1,28 +1,42 @@
 package org.jenkinsci.remoting.engine;
 
 class HostPort {
+
+    private static final int PORT_MIN = 0;
+    private static final int PORT_MAX = (1 << 16) - 1;
+
     private String host;
     private int port;
 
     public HostPort(String value) {
-        splitHostPort(value);
+        splitHostPort(value, null, 0);
     }
 
-    private void splitHostPort(String value) {
+    public HostPort(String value, String defaultHost, int defaultPort) {
+        splitHostPort(value, defaultHost, defaultPort);
+    }
+
+    private void splitHostPort(String value, String defaultHost, int defaultPort) {
         String hostPortValue = value.trim();
         if (hostPortValue.charAt(0) == '[') {
             extractIPv6(hostPortValue);
             return;
         }
         int portSeparator = hostPortValue.lastIndexOf(':');
-        if (portSeparator <= 0) {
+        if (portSeparator < 0) {
             throw new IllegalArgumentException("Invalid HOST:PORT value: " + value);
         }
-        host = hostPortValue.substring(0, portSeparator).trim();
-        if (host.isEmpty()) {
-            throw new IllegalArgumentException("Invalid HOST:PORT value: " + value);
+        String hostValue = hostPortValue.substring(0, portSeparator).trim();
+        host = hostValue.length() > 0 ? hostValue : defaultHost;
+        String portString = hostPortValue.substring(portSeparator + 1).trim();
+        if (portString.length() > 0) {
+            port = Integer.parseInt(portString);
+            if (port <= PORT_MIN || port > PORT_MAX) {
+                throw new IllegalArgumentException("Port " + value + " out of valid range [" + PORT_MIN + ", " + PORT_MAX + ")");
+            }
+        } else {
+            port = defaultPort;
         }
-        port = Integer.parseInt(hostPortValue.substring(portSeparator + 1).trim());
     }
 
     private void extractIPv6(String hostPortValue) {
@@ -45,4 +59,5 @@ class HostPort {
     public int getPort() {
         return port;
     }
+
 }
