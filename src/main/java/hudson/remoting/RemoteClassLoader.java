@@ -137,7 +137,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * Returns the backing channel or {@code null} if the channel is disconnected or otherwise unavailable.
      * @return the backing channel or {@code null}.
-     * @since FIXME after merge
+     * @since 2.52
      */
     @CheckForNull
     private Channel channel() {

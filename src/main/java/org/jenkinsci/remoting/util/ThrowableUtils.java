@@ -28,7 +28,7 @@ import javax.annotation.CheckForNull;
 /**
  * Utility methods to help when working with {@link Throwable} instances.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class ThrowableUtils {
 

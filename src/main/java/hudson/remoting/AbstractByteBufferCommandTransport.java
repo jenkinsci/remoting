@@ -40,7 +40,7 @@ import org.jenkinsci.remoting.util.IOUtils;
 /**
  * A {@link CommandTransport} that uses {@link ByteBuffer} rather than {@link byte[]}.
  *
- * @since FIXME
+ * @since 3.0
  */
 public abstract class AbstractByteBufferCommandTransport extends CommandTransport {
 

@@ -31,7 +31,7 @@ import java.io.InputStream;
  * Assumes that the backing {@link ByteBufferQueue} will not be read by another thread during calls to {@link #read()}
  * so all methods are non-blocking. Does not support {@link #mark(int)}.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class FastByteBufferQueueInputStream extends InputStream {
 

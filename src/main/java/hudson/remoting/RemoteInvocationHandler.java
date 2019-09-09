@@ -70,7 +70,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * The {@link Unexporter} to track {@link RemoteInvocationHandler} instances that should be unexported when
      * collected by the garbage collector.
-     * @since FIXME after merge
+     * @since 2.52
      */
     private static final Unexporter UNEXPORTER = new Unexporter();
     /**
@@ -86,7 +86,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * This field is null when a {@link RemoteInvocationHandler} is just
      * created and not working as a remote proxy. Once tranferred to the
      * remote system, this field is set to non-null.
-     * @since FIXME after merge
+     * @since 2.52
      */
     @CheckForNull
     private transient Channel.Ref channel;
@@ -173,7 +173,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * clean themselves up by sending the {@link UnexportCommand} over the closing {@link Channel}.
      *
      * @param channel the {@link Channel} that is terminating/terminated.
-     * @since FIXME after merge
+     * @since 2.52
      */
     /*package*/ static void notifyChannelTermination(Channel channel) {
         UNEXPORTER.onChannelTermination(channel);
@@ -187,7 +187,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * Returns the backing channel or {@code null} if the channel is disconnected or otherwise unavailable.
      *
      * @return the backing channel or {@code null}.
-     * @since FIXME after merge
+     * @since 2.52
      */
     @CheckForNull
     private Channel channel() {
@@ -201,7 +201,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      *
      * @return the backing channel.
      * @throws IOException if the channel is disconnected or otherwise unavailable.
-     * @since FIXME after merge
+     * @since 2.52
      */
     @Nonnull
     private Channel channelOrFail() throws IOException {
@@ -347,7 +347,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * Finalizers are run only under extreme GC pressure whereas {@link PhantomReference} are cleared out
      * more quickly, thus we use a {@link PhantomReference} in place of the override of {@link Object#finalize()}
      * that was previously used in order to unexport.
-     * @since FIXME after merge
+     * @since 2.52
      */
     private static class PhantomReferenceImpl extends PhantomReference<RemoteInvocationHandler> {
 
@@ -402,7 +402,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
     /**
      * Manages the cleanup of {@link RemoteInvocationHandler} instances that need to be auto unexported.
-     * @since FIXME after merge
+     * @since 2.52
      */
     private static class Unexporter implements Runnable {
 
@@ -418,28 +418,28 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * If you have a high throughput of remoting requests and you do not need the call-site tracability
          * you can reduce GC pressure by discarding the origin call-site stack traces and setting this system
          * property.
-         * @since FIXME after merge
+         * @since 2.58
          */
         private static final boolean retainOrigin =
                 Boolean.parseBoolean(System.getProperty(Unexporter.class.getName() + ".retainOrigin", "true"));
         /**
          * How often to sweep out references from {@link Channel} instances that are closed (and therefore have a no-op
          * {@link PhantomReferenceImpl#cleanup()}.
-         * @since FIXME after merge
+         * @since 2.58
          */
         private static final long sweepInterval =
                 secSysPropAsNanos(Unexporter.class.getName() + ".sweepInterval", 0.1, 0.2, 5.0);
         /**
          * How often to measure the quantity of work being done by the {@link Unexporter}.
          *
-         * @since FIXME after merge
+         * @since 2.58
          */
         private static final long measureInterval =
                 secSysPropAsNanos(Unexporter.class.getName() + ".measureInterval", 5.0, 5.0, 60.0);
         /**
          * How often to report the statistics for the work being done by the {@link Unexporter}.
          *
-         * @since FIXME after merge
+         * @since 2.58
          */
         private static final long reportInterval =
                 secSysPropAsNanos(Unexporter.class.getName() + ".reportInterval", 30.0, 60.0, 3600.0);

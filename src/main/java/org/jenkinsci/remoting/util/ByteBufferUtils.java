@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Utility methods to help working with {@link ByteBuffer}s.
  *
- * @since FIXME
+ * @since 3.0
  */
 public final class ByteBufferUtils {
 

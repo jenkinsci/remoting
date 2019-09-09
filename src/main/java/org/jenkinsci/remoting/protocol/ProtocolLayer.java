@@ -74,7 +74,7 @@ public interface ProtocolLayer {
     /**
      * Interface to indicate that this layer receives data from lower layers.
      *
-     * @since FIXME
+     * @since 3.0
      */
     interface Recv extends ProtocolLayer {
         /**
@@ -108,7 +108,7 @@ public interface ProtocolLayer {
     /**
      * Interface to indicate that this layer sends data to lower layers.
      *
-     * @since FIXME
+     * @since 3.0
      */
     interface Send extends ProtocolLayer {
         /**
