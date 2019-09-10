@@ -219,12 +219,17 @@ public class JnlpAgentEndpoint {
 
                 BufferedInputStream is = new BufferedInputStream(socket.getInputStream());
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                String line = reader.readLine().trim();
-                String[] responseLineParts = line.split(" ");
+                String line = reader.readLine();
+                if (line == null)
+                    throw new IOException("Proxy socket closed");
+                String[] responseLineParts = line.trim().split(" ");
                 if (responseLineParts.length < 2 || !responseLineParts[1].equals("200")) {
                     throw new IOException("Got a bad response from proxy: " + line);
                 }
-                while (!reader.readLine().trim().isEmpty()) {
+                while (!line.trim().isEmpty()) {
+                    line = reader.readLine();
+                    if (line == null)
+                        throw new IOException("Proxy socket closed");
                     // Do nothing, scrolling through headers returned from proxy
                 }
             }
