@@ -226,10 +226,7 @@ public class JnlpAgentEndpoint {
                 if (responseLineParts.length < 2 || !responseLineParts[1].equals("200")) {
                     throw new IOException("Got a bad response from proxy: " + line);
                 }
-                while (!line.trim().isEmpty()) {
-                    line = reader.readLine();
-                    if (line == null)
-                        throw new IOException("Proxy socket closed");
+                while ((line = reader.readLine()) != null && !line.trim().isEmpty()) {
                     // Do nothing, scrolling through headers returned from proxy
                 }
             }
