@@ -33,6 +33,7 @@ import static org.junit.Assert.assertNotEquals;
  *
  * @author Akshay Dayal
  */
+@SuppressWarnings("deprecation")
 public class HandshakeCiphersTest {
 
     @Test

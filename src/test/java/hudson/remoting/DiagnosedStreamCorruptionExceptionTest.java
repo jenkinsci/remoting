@@ -10,7 +10,7 @@ import java.io.PrintWriter;
 import java.io.StreamCorruptedException;
 import java.io.StringWriter;
 
-import static junit.framework.Assert.*;
+import static org.junit.Assert.*;
 
 /**
  * @author Kohsuke Kawaguchi

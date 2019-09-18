@@ -1,8 +1,8 @@
 package hudson.remoting.throughput;
 
-import hudson.remoting.Callable;
 import hudson.remoting.CallableBase;
 import hudson.remoting.Channel;
+import hudson.remoting.ChannelBuilder;
 import hudson.remoting.Future;
 import hudson.remoting.Pipe;
 import hudson.remoting.SocketChannelStream;
@@ -36,7 +36,7 @@ public class Sender {
         while (true) {
             Socket s = new Socket("127.0.0.2",Receiver.PORT);
             s.setTcpNoDelay(true);
-            Channel ch = new Channel("bogus", Executors.newCachedThreadPool(),
+            Channel ch = new ChannelBuilder("bogus", Executors.newCachedThreadPool()).build(
                     new BufferedInputStream(SocketChannelStream.in(s)),
                     new BufferedOutputStream(SocketChannelStream.out(s)));
 

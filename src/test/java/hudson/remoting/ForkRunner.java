@@ -52,7 +52,7 @@ public class ForkRunner implements ChannelRunner {
             System.out.println("Recording to "+f);
             out = new TeeOutputStream(out,new FileOutputStream(f));
         }
-        return new Channel("north", executor, proc.getInputStream(), out);
+        return new ChannelBuilder("north", executor).build(proc.getInputStream(), out);
     }
 
     public void stop(Channel channel) throws Exception {
