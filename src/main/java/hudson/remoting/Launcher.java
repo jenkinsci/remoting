@@ -270,12 +270,31 @@ public class Launcher {
             depends = "-workDir")
     @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
+    
+    /**
+     * Shows help message and then exits
+     * @since 3.36
+     */
+    @Option(name="-help",usage="Show this help message")
+    public boolean showHelp = false;
+
+    /**
+     * Shows version information and then exits
+     * @since 3.36
+     */
+    @Option(name="-version",usage="Shows the version of the remoting jar and then exits")
+    public boolean showVersion = false;
+
 
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
         try {
             parser.parseArgument(args);
+            if (launcher.showHelp && !launcher.showVersion) {
+                parser.printUsage(System.out);
+                return;
+            }
             launcher.run();
         } catch (CmdLineException e) {
             System.err.println(e.getMessage());
@@ -287,6 +306,21 @@ public class Launcher {
 
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DM_DEFAULT_ENCODING")    // log file, just like console output, should be in platform default encoding
     public void run() throws Exception {
+
+        if (showVersion) {
+            try(InputStream propertyInputStream = this.getClass().getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF")) {
+                if (propertyInputStream == null) {
+                    System.err.println("No version information available");
+                    return;
+                }
+                Properties properties = new Properties();
+                properties.load(propertyInputStream);
+                System.out.println("agent.jar version " + properties.getProperty("Version"));
+            } catch(IOException e) {
+                System.err.println("No version information available");
+            }
+            return;
+        }
 
         // Create and verify working directory and logging
         // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this parameter in
