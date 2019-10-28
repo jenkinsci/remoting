@@ -37,7 +37,7 @@ public class HandshakeCiphersTest {
 
     @Test
     public void testEncryptDecrypt() throws Exception {
-        HandshakeCiphers ciphers = HandshakeCiphers.create("some slave", "some secret");
+        HandshakeCiphers ciphers = HandshakeCiphers.create("some agent", "some secret");
 
         assertNotEquals("string 1", ciphers.encrypt("string 1"));
         assertEquals("string 1", ciphers.decrypt(ciphers.encrypt("string 1")));
@@ -47,8 +47,8 @@ public class HandshakeCiphersTest {
 
     @Test
     public void testMatchingWithSameValues() throws Exception {
-        HandshakeCiphers ciphers1 = HandshakeCiphers.create("some slave", "some secret");
-        HandshakeCiphers ciphers2 = HandshakeCiphers.create("some slave", "some secret");
+        HandshakeCiphers ciphers1 = HandshakeCiphers.create("some agent", "some secret");
+        HandshakeCiphers ciphers2 = HandshakeCiphers.create("some agent", "some secret");
 
         assertEquals("string 1", ciphers2.decrypt(ciphers1.encrypt("string 1")));
         assertEquals("string 2", ciphers1.decrypt(ciphers2.encrypt("string 2")));
@@ -56,8 +56,8 @@ public class HandshakeCiphersTest {
 
     @Test
     public void testNotMatchingWithDifferentValues() throws Exception {
-        HandshakeCiphers ciphers1 = HandshakeCiphers.create("some slave", "some secret");
-        HandshakeCiphers ciphers2 = HandshakeCiphers.create("other slave", "other secret");
+        HandshakeCiphers ciphers1 = HandshakeCiphers.create("some agent", "some secret");
+        HandshakeCiphers ciphers2 = HandshakeCiphers.create("other agent", "other secret");
 
         assertNotEquals("string 1", ciphers2.decrypt(ciphers1.encrypt("string 1")));
         assertNotEquals("string 2", ciphers1.decrypt(ciphers2.encrypt("string 2")));

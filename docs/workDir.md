@@ -10,7 +10,7 @@ all operations were managed by library users (e.g. Jenkins agent workspaces).
 ### Before Remoting 3.8 (Jenkins 2.68)
 
 * There is no work directory management in Remoting itself
-* Logs are not being persisted to the disk unless `-slaveLog` option is specified
+* Logs are not being persisted to the disk unless `-agentLog` option is specified
 * JAR Cache is being stored in `${user.home}/.jenkins` unless `-jarCache` option is specified
 
 ### After Remoting 3.8 (Jenkins 2.68)

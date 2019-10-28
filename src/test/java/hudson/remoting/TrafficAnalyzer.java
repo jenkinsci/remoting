@@ -8,11 +8,11 @@ import java.io.DataInputStream;
 import java.io.ObjectInputStream;
 
 /**
- * A little forensic analysis tool to figure out what information master and slaves are exchanging.
+ * A little forensic analysis tool to figure out what information master and agent are exchanging.
  *
  * <p>
  * Use the tee command or network packet capturing tool to capture the traffic between the master and
- * the slave, then run it through this tool to get the dump of what commands are sent between them.
+ * the agent, then run it through this tool to get the dump of what commands are sent between them.
  *
  * @author Kohsuke Kawaguchi
  */

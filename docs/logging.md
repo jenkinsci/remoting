@@ -6,7 +6,7 @@ In Remoting logging is powered by the standard `java.util.logging` engine.
 The default behavior depends on the [Work Directory](workDir.md) mode.
 
 :exclamation: Note that `-loggingConfig` option and [Work directories](workDir.md) are available starting from [Remoting 3.8](../CHANGELOG.md#38). 
-Before this release you have to use the `-slaveLog` option or to redirect STDOUT/STDERR streams.
+Before this release you have to use the `-agentLog` option or to redirect STDOUT/STDERR streams.
 
 ### Configuration
 
@@ -33,16 +33,16 @@ Logging destinations:
   * Logs are being automatically rotated.
     By default, Remoting keeps 5 10MB files
   * Default logging level - `INFO`
-  * If the legacy `-agentLog` or `-slaveLog` option is enabled, this file logging will be disabled.
+  * If the legacy `-agentLog` option is enabled, this file logging will be disabled.
 
-If `-agentLog` or `-slaveLog` are not specified, `${workDir}/${internalDir}/logs` directory will be created during the work directory initialization (if required).
+If `-agentLog` are not specified, `${workDir}/${internalDir}/logs` directory will be created during the work directory initialization (if required).
 
 <!--TODO: Mention conflict with early initialization by java.util.logging.config.file?-->
 
 ### Default behavior without work directory (legacy mode)
 
 * By default, all logs within the system are being sent to _STDOUT/STDERR_ using `java.util.logging`.
-* If `-agentLog` or `-slaveLog` option is specified, the log will be also forwarded to the specified file
+* If `-agentLog` option is specified, the log will be also forwarded to the specified file
   * The existing file will be overridden on startup
   * Remoting does not perform automatic log rotation of this log file
   

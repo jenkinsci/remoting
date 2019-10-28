@@ -38,7 +38,7 @@ These properties require independent configuration on both sides of the channel.
       <td>2.0</td>
       <td>1.367</td>
       <td><a href="https://issues.jenkins-ci.org/browse/JENKINS-35190">JENKINS-35190</a></td>
-      <td>Seconds between ping checks to monitor health of slave nodes; 
+      <td>Seconds between ping checks to monitor health of agent nodes; 
       0 to disable ping</td>
     </tr>
     <tr>
@@ -47,7 +47,7 @@ These properties require independent configuration on both sides of the channel.
       <td>2.0</td>
       <td>1.367</td>
       <td>N/A</td>
-      <td>If ping of slave node takes longer than this, consider it dead; 
+      <td>If ping of agent node takes longer than this, consider it dead; 
       0 to disable ping</td>
     </tr>
     <tr>

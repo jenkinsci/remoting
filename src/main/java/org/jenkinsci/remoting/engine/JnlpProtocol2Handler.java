@@ -47,10 +47,10 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
  * Implementation of the JNLP2-connect protocol.
  *
  * This is an extension of the JNLP1-connect protocol. On successful
- * connection to the master the slave will receive a cookie from the master,
- * which the slave stores.
+ * connection to the master the agent will receive a cookie from the master,
+ * which the agent stores.
  *
- * If the slave needs to reconnect it will send the same cookie as part of
+ * If the agent needs to reconnect it will send the same cookie as part of
  * the new connection request. The master can use the cookie to determine if
  * the incoming request is an initial connection request or a reconnection
  * and take appropriate action.

@@ -23,8 +23,8 @@ In Remoting 3 the required Java version is updated from Java 6 to Java 7.
 In **Jenkins** project:
 
 * Nothing changes, starting from <code>1.610</code> Java 6 is not supported in Jenkins, 
-  on both master and slaves/agents
-* In particular cases it was possible to run Jenkins slaves/agents on Java 6 with Remoting <code>2.x</code>, 
+  on both master and agents
+* In particular cases it was possible to run Jenkins agents on Java 6 with Remoting <code>2.x</code>, 
   but this configuration was not officially supported
 
 In other projects:
