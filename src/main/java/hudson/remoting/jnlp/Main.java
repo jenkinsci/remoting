@@ -32,6 +32,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
+import hudson.remoting.Util;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.args4j.Option;
@@ -203,6 +204,20 @@ public class Main {
     public List<String> protocols = new ArrayList<>();
 
     /**
+     * Shows help message and then exits
+     * @since 3.36
+     */
+    @Option(name="-help",usage="Show this help message")
+    public boolean showHelp = false;
+
+    /**
+     * Shows version information and then exits
+     * @since 3.36
+     */
+    @Option(name="-version",usage="Shows the version of the remoting jar and then exits")
+    public boolean showVersion = false;
+
+    /**
      * Two mandatory parameters: secret key, and agent name.
      */
     @Argument
@@ -239,6 +254,13 @@ public class Main {
         Main m = new Main();
         CmdLineParser p = new CmdLineParser(m);
         p.parseArgument(args);
+        if (m.showHelp && !m.showVersion) {
+            p.printUsage(System.out);
+            return;
+        } else if(m.showVersion) {
+            System.out.println(Util.getVersion());
+            return;
+        }
         if(m.args.size()!=2) {
             throw new CmdLineException(p, "two arguments required, but got " + m.args, null);
         }

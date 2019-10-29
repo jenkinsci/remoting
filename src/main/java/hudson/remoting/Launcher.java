@@ -306,18 +306,10 @@ public class Launcher {
 
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DM_DEFAULT_ENCODING")    // log file, just like console output, should be in platform default encoding
     public void run() throws Exception {
-
         if (showVersion) {
-            try(InputStream propertyInputStream = this.getClass().getClassLoader().getResourceAsStream("META-INF/MANIFEST.MF")) {
-                if (propertyInputStream == null) {
-                    System.err.println("No version information available");
-                    return;
-                }
-                Properties properties = new Properties();
-                properties.load(propertyInputStream);
-                System.out.println("agent.jar version " + properties.getProperty("Version"));
-            } catch(IOException e) {
-                System.err.println("No version information available");
+            String version = Util.getVersion();
+            if(version != null) {
+                System.out.println(version);
             }
             return;
         }
