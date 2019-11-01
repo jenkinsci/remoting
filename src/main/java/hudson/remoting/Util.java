@@ -168,9 +168,8 @@ public class Util {
         try {
             Enumeration resEnum = Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
             while (resEnum.hasMoreElements()) {
-                try {
-                    URL url = (URL) resEnum.nextElement();
-                    InputStream is = url.openStream();
+                URL url = (URL) resEnum.nextElement();
+                try(InputStream is = url.openStream()) {
                     if (is != null) {
                         Manifest manifest = new Manifest(is);
                         version = manifest.getMainAttributes().getValue("Version");
@@ -178,8 +177,6 @@ public class Util {
                             break;
                         }
                     }
-                } catch (Exception e) {
-                    System.out.println("Could not access manifest");
                 }
             }
         } catch (IOException e) {
