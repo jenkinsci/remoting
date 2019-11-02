@@ -48,7 +48,7 @@ import javax.annotation.concurrent.GuardedBy;
  * Inspired by {@code com.google.common.util.concurrent.SettableFuture} which we cannot use in remoting because we
  * need to keep external dependencies to a minimum.
  *
- * @since FIXME.
+ * @since 3.0
  */
 public final class SettableFuture<V> implements ListenableFuture<V> {
     /**

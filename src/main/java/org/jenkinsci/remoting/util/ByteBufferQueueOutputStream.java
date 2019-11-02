@@ -29,7 +29,7 @@ import java.io.OutputStream;
 /**
  * An {@link OutputStream} backed by a {@link ByteBufferQueue}.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class ByteBufferQueueOutputStream extends OutputStream {
 

@@ -31,7 +31,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 /**
  * I/O related utility methods. Included to minimize external dependencies of the remoting library.
  *
- * @since FIXME
+ * @since 3.0
  */
 @Restricted(NoExternalUse.class)
 public class IOUtils {
@@ -47,7 +47,7 @@ public class IOUtils {
      * Unconditionally close a <code>Closeable</code>.
      *
      * @param closeable the object to close, may be null or already closed
-     * @since FIXME
+     * @since 3.0
      */
     public static void closeQuietly(Closeable closeable) {
         try {

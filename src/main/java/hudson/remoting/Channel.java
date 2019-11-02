@@ -205,7 +205,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * these typically arrise when an {@link #export(Class, Object)} is {@link #setProperty(Object, Object)}
      * (a supported and intended use case), the {@link Ref} allows us to break the object cycle on channel
      * termination and simplify the circles into chains which can then be collected easily by the garbage collector.
-     * @since FIXME after merge
+     * @since 2.52
      */
     private final Ref reference;
 
@@ -583,7 +583,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Gets the {@link Ref} for this {@link Channel}. The {@link Ref} will be {@linkplain Ref#clear(Exception)}ed when
      * the channel is terminated in order to break any complex object cycles.
      * @return the {@link Ref} for this {@link Channel}
-     * @since FIXME after merge
+     * @since 2.52
      */
     @Nonnull
     /*package*/ Ref ref() {

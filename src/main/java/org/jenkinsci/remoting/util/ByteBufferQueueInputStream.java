@@ -33,7 +33,7 @@ import java.nio.ByteBuffer;
  * not be updated by another thread during calls to {@link #read()} so all methods are non-blocking and an empty
  * {@link ByteBufferQueue} is deemed equivalent to end of stream.
  *
- * @since FIXME
+ * @since 3.0
  */
 public class ByteBufferQueueInputStream extends InputStream {
 

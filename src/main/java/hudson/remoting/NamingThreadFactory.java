@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Thread factory that sets thread name so we know who is responsible for so many threads being created.
- * @since FIXME after merge
+ * @since 2.52
  */
 public class NamingThreadFactory implements ThreadFactory {
     private final AtomicInteger threadNum = new AtomicInteger();

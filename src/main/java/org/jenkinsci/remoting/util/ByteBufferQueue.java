@@ -31,7 +31,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 /**
  * A helper class to make queuing up of data easier.
  *
- * @since FIXME
+ * @since 3.0
  */
 @NotThreadSafe
 public class ByteBufferQueue {
