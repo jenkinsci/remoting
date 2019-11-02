@@ -629,7 +629,7 @@ Release date: (Aug 5, 2016) => Jenkins 2.17, 2.19.1 LTS
 
 Fixed issues:
 * [JENKINS-37140](https://issues.jenkins-ci.org/browse/JENKINS-37140) -
-JNLP Slave connection issue with *JNLP3-connect* protocol when the generated encrypted cookie contains a newline symbols.
+JNLP Agent connection issue with *JNLP3-connect* protocol when the generated encrypted cookie contains a newline symbols.
 (https://github.com/jenkinsci/remoting/pull/95)
 * [JENKINS-36991](https://issues.jenkins-ci.org/browse/JENKINS-36991) -
 Unable to load class when remote classloader gets interrupted.

@@ -265,8 +265,8 @@ public class WorkDirManager {
     public void setupLogging(@CheckForNull Path internalDirPath, @CheckForNull Path overrideLogPath) throws IOException {
         if (loggingInitialized) {
             // Do nothing, in Remoting initialization there may be two calls due to the
-            // legacy -slaveLog behavior implementation.
-            LOGGER.log(Level.CONFIG, "Logging susystem has been already initialized");
+            // legacy -agentLog behavior implementation.
+            LOGGER.log(Level.CONFIG, "Logging system has been already initialized");
             return;
         }
 
@@ -308,7 +308,7 @@ public class WorkDirManager {
             this.loggingInitialized = true;
         } else {
             // TODO: This message is suspected to break the CI
-            // System.err.println("WARNING: Log location is not specified (neither -workDir nor -slaveLog/-agentLog set)");
+            // System.err.println("WARNING: Log location is not specified (neither -workDir nor -agentLog set)");
         }
     }
 

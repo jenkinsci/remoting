@@ -6,7 +6,7 @@ Jenkins Remoting layer
 
 Jenkins remoting is an executable JAR, 
 which implements communication layer in [Jenkins](https://jenkins.io) automation server. 
-It's being used for master <=> agent(fka "slave") and master <=> CLI communications.
+It's being used for master <=> agent and master <=> CLI communications.
 
 In general, this library contains the bootstrap code to bridge separate JVMs into a single semi-shared space.
 It includes: TCP-based communication protocols, data serialization, Java classloading.

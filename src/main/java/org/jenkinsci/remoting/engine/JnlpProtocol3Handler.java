@@ -59,29 +59,29 @@ import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
  * Implementation of the JNLP3-connect protocol.
  *
  * <p>This protocol aims to provide a basic level of security for JNLP based
- * slaves. Both the master and the slave securely authenticate each other and
+ * agents. Both the master and the agent securely authenticate each other and
  * then setup an encrypted {@link Channel}.
  *
- * <p>The slave secret is never exchanged, but instead used as a shared secret
+ * <p>The agent secret is never exchanged, but instead used as a shared secret
  * to generate matching symmetric key {@link javax.crypto.Cipher}s by both
  * sides which are used to perform a secure handshake. During the handshake
- * both the slave and the master send each other challenge phrases which can
- * only be decrypted with the matching cipher created with the slave secret.
+ * both the agent and the master send each other challenge phrases which can
+ * only be decrypted with the matching cipher created with the agent secret.
  * Once decrypted the SHA-256 hash of the challenge is computed and sent back
  * to authenticate.
  *
  * <p>Once the handshake is successful another pair of symmetric key ciphers
- * are created by the slave using random keys. These are then shared with the
+ * are created by the agent using random keys. These are then shared with the
  * master. These ciphers are used to create an encrypted channel by both sides.
  *
  * <p>The following goes over the handshake in more detail:
  * <pre>
  * {@code
  * Client                                                                Master
- *           handshake ciphers = createFrom(slave name, slave secret)
+ *           handshake ciphers = createFrom(agent name, agent secret)
  *
  *   |                                                                     |
- *   |      initiate(slave name, encrypt(challenge), encrypt(cookie))      |
+ *   |      initiate(agent name, encrypt(challenge), encrypt(cookie))      |
  *   |  -------------------------------------------------------------->>>  |
  *   |                                                                     |
  *   |                       encrypt(hash(challenge))                      |
@@ -111,8 +111,8 @@ import static org.jenkinsci.remoting.engine.Jnlp3Util.createChallengeResponse;
  * }
  *  </pre>
  *
- * <p>The entire process assumes the slave secret has not been leaked
- * beforehand and the slave obtains it in a secure manner.
+ * <p>The entire process assumes the agent secret has not been leaked
+ * beforehand and the agent obtains it in a secure manner.
  *
  * <p>The key sizes are only 128bit since it cannot be assumed everyone has
  * the <a href="http://www.oracle.com/technetwork/java/javase/downloads/jce-6-download-429243.html">
@@ -266,7 +266,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         PrintWriter out = state.getPrintWriter();
         out.println(NEGOTIATE_LINE);
 
-        // Get initiation information from slave.
+        // Get initiation information from agent.
         Properties request = new Properties();
         DataInputStream in = state.getDataInputStream();
         request.load(new ByteArrayInputStream(in.readUTF().getBytes(StandardCharsets.UTF_8)));
@@ -291,7 +291,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
         out.print(encryptedChallengeResponse);
         out.flush();
 
-        // If the slave accepted our challenge response send our challenge.
+        // If the agent accepted our challenge response send our challenge.
         String challengeVerificationMessage = null;
         try {
             challengeVerificationMessage = in.readUTF();

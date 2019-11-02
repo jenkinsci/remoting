@@ -41,7 +41,7 @@ but confirmed protocol-specific issues will be closed and added to Errata.
 
 * Status: Replaced by `JNLP2-connect`
 
-The slave sends the master the slave name it wants to register as and the computed HMAC of the slave name.
+The agent sends the master the name it wants to register as and the computed HMAC of the agent name.
 If accepted the master will reply with a confirmation response.
 Then the channel gets established.
 
@@ -55,9 +55,9 @@ It may cause performance issues on large-scale instances.
 * Status: Replaced by `JNLP4-connect`
 
 This is the advanced versions of the <code>JNLP1-connect</code> protocol. 
-On successful connection to the master the slave will receive a cookie from the master, which the slave stores.
+On successful connection to the master the agent will receive a cookie from the master, which the agent stores.
  
-If the slave needs to reconnect it will send the same cookie as part of the new connection request. 
+If the agent needs to reconnect it will send the same cookie as part of the new connection request. 
 The master can use the cookie to determine if the incoming request is an initial connection request 
   or a reconnection and take appropriate action.
   
@@ -78,8 +78,8 @@ Check the bugtracker for more issues.
 * The protocol is disabled by default in Jenkins
 * **Not recommended** for use since the <code>JNLP4-connect</code> release
 
-This protocol aims to improve security of JNLP-based slaves. 
-Both the master and the slave securely authenticate each other and then setup an encrypted channel.
+This protocol aims to improve security of JNLP-based agent. 
+Both the master and the agent securely authenticate each other and then setup an encrypted channel.
 
 The protocol does not support non-blocking IO.
 For each connection a new thread is being created, and it leads to the performance degradation or
@@ -94,7 +94,7 @@ There is no plan to fix these issues, usage of `JNLP4-connect` is the recommende
 * [JENKINS-37302](https://issues.jenkins-ci.org/browse/JENKINS-37302) - 
 JNLP3 challenge response generates invalid string encoding, the check may fail randomly.
 * [JENKINS-33886](https://issues.jenkins-ci.org/browse/JENKINS-33886) -
-On some configurations only one JNLP3 slave per IP address can be connected.
+On some configurations only one JNLP3 agent per IP address can be connected.
 * [JENKINS-34121](https://issues.jenkins-ci.org/browse/JENKINS-34121) -
 JNLP3 cannot be used on IBM Java, which doesn't support AES/CTR/PKCS5Padding.
 

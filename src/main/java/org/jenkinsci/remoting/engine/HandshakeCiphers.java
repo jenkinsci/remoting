@@ -98,12 +98,12 @@ class HandshakeCiphers {
      * Create a pair of AES symmetric key {@link Cipher}s that
      * will be used during the handshake process.
      *
-     * <p>The slave name and slave secret are used to create a
+     * <p>The agent name and agent secret are used to create a
      * {@link PBEKeySpec} and an {@link IvParameterSpec}which is then used to
      * create the ciphers.
      *
-     * @param salt The slave for which the handshake is taking place.
-     * @param secret The slave secret.
+     * @param salt The agent for which the handshake is taking place.
+     * @param secret The agent secret.
      */
     public static HandshakeCiphers create(String salt, String secret) {
         try {
