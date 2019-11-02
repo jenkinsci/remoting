@@ -122,11 +122,11 @@ class HandshakeCiphers {
         }
     }
 
-    private static SecretKey generateSecretKey(String slaveName, String slaveSecret)
+    private static SecretKey generateSecretKey(String agentName, String agentSecret)
             throws GeneralSecurityException {
         SecretKeyFactory factory = SecretKeyFactory.getInstance(FACTORY_ALGORITHM);
         KeySpec spec = new PBEKeySpec(
-                slaveSecret.toCharArray(), slaveName.getBytes(StandardCharsets.UTF_8),
+                agentSecret.toCharArray(), agentName.getBytes(StandardCharsets.UTF_8),
                 INTEGRATION_COUNT, KEY_LENGTH);
         SecretKey tmpSecret = factory.generateSecret(spec);
         return new SecretKeySpec(tmpSecret.getEncoded(), SPEC_ALGORITHM);
