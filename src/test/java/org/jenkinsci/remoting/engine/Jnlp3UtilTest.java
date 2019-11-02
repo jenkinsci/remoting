@@ -44,6 +44,7 @@ import static org.junit.Assert.assertTrue;
  *
  * @author Akshay Dayal
  */
+@SuppressWarnings("deprecation")
 public class Jnlp3UtilTest {
 
     private static final Random ENTROPY = new SecureRandom();

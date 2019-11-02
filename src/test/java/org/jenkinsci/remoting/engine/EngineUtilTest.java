@@ -37,6 +37,7 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Akshay Dayal
  */
+@SuppressWarnings("deprecation")
 public class EngineUtilTest {
 
     @Test

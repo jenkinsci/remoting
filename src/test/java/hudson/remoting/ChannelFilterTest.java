@@ -9,7 +9,7 @@ import java.util.concurrent.Callable;
  */
 public class ChannelFilterTest extends RmiTestBase {
     public void testFilter() throws Exception {
-        channel.addLocalExecutionInterceptor(new CallableFilter() {
+        channel.addLocalExecutionInterceptor(new CallableDecorator() {
             public <V> V call(Callable<V> callable) throws Exception {
                 Object old = STORE.get();
                 STORE.set("x");

@@ -35,6 +35,7 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Akshay Dayal
  */
+@SuppressWarnings("deprecation")
 public class ChannelCiphersTest {
 
     private static final Random ENTROPY = new SecureRandom();
