@@ -68,9 +68,9 @@ THE SOFTWARE.
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <findbugs.effort>Max</findbugs.effort>
-    <findbugs.excludeFilterFile>${basedir}/src/findbugs/excludeFilter.xml</findbugs.excludeFilterFile>
-    <findbugs.threshold>Low</findbugs.threshold>
+    <spotbugs.effort>Max</spotbugs.effort>
+    <spotbugs.excludeFilterFile>${basedir}/src/spotbugs/excludeFilter.xml</spotbugs.excludeFilterFile>
+    <spotbugs.threshold>Low</spotbugs.threshold>
     <!-- TODO: Required to override by a version with certchain support (MJARSIGNER-53) on @oleg-nenashev's machine. Remove once it's in upstream -->
     <maven-jarsigner-plugin.version>1.4</maven-jarsigner-plugin.version>
   </properties>
