@@ -94,6 +94,11 @@ THE SOFTWARE.
       <artifactId>animal-sniffer-annotations</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.glassfish.tyrus.bundles</groupId>
+      <artifactId>tyrus-standalone-client-jdk</artifactId>
+      <version>1.12</version>
+    </dependency>
     <!-- test dependencies -->
     <dependency>
       <groupId>junit</groupId>
@@ -341,6 +346,17 @@ THE SOFTWARE.
               <outputDirectory>${project.build.outputDirectory}</outputDirectory>
               <includeArtifactIds>constant-pool-scanner</includeArtifactIds>
               <includeGroupIds>org.jenkins-ci</includeGroupIds>
+            </configuration>
+          </execution>
+          <execution>
+            <id>bundle-tyrus</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>unpack-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+              <includeArtifactIds>tyrus-standalone-client-jdk</includeArtifactIds>
             </configuration>
           </execution>
         </executions>

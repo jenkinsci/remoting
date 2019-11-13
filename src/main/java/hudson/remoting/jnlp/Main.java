@@ -83,6 +83,8 @@ public class Main {
             usage="Specify the Jenkins root URLs to connect to.")
     public List<URL> urls = new ArrayList<>();
 
+    // TODO option to enable WS
+
     @Option(name="-credentials",metaVar="USER:PASSWORD",
             usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String credentials;

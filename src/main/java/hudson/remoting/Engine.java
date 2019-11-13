@@ -29,7 +29,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.URI;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -51,6 +53,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -61,6 +64,12 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.websocket.ClientEndpointConfig;
+import javax.websocket.ContainerProvider;
+import javax.websocket.Endpoint;
+import javax.websocket.EndpointConfig;
+import javax.websocket.MessageHandler;
+import javax.websocket.Session;
 
 import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
@@ -441,6 +450,57 @@ public class Engine extends Thread {
     public void run() {
         // Create the engine
         try {
+            if (true) { // TODO conditionally enable WS support
+                AtomicReference<Channel> ch = new AtomicReference<>();
+                ContainerProvider.getWebSocketContainer().connectToServer(new Endpoint() {
+                    @Override
+                    public void onOpen(Session session, EndpointConfig config) {
+                        events.status("WebSocket connection open");
+                        AtomicReference<AbstractByteArrayCommandTransport.ByteArrayReceiver> receiver = new AtomicReference<>();
+                        session.addMessageHandler(byte[].class, message -> {
+                            LOGGER.finest(() -> "received message of length " + message.length);
+                            receiver.get().handle(message);
+                        });
+                        try {
+                            ch.set(new ChannelBuilder(slaveName, Executors.newCachedThreadPool()).build(new AbstractByteArrayCommandTransport() {
+                                @Override
+                                public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver _receiver) {
+                                    events.status("Setting up channel");
+                                    receiver.set(_receiver);
+                                }
+                                @Override
+                                public void writeBlock(Channel channel, byte[] payload) throws IOException {
+                                    LOGGER.finest(() -> "sending message of length " + payload.length);
+                                    session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload));
+                                }
+                                @Override
+                                public Capability getRemoteCapability() throws IOException {
+                                    return new Capability();
+                                    // TODO negotiate
+                                }
+                                @Override
+                                public void closeWrite() throws IOException {
+                                    events.status("Write side closed");
+                                    // TODO
+                                }
+                                @Override
+                                public void closeRead() throws IOException {
+                                    events.status("Read side closed");
+                                    // TODO
+                                }
+                            }));
+                        } catch (IOException x) {
+                            events.error(x);
+                        }
+                    }
+                }, ClientEndpointConfig.Builder.create().build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/" + slaveName + "?secret=" + secretKey));
+                while (ch.get() == null) {
+                    Thread.sleep(100);
+                }
+                LOGGER.info(() -> "Waiting for channel");
+                ch.get().join();
+                return;
+            }
             IOHub hub = IOHub.create(executor);
             try {
                 SSLContext context;
@@ -489,7 +549,7 @@ public class Engine extends Thread {
             } finally {
                 hub.close();
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             events.error(e);
         }
     }
