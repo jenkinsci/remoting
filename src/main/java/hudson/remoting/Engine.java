@@ -34,6 +34,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -48,6 +49,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +73,7 @@ import javax.websocket.CloseReason;
 import javax.websocket.ContainerProvider;
 import javax.websocket.Endpoint;
 import javax.websocket.EndpointConfig;
+import javax.websocket.HandshakeResponse;
 import javax.websocket.Session;
 
 import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
@@ -454,48 +457,50 @@ public class Engine extends Thread {
         try {
             if (true) { // TODO conditionally enable WS support
                 AtomicReference<Channel> ch = new AtomicReference<>();
+                String localCap;
+                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                    new Capability().write(baos);
+                    localCap = baos.toString("US-ASCII"); // Base-64
+                }
+                class HeaderHandler extends ClientEndpointConfig.Configurator {
+                    Capability remoteCapability = new Capability();
+                    @Override
+                    public void beforeRequest(Map<String, List<String>> headers) {
+                        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(slaveName));
+                        headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
+                        headers.put(Capability.class.getName(), Collections.singletonList(localCap));
+                        // TODO use JnlpConnectionState.COOKIE_KEY somehow
+                        LOGGER.fine(() -> "Sending: " + headers);
+                    }
+                    @Override
+                    public void afterResponse(HandshakeResponse hr) {
+                        LOGGER.fine(() -> "Receiving: " + hr.getHeaders());
+                        try (ByteArrayInputStream bais = new ByteArrayInputStream(hr.getHeaders().get(Capability.class.getName()).get(0).getBytes(StandardCharsets.US_ASCII))) {
+                            remoteCapability = Capability.read(bais);
+                            LOGGER.fine(() -> "received " + remoteCapability);
+                        } catch (IOException x) {
+                            events.error(x);
+                        }
+                    }
+                }
+                HeaderHandler headerHandler = new HeaderHandler();
                 ContainerProvider.getWebSocketContainer().connectToServer(new Endpoint() {
                     Session session;
                     AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
-                    Capability remoteCapability;
                     @Override
                     public void onOpen(Session session, EndpointConfig config) {
                         events.status("WebSocket connection open");
                         this.session = session;
                         session.addMessageHandler(byte[].class, this::onMessage);
-                        executor.submit(() -> {
-                            try {
-                                session.getBasicRemote().sendText(slaveName);
-                                session.getBasicRemote().sendText(secretKey);
-                                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                                    new Capability().write(baos);
-                                    session.getBasicRemote().sendBinary(ByteBuffer.wrap(baos.toByteArray()));
-                                }
-                                events.status("Sent agent name, secret, and local capabilities");
-                            } catch (IOException x) {
-                                events.error(x);
-                            }
-                        });
+                        try {
+                            ch.set(new ChannelBuilder(slaveName, executor).build(new Transport()));
+                        } catch (IOException x) {
+                            events.error(x);
+                        }
                     }
                     private void onMessage(byte[] message) {
-                        if (remoteCapability == null) {
-                            try (ByteArrayInputStream bais = new ByteArrayInputStream(message)) {
-                                remoteCapability = Capability.read(bais);
-                                LOGGER.fine(() -> "received " + remoteCapability);
-                            } catch (IOException x) {
-                                events.error(x);
-                                return;
-                            }
-                            events.status("Negotiated remote capabilities; starting channel");
-                            try {
-                                ch.set(new ChannelBuilder(slaveName, executor).build(new Transport()));
-                            } catch (IOException x) {
-                                events.error(x);
-                            }
-                        } else {
-                            LOGGER.finest(() -> "received message of length " + message.length);
-                            receiver.handle(message);
-                        }
+                        LOGGER.finest(() -> "received message of length " + message.length);
+                        receiver.handle(message);
                     }
                     @Override
                     public void onClose(Session session, CloseReason closeReason) {
@@ -518,7 +523,7 @@ public class Engine extends Thread {
                         }
                         @Override
                         public Capability getRemoteCapability() throws IOException {
-                            return remoteCapability;
+                            return headerHandler.remoteCapability;
                         }
                         @Override
                         public void closeWrite() throws IOException {
@@ -531,7 +536,7 @@ public class Engine extends Thread {
                             // TODO
                         }
                     }
-                }, ClientEndpointConfig.Builder.create().build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
+                }, ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
                 while (ch.get() == null) {
                     Thread.sleep(100);
                 }
