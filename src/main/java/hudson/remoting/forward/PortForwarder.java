@@ -23,6 +23,7 @@
  */
 package hudson.remoting.forward;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.RemoteOutputStream;
@@ -52,6 +53,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
     private final Forwarder forwarder;
     private final ServerSocket socket;
 
+    @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "Unused")
     public PortForwarder(int localPort, Forwarder forwarder) throws IOException {
         super(String.format("Port forwarder %d",localPort));
         this.forwarder = forwarder;

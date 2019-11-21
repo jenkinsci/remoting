@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -91,6 +92,7 @@ class ChannelCiphers {
      *
      * @throws IOException If there is a problem constructing the ciphers.
      */
+    @SuppressFBWarnings(value = {"CIPHER_INTEGRITY", "STATIC_IV"}, justification = "Deprecated protocol. We should just remove it at this point.")
     public static ChannelCiphers create(byte[] aesKey, byte[] specKey) throws IOException {
         try {
             SecretKey secretKey = new SecretKeySpec(aesKey, "AES");

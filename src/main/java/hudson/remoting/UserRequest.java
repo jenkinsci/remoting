@@ -277,6 +277,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
         }
     }
 
+    @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "Used for sending user requests between authorized agent and server.")
     /*package*/ static Object deserialize(final Channel channel, byte[] data, ClassLoader defaultClassLoader) throws IOException, ClassNotFoundException {
         ByteArrayInputStream in = new ByteArrayInputStream(data);
 

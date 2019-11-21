@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 
 /**
@@ -78,6 +80,7 @@ public class ConnectionRefusalException extends IOException {
      *                                          insufficient arguments given the format string, or other
      *                                          illegal conditions.
      */
+    @SuppressFBWarnings(value = "FORMAT_STRING_MANIPULATION", justification = "This is only used with String conversion to hex string.")
     public ConnectionRefusalException(Throwable cause, String message, Object... args) {
         super(String.format(message, args), cause);
     }

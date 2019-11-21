@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -42,6 +44,7 @@ class ResourceImageInJar extends ResourceImageRef {
     Future<byte[]> resolve(Channel channel, final String resourcePath) throws IOException, InterruptedException {
         return new FutureAdapter<byte[],URL>(_resolveJarURL(channel)) {
             @Override
+            @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files.")
             protected byte[] adapt(URL jar) throws ExecutionException {
                 try {
                     return Util.readFully(toResourceURL(jar,resourcePath).openStream());

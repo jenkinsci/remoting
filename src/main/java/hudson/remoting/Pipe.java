@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 import java.io.IOException;
@@ -97,6 +98,7 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "Serializable only over remoting.")
 public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatingOutputStream {
     private InputStream in;
     private OutputStream out;

@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.RemoteClassLoader.ClassFile;
 import hudson.remoting.RemoteClassLoader.ClassFile2;
 import hudson.remoting.RemoteClassLoader.IClassLoader;

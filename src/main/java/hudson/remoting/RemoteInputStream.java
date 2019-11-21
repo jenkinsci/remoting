@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 import java.io.BufferedInputStream;
@@ -48,6 +49,7 @@ import static hudson.remoting.RemoteInputStream.Flag.*;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "Serializable only over remoting.")
 public class RemoteInputStream extends InputStream implements SerializableOnlyOverRemoting {
     private static final Logger LOGGER = Logger.getLogger(RemoteInputStream.class.getName());
     private transient InputStream core;

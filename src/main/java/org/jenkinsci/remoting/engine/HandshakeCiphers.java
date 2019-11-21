@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.spec.KeySpec;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -105,6 +107,7 @@ class HandshakeCiphers {
      * @param salt The agent for which the handshake is taking place.
      * @param secret The agent secret.
      */
+    @SuppressFBWarnings(value = {"CIPHER_INTEGRITY", "STATIC_IV"}, justification = "Deprecated protocol. We should just remove it at this point.")
     public static HandshakeCiphers create(String salt, String secret) {
         try {
             byte[] specKey = Jnlp3Util.generate128BitKey(salt + secret);

@@ -184,6 +184,7 @@ public class WorkDirManager {
      *                     In such case Remoting should not start up at all.
      */
     @CheckForNull
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     public Path initializeWorkDir(final @CheckForNull File workDir, final @Nonnull String internalDir, final boolean failIfMissing) throws IOException {
 
         if (!internalDir.matches(SUPPORTED_INTERNAL_DIR_NAME_MASK)) {
@@ -218,6 +219,7 @@ public class WorkDirManager {
         }
     }
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Value supplied by user / administrator.")
     private void createInternalDirIfRequired(File internalDir, DirType type)
             throws IOException {
         if (!disabledDirectories.contains(type)) {
