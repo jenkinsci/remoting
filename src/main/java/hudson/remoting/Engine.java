@@ -24,6 +24,8 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -65,10 +67,10 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.websocket.ClientEndpointConfig;
+import javax.websocket.CloseReason;
 import javax.websocket.ContainerProvider;
 import javax.websocket.Endpoint;
 import javax.websocket.EndpointConfig;
-import javax.websocket.MessageHandler;
 import javax.websocket.Session;
 
 import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
@@ -453,47 +455,83 @@ public class Engine extends Thread {
             if (true) { // TODO conditionally enable WS support
                 AtomicReference<Channel> ch = new AtomicReference<>();
                 ContainerProvider.getWebSocketContainer().connectToServer(new Endpoint() {
+                    Session session;
+                    AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
+                    Capability remoteCapability;
                     @Override
                     public void onOpen(Session session, EndpointConfig config) {
                         events.status("WebSocket connection open");
-                        AtomicReference<AbstractByteArrayCommandTransport.ByteArrayReceiver> receiver = new AtomicReference<>();
-                        session.addMessageHandler(byte[].class, message -> {
-                            LOGGER.finest(() -> "received message of length " + message.length);
-                            receiver.get().handle(message);
+                        this.session = session;
+                        session.addMessageHandler(byte[].class, this::onMessage);
+                        executor.submit(() -> {
+                            try {
+                                session.getBasicRemote().sendText(slaveName);
+                                session.getBasicRemote().sendText(secretKey);
+                                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                                    new Capability().write(baos);
+                                    session.getBasicRemote().sendBinary(ByteBuffer.wrap(baos.toByteArray()));
+                                }
+                                events.status("Sent agent name, secret, and local capabilities");
+                            } catch (IOException x) {
+                                events.error(x);
+                            }
                         });
-                        try {
-                            ch.set(new ChannelBuilder(slaveName, Executors.newCachedThreadPool()).build(new AbstractByteArrayCommandTransport() {
-                                @Override
-                                public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver _receiver) {
-                                    events.status("Setting up channel");
-                                    receiver.set(_receiver);
-                                }
-                                @Override
-                                public void writeBlock(Channel channel, byte[] payload) throws IOException {
-                                    LOGGER.finest(() -> "sending message of length " + payload.length);
-                                    session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload));
-                                }
-                                @Override
-                                public Capability getRemoteCapability() throws IOException {
-                                    return new Capability();
-                                    // TODO negotiate
-                                }
-                                @Override
-                                public void closeWrite() throws IOException {
-                                    events.status("Write side closed");
-                                    // TODO
-                                }
-                                @Override
-                                public void closeRead() throws IOException {
-                                    events.status("Read side closed");
-                                    // TODO
-                                }
-                            }));
-                        } catch (IOException x) {
-                            events.error(x);
+                    }
+                    private void onMessage(byte[] message) {
+                        if (remoteCapability == null) {
+                            try (ByteArrayInputStream bais = new ByteArrayInputStream(message)) {
+                                remoteCapability = Capability.read(bais);
+                                LOGGER.fine(() -> "received " + remoteCapability);
+                            } catch (IOException x) {
+                                events.error(x);
+                                return;
+                            }
+                            events.status("Negotiated remote capabilities; starting channel");
+                            try {
+                                ch.set(new ChannelBuilder(slaveName, executor).build(new Transport()));
+                            } catch (IOException x) {
+                                events.error(x);
+                            }
+                        } else {
+                            LOGGER.finest(() -> "received message of length " + message.length);
+                            receiver.handle(message);
                         }
                     }
-                }, ClientEndpointConfig.Builder.create().build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/" + slaveName + "?secret=" + secretKey));
+                    @Override
+                    public void onClose(Session session, CloseReason closeReason) {
+                        // TODO
+                    }
+                    @Override
+                    public void onError(Session session, Throwable thr) {
+                        // TODO
+                    }
+                    class Transport extends AbstractByteArrayCommandTransport {
+                        @Override
+                        public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver _receiver) {
+                            events.status("Setting up channel");
+                            receiver = _receiver;
+                        }
+                        @Override
+                        public void writeBlock(Channel channel, byte[] payload) throws IOException {
+                            LOGGER.finest(() -> "sending message of length " + payload.length);
+                            session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload));
+                        }
+                        @Override
+                        public Capability getRemoteCapability() throws IOException {
+                            return remoteCapability;
+                        }
+                        @Override
+                        public void closeWrite() throws IOException {
+                            events.status("Write side closed");
+                            // TODO
+                        }
+                        @Override
+                        public void closeRead() throws IOException {
+                            events.status("Read side closed");
+                            // TODO
+                        }
+                    }
+                }, ClientEndpointConfig.Builder.create().build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
                 while (ch.get() == null) {
                     Thread.sleep(100);
                 }

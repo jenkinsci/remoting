@@ -120,10 +120,17 @@ public final class Capability implements Serializable {
 
     //TODO: ideally preamble handling needs to be reworked in order to avoid FB suppression
     /**
-     * Writes out the capacity preamble.
+     * Writes {@link #PREAMBLE} then uses {@link #write}.
      */
     void writePreamble(OutputStream os) throws IOException {
         os.write(PREAMBLE);
+        write(os);
+    }
+
+    /**
+     * Writes this capability to a stream.
+     */
+    public void write(OutputStream os) throws IOException {
         try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os)) {
             @Override
             public void close() throws IOException {
@@ -143,7 +150,7 @@ public final class Capability implements Serializable {
     }
 
     /**
-     * The opposite operation of {@link #writePreamble(OutputStream)}.
+     * The opposite operation of {@link #write}.
      */
     public static Capability read(InputStream is) throws IOException {
         try (ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
