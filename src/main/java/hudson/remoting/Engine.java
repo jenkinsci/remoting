@@ -537,6 +537,8 @@ public class Engine extends Thread {
                 }
                 LOGGER.info(() -> "Waiting for channel");
                 ch.get().join();
+                // TODO handle multiple candidate URLs
+                // TODO handle reconnection
                 return;
             }
             IOHub hub = IOHub.create(executor);
