@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -451,6 +452,7 @@ public class Engine extends Thread {
         events.remove(el);
     }
 
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "checked exceptions were a mistake to begin with")
     @Override
     public void run() {
         // Create the engine
@@ -485,19 +487,18 @@ public class Engine extends Thread {
                 }
                 HeaderHandler headerHandler = new HeaderHandler();
                 ContainerProvider.getWebSocketContainer().connectToServer(new Endpoint() {
-                    Session session;
                     AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
                     @Override
                     public void onOpen(Session session, EndpointConfig config) {
                         events.status("WebSocket connection open");
-                        this.session = session;
                         session.addMessageHandler(byte[].class, this::onMessage);
                         try {
-                            ch.set(new ChannelBuilder(slaveName, executor).build(new Transport()));
+                            ch.set(new ChannelBuilder(slaveName, executor).build(new Transport(session)));
                         } catch (IOException x) {
                             events.error(x);
                         }
                     }
+                    @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
                     private void onMessage(byte[] message) {
                         LOGGER.finest(() -> "received message of length " + message.length);
                         receiver.handle(message);
@@ -511,6 +512,10 @@ public class Engine extends Thread {
                         // TODO
                     }
                     class Transport extends AbstractByteArrayCommandTransport {
+                        final Session session;
+                        Transport(Session session) {
+                            this.session = session;
+                        }
                         @Override
                         public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver _receiver) {
                             events.status("Setting up channel");
@@ -599,6 +604,7 @@ public class Engine extends Thread {
         }
     }
 
+    @SuppressFBWarnings(value = "UPM_UNCALLED_PRIVATE_METHOD", justification = "TODO pending WS/TCP switch")
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
         // Create the protocols that will be attempted to connect to the master.

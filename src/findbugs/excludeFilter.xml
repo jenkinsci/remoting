@@ -6,6 +6,12 @@
   <Match>
     <Package name="~org\.jenkinsci\.constant_pool_scanner.*"/>
   </Match>
+  <Match>
+    <Package name="~javax\.websocket.*"/>
+  </Match>
+  <Match>
+    <Package name="~org\.glassfish\.tyrus.*"/>
+  </Match>
   
   <Match>
     <!--We do not want do break API by converting potentially usefull classes-->
