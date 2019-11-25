@@ -27,7 +27,7 @@ parallel(['maven', 'maven-windows'].collectEntries {label -> [label, {
         stage('Archive') {
             /* Archive the test results */
             junit '**/target/surefire-reports/TEST-*.xml'
-            if (label == 'linux') {
+            if (label == 'maven') {
                 findbugs pattern: '**/target/findbugsXml.xml'
                 infra.prepareToPublishIncrementals()
             }
