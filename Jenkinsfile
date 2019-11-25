@@ -33,6 +33,6 @@ parallel(['maven', 'maven-windows'].collectEntries {label -> [label, {
             }
         }
     }
-}]}
+}]})
 
 infra.maybePublishIncrementals()
