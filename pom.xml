@@ -446,30 +446,6 @@ THE SOFTWARE.
       </properties>
     </profile>
     <profile>
-      <id>rc</id>
-      <properties>
-        <build.type>rc</build.type>
-      </properties>
-      <build>
-        <pluginManagement>
-          <plugins>
-            <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>build-helper-maven-plugin</artifactId>
-              <executions>
-                <execution>
-                  <id>version-property</id>
-                  <configuration>
-                    <replacement>-RC (${now})</replacement>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
-          </plugins>
-        </pluginManagement>
-      </build>
-    </profile>
-    <profile>
       <id>debug</id>
       <activation>
         <activeByDefault>true</activeByDefault>
