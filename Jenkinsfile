@@ -8,52 +8,31 @@ properties([[$class: 'BuildDiscarderProperty',
 /* These platforms correspond to labels in ci.jenkins.io, see:
  *  https://github.com/jenkins-infra/documentation/blob/master/ci.adoc
  */
-List platforms = ['linux', 'windows']
-Map branches = [:]
-
-for (int i = 0; i < platforms.size(); ++i) {
-    String label = platforms[i]
-    branches[label] = {
-        node(label) {
-            timestamps {
-                stage('Checkout') {
-                    checkout scm
+parallel(['maven', 'maven-windows'].collectEntries {label -> [label, {
+    node(label) {
+        stage('Checkout') {
+            checkout scm
+        }
+        stage('Build') {
+            timeout(30) {
+                String command = "mvn -B -ntp -Dset.changelist clean install -Dmaven.test.failure.ignore ${infra.isRunningOnJenkinsInfra() ? '-s settings-azure.xml' : ''} -e"
+                if (isUnix()) {
+                    sh command
                 }
-
-                withEnv([
-                    // TODO switch to ACI labels maven + maven-windows
-                    "JAVA_HOME=${tool 'jdk8'}",
-                    "PATH+MVN=${tool 'mvn'}/bin",
-                    'PATH+JDK=$JAVA_HOME/bin',
-                ]) {
-                    stage('Build') {
-                        timeout(30) {
-                            String command = "mvn --batch-mode -Dset.changelist clean install -Dmaven.test.failure.ignore=true ${infra.isRunningOnJenkinsInfra() ? '-s settings-azure.xml' : ''} -e"
-                            if (isUnix()) {
-                                sh command
-                            }
-                            else {
-                                bat command
-                            }
-                        }
-                    }
-
-                    stage('Archive') {
-                        /* Archive the test results */
-                        junit '**/target/surefire-reports/TEST-*.xml'
-
-                        if (label == 'linux') {
-                            findbugs pattern: '**/target/findbugsXml.xml'
-                            infra.prepareToPublishIncrementals()
-                        }
-                    }
+                else {
+                    bat command
                 }
             }
         }
+        stage('Archive') {
+            /* Archive the test results */
+            junit '**/target/surefire-reports/TEST-*.xml'
+            if (label == 'linux') {
+                findbugs pattern: '**/target/findbugsXml.xml'
+                infra.prepareToPublishIncrementals()
+            }
+        }
     }
-}
-
-/* Execute our platforms in parallel */
-parallel(branches)
+}]}
 
 infra.maybePublishIncrementals()
