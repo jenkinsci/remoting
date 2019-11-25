@@ -343,6 +343,7 @@ public class WorkDirManagerTest {
     }
 
     private void verifyDirectoryFlag(DirType type, DirectoryFlag flag) throws IOException, AssertionError {
+        Assume.assumeThat("cannot check this running as root", System.getProperty("user.name"), not(equalTo("root")));
         final File dir = tmpDir.newFolder("test-" + type.getClass().getSimpleName() + "-" + flag);
 
         boolean success = false;
