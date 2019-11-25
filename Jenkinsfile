@@ -1,6 +1,5 @@
 #!/usr/bin/env groovy
 
-/* Only keep the 10 most recent builds. */
 properties([[$class: 'BuildDiscarderProperty',
                 strategy: [$class: 'LogRotator', numToKeepStr: '10']]])
 
@@ -18,14 +17,12 @@ parallel(['maven', 'maven-windows'].collectEntries {label -> [label, {
                 String command = "mvn -B -ntp -Dset.changelist clean install -Dmaven.test.failure.ignore ${infra.isRunningOnJenkinsInfra() ? '-s settings-azure.xml' : ''} -e"
                 if (isUnix()) {
                     sh command
-                }
-                else {
+                } else {
                     bat command
                 }
             }
         }
         stage('Archive') {
-            /* Archive the test results */
             junit '**/target/surefire-reports/TEST-*.xml'
             if (label == 'maven') {
                 findbugs pattern: '**/target/findbugsXml.xml'
