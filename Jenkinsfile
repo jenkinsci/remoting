@@ -20,13 +20,13 @@ for (int i = 0; i < platforms.size(); ++i) {
                     checkout scm
                 }
 
-                stage('Build') {
-                    withEnv([
-                        // TODO switch to ACI labels maven + maven-windows
-                        "JAVA_HOME=${tool 'jdk8'}",
-                        "PATH+MVN=${tool 'mvn'}/bin",
-                        'PATH+JDK=$JAVA_HOME/bin',
-                    ]) {
+                withEnv([
+                    // TODO switch to ACI labels maven + maven-windows
+                    "JAVA_HOME=${tool 'jdk8'}",
+                    "PATH+MVN=${tool 'mvn'}/bin",
+                    'PATH+JDK=$JAVA_HOME/bin',
+                ]) {
+                    stage('Build') {
                         timeout(30) {
                             String command = "mvn --batch-mode -Dset.changelist clean install -Dmaven.test.failure.ignore=true ${infra.isRunningOnJenkinsInfra() ? '-s settings-azure.xml' : ''} -e"
                             if (isUnix()) {
@@ -37,15 +37,15 @@ for (int i = 0; i < platforms.size(); ++i) {
                             }
                         }
                     }
-                }
 
-                stage('Archive') {
-                    /* Archive the test results */
-                    junit '**/target/surefire-reports/TEST-*.xml'
+                    stage('Archive') {
+                        /* Archive the test results */
+                        junit '**/target/surefire-reports/TEST-*.xml'
 
-                    if (label == 'linux') {
-                      findbugs pattern: '**/target/findbugsXml.xml'
-                      infra.prepareToPublishIncrementals()
+                        if (label == 'linux') {
+                            findbugs pattern: '**/target/findbugsXml.xml'
+                            infra.prepareToPublishIncrementals()
+                        }
                     }
                 }
             }
