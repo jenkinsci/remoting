@@ -451,33 +451,22 @@ THE SOFTWARE.
 
   <profiles>
     <profile>
-      <id>rc</id>
+      <id>all-tests</id>
+      <activation>
+        <property>
+          <name>!test</name>
+        </property>
+      </activation>
       <properties>
-        <build.type>rc</build.type>
+        <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
       </properties>
-      <build>
-        <pluginManagement>
-          <plugins>
-            <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>build-helper-maven-plugin</artifactId>
-              <executions>
-                <execution>
-                  <id>version-property</id>
-                  <configuration>
-                    <replacement>-RC (${now})</replacement>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
-          </plugins>
-        </pluginManagement>
-      </build>
     </profile>
     <profile>
       <id>debug</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>!hudson.sign.alias</name>
+        </property>
       </activation>
       <properties>
         <hudson.sign.alias>jenkins</hudson.sign.alias>
