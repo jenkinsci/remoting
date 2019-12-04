@@ -168,9 +168,6 @@ public class JnlpProtocolHandlerFactory {
         if (ioHub != null) {
             result.add(new JnlpProtocol4PlainHandler(clientDatabase, threadPool, ioHub, preferNio));
         }
-        result.add(new JnlpProtocol3Handler(clientDatabase, threadPool, nioChannelHub, preferNio));
-        result.add(new JnlpProtocol2Handler(clientDatabase, threadPool, nioChannelHub, preferNio));
-        result.add(new JnlpProtocol1Handler(clientDatabase, threadPool, nioChannelHub, preferNio));
         return result;
     }
 }
