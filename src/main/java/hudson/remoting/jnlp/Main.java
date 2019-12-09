@@ -24,39 +24,36 @@
 package hudson.remoting.jnlp;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.remoting.Engine;
+import hudson.remoting.EngineListener;
 import hudson.remoting.FileSystemJarCache;
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.UnsupportedEncodingException;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
-
 import hudson.remoting.Util;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.PathUtils;
-import org.kohsuke.args4j.Option;
-import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
-
-import java.io.File;
-import java.util.HashSet;
-import java.util.logging.Logger;
-import java.util.logging.Level;
-import static java.util.logging.Level.INFO;
-import static java.util.logging.Level.WARNING;
-
-import java.util.List;
-import java.util.ArrayList;
-import java.net.URL;
-import java.io.IOException;
-
-import hudson.remoting.Engine;
-import hudson.remoting.EngineListener;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static java.util.logging.Level.INFO;
+import static java.util.logging.Level.WARNING;
 
 /**
  * Entry point to JNLP agent.
@@ -373,12 +370,7 @@ public class Main {
                         continue;
                     }
                 } else {
-                    try {
-                        cert = certOrAtFilename.getBytes("US-ASCII");
-                    } catch (UnsupportedEncodingException e) {
-                        LOGGER.log(Level.WARNING, "Could not parse certificate " + certOrAtFilename, e);
-                        continue;
-                    }
+                    cert = certOrAtFilename.getBytes(StandardCharsets.US_ASCII);
                 }
                 try {
                     certificates.add((X509Certificate) factory.generateCertificate(new ByteArrayInputStream(cert)));

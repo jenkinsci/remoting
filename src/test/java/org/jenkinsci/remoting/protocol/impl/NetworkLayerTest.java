@@ -23,11 +23,6 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import java.nio.ByteBuffer;
-import java.nio.channels.Pipe;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
@@ -40,6 +35,12 @@ import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -93,7 +94,7 @@ public class NetworkLayerTest {
                         .on(serverFactory.create(hub, clientToServer.source(), serverToClient.sink()))
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();

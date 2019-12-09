@@ -26,12 +26,13 @@ package org.jenkinsci.remoting.engine;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,7 +82,7 @@ public class EngineUtil {
             buf[i] = (byte)inputStream.read();
         }
 
-        return new String(buf,"UTF-8");
+        return new String(buf, StandardCharsets.UTF_8);
     }
 
     /**

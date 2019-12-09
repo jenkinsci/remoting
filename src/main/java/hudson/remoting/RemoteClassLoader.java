@@ -24,35 +24,37 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
-import java.net.URL;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Vector;
-import java.util.List;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Set;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
-import javax.annotation.CheckForNull;
-
-import static hudson.remoting.Util.*;
-import static java.util.logging.Level.*;
-import javax.annotation.Nonnull;
+import static hudson.remoting.Util.getBaseName;
+import static hudson.remoting.Util.makeResource;
+import static hudson.remoting.Util.readFully;
+import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
 
 /**
  * Loads class files from the other peer through {@link Channel}.
@@ -489,9 +491,9 @@ final class RemoteClassLoader extends URLClassLoader {
                 // .get() shouldn't block
                 v.add(image.image.resolveURL(channel,name).get());
             } catch (InterruptedException e) {
-                throw (Error)new Error("Failed to load resources "+name).initCause(e);
+                throw (Error) new Error("Failed to load resources "+name, e);
             } catch (ExecutionException e) {
-                throw (Error)new Error("Failed to load resources "+name).initCause(e);
+                throw (Error) new Error("Failed to load resources "+name, e);
             }
         resourcesMap.put(name,v);
 
@@ -675,7 +677,7 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * Remoting interface.
      */
-    public static interface IClassLoader {
+    public interface IClassLoader {
         byte[] fetchJar(URL url) throws IOException;
 
         /**
@@ -1037,7 +1039,7 @@ final class RemoteClassLoader extends URLClassLoader {
          * any new classpath. In this way, we can effectively use this classloader as a representation
          * of the bootstrap classloader.
          */
-        private static final ClassLoader PSEUDO_BOOTSTRAP = new URLClassLoader(new URL[0],(ClassLoader)null) {
+        private static final ClassLoader PSEUDO_BOOTSTRAP = new URLClassLoader(new URL[0], null) {
             @Override
             public String toString() {
                 return "PSEUDO_BOOTSTRAP";

@@ -24,11 +24,7 @@
 package org.jenkinsci.remoting.protocol;
 
 import hudson.remoting.Callable;
-import java.io.OutputStream;
-import java.nio.channels.ClosedChannelException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import hudson.remoting.Channel;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.protocol.cert.RSAKeyPairRule;
 import org.jenkinsci.remoting.protocol.cert.SSLContextRule;
@@ -40,18 +36,6 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.protocol.impl.HoldFilterLayer;
 import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
-import hudson.remoting.Channel;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.Pipe;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLEngine;
 import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -60,6 +44,24 @@ import org.junit.experimental.theories.Theory;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
+
+import javax.net.ssl.SSLEngine;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.Pipe;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
@@ -93,7 +95,7 @@ public class ProtocolStackImplTest {
         ProtocolStack<IOBufferMatcher> instance =
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), input.source(), output.sink()))
                         .build(new IOBufferMatcherLayer());
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -113,7 +115,7 @@ public class ProtocolStackImplTest {
         ProtocolStack<IOBufferMatcher> instance =
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), input.source(), output.sink()))
                         .build(new IOBufferMatcherLayer());
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -207,7 +209,7 @@ public class ProtocolStackImplTest {
         ProtocolStack<IOBufferMatcher> west =
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
                         .build(new IOBufferMatcherLayer());
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -232,7 +234,7 @@ public class ProtocolStackImplTest {
         ProtocolStack<IOBufferMatcher> west =
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), westChannel, westChannel))
                         .build(new IOBufferMatcherLayer());
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -258,7 +260,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -287,7 +289,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -321,7 +323,7 @@ public class ProtocolStackImplTest {
                         .filter(new SSLEngineFilterLayer(westEngine, null))
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -358,7 +360,7 @@ public class ProtocolStackImplTest {
                         .filter(new SSLEngineFilterLayer(westEngine, null))
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -408,7 +410,7 @@ public class ProtocolStackImplTest {
                                 }))
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -461,7 +463,7 @@ public class ProtocolStackImplTest {
                                 }))
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();

@@ -24,6 +24,7 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.SocketChannelStream;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.DataInputStream;
@@ -70,7 +71,7 @@ public class LegacyJnlpConnectionState extends JnlpConnectionState {
         this.bufferedOutputStream = new BufferedOutputStream(socketOutputStream);
         socketInputStream = SocketChannelStream.in(socket);
         this.dataInputStream = new DataInputStream(socketInputStream);
-        this.printWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8")), true);
+        this.printWriter = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)), true);
     }
 
     public OutputStream getSocketOutputStream() {

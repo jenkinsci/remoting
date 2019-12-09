@@ -23,13 +23,13 @@
  */
 package hudson.remoting;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FilterInputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.FilterOutputStream;
-import java.io.UnsupportedEncodingException;
-import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**
@@ -315,11 +315,7 @@ public final class BinarySafeStream {
     private static final int[] DECODING_TABLE = new int[128];
 
     static {
-        try {
-            ENCODING_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes("US-ASCII");
-        } catch (UnsupportedEncodingException e) {
-            throw new AssertionError(e);
-        }
+        ENCODING_TABLE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/".getBytes(StandardCharsets.US_ASCII);
 
         Arrays.fill(DECODING_TABLE,-2);
         for (int i = 0; i < ENCODING_TABLE.length; i++)

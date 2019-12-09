@@ -318,7 +318,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
                 if (size() == 0) {
                     return 0; // 1-0 = 1- (normalize) = 1
                 }
-                Item first = (Item) get(0);
+                Item first = get(0);
                 return first.compare(null);
             }
 
@@ -478,7 +478,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
     }
 
     private static Item parseItem(boolean isDigit, String buf) {
-        return isDigit ? (Item) new IntegerItem(buf) : (Item) new StringItem(buf, false);
+        return isDigit ? new IntegerItem(buf) : new StringItem(buf, false);
     }
 
     public int compareTo(VersionNumber o) {

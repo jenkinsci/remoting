@@ -65,7 +65,7 @@ public class FileSystemJarCache extends JarCacheSupport {
 
     @Override
     public String toString() {
-        return String.format("FileSystem JAR Cache: path=%s, touch=%s", rootDir, Boolean.toString(touch));
+        return String.format("FileSystem JAR Cache: path=%s, touch=%s", rootDir, touch);
     }
     
     @Override
@@ -147,7 +147,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                 Files.deleteIfExists(PathUtils.fileToPath(tmp));
             }
         } catch (IOException e) {
-            throw (IOException)new IOException("Failed to write to "+target).initCause(e);
+            throw (IOException) new IOException("Failed to write to "+target, e);
         }
     }
 
