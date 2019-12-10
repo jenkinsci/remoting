@@ -491,9 +491,9 @@ final class RemoteClassLoader extends URLClassLoader {
                 // .get() shouldn't block
                 v.add(image.image.resolveURL(channel,name).get());
             } catch (InterruptedException e) {
-                throw (Error) new Error("Failed to load resources "+name, e);
+                throw new Error("Failed to load resources "+name, e);
             } catch (ExecutionException e) {
-                throw (Error) new Error("Failed to load resources "+name, e);
+                throw new Error("Failed to load resources "+name, e);
             }
         resourcesMap.put(name,v);
 

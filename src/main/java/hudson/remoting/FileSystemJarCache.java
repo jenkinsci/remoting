@@ -147,7 +147,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                 Files.deleteIfExists(PathUtils.fileToPath(tmp));
             }
         } catch (IOException e) {
-            throw (IOException) new IOException("Failed to write to "+target, e);
+            throw new IOException("Failed to write to "+target, e);
         }
     }
 

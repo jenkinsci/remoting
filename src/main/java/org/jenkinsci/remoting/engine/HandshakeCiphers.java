@@ -119,7 +119,7 @@ class HandshakeCiphers {
 
             return new HandshakeCiphers(secretKey, spec, encryptCipher, decryptCipher);
         } catch (GeneralSecurityException e) {
-            throw (AssertionError) new AssertionError("Failed to create handshake ciphers", e);
+            throw new AssertionError("Failed to create handshake ciphers", e);
         }
     }
 

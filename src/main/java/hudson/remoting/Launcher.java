@@ -533,7 +533,7 @@ public class Launcher {
                         byte[] decrypted = cipher.doFinal(payload,16,payload.length-16);
                         input = new ByteArrayInputStream(decrypted);
                     } catch (GeneralSecurityException x) {
-                        throw (IOException) new IOException("Failed to decrypt the JNLP file. Invalid secret key?", x);
+                        throw new IOException("Failed to decrypt the JNLP file. Invalid secret key?", x);
                     }
                 }
                 if(contentType==null || !contentType.startsWith(expectedContentType)) {
@@ -570,7 +570,7 @@ public class Launcher {
                     throw e;
             } catch (IOException e) {
                 if (this.noReconnect)
-                    throw (IOException) new IOException("Failing to obtain "+slaveJnlpURL, e);
+                    throw new IOException("Failing to obtain " + slaveJnlpURL, e);
 
                 System.err.println("Failing to obtain "+slaveJnlpURL);
                 e.printStackTrace(System.err);
