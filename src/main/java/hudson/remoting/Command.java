@@ -148,7 +148,7 @@ public abstract class Command implements Serializable {
 
 
     /** Consider calling {@link Channel#notifyRead} afterwards. */
-    @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "Used for sending commands between authorized agent and server.)")
+    @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "Used for sending commands between authorized agent and server. Class filtering is done through JEP-200.")
     static Command readFromObjectStream(Channel channel, ObjectInputStream ois) throws IOException, ClassNotFoundException {
         Channel old = Channel.setCurrent(channel);
         try {
