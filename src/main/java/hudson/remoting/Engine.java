@@ -562,11 +562,13 @@ public class Engine extends Thread {
                 }
                 @Override
                 public void onClose(Session session, CloseReason closeReason) {
-                    // TODO
+                    LOGGER.fine(() -> "onClose: " + closeReason);
+                    receiver.terminate(new ChannelClosedException(ch.get(), null));
                 }
                 @Override
-                public void onError(Session session, Throwable thr) {
-                    // TODO
+                public void onError(Session session, Throwable x) {
+                    LOGGER.log(Level.FINE, null, x);
+                    receiver.terminate(new ChannelClosedException(ch.get(), x));
                 }
                 class Transport extends AbstractByteArrayCommandTransport {
                     final Session session;
@@ -590,12 +592,12 @@ public class Engine extends Thread {
                     @Override
                     public void closeWrite() throws IOException {
                         events.status("Write side closed");
-                        // TODO
+                        session.close();
                     }
                     @Override
                     public void closeRead() throws IOException {
                         events.status("Read side closed");
-                        // TODO
+                        session.close();
                     }
                 }
             }, ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
