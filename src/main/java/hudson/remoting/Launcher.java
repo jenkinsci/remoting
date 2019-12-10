@@ -383,7 +383,6 @@ public class Launcher {
                 // But we set it up just in case there are overrides somewhere in the logic
                 jnlpArgs.add("-disableHttpsCertValidation");
             }
-            // TODO ws support
             try {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
             } catch (CmdLineException e) {

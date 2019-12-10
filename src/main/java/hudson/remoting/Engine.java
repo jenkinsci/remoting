@@ -25,8 +25,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -35,7 +33,6 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -149,6 +146,7 @@ public class Engine extends Thread {
     private URL hudsonUrl;
     private final String secretKey;
     public final String slaveName;
+    private boolean webSocket;
     private String credentials;
     private String proxyCredentials = System.getProperty("proxyCredentials");
 
@@ -337,6 +335,10 @@ public class Engine extends Thread {
         return hudsonUrl;
     }
 
+    public void setWebSocket(boolean webSocket) {
+        this.webSocket = webSocket;
+    }
+
     /**
      * If set, connect to the specified host and port instead of connecting directly to Jenkins.
      * @param tunnel Value. {@code null} to disable tunneling
@@ -452,105 +454,15 @@ public class Engine extends Thread {
         events.remove(el);
     }
 
-    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "checked exceptions were a mistake to begin with")
     @Override
     public void run() {
+        if (webSocket) {
+            // TODO check for inappropriate options like tunnel, disableHttpsCertValidation, etc.
+            runWebSocket();
+            return;
+        }
         // Create the engine
         try {
-            if (true) { // TODO conditionally enable WS support
-                AtomicReference<Channel> ch = new AtomicReference<>();
-                String localCap;
-                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                    new Capability().write(baos);
-                    localCap = baos.toString("US-ASCII"); // Base-64
-                }
-                class HeaderHandler extends ClientEndpointConfig.Configurator {
-                    Capability remoteCapability = new Capability();
-                    @Override
-                    public void beforeRequest(Map<String, List<String>> headers) {
-                        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(slaveName));
-                        headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
-                        headers.put(Capability.class.getName(), Collections.singletonList(localCap));
-                        // TODO use JnlpConnectionState.COOKIE_KEY somehow
-                        LOGGER.fine(() -> "Sending: " + headers);
-                    }
-                    @Override
-                    public void afterResponse(HandshakeResponse hr) {
-                        LOGGER.fine(() -> "Receiving: " + hr.getHeaders());
-                        try (ByteArrayInputStream bais = new ByteArrayInputStream(hr.getHeaders().get(Capability.class.getName()).get(0).getBytes(StandardCharsets.US_ASCII))) {
-                            remoteCapability = Capability.read(bais);
-                            LOGGER.fine(() -> "received " + remoteCapability);
-                        } catch (IOException x) {
-                            events.error(x);
-                        }
-                    }
-                }
-                HeaderHandler headerHandler = new HeaderHandler();
-                ContainerProvider.getWebSocketContainer().connectToServer(new Endpoint() {
-                    AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
-                    @Override
-                    public void onOpen(Session session, EndpointConfig config) {
-                        events.status("WebSocket connection open");
-                        session.addMessageHandler(byte[].class, this::onMessage);
-                        try {
-                            ch.set(new ChannelBuilder(slaveName, executor).build(new Transport(session)));
-                        } catch (IOException x) {
-                            events.error(x);
-                        }
-                    }
-                    @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
-                    private void onMessage(byte[] message) {
-                        LOGGER.finest(() -> "received message of length " + message.length);
-                        receiver.handle(message);
-                    }
-                    @Override
-                    public void onClose(Session session, CloseReason closeReason) {
-                        // TODO
-                    }
-                    @Override
-                    public void onError(Session session, Throwable thr) {
-                        // TODO
-                    }
-                    class Transport extends AbstractByteArrayCommandTransport {
-                        final Session session;
-                        Transport(Session session) {
-                            this.session = session;
-                        }
-                        @Override
-                        public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver _receiver) {
-                            events.status("Setting up channel");
-                            receiver = _receiver;
-                        }
-                        @Override
-                        public void writeBlock(Channel channel, byte[] payload) throws IOException {
-                            LOGGER.finest(() -> "sending message of length " + payload.length);
-                            session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload));
-                        }
-                        @Override
-                        public Capability getRemoteCapability() throws IOException {
-                            return headerHandler.remoteCapability;
-                        }
-                        @Override
-                        public void closeWrite() throws IOException {
-                            events.status("Write side closed");
-                            // TODO
-                        }
-                        @Override
-                        public void closeRead() throws IOException {
-                            events.status("Read side closed");
-                            // TODO
-                        }
-                    }
-                }, ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
-                while (ch.get() == null) {
-                    Thread.sleep(100);
-                }
-                LOGGER.info(() -> "Waiting for channel");
-                ch.get().join();
-                // TODO handle multiple candidate URLs
-                // TODO handle reconnection
-                return;
-            }
             IOHub hub = IOHub.create(executor);
             try {
                 SSLContext context;
@@ -599,12 +511,106 @@ public class Engine extends Thread {
             } finally {
                 hub.close();
             }
+        } catch (IOException e) {
+            events.error(e);
+        }
+    }
+
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "checked exceptions were a mistake to begin with")
+    private void runWebSocket() {
+        try {
+            AtomicReference<Channel> ch = new AtomicReference<>();
+            String localCap = new Capability().toASCII();
+            class HeaderHandler extends ClientEndpointConfig.Configurator {
+                Capability remoteCapability = new Capability();
+                @Override
+                public void beforeRequest(Map<String, List<String>> headers) {
+                    headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(slaveName));
+                    headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
+                    headers.put(Capability.KEY, Collections.singletonList(localCap));
+                    // TODO use JnlpConnectionState.COOKIE_KEY somehow
+                    LOGGER.fine(() -> "Sending: " + headers);
+                }
+                @Override
+                public void afterResponse(HandshakeResponse hr) {
+                    LOGGER.fine(() -> "Receiving: " + hr.getHeaders());
+                    try {
+                        remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
+                        LOGGER.fine(() -> "received " + remoteCapability);
+                    } catch (IOException x) {
+                        events.error(x);
+                    }
+                }
+            }
+            HeaderHandler headerHandler = new HeaderHandler();
+            ContainerProvider.getWebSocketContainer().connectToServer(new Endpoint() {
+                AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
+                @Override
+                public void onOpen(Session session, EndpointConfig config) {
+                    events.status("WebSocket connection open");
+                    session.addMessageHandler(byte[].class, this::onMessage);
+                    try {
+                        ch.set(new ChannelBuilder(slaveName, executor).build(new Transport(session)));
+                    } catch (IOException x) {
+                        events.error(x);
+                    }
+                }
+                @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
+                private void onMessage(byte[] message) {
+                    LOGGER.finest(() -> "received message of length " + message.length);
+                    receiver.handle(message);
+                }
+                @Override
+                public void onClose(Session session, CloseReason closeReason) {
+                    // TODO
+                }
+                @Override
+                public void onError(Session session, Throwable thr) {
+                    // TODO
+                }
+                class Transport extends AbstractByteArrayCommandTransport {
+                    final Session session;
+                    Transport(Session session) {
+                        this.session = session;
+                    }
+                    @Override
+                    public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver _receiver) {
+                        events.status("Setting up channel");
+                        receiver = _receiver;
+                    }
+                    @Override
+                    public void writeBlock(Channel channel, byte[] payload) throws IOException {
+                        LOGGER.finest(() -> "sending message of length " + payload.length);
+                        session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload));
+                    }
+                    @Override
+                    public Capability getRemoteCapability() throws IOException {
+                        return headerHandler.remoteCapability;
+                    }
+                    @Override
+                    public void closeWrite() throws IOException {
+                        events.status("Write side closed");
+                        // TODO
+                    }
+                    @Override
+                    public void closeRead() throws IOException {
+                        events.status("Read side closed");
+                        // TODO
+                    }
+                }
+            }, ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
+            while (ch.get() == null) {
+                Thread.sleep(100);
+            }
+            LOGGER.info(() -> "Waiting for channel");
+            ch.get().join();
+            // TODO handle multiple candidate URLs
+            // TODO handle reconnection
         } catch (Exception e) {
             events.error(e);
         }
     }
 
-    @SuppressFBWarnings(value = "UPM_UNCALLED_PRIVATE_METHOD", justification = "TODO pending WS/TCP switch")
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
         // Create the protocols that will be attempted to connect to the master.

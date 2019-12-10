@@ -83,7 +83,9 @@ public class Main {
             usage="Specify the Jenkins root URLs to connect to.")
     public List<URL> urls = new ArrayList<>();
 
-    // TODO option to enable WS
+    @Option(name="-webSocket",
+            usage="Make a WebSocket connection to Jenkins rather than using the TCP port.")
+    public boolean webSocket;
 
     @Option(name="-credentials",metaVar="USER:PASSWORD",
             usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
@@ -292,6 +294,7 @@ public class Main {
         Engine engine = new Engine(
                 headlessMode ? new CuiListener() : new GuiListener(),
                 urls, args.get(0), agentName, directConnection, instanceIdentity, new HashSet<>(protocols));
+        engine.setWebSocket(webSocket);
         if(tunnel!=null)
             engine.setTunnel(tunnel);
         if(credentials!=null)

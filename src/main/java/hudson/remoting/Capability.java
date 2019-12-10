@@ -1,6 +1,8 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -24,6 +26,12 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  * @see Channel#remoteCapability
  */
 public final class Capability implements Serializable {
+
+    /**
+     * Key usable as a WebSocket HTTP header to negotiate capabilities.
+     */
+    public static final String KEY = /* Capability.class.getName() */"hudson.remoting.Capability";
+
     /**
      * Bit mask of optional capabilities.
      */
@@ -130,7 +138,7 @@ public final class Capability implements Serializable {
     /**
      * Writes this capability to a stream.
      */
-    public void write(OutputStream os) throws IOException {
+    private void write(OutputStream os) throws IOException {
         try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os)) {
             @Override
             public void close() throws IOException {
@@ -175,6 +183,25 @@ public final class Capability implements Serializable {
             return (Capability)ois.readObject();
         } catch (ClassNotFoundException e) {
             throw (Error)new NoClassDefFoundError(e.getMessage()).initCause(e);
+        }
+    }
+
+    /**
+     * Uses {@link #write} to serialize this object to a Base64-encoded ASCII stream.
+     */
+    public String toASCII() throws IOException {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            write(baos);
+            return baos.toString("US-ASCII");
+        }
+    }
+
+    /**
+     * The inverse of {@link #toASCII}.
+     */
+    public static Capability fromASCII(String ascii) throws IOException {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(ascii.getBytes(StandardCharsets.US_ASCII))) {
+            return Capability.read(bais);
         }
     }
 
