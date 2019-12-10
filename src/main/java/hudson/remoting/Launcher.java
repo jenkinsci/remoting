@@ -623,6 +623,7 @@ public class Launcher {
      * Listens on an ephemeral port, record that port number in a port file,
      * then accepts one TCP connection.
      */
+    @Deprecated
     @SuppressFBWarnings(value = {"UNENCRYPTED_SERVER_SOCKET", "DM_DEFAULT_ENCODING"}, justification = "This is an old, insecure mechanism that should be removed. port number file should be in platform default encoding.")
     private void runAsTcpServer() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
