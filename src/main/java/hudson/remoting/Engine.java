@@ -458,7 +458,6 @@ public class Engine extends Thread {
     @Override
     public void run() {
         if (webSocket) {
-            // TODO check for inappropriate options like tunnel, disableHttpsCertValidation, etc.
             runWebSocket();
             return;
         }
