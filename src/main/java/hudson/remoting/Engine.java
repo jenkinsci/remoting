@@ -553,8 +553,8 @@ public class Engine extends Thread {
                 }
             }
             HeaderHandler headerHandler = new HeaderHandler();
-            @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
             class AgentEndpoint extends Endpoint {
+                @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
                 AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
                 @Override
                 public void onOpen(Session session, EndpointConfig config) {
