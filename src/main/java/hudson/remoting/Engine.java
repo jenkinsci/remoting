@@ -553,7 +553,8 @@ public class Engine extends Thread {
                 }
             }
             HeaderHandler headerHandler = new HeaderHandler();
-            ContainerProvider.getWebSocketContainer().connectToServer(new Endpoint() {
+            @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
+            class AgentEndpoint extends Endpoint {
                 AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
                 @Override
                 public void onOpen(Session session, EndpointConfig config) {
@@ -565,7 +566,6 @@ public class Engine extends Thread {
                         events.error(x);
                     }
                 }
-                @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
                 private void onMessage(byte[] message) {
                     LOGGER.finest(() -> "received message of length " + message.length);
                     receiver.handle(message);
@@ -610,7 +610,9 @@ public class Engine extends Thread {
                         session.close();
                     }
                 }
-            }, ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
+            }
+            ContainerProvider.getWebSocketContainer().connectToServer(new AgentEndpoint(),
+                ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
             while (ch.get() == null) {
                 Thread.sleep(100);
             }
