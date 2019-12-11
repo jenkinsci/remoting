@@ -90,6 +90,7 @@ import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
+import org.jenkinsci.remoting.util.VersionNumber;
 
 /**
  * Agent engine that proactively connects to Jenkins master.
@@ -534,6 +535,15 @@ public class Engine extends Thread {
                 @Override
                 public void afterResponse(HandshakeResponse hr) {
                     LOGGER.fine(() -> "Receiving: " + hr.getHeaders());
+                    List<String> remotingMinimumVersion = hr.getHeaders().get("X-Remoting-Minimum-Version");
+                    if (remotingMinimumVersion != null && !remotingMinimumVersion.isEmpty()) {
+                        VersionNumber minimumSupportedVersion = new VersionNumber(remotingMinimumVersion.get(0));
+                        VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
+                        if (currentVersion.isOlderThan(minimumSupportedVersion)) {
+                            // TODO these errors should trigger a connection close
+                            events.error(new IOException("Agent version " + minimumSupportedVersion + " or newer is required."));
+                        }
+                    }
                     try {
                         remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
                         LOGGER.fine(() -> "received " + remoteCapability);
