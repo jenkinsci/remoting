@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.52</version>
+    <version>1.53</version>
     <relativePath />
   </parent>
 
@@ -138,9 +138,8 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.jvnet.hudson</groupId>
+      <groupId>org.jenkins-ci</groupId>
       <artifactId>test-annotations</artifactId>
-      <version>1.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
