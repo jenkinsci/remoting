@@ -325,7 +325,7 @@ public class JnlpProtocol3Handler extends LegacyJnlpProtocolHandler<Jnlp3Connect
                 encryptedMasterChallengeResponse);
         if (!Jnlp3Util.validateChallengeResponse(masterChallenge, masterChallengeResponse)) {
             LOGGER.log(Level.WARNING, "An attempt was made to connect as {0} from {1} with an incorrect secret",
-                    new Object[]{clientName, state.getSocket().getRemoteSocketAddress()});
+                    new Object[]{clientName, state.getRemoteEndpointDescription()});
             throw new ConnectionRefusalException("Incorrect master challenge response from agent");
         }
         state.fireAfterProperties(properties);

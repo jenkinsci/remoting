@@ -301,7 +301,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                     case INVALID:
                         LOGGER.log(Level.WARNING,
                                 "An attempt was made to connect as {0} from {1} with an invalid client certificate",
-                                new Object[]{clientName, event.getSocket().getRemoteSocketAddress()});
+                                new Object[]{clientName, event.getRemoteEndpointDescription()});
                         throw new ConnectionRefusalException("Authentication failure");
                     default:
                         String secretKey = clientDatabase.getSecretOf(clientName);
@@ -312,7 +312,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                         if (!secretKey.equals(headers.get(JnlpConnectionState.SECRET_KEY))) {
                             LOGGER.log(Level.WARNING,
                                     "An attempt was made to connect as {0} from {1} with an incorrect secret",
-                                    new Object[]{clientName, event.getSocket().getRemoteSocketAddress()});
+                                    new Object[]{clientName, event.getRemoteEndpointDescription()});
                             throw new ConnectionRefusalException("Authorization failure");
                         }
                         break;

@@ -166,7 +166,7 @@ public class JnlpProtocol2Handler extends LegacyJnlpProtocolHandler<LegacyJnlpCo
         }
         if (!secretKey.equals(secret)) {
             LOGGER.log(Level.WARNING, "An attempt was made to connect as {0} from {1} with an incorrect secret",
-                    new Object[]{clientName, state.getSocket().getRemoteSocketAddress()});
+                    new Object[]{clientName, state.getRemoteEndpointDescription()});
             throw new ConnectionRefusalException("Authorization failure");
         }
         state.fireAfterProperties(properties);

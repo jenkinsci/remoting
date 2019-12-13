@@ -69,8 +69,12 @@ public class JnlpConnectionState {
     /**
      * Socket connection to the agent.
      */
-    @Nonnull
+    @CheckForNull
     private final Socket socket;
+
+    @Nonnull
+    private String remoteEndpointDescription = "<unknown>";
+
     /**
      * The {@link JnlpConnectionStateListener} instances that are still interested in this connection event.
      */
@@ -120,19 +124,37 @@ public class JnlpConnectionState {
      * @param socket    the {@link Socket}.
      * @param listeners the {@link JnlpConnectionStateListener} instances.
      */
-    protected JnlpConnectionState(@Nonnull Socket socket, List<? extends JnlpConnectionStateListener> listeners) {
+    public JnlpConnectionState(@CheckForNull Socket socket, List<? extends JnlpConnectionStateListener> listeners) {
         this.socket = socket;
         this.listeners = new ArrayList<JnlpConnectionStateListener>(listeners);
     }
 
     /**
      * Gets the socket that the connection is on.
-     *
-     * @return the socket that the connection is on.
+     * <p>This should be considered deprecated except in situations where you know an actual socket is involved.
+     * Use {@link #getRemoteEndpointDescription} for logging purposes.
+     * @return an actual socket, or just a stub
      */
     @Nonnull
     public Socket getSocket() {
-        return socket;
+        return socket != null ? socket : new Socket();
+    }
+
+    /**
+     * Description of the remote endpoint to which {@link #getSocket} is connected, if using an actual socket and it is actually connected.
+     * Or may be some other text identifying a remote client.
+     * @return some text suitable for debug logs
+     */
+    @Nonnull
+    public String getRemoteEndpointDescription() {
+        return socket != null ? String.valueOf(socket.getRemoteSocketAddress()) : remoteEndpointDescription;
+    }
+
+    /**
+     * Set a specific value for {@link #getRemoteEndpointDescription}.
+     */
+    public void setRemoteEndpointDescription(@Nonnull String description) {
+        remoteEndpointDescription = description;
     }
 
     /**
