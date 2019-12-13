@@ -560,8 +560,9 @@ public class Engine extends Thread {
                     events.status("WebSocket connection open");
                     session.addMessageHandler(byte[].class, this::onMessage);
                     try {
-                        // TODO use jarCache, unless EngineJnlpConnectionStateListener can be used for that purpose
-                        ch.set(new ChannelBuilder(slaveName, executor).build(new Transport(session)));
+                        ch.set(new ChannelBuilder(slaveName, executor).
+                            withJarCache(jarCache). // unless EngineJnlpConnectionStateListener can be used for this purpose
+                            build(new Transport(session)));
                     } catch (IOException x) {
                         events.error(x);
                     }
