@@ -30,7 +30,7 @@ public final class Capability implements Serializable {
     /**
      * Key usable as a WebSocket HTTP header to negotiate capabilities.
      */
-    public static final String KEY = "hudson.remoting.Capability"; // Capability.class.getName() is not a compile-time constant
+    public static final String KEY = "X-Remoting-Capability";
 
     /**
      * Bit mask of optional capabilities.
