@@ -327,7 +327,7 @@ public class JnlpConnectionState {
      *
      * @throws ConnectionRefusalException if the connection has been refused.
      */
-    /*package*/ void fireBeforeProperties() throws ConnectionRefusalException {
+    public void fireBeforeProperties() throws ConnectionRefusalException {
         if (lifecycle != State.INITIALIZED) {
             throw new IllegalStateException("fireBeforeProperties cannot be invoked at lifecycle " + lifecycle);
         }
@@ -356,7 +356,7 @@ public class JnlpConnectionState {
      *
      * @throws ConnectionRefusalException if the connection has been refused.
      */
-    /*package*/ void fireAfterProperties(@Nonnull Map<String, String> properties) throws ConnectionRefusalException {
+    public void fireAfterProperties(@Nonnull Map<String, String> properties) throws ConnectionRefusalException {
         if (lifecycle != State.BEFORE_PROPERTIES) {
             throw new IllegalStateException("fireAfterProperties cannot be invoked at lifecycle " + lifecycle);
         }
@@ -386,7 +386,7 @@ public class JnlpConnectionState {
      *
      * @param builder the {@link ChannelBuilder} that will be used to create the channel.
      */
-    /*package*/ void fireBeforeChannel(ChannelBuilder builder) {
+    public void fireBeforeChannel(ChannelBuilder builder) {
         if (lifecycle != State.APPROVED) {
             throw new IllegalStateException("fireBeforeChannel cannot be invoked at lifecycle " + lifecycle);
         }
@@ -407,7 +407,7 @@ public class JnlpConnectionState {
      * @param channel the {@link Channel} (may be closed already but should not unless there is a serious race with
      *                the remote).
      */
-    /*package*/ void fireAfterChannel(Channel channel) {
+    public void fireAfterChannel(Channel channel) {
         if (lifecycle != State.BEFORE_CHANNEL) {
             throw new IllegalStateException("fireAfterChannel cannot be invoked at lifecycle " + lifecycle);
         }
@@ -428,7 +428,7 @@ public class JnlpConnectionState {
      *
      * @param cause the reason why the channel was closed or {@code null} if normally closed
      */
-    /*package*/ void fireChannelClosed(@CheckForNull IOException cause) {
+    public void fireChannelClosed(@CheckForNull IOException cause) {
         if (lifecycle.compareTo(State.BEFORE_CHANNEL) < 0) {
             throw new IllegalStateException("fireChannelClosed cannot be invoked at lifecycle " + lifecycle);
         }
@@ -446,7 +446,7 @@ public class JnlpConnectionState {
     /**
      * Advances the connection state to indicate that the socket has been closed.
      */
-    /*package*/ void fireAfterDisconnect() {
+    public void fireAfterDisconnect() {
         if (lifecycle == State.AFTER_CHANNEL) {
             fireChannelClosed(null);
         }
