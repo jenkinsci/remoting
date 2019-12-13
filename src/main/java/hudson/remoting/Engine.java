@@ -528,7 +528,7 @@ public class Engine extends Thread {
                     headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(slaveName));
                     headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
                     headers.put(Capability.KEY, Collections.singletonList(localCap));
-                    // TODO use JnlpConnectionState.COOKIE_KEY somehow
+                    // TODO use JnlpConnectionState.COOKIE_KEY somehow (see EngineJnlpConnectionStateListener.afterChannel)
                     LOGGER.fine(() -> "Sending: " + headers);
                 }
                 @Override
@@ -560,6 +560,7 @@ public class Engine extends Thread {
                     events.status("WebSocket connection open");
                     session.addMessageHandler(byte[].class, this::onMessage);
                     try {
+                        // TODO use jarCache, unless EngineJnlpConnectionStateListener can be used for that purpose
                         ch.set(new ChannelBuilder(slaveName, executor).build(new Transport(session)));
                     } catch (IOException x) {
                         events.error(x);
