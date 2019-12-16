@@ -98,6 +98,7 @@ THE SOFTWARE.
       <groupId>org.glassfish.tyrus.bundles</groupId>
       <artifactId>tyrus-standalone-client-jdk</artifactId>
       <version>1.12</version>
+      <scope>provided</scope>
     </dependency>
     <!-- test dependencies -->
     <dependency>
@@ -356,6 +357,7 @@ THE SOFTWARE.
             </goals>
             <configuration>
               <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+              <includeScope>provided</includeScope>
               <includeArtifactIds>tyrus-standalone-client-jdk</includeArtifactIds>
             </configuration>
           </execution>
