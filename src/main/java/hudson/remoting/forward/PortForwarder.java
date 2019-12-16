@@ -49,6 +49,7 @@ import static java.util.logging.Level.*;
  * @author Kohsuke Kawaguchi
  * @since 1.315
  */
+@Deprecated
 public class PortForwarder extends Thread implements Closeable, ListeningPort {
     private final Forwarder forwarder;
     private final ServerSocket socket;

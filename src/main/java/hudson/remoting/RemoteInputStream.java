@@ -49,7 +49,6 @@ import static hudson.remoting.RemoteInputStream.Flag.*;
  *
  * @author Kohsuke Kawaguchi
  */
-@SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "Serializable only over remoting.")
 public class RemoteInputStream extends InputStream implements SerializableOnlyOverRemoting {
     private static final Logger LOGGER = Logger.getLogger(RemoteInputStream.class.getName());
     private transient InputStream core;
@@ -177,6 +176,7 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
         oos.writeInt(id);
     }
 
+    @SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "Serializable only over remoting. Class filtering is done through JEP-200.")
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         final Channel channel = getChannelForSerialization();
         if (channel.remoteCapability.supportsGreedyRemoteInputStream()) {

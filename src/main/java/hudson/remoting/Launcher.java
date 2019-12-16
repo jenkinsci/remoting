@@ -53,6 +53,7 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.CmdLineException;
 
 import javax.crypto.spec.IvParameterSpec;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -613,9 +614,10 @@ public class Launcher {
         return r;
     }
 
-    @SuppressFBWarnings(value = "XXE_DOCUMENT", justification = "This is the (so-called) JNLP file from the server, which has to be trusted from the perspective of this agent.")
     private static Document loadDom(URL agentJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
-        DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        DocumentBuilder db = dbf.newDocumentBuilder();
         return db.parse(is, agentJnlpURL.toExternalForm());
     }
 
@@ -671,6 +673,7 @@ public class Launcher {
      * Connects to the given TCP port and then start running
      */
     @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This implements an old, insecure connection mechanism.")
+    @Deprecated
     private void runAsTcpClient() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
         // and avoid hanging forever

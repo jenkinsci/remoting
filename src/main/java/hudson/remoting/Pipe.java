@@ -98,7 +98,6 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
-@SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "Serializable only over remoting.")
 public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatingOutputStream {
     private InputStream in;
     private OutputStream out;
@@ -175,6 +174,7 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
         }
     }
 
+    @SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "Serializable only over remoting. Class filtering is done through JEP-200.")
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         final Channel channel = getChannelForSerialization();
 

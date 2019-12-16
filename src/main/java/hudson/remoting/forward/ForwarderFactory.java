@@ -45,6 +45,7 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
+@Deprecated
 public class ForwarderFactory {
 
     private static final Logger LOGGER = Logger.getLogger(ForwarderFactory.class.getName());
