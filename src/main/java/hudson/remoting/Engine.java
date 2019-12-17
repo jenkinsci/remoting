@@ -561,7 +561,7 @@ public class Engine extends Thread {
                     session.addMessageHandler(byte[].class, this::onMessage);
                     try {
                         ch.set(new ChannelBuilder(slaveName, executor).
-                            withJarCache(jarCache). // unless EngineJnlpConnectionStateListener can be used for this purpose
+                            withJarCacheOrDefault(jarCache). // unless EngineJnlpConnectionStateListener can be used for this purpose
                             build(new Transport(session)));
                     } catch (IOException x) {
                         events.error(x);

@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 
@@ -124,7 +125,7 @@ public class JnlpConnectionState {
      * @param socket    the {@link Socket}.
      * @param listeners the {@link JnlpConnectionStateListener} instances.
      */
-    public JnlpConnectionState(@CheckForNull Socket socket, List<? extends JnlpConnectionStateListener> listeners) {
+    public JnlpConnectionState(@Nullable Socket socket, List<? extends JnlpConnectionStateListener> listeners) {
         this.socket = socket;
         this.listeners = new ArrayList<JnlpConnectionStateListener>(listeners);
     }
