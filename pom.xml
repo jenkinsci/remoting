@@ -98,9 +98,8 @@ THE SOFTWARE.
       <groupId>org.glassfish.tyrus.bundles</groupId>
       <artifactId>tyrus-standalone-client-jdk</artifactId>
       <version>1.12</version>
-      <scope>provided</scope>
+      <optional>true</optional>
     </dependency>
-    <!-- test dependencies -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -135,7 +134,7 @@ THE SOFTWARE.
       <groupId>args4j</groupId>
       <artifactId>args4j</artifactId>
       <version>2.33</version>
-      <scope>provided</scope>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>
@@ -155,21 +154,15 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <!-- for JRE requirement check annotation -->
-      <groupId>org.jvnet</groupId>
-      <artifactId>animal-sniffer-annotation</artifactId>
-      <version>1.0</version>
-      <optional>true</optional><!-- no need to have this at runtime -->
-    </dependency>
-    <dependency>
       <groupId>org.jenkins-ci</groupId>
       <artifactId>constant-pool-scanner</artifactId>
       <version>1.2</version>
+      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.github.spotbugs</groupId>
       <artifactId>spotbugs-annotations</artifactId>
-      <optional>true</optional>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
@@ -187,13 +180,7 @@ THE SOFTWARE.
       <groupId>org.kohsuke</groupId>
       <artifactId>access-modifier-annotation</artifactId>
       <version>1.12</version>
-      <type>jar</type>
-      <optional>true</optional><!-- no need to have this at runtime -->
-    </dependency>
-    <dependency>
-      <groupId>org.jenkins-ci</groupId>
-      <artifactId>test-annotations</artifactId>
-      <scope>test</scope>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 
@@ -226,24 +213,56 @@ THE SOFTWARE.
         </configuration>
       </plugin>
       <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.2.1</version>
+          <executions>
+              <execution>
+                  <phase>package</phase>
+                  <goals>
+                      <goal>shade</goal>
+                  </goals>
+                  <configuration>
+                      <createDependencyReducedPom>false</createDependencyReducedPom>
+                      <relocations>
+                          <relocation>
+                              <pattern>javax.websocket</pattern>
+                              <shadedPattern>io.jenkins.remoting.shaded.javax.websocket</shadedPattern>
+                          </relocation>
+                          <relocation>
+                              <pattern>org.glassfish.tyrus</pattern>
+                              <shadedPattern>io.jenkins.remoting.shaded.org.glassfish.tyrus</shadedPattern>
+                          </relocation>
+                          <relocation>
+                              <pattern>org.kohsuke.args4j</pattern>
+                              <shadedPattern>io.jenkins.remoting.shaded.org.kohsuke.args4j</shadedPattern>
+                          </relocation>
+                          <relocation>
+                              <pattern>org.jenkinsci.constant_pool_scanner</pattern>
+                              <shadedPattern>io.jenkins.remoting.shaded.org.jenkinsci.constant_pool_scanner</shadedPattern>
+                          </relocation>
+                      </relocations>
+                      <transformers>
+                          <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                              <mainClass>hudson.remoting.Launcher</mainClass>
+                              <manifestEntries>
+                                  <Version>${project.version}</Version>
+                                  <!-- attributes related to Java Web Start -->
+                                  <!-- see http://docs.oracle.com/javase/8/docs/technotes/guides/jweb/security/manifest.html -->
+                                  <Permissions>all-permissions</Permissions>
+                                  <Codebase>*</Codebase>
+                                  <Application-Name>Jenkins Remoting Agent</Application-Name>
+                                  <Trusted-Library>true</Trusted-Library>
+                              </manifestEntries>
+                          </transformer>
+                          <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                      </transformers>
+                  </configuration>
+              </execution>
+          </executions>
+      </plugin>
+      <plugin>
         <artifactId>maven-jar-plugin</artifactId>
-        <!-- version specified in grandparent pom -->
-        <configuration>
-          <archive>
-            <manifest>
-              <mainClass>hudson.remoting.Launcher</mainClass>
-            </manifest>
-            <manifestEntries>
-              <Version>${project.version}</Version>
-              <!-- attributes related to Java Web Start -->
-              <!-- see http://docs.oracle.com/javase/8/docs/technotes/guides/jweb/security/manifest.html -->
-              <Permissions>all-permissions</Permissions>
-              <Codebase>*</Codebase>
-              <Application-Name>Jenkins Remoting Agent</Application-Name>
-              <Trusted-Library>true</Trusted-Library>
-            </manifestEntries>
-          </archive>
-        </configuration>
         <executions>
           <execution>
             <id>executable-tests</id>
@@ -321,43 +340,6 @@ THE SOFTWARE.
                   <destFileName>remoting-test-client-tests.jar</destFileName>
                 </artifactItem>
               </artifactItems>
-            </configuration>
-          </execution>
-          <execution>
-            <id>bundle-arg4j</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-              <includeScope>provided</includeScope>
-              <includeArtifactIds>args4j</includeArtifactIds>
-              <includeGroupIds>args4j</includeGroupIds>
-            </configuration>
-          </execution>
-          <execution>
-            <id>bundle-cps</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-              <includeArtifactIds>constant-pool-scanner</includeArtifactIds>
-              <includeGroupIds>org.jenkins-ci</includeGroupIds>
-            </configuration>
-          </execution>
-          <execution>
-            <id>bundle-tyrus</id>
-            <phase>process-classes</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-              <includeScope>provided</includeScope>
-              <includeArtifactIds>tyrus-standalone-client-jdk</includeArtifactIds>
             </configuration>
           </execution>
         </executions>
