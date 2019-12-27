@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.remoting.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -96,6 +98,8 @@ public final class KeyUtils {
      * @return the MD5 fingerprint of the key.
      */
     @Nonnull
+    @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_MD5", justification = "Used for fingerprinting, not security.")
+    @Deprecated
     public static String fingerprint(@CheckForNull Key key) {
         if (key == null) {
             return "null";

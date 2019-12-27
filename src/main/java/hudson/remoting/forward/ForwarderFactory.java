@@ -23,6 +23,7 @@
  */
 package hudson.remoting.forward;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Callable;
 import hudson.remoting.RemoteOutputStream;
 import hudson.remoting.SocketChannelStream;
@@ -44,6 +45,7 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
+@Deprecated
 public class ForwarderFactory {
 
     private static final Logger LOGGER = Logger.getLogger(ForwarderFactory.class.getName());
@@ -68,6 +70,7 @@ public class ForwarderFactory {
             this.remotePort = remotePort;
         }
 
+        @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "Unused mechanism.")
         public OutputStream connect(OutputStream out) throws IOException {
             Socket s = new Socket(remoteHost, remotePort);
             try (InputStream in = SocketChannelStream.in(s)) {

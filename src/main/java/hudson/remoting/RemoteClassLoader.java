@@ -794,6 +794,7 @@ final class RemoteClassLoader extends URLClassLoader {
             this.channel = channel;
         }
 
+        @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files.")
         public byte[] fetchJar(URL url) throws IOException {
             return readFully(url.openStream());
         }
@@ -885,6 +886,7 @@ final class RemoteClassLoader extends URLClassLoader {
             }
         }
 
+        @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files.")
         public Map<String,ClassFile2> fetch3(String className) throws ClassNotFoundException {
             ClassFile2 cf = fetch4(className,null);
             Map<String,ClassFile2> all = new HashMap<String,ClassFile2>();

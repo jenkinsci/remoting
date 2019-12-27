@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -45,6 +47,7 @@ import java.util.logging.Level;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Managed by the jar cache mechanism, using server data.")
 public class Which {
     /**
      * Returns the URL of the class file where the given class has been loaded from.
@@ -109,6 +112,7 @@ public class Which {
      *      JAR File, which contains the URL
      */
     @Nonnull
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent as part of jar cache management.")
     /*package*/ static File jarFile(URL res, String qualifiedName) throws IOException {
         String resURL = res.toExternalForm();
         String originalURL = resURL;

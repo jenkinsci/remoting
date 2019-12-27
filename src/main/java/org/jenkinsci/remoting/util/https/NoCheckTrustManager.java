@@ -26,6 +26,7 @@
 
 package org.jenkinsci.remoting.util.https;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -37,6 +38,7 @@ import java.security.cert.X509Certificate;
  * {@link X509TrustManager} that performs no check at all.
  */
 @Restricted(NoExternalUse.class)
+@SuppressFBWarnings(value = "WEAK_TRUST_MANAGER", justification = "User set parameter to skip verifier.")
 public class NoCheckTrustManager implements X509TrustManager {
     public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
     }
