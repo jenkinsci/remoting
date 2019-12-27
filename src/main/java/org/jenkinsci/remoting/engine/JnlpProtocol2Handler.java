@@ -24,6 +24,11 @@
 package org.jenkinsci.remoting.engine;
 
 import hudson.remoting.Channel;
+import org.jenkinsci.remoting.nio.NioChannelHub;
+import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -31,6 +36,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +44,6 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import org.jenkinsci.remoting.nio.NioChannelHub;
-import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 
 /**
  * Implementation of the JNLP2-connect protocol.
@@ -151,7 +153,7 @@ public class JnlpProtocol2Handler extends LegacyJnlpProtocolHandler<LegacyJnlpCo
             throws IOException {
         state.fireBeforeProperties();
         Properties request = new Properties();
-        request.load(new ByteArrayInputStream(state.getDataInputStream().readUTF().getBytes("UTF-8")));
+        request.load(new ByteArrayInputStream(state.getDataInputStream().readUTF().getBytes(StandardCharsets.UTF_8)));
         Map<String, String> properties = new HashMap<String, String>();
         properties.putAll((Map) request);
         String clientName = properties.get(JnlpConnectionState.CLIENT_NAME_KEY);

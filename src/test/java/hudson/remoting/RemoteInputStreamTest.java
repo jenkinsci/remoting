@@ -9,9 +9,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static hudson.remoting.RemoteInputStream.Flag.*;
+import static hudson.remoting.RemoteInputStream.Flag.GREEDY;
+import static hudson.remoting.RemoteInputStream.Flag.NOT_GREEDY;
 import static java.util.Arrays.asList;
 
 /**
@@ -145,7 +147,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
     }
 
     private static byte[] toBytes(String s) throws UnsupportedEncodingException {
-        return s.getBytes("UTF-8");
+        return s.getBytes(StandardCharsets.UTF_8);
     }
 
     public static Test suite() throws Exception {

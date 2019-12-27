@@ -25,6 +25,9 @@
 package org.jenkinsci.remoting.util;
 
 import hudson.remoting.Channel;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
@@ -34,8 +37,6 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 /**
  * Issues warnings about attempts to (de-)serialize anonymous, local, or synthetic classes.
@@ -43,7 +44,7 @@ import javax.annotation.Nonnull;
  */
 public class AnonymousClassWarnings {
 
-    private static final Logger LOGGER = Logger.getLogger(AnonymousClassWarnings.class.getName());    
+    private static final Logger LOGGER = Logger.getLogger(AnonymousClassWarnings.class.getName());
     private static final Map<Class<?>, Boolean> checked = new WeakHashMap<>();
 
     /**
@@ -62,7 +63,7 @@ public class AnonymousClassWarnings {
         } else {
             // May not call methods like Class#isAnonymousClass synchronously, since these can in turn trigger remote class loading.
             try {
-                channel.executor.submit((Runnable) () -> doCheck(clazz));
+                channel.executor.submit(() -> doCheck(clazz));
             } catch (RejectedExecutionException x) {
                 // never mind, we tried
             }

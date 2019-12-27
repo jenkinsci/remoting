@@ -29,18 +29,18 @@ import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.io.InputStream;
-import java.net.URL;
-import java.net.MalformedURLException;
-import java.net.URLConnection;
-import java.net.JarURLConnection;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.zip.ZipFile;
+import java.net.JarURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.jar.JarFile;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.zip.ZipFile;
 
 /**
  * Locates where a given class is loaded from.
@@ -248,11 +248,7 @@ public class Which {
             }
             baos.write(ch);
         }
-        try {
-            return new String(baos.toByteArray(),"UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new Error(e); // impossible
-        }
+        return new String(baos.toByteArray(), StandardCharsets.UTF_8);
     }
 
     private static int hexToInt(int ch) {

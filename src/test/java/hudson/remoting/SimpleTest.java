@@ -23,9 +23,9 @@
  */
 package hudson.remoting;
 
-import java.util.concurrent.CancellationException;
 import junit.framework.Test;
 
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -90,7 +90,7 @@ public class SimpleTest extends RmiTestBase {
         assertSame(c,r);
     }
 
-    public static interface Foo {}
+    public interface Foo {}
 
     private static class Echo<T> extends CallableBase<T,RuntimeException> {
         private final T t;

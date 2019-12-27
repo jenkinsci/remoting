@@ -20,9 +20,9 @@
  */
 package hudson.remoting;
 
+import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 
 /**
@@ -78,7 +78,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     private FastPipedInputStream sink() throws IOException {
         FastPipedInputStream s = sink.get();
-        if (s==null)    throw (IOException)new IOException("Reader side has already been abandoned").initCause(allocatedAt);
+        if (s==null)    throw new IOException("Reader side has already been abandoned", allocatedAt);
         return s;
     }
 
@@ -151,7 +151,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
             FastPipedInputStream s = sink(); // make sure the sink is still trying to read, or else fail the write.
 
             if(s.closed!=null) {
-                throw (IOException)new IOException("Pipe is already closed").initCause(s.closed);
+                throw new IOException("Pipe is already closed", s.closed);
             }
 
             synchronized(s.buffer) {

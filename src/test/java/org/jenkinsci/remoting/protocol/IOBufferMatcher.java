@@ -25,13 +25,19 @@ package org.jenkinsci.remoting.protocol;
 
 import com.google.common.util.concurrent.SettableFuture;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import org.apache.commons.io.IOUtils;
+import org.hamcrest.Matcher;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.CheckReturnValue;
+import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -43,12 +49,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.io.IOUtils;
-import org.hamcrest.Matcher;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 
 /**
  * An {@link IOBufferMatcher} can {@link #send(ByteBuffer)} and {@link #receive(ByteBuffer)} streams of data as
@@ -162,11 +162,7 @@ public abstract class IOBufferMatcher {
     }
 
     public String asString() {
-        try {
-            return new String(asByteArray(), "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("JLS mandates UTF-8");
-        }
+        return new String(asByteArray(), StandardCharsets.UTF_8);
     }
 
     @Override

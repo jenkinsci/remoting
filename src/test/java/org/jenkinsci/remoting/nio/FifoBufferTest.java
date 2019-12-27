@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -115,7 +116,7 @@ public class FifoBufferTest extends Assert {
     }
 
     private byte[] b(String s) throws UnsupportedEncodingException {
-        return s.getBytes("UTF-8");
+        return s.getBytes(StandardCharsets.UTF_8);
     }
 
     private ByteBuffer bb(String s) throws UnsupportedEncodingException {

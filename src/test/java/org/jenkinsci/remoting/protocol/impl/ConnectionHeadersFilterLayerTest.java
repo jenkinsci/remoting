@@ -24,13 +24,6 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import com.google.common.util.concurrent.SettableFuture;
-import java.nio.ByteBuffer;
-import java.nio.channels.Pipe;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
@@ -48,6 +41,15 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -100,7 +102,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> client =
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -114,7 +116,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -124,7 +126,7 @@ public class ConnectionHeadersFilterLayerTest {
                                 }))
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();
@@ -140,7 +142,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> client =
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -154,7 +156,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -176,7 +178,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> client =
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -190,7 +192,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -212,7 +214,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> client =
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -226,7 +228,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -252,7 +254,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> client =
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -266,7 +268,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -291,7 +293,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> client =
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -305,7 +307,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -330,7 +332,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> client =
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -344,7 +346,7 @@ public class ConnectionHeadersFilterLayerTest {
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.<String, String>emptyMap(),
+                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
                                 new ConnectionHeadersFilterLayer.Listener() {
                                     @Override
                                     public void onReceiveHeaders(Map<String, String> headers)
@@ -404,7 +406,7 @@ public class ConnectionHeadersFilterLayerTest {
                                 }))
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();

@@ -1,10 +1,10 @@
 package hudson.remoting;
 
+import javax.annotation.CheckForNull;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import javax.annotation.CheckForNull;
 
 /**
  * Lower level abstraction under {@link Channel} for sending and receiving commands
@@ -58,7 +58,7 @@ public abstract class CommandTransport {
      * SPI implemented by {@link Channel} so that the transport can pass the received command
      * to {@link Channel} for processing.
      */
-    protected static interface CommandReceiver {
+    protected interface CommandReceiver {
         /**
          * Notifies the channel that a new {@link Command} was received from the other side.
          * 

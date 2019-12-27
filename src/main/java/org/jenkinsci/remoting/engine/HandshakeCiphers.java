@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -121,7 +124,7 @@ class HandshakeCiphers {
 
             return new HandshakeCiphers(secretKey, spec, encryptCipher, decryptCipher);
         } catch (GeneralSecurityException e) {
-            throw (AssertionError)new AssertionError("Failed to create handshake ciphers").initCause(e);
+            throw new AssertionError("Failed to create handshake ciphers", e);
         }
     }
 
