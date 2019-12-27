@@ -69,12 +69,14 @@ public class URLDeserializationHelper {
     
     private static class SafeURLStreamHandler extends URLStreamHandler {
         @Override
+        @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used for safely handling URLs, not for opening a connection.")
         protected URLConnection openConnection(URL u, Proxy p) throws IOException
         {
             return new URL(u.toString()).openConnection(p);
         }
 
         @Override
+        @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used for safely handling URLs, not for opening a connection.")
         protected URLConnection openConnection(URL u) throws IOException {
             return new URL(u.toString()).openConnection();
         }

@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -31,6 +33,7 @@ public class InitializeJarCacheMain {
      * <li>The jar cache directory.
      * </ol>
      */
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "These file values are provided by users with sufficient adminstrative permissions to run this utility program.")
     public static void main(String[] argv) throws Exception {
         if (argv.length != 2) {
             throw new IllegalArgumentException(

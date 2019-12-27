@@ -30,6 +30,8 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.concurrent.GuardedBy;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
@@ -117,6 +119,7 @@ public class AckFilterLayer extends FilterLayer {
         return expectHex.toString();
     }
 
+    @SuppressFBWarnings(value = "FORMAT_STRING_MANIPULATION", justification = "As this converts a String to a Hex string there is little that can be manipulated.")
     private void abort(String type) throws ConnectionRefusalException {
         aborted = true;
         if (LOGGER.isLoggable(Level.WARNING)) {

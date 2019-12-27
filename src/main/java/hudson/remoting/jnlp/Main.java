@@ -281,6 +281,7 @@ public class Main {
         }
     }
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     public Engine createEngine() {
         String agentName = args.get(1);
         LOGGER.log(INFO, "Setting up agent: {0}", agentName);

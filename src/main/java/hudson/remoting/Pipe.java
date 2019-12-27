@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 import java.io.IOException;
@@ -173,6 +174,7 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
         }
     }
 
+    @SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "Serializable only over remoting. Class filtering is done through JEP-200.")
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         final Channel channel = getChannelForSerialization();
 

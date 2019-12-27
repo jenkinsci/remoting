@@ -226,7 +226,6 @@ public class JnlpProtocolHandlerTest {
 
     @Theory
     public void wrongSecret(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
-        Logger.getLogger(JnlpProtocol4PlainHandler.class.getName()).setLevel(Level.SEVERE);
         Logger.getLogger(JnlpProtocol4Handler.class.getName()).setLevel(Level.SEVERE);
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
         JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
@@ -329,22 +328,6 @@ public class JnlpProtocolHandlerTest {
                     @Override
                     public String toString() {
                         return "JNLP4-connect";
-                    }
-                },
-                new Factory() {
-                    @Override
-                    public JnlpProtocolHandler<? extends JnlpConnectionState> create(JnlpClientDatabase db,
-                                                                                     ExecutorService svc,
-                                                                                     IOHub selector, NioChannelHub hub,
-                                                                                     SSLContext ctx,
-                                                                                     boolean preferNio) {
-                        return new JnlpProtocol4PlainHandler(db, svc, selector, preferNio);
-
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "JNLP4-plaintext";
                     }
                 }
         };

@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
 import org.jenkinsci.remoting.util.VersionNumber;
@@ -351,6 +352,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         return null;
     }
 
+    @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This just verifies connection to the port. No data is transmitted.")
     private boolean isPortVisible(String hostname, int port, int timeout) {
         boolean exitStatus = false;
         Socket s = null;
@@ -509,6 +511,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      * FIXME: similar to hudson.remoting.Util.openURLConnection which is still used in hudson.remoting.Launcher
      */
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent for retrieving connection info from the server.")
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
                                            SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
         String httpProxy = null;

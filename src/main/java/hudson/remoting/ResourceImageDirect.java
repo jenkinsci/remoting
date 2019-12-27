@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Level;
@@ -15,6 +17,7 @@ import static hudson.remoting.Util.*;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent as part of jar cache management.")
 class ResourceImageDirect extends ResourceImageRef {
     /**
      * The actual resource.

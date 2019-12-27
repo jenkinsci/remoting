@@ -48,6 +48,7 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -144,6 +145,7 @@ public class Launcher {
 
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader.")
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     public void addClasspath(String pathList) throws Exception {
         Method $addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
         $addURL.setAccessible(true);
@@ -399,6 +401,7 @@ public class Launcher {
     }
 
     @CheckForNull
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     private SSLSocketFactory getSSLSocketFactory()
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException, KeyManagementException {
@@ -483,6 +486,7 @@ public class Launcher {
     /**
      * Parses the connection arguments from JNLP file given in the URL.
      */
+    @SuppressFBWarnings(value = {"CIPHER_INTEGRITY", "STATIC_IV"}, justification = "Integrity not needed here. IV used for decryption only, loaded from encryptor.")
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
         if (secret != null) {
             slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
@@ -604,7 +608,9 @@ public class Launcher {
     }
 
     private static Document loadDom(URL agentJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
-        DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        DocumentBuilder db = dbf.newDocumentBuilder();
         return db.parse(is, agentJnlpURL.toExternalForm());
     }
 
@@ -612,7 +618,8 @@ public class Launcher {
      * Listens on an ephemeral port, record that port number in a port file,
      * then accepts one TCP connection.
      */
-    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DM_DEFAULT_ENCODING")    // port number file should be in platform default encoding
+    @Deprecated
+    @SuppressFBWarnings(value = {"UNENCRYPTED_SERVER_SOCKET", "DM_DEFAULT_ENCODING"}, justification = "This is an old, insecure mechanism that should be removed. port number file should be in platform default encoding.")
     private void runAsTcpServer() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
         // and avoid hanging forever
@@ -658,6 +665,8 @@ public class Launcher {
     /**
      * Connects to the given TCP port and then start running
      */
+    @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This implements an old, insecure connection mechanism.")
+    @Deprecated
     private void runAsTcpClient() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
         // and avoid hanging forever
@@ -776,6 +785,7 @@ public class Launcher {
                     System.exit(-1);
                 }
                 @Override
+                @SuppressFBWarnings(value = "INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE", justification = "Prints the agent-side message to the agent log before exiting.")
                 protected void onDead(Throwable cause) {
                     System.err.println("Ping failed. Terminating");
                     cause.printStackTrace();

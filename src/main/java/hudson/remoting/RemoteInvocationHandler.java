@@ -63,6 +63,7 @@ import java.util.logging.Logger;
  */
 //TODO: Likely should be serializable over Remoting logic, but this class has protection logic
 // Use-cases need to be investigated
+@SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "This class has protection logic.")
 final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Our logger.

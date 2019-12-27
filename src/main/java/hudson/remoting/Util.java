@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -61,6 +62,7 @@ public class Util {
     }
 
     @Nonnull
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
         File resource = new File(tmpDir.toFile(), name);
@@ -104,6 +106,7 @@ public class Util {
      * If http_proxy environment variable exists,  the connection uses the proxy.
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      */
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used for retrieving the connection info from the server. We should cleanup the other, unused references.")
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials, SSLSocketFactory sslSocketFactory) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
