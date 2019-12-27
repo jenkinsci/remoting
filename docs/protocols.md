@@ -105,23 +105,3 @@ JNLP3 cannot be used on IBM Java, which doesn't support AES/CTR/PKCS5Padding.
 * [Remoting Kafka Plugin](https://github.com/jenkinsci/remoting-kafka-plugin) uses Kafka as fault-tolerant communication layer to support command invocation between Jenkins master and agent.
 * The plugin gets rid of current direct TCP connection between master and agent.
 * More info can be found in the technical [documentation](https://github.com/jenkinsci/remoting-kafka-plugin/blob/master/docs/DOCUMENTATION.md) of the plugin.
-
-## Test Protocols
-
-The protocols below exist for testing purposes only.
-It is **not recommended** to use them in production.
-
-### JNLP4-plaintext
-
-* Introduced in: Remoting 3.0, [JENKINS-36871](https://issues.jenkins-ci.org/browse/JENKINS-36871)
-* For performance testing **only**, not supported for other purposes
-* Cannot be used in Jenkins
-
-This protocol was developed to allow performance comparison 
-  between the original NIO engine used by <code>JNLP2-connect</code> and the new NIO engine
-  used by <connect>JNLP4-connect</code>.
-
-The protocol is similar to <code>JNLP4-connect</code>, 
-  but it does not setup the TLS encryption between agent and master.
-As this protocol is plaintext it is not for use outside of like for like performance testing.
-
