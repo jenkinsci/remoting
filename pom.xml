@@ -414,21 +414,6 @@ THE SOFTWARE.
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
         </configuration>
       </plugin>
-      <plugin>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>run-javadoc</id>
-            <phase>package</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <quiet>true</quiet> <!--Do not report every checked file-->
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 
