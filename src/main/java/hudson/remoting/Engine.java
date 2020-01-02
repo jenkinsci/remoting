@@ -133,7 +133,7 @@ public class Engine extends Thread {
     @CheckForNull
     private URL hudsonUrl;
     private final String secretKey;
-    public final String agentName;
+    private final String agentName;
     private String credentials;
     private String proxyCredentials = System.getProperty("proxyCredentials");
 
