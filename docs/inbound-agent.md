@@ -37,6 +37,7 @@ This mechanism does not use JNLP or WebStart but uses the downloaded file to obt
 For an inbound agent using the TCP port, this is a two-step process:
 * Connect to an HTTP(S) port to retrieve the connection information.
 * Extract that information and connect to the TCP port.
+
 (When using the `-webSocket` option, only a single connection needs to be made.)
 
 Before invoking this command you must download the "agent.jar" file.
