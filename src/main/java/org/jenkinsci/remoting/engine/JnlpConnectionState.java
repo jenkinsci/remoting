@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import java.io.IOException;
@@ -136,6 +137,7 @@ public class JnlpConnectionState {
      * Use {@link #getRemoteEndpointDescription} for logging purposes.
      * @return an actual socket, or just a stub
      */
+    @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "just a stub")
     @Nonnull
     public Socket getSocket() {
         return socket != null ? socket : new Socket();
