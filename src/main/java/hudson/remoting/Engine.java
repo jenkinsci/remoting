@@ -618,7 +618,7 @@ public class Engine extends Thread {
             while (ch.get() == null) {
                 Thread.sleep(100);
             }
-            LOGGER.info(() -> "Waiting for channel");
+            LOGGER.info("Connected");
             ch.get().join();
             // TODO handle multiple candidate URLs
             // TODO handle reconnection
