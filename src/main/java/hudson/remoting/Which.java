@@ -23,28 +23,31 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.io.InputStream;
-import java.net.URL;
-import java.net.MalformedURLException;
-import java.net.URLConnection;
-import java.net.JarURLConnection;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.zip.ZipFile;
+import java.net.JarURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.jar.JarFile;
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.zip.ZipFile;
 
 /**
  * Locates where a given class is loaded from.
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Managed by the jar cache mechanism, using server data.")
 public class Which {
     /**
      * Returns the URL of the class file where the given class has been loaded from.
@@ -109,6 +112,7 @@ public class Which {
      *      JAR File, which contains the URL
      */
     @Nonnull
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent as part of jar cache management.")
     /*package*/ static File jarFile(URL res, String qualifiedName) throws IOException {
         String resURL = res.toExternalForm();
         String originalURL = resURL;
@@ -244,11 +248,7 @@ public class Which {
             }
             baos.write(ch);
         }
-        try {
-            return new String(baos.toByteArray(),"UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new Error(e); // impossible
-        }
+        return new String(baos.toByteArray(), StandardCharsets.UTF_8);
     }
 
     private static int hexToInt(int ch) {

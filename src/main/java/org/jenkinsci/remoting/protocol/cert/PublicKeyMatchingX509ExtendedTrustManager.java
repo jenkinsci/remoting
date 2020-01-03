@@ -37,6 +37,8 @@ import javax.annotation.concurrent.GuardedBy;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 import org.jenkinsci.remoting.util.KeyUtils;
 
@@ -287,6 +289,7 @@ public class PublicKeyMatchingX509ExtendedTrustManager extends X509ExtendedTrust
      * {@inheritDoc}
      */
     @Override
+    @SuppressFBWarnings(value = "WEAK_TRUST_MANAGER", justification = "An intentionally overtrusting manager.")
     public X509Certificate[] getAcceptedIssuers() {
         return new X509Certificate[0];
     }

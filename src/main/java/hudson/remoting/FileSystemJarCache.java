@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.PathUtils;
 
 import javax.annotation.Nonnull;
@@ -65,7 +66,7 @@ public class FileSystemJarCache extends JarCacheSupport {
 
     @Override
     public String toString() {
-        return String.format("FileSystem JAR Cache: path=%s, touch=%s", rootDir, Boolean.toString(touch));
+        return String.format("FileSystem JAR Cache: path=%s, touch=%s", rootDir, touch);
     }
     
     @Override
@@ -85,6 +86,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     }
 
     @Override
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "The file path is a generated value based on server supplied data.")
     protected URL retrieve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         Checksum expected = new Checksum(sum1, sum2);
         File target = map(sum1, sum2);
@@ -147,7 +149,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                 Files.deleteIfExists(PathUtils.fileToPath(tmp));
             }
         } catch (IOException e) {
-            throw (IOException)new IOException("Failed to write to "+target).initCause(e);
+            throw new IOException("Failed to write to "+target, e);
         }
     }
 
@@ -170,6 +172,7 @@ public class FileSystemJarCache extends JarCacheSupport {
         }
     }
 
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
     /*package for testing*/ File createTempJar(@Nonnull File target) throws IOException {
         File parent = target.getParentFile();
         Util.mkdirs(parent);

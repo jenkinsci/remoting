@@ -25,77 +25,76 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
-
-import java.io.Console;
-import java.io.FileInputStream;
-import java.io.UnsupportedEncodingException;
-import java.nio.file.Path;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchProviderException;
-import java.security.PrivilegedActionException;
-import java.security.cert.CertificateFactory;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManagerFactory;
-
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.IOUtils;
+import org.jenkinsci.remoting.util.PathUtils;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
-import org.jenkinsci.remoting.util.PathUtils;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import org.kohsuke.args4j.Option;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.CmdLineException;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.File;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
+import java.io.Console;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLConnection;
+import java.net.Authenticator;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.InetSocketAddress;
-import java.net.HttpURLConnection;
-import java.net.Authenticator;
-import java.net.PasswordAuthentication;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.security.GeneralSecurityException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivilegedActionException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.security.cert.CertificateException;
-import java.security.NoSuchAlgorithmException;
-import java.security.KeyManagementException;
-import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.crypto.Cipher;
-import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Entry point for running a {@link Channel}. This is the main method of the agent JVM.
@@ -146,6 +145,7 @@ public class Launcher {
 
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader.")
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     public void addClasspath(String pathList) throws Exception {
         Method $addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
         $addURL.setAccessible(true);
@@ -401,6 +401,7 @@ public class Launcher {
     }
 
     @CheckForNull
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     private SSLSocketFactory getSSLSocketFactory()
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException, KeyManagementException {
@@ -458,11 +459,7 @@ public class Launcher {
                         continue;
                     }
                 } else {
-                    try {
-                        cert = certOrAtFilename.getBytes("US-ASCII");
-                    } catch (UnsupportedEncodingException e) {
-                        throw new IllegalStateException("US-ASCII support is mandated by the JLS", e);
-                    }
+                    cert = certOrAtFilename.getBytes(StandardCharsets.US_ASCII);
                 }
                 try {
                     keyStore.setCertificateEntry(String.format("alias-%d", i++),
@@ -489,6 +486,7 @@ public class Launcher {
     /**
      * Parses the connection arguments from JNLP file given in the URL.
      */
+    @SuppressFBWarnings(value = {"CIPHER_INTEGRITY", "STATIC_IV"}, justification = "Integrity not needed here. IV used for decryption only, loaded from encryptor.")
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
         if (secret != null) {
             slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
@@ -504,11 +502,11 @@ public class Launcher {
                     HttpURLConnection http = (HttpURLConnection) con;
                     if  (slaveJnlpCredentials != null) {
                         String userPassword = slaveJnlpCredentials;
-                        String encoding = Base64.getEncoder().encodeToString(userPassword.getBytes("UTF-8"));
+                        String encoding = Base64.getEncoder().encodeToString(userPassword.getBytes(StandardCharsets.UTF_8));
                         http.setRequestProperty("Authorization", "Basic " + encoding);
                     }
                     if (System.getProperty("proxyCredentials", proxyCredentials) != null) {
-                        String encoding = Base64.getEncoder().encodeToString(System.getProperty("proxyCredentials", proxyCredentials).getBytes("UTF-8"));
+                        String encoding = Base64.getEncoder().encodeToString(System.getProperty("proxyCredentials", proxyCredentials).getBytes(StandardCharsets.UTF_8));
                         http.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
                     }
                 }
@@ -539,7 +537,7 @@ public class Launcher {
                         byte[] decrypted = cipher.doFinal(payload,16,payload.length-16);
                         input = new ByteArrayInputStream(decrypted);
                     } catch (GeneralSecurityException x) {
-                        throw (IOException)new IOException("Failed to decrypt the JNLP file. Invalid secret key?").initCause(x);
+                        throw new IOException("Failed to decrypt the JNLP file. Invalid secret key?", x);
                     }
                 }
                 if(contentType==null || !contentType.startsWith(expectedContentType)) {
@@ -570,14 +568,13 @@ public class Launcher {
             } catch (SSLHandshakeException e) {
                 if(e.getMessage().contains("PKIX path building failed")) {
                     // invalid SSL certificate. One reason this happens is when the certificate is self-signed
-                    IOException x = new IOException("Failed to validate a server certificate. If you are using a self-signed certificate, you can use the -noCertificateCheck option to bypass this check.");
-                    x.initCause(e);
+                    IOException x = new IOException("Failed to validate a server certificate. If you are using a self-signed certificate, you can use the -noCertificateCheck option to bypass this check.", e);
                     throw x;
                 } else
                     throw e;
             } catch (IOException e) {
                 if (this.noReconnect)
-                    throw (IOException)new IOException("Failing to obtain "+slaveJnlpURL).initCause(e);
+                    throw new IOException("Failing to obtain " + slaveJnlpURL, e);
 
                 System.err.println("Failing to obtain "+slaveJnlpURL);
                 e.printStackTrace(System.err);
@@ -611,7 +608,9 @@ public class Launcher {
     }
 
     private static Document loadDom(URL agentJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
-        DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        DocumentBuilder db = dbf.newDocumentBuilder();
         return db.parse(is, agentJnlpURL.toExternalForm());
     }
 
@@ -619,7 +618,8 @@ public class Launcher {
      * Listens on an ephemeral port, record that port number in a port file,
      * then accepts one TCP connection.
      */
-    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DM_DEFAULT_ENCODING")    // port number file should be in platform default encoding
+    @Deprecated
+    @SuppressFBWarnings(value = {"UNENCRYPTED_SERVER_SOCKET", "DM_DEFAULT_ENCODING"}, justification = "This is an old, insecure mechanism that should be removed. port number file should be in platform default encoding.")
     private void runAsTcpServer() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
         // and avoid hanging forever
@@ -665,6 +665,8 @@ public class Launcher {
     /**
      * Connects to the given TCP port and then start running
      */
+    @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This implements an old, insecure connection mechanism.")
+    @Deprecated
     private void runAsTcpClient() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
         // and avoid hanging forever
@@ -783,6 +785,7 @@ public class Launcher {
                     System.exit(-1);
                 }
                 @Override
+                @SuppressFBWarnings(value = "INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE", justification = "Prints the agent-side message to the agent log before exiting.")
                 protected void onDead(Throwable cause) {
                     System.err.println("Ping failed. Terminating");
                     cause.printStackTrace();

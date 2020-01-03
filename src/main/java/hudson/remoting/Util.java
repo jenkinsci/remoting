@@ -1,9 +1,13 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+import javax.annotation.Nonnull;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -11,14 +15,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.URLConnection;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.SocketAddress;
 import java.net.URL;
-import javax.annotation.Nonnull;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
@@ -60,6 +62,7 @@ public class Util {
     }
 
     @Nonnull
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
         File resource = new File(tmpDir.toFile(), name);
@@ -103,6 +106,7 @@ public class Util {
      * If http_proxy environment variable exists,  the connection uses the proxy.
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      */
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used for retrieving the connection info from the server. We should cleanup the other, unused references.")
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials, SSLSocketFactory sslSocketFactory) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
@@ -124,11 +128,11 @@ public class Util {
             con = url.openConnection();
         }
         if (credentials != null) {
-            String encoding = Base64.getEncoder().encodeToString(credentials.getBytes("UTF-8"));
+            String encoding = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
             con.setRequestProperty("Authorization", "Basic " + encoding);
         }
         if (proxyCredentials != null) {
-            String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes("UTF-8"));
+            String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
         if (con instanceof HttpsURLConnection && sslSocketFactory != null) {

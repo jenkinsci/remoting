@@ -33,9 +33,13 @@ import hudson.remoting.forward.PortForwarder;
 import org.jenkinsci.remoting.CallableDecorator;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.nio.NioChannelHub;
+import org.jenkinsci.remoting.util.LoggingChannelListener;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -43,9 +47,9 @@ import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Hashtable;
@@ -63,10 +67,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.annotation.Nullable;
-import org.jenkinsci.remoting.util.LoggingChannelListener;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -389,11 +389,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         /*package*/ final byte[] preamble;
 
         Mode(String preamble) {
-            try {
-                this.preamble = preamble.getBytes("US-ASCII");
-            } catch (UnsupportedEncodingException e) {
-                throw new Error(e);
-            }
+            this.preamble = preamble.getBytes(StandardCharsets.US_ASCII);
         }
 
         Mode(byte[] preamble) {

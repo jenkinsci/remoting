@@ -1,12 +1,13 @@
 package hudson.remoting;
 
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
+
+import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link CommandTransport} that works with {@code byte[]} instead of command object.
@@ -38,7 +39,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
      */
     public abstract void setup(@Nonnull ByteArrayReceiver receiver);
 
-    public static interface ByteArrayReceiver {
+    public interface ByteArrayReceiver {
         /**
          * Notifies the {@link Channel} that the transport has received a new block.
          *

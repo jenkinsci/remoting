@@ -23,6 +23,9 @@
  */
 package hudson.remoting;
 
+import org.junit.Ignore;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -30,9 +33,6 @@ import java.util.Locale;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
-
-import org.junit.Ignore;
-import org.junit.Test;
 
 @Ignore("This is not a test just a benchmark and is here for ease of running")
 public class RegExpBenchmark {
@@ -82,9 +82,9 @@ public class RegExpBenchmark {
         final List<String> matchesString = checkClassesString(classes);
         final long durationStringNanos = System.nanoTime() - startString;
         
-        System.out.println(String.format(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns", new Object[] {"RegExp ", matchesRegExp.size(), durationRegexpNanos, durationRegexpNanos/classes.size()}));
-        System.out.println(String.format(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns", new Object[] {"SingleRegExp ", matchesSingleRegExp.size(), durationSingleRegexpNanos, durationSingleRegexpNanos/classes.size()}));
-        System.out.println(String.format(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns", new Object[] {"String ", matchesString.size(), durationStringNanos, durationStringNanos/classes.size()}));
+        System.out.println(String.format(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns", "RegExp ", matchesRegExp.size(), durationRegexpNanos, durationRegexpNanos/classes.size()));
+        System.out.println(String.format(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns", "SingleRegExp ", matchesSingleRegExp.size(), durationSingleRegexpNanos, durationSingleRegexpNanos/classes.size()));
+        System.out.println(String.format(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns", "String ", matchesString.size(), durationStringNanos, durationStringNanos/classes.size()));
         
         System.out.println("Regular Expression is " + durationRegexpNanos/durationStringNanos + " times slower");
         System.out.println("Single Regular Expression is " + durationSingleRegexpNanos/durationStringNanos + " times slower\n");
@@ -138,9 +138,9 @@ public class RegExpBenchmark {
         }
         jf.close();
         // add in a couple from xalan and commons just for testing...
-        classes.add(new String("org.apache.commons.collections.functors.EvilClass"));
-        classes.add(new String("org.codehaus.groovy.runtime.IWIllHackYou"));
-        classes.add(new String("org.apache.xalan.YouAreOwned"));
+        classes.add("org.apache.commons.collections.functors.EvilClass");
+        classes.add("org.codehaus.groovy.runtime.IWIllHackYou");
+        classes.add("org.apache.xalan.YouAreOwned");
         return classes;
     }
 }

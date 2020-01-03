@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
 import org.jenkinsci.remoting.protocol.IOHubRule;
@@ -30,10 +31,6 @@ import org.jenkinsci.remoting.protocol.NetworkLayerFactory;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
 import org.jenkinsci.remoting.protocol.Repeat;
 import org.jenkinsci.remoting.protocol.RepeatRule;
-import java.nio.ByteBuffer;
-import java.nio.channels.Pipe;
-import java.util.concurrent.TimeUnit;
-import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,6 +41,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -102,7 +104,7 @@ public class AckFilterLayerTest {
                         .filter(new AckFilterLayer("ACK"))
                         .build(new IOBufferMatcherLayer());
 
-        byte[] expected = "Here is some sample data".getBytes("UTF-8");
+        byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
         data.flip();

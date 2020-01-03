@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -146,6 +148,7 @@ public abstract class Command implements Serializable {
 
 
     /** Consider calling {@link Channel#notifyRead} afterwards. */
+    @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "Used for sending commands between authorized agent and server. Class filtering is done through JEP-200.")
     static Command readFromObjectStream(Channel channel, ObjectInputStream ois) throws IOException, ClassNotFoundException {
         Channel old = Channel.setCurrent(channel);
         try {

@@ -24,22 +24,22 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.RemoteClassLoader.IClassLoader;
 import hudson.remoting.ExportTable.ExportList;
+import hudson.remoting.RemoteClassLoader.IClassLoader;
 import hudson.remoting.RemoteInvocationHandler.RPCRequest;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link Request} that can take {@link Callable} whose actual implementation
@@ -271,12 +271,12 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
         try {
             return _serialize(o,localChannel);
         } catch( NotSerializableException e ) {
-            IOException x = new IOException("Unable to serialize " + o);
-            x.initCause(e);
+            IOException x = new IOException("Unable to serialize " + o, e);
             throw x;
         }
     }
 
+    @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "Used for sending user requests between authorized agent and server.")
     /*package*/ static Object deserialize(final Channel channel, byte[] data, ClassLoader defaultClassLoader) throws IOException, ClassNotFoundException {
         ByteArrayInputStream in = new ByteArrayInputStream(data);
 

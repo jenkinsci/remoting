@@ -16,6 +16,8 @@ import java.util.regex.PatternSyntaxException;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
@@ -240,6 +242,7 @@ public abstract class ClassFilter {
     /**
      * A class that uses a given set of regular expression patterns to determine if the class is blacklisted.
      */
+    @SuppressFBWarnings(value = "REDOS", justification = "In an odd usage, this pattern is used to determine if another pattern matches it and not to match a string to it. REDOS doesn't apply.")
     private static final class RegExpClassFilter extends ClassFilter {
 
         /**

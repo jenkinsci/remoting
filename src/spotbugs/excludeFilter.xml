@@ -17,7 +17,12 @@
     <!--We do not want do break API by converting potentially usefull classes-->
     <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
   </Match>
-  
+
+  <Match>
+    <!--We don't care about this behavior.-->
+    <Bug pattern="CRLF_INJECTION_LOGS"/>
+  </Match>
+
   <Match>
     <!-- TODO: On hold due to the discussion in PR #118 -->
     <Bug pattern="DP_DO_INSIDE_DO_PRIVILEGED"/>

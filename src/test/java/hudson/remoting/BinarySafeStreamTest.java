@@ -30,6 +30,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Random;
@@ -41,7 +42,7 @@ public class BinarySafeStreamTest extends TestCase {
     public void test1() throws IOException {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         OutputStream o = BinarySafeStream.wrap(buf);
-        byte[] data = "Sending some data to make sure it's encoded".getBytes("UTF-8");
+        byte[] data = "Sending some data to make sure it's encoded".getBytes(StandardCharsets.UTF_8);
 
         o.write(data);
         o.close();

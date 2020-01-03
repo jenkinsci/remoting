@@ -11,7 +11,10 @@ import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 import hudson.remoting.SingleLaneExecutorService;
 import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,11 +38,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
 
-import static java.nio.channels.SelectionKey.*;
-import static java.util.logging.Level.*;
-import org.jenkinsci.remoting.util.ExecutorServiceUtils;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import static java.nio.channels.SelectionKey.OP_READ;
+import static java.nio.channels.SelectionKey.OP_WRITE;
+import static java.util.logging.Level.SEVERE;
+import static java.util.logging.Level.WARNING;
 
 /**
  * Switch board of multiple {@link Channel}s through NIO select.
@@ -214,7 +216,7 @@ public class NioChannelHub implements Runnable, Closeable {
             if (receiver == null) {
                 throw new IllegalStateException("Aborting connection before it has been actually set up");
             }
-            receiver.terminate((IOException)new IOException("Connection aborted: "+this).initCause(e));
+            receiver.terminate((IOException) new IOException("Connection aborted: "+this, e));
         }
 
         @Override

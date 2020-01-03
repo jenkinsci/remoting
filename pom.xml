@@ -61,7 +61,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <revision>3.37</revision>
+    <revision>3.41</revision>
     <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
     <build.type>private</build.type>
@@ -415,18 +415,16 @@ THE SOFTWARE.
         </configuration>
       </plugin>
       <plugin>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>run-javadoc</id>
-            <phase>package</phase>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
         <configuration>
-          <quiet>true</quiet> <!--Do not report every checked file-->
+          <plugins>
+            <plugin>
+              <groupId>com.h3xstream.findsecbugs</groupId>
+              <artifactId>findsecbugs-plugin</artifactId>
+              <version>1.10.1</version>
+            </plugin>
+          </plugins>
         </configuration>
       </plugin>
     </plugins>

@@ -23,6 +23,10 @@
  */
 package org.jenkinsci.remoting.protocol;
 
+import org.apache.commons.io.IOUtils;
+import org.junit.Rule;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -32,15 +36,12 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.commons.io.IOUtils;
-import org.junit.Rule;
-import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -111,7 +112,7 @@ public class IOHubTest {
                     try {
                         SocketChannel channel = srv.accept();
                         channel.write(ByteBuffer.wrap(String.format("Go away #%d", count.incrementAndGet())
-                                .getBytes(Charset.forName("UTF-8"))));
+                                .getBytes(StandardCharsets.UTF_8)));
                         channel.close();
                     } catch (IOException e) {
                         // ignore
@@ -163,7 +164,7 @@ public class IOHubTest {
                     try {
                         SocketChannel channel = srv.accept();
                         channel.write(ByteBuffer.wrap(String.format("Go away #%d", count.incrementAndGet())
-                                .getBytes(Charset.forName("UTF-8"))));
+                                .getBytes(StandardCharsets.UTF_8)));
                         channel.close();
                     } catch (IOException e) {
                         // ignore
@@ -223,7 +224,7 @@ public class IOHubTest {
                     try {
                         SocketChannel channel = srv.accept();
                         channel.write(ByteBuffer.wrap(String.format("Go away #%d", count.incrementAndGet())
-                                .getBytes(Charset.forName("UTF-8"))));
+                                .getBytes(StandardCharsets.UTF_8)));
                         channel.close();
                     } catch (IOException e) {
                         // ignore

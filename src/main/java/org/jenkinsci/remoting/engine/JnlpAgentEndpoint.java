@@ -24,6 +24,11 @@
 package org.jenkinsci.remoting.engine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.jenkinsci.remoting.util.KeyUtils;
+import org.jenkinsci.remoting.util.ThrowableUtils;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -38,10 +43,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import org.jenkinsci.remoting.util.KeyUtils;
-import org.jenkinsci.remoting.util.ThrowableUtils;
 
 /**
  * Represents a {@code TcpSlaveAgentListener} endpoint details.
@@ -215,7 +216,7 @@ public class JnlpAgentEndpoint {
             if (isHttpProxy) {
                 String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
                 socket.getOutputStream()
-                        .write(connectCommand.getBytes("UTF-8")); // TODO: internationalized domain names
+                        .write(connectCommand.getBytes(StandardCharsets.UTF_8)); // TODO: internationalized domain names
 
                 BufferedInputStream is = new BufferedInputStream(socket.getInputStream());
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));

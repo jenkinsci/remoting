@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -69,7 +70,7 @@ class DummyClassLoader extends ClassLoader {
             String data = IOUtils.toString(in, "ISO-8859-1");
             // Single-character substitutions will not change length fields in bytecode etc.
             String data2 = data.replaceAll("remoting(.)Test", "rem0ting$1Test");
-            return data2.getBytes("ISO-8859-1");
+            return data2.getBytes(StandardCharsets.ISO_8859_1);
         }
 
         @Override

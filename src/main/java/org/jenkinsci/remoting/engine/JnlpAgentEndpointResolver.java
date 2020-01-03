@@ -23,13 +23,19 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
-
+import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
-import org.jenkinsci.remoting.util.VersionNumber;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
@@ -44,23 +50,27 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
 
 import static java.util.logging.Level.INFO;
 import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
@@ -342,6 +352,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         return null;
     }
 
+    @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This just verifies connection to the port. No data is transmitted.")
     private boolean isPortVisible(String hostname, int port, int timeout) {
         boolean exitStatus = false;
         Socket s = null;
@@ -500,6 +511,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      * FIXME: similar to hudson.remoting.Util.openURLConnection which is still used in hudson.remoting.Launcher
      */
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent for retrieving connection info from the server.")
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
                                            SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
         String httpProxy = null;
@@ -522,11 +534,11 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             con = url.openConnection();
         }
         if (credentials != null) {
-            String encoding = Base64.getEncoder().encodeToString(credentials.getBytes("UTF-8"));
+            String encoding = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
             con.setRequestProperty("Authorization", "Basic " + encoding);
         }
         if (proxyCredentials != null) {
-            String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes("UTF-8"));
+            String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
 

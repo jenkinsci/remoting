@@ -23,10 +23,10 @@
  */
 package hudson.remoting;
 
-import java.io.IOException;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 
 /**
  * Virtualized {@link Channel} that allows different implementations.
@@ -88,7 +88,7 @@ public interface VirtualChannel {
      *      If the current thread is interrupted while waiting for the completion.
      * @since 1.300
      */
-    public void join() throws InterruptedException;
+    void join() throws InterruptedException;
 
     /**
      * Waits for this {@link Channel} to be closed down, but only up the given milliseconds.
@@ -97,7 +97,7 @@ public interface VirtualChannel {
      *      If the current thread is interrupted while waiting for the completion.
      * @since 1.300
      */
-    public void join(long timeout) throws InterruptedException;
+    void join(long timeout) throws InterruptedException;
 
     /**
      * Exports an object for remoting to the other {@link Channel}

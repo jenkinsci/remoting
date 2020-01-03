@@ -26,6 +26,7 @@
 
 package org.jenkinsci.remoting.util.https;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -36,6 +37,7 @@ import javax.net.ssl.SSLSession;
  * Hostname verifier, which accepts any hostname.
  */
 @Restricted(NoExternalUse.class)
+@SuppressFBWarnings(value = "WEAK_HOSTNAME_VERIFIER", justification = "User set parameter to skip verifier.")
 public class NoCheckHostnameVerifier implements HostnameVerifier {
 
     @Override

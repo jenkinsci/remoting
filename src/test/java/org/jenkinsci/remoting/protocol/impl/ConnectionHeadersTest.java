@@ -23,12 +23,13 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import org.junit.Test;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
-import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
@@ -41,7 +42,7 @@ public class ConnectionHeadersTest {
 
     @Test
     public void emptyRoundTrip() throws Exception {
-        assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(Collections.<String, String>emptyMap())),
+        assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(Collections.emptyMap())),
                 is(Collections.<String, String>emptyMap()));
     }
 

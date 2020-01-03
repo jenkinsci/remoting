@@ -25,6 +25,11 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Ref;
+import org.jenkinsci.remoting.RoleChecker;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -50,10 +55,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import org.jenkinsci.remoting.RoleChecker;
 
 /**
  * Sits behind a proxy object and implements the proxy logic.
@@ -62,6 +63,7 @@ import org.jenkinsci.remoting.RoleChecker;
  */
 //TODO: Likely should be serializable over Remoting logic, but this class has protection logic
 // Use-cases need to be investigated
+@SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "This class has protection logic.")
 final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Our logger.
@@ -180,7 +182,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     }
 
     /*package*/ static Class<?> getProxyClass(Class<?> type) {
-        return Proxy.getProxyClass(type.getClassLoader(), new Class[]{type,IReadResolve.class});
+        return Proxy.getProxyClass(type.getClassLoader(), type, IReadResolve.class);
     }
 
     /**
