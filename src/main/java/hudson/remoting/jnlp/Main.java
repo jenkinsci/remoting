@@ -273,7 +273,7 @@ public class Main {
                 throw new CmdLineException(p, "-url is required in -webSocket mode", null);
             }
             if (m.urls.size() > 1) {
-                throw new CmdLineException(p, "multiple -url is not currently supported in -webSocket mode", null);
+                throw new CmdLineException(p, "multiple -url are not currently supported in -webSocket mode", null);
             }
             if (m.directConnection != null) {
                 throw new CmdLineException(p, "-webSocket and -direct are mutually exclusive", null);
