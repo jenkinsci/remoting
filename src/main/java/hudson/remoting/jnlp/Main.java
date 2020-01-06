@@ -83,7 +83,7 @@ public class Main {
     @Option(name="-webSocket",
             usage="Make a WebSocket connection to Jenkins rather than using the TCP port.",
             depends="-url",
-            forbids={"-direct", "-tunnel", "-credentials", "-proxyCredentials", "-candidateCertificates", "-disableHttpsCertValidation", "-noKeepAlive", "-noReconnect"})
+            forbids={"-direct", "-tunnel", "-credentials", "-proxyCredentials", "-candidateCertificates", "-disableHttpsCertValidation", "-noKeepAlive"})
     public boolean webSocket;
 
     @Option(name="-credentials",metaVar="USER:PASSWORD",
