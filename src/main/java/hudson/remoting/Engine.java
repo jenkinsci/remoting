@@ -99,6 +99,12 @@ import org.jenkinsci.remoting.util.VersionNumber;
  */
 @NotThreadSafe // the fields in this class should not be modified by multiple threads concurrently
 public class Engine extends Thread {
+
+    /**
+     * HTTP header sent by Jenkins to indicate the earliest version of Remoting it is prepared to accept connections from.
+     */
+    public static final String REMOTING_MINIMUM_VERSION_HEADER = "X-Remoting-Minimum-Version";
+
     /**
      * Thread pool that sets {@link #CURRENT}.
      */
@@ -535,7 +541,7 @@ public class Engine extends Thread {
                 @Override
                 public void afterResponse(HandshakeResponse hr) {
                     LOGGER.fine(() -> "Receiving: " + hr.getHeaders());
-                    List<String> remotingMinimumVersion = hr.getHeaders().get("X-Remoting-Minimum-Version");
+                    List<String> remotingMinimumVersion = hr.getHeaders().get(REMOTING_MINIMUM_VERSION_HEADER);
                     if (remotingMinimumVersion != null && !remotingMinimumVersion.isEmpty()) {
                         VersionNumber minimumSupportedVersion = new VersionNumber(remotingMinimumVersion.get(0));
                         VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
