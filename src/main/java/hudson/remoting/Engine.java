@@ -524,7 +524,7 @@ public class Engine extends Thread {
         }
     }
 
-    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "checked exceptions were a mistake to begin with")
+    @SuppressFBWarnings(value = {"REC_CATCH_EXCEPTION", "URLCONNECTION_SSRF_FD"}, justification = "checked exceptions were a mistake to begin with; connecting to Jenkins from agent")
     private void runWebSocket() {
         try {
             while (true) {
