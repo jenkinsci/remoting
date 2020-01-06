@@ -81,7 +81,9 @@ public class Main {
     public List<URL> urls = new ArrayList<>();
 
     @Option(name="-webSocket",
-            usage="Make a WebSocket connection to Jenkins rather than using the TCP port.")
+            usage="Make a WebSocket connection to Jenkins rather than using the TCP port.",
+            depends="-url",
+            forbids={"-direct", "-tunnel", "-credentials", "-proxyCredentials", "-candidateCertificates", "-disableHttpsCertValidation", "-noKeepAlive", "-noReconnect"})
     public boolean webSocket;
 
     @Option(name="-credentials",metaVar="USER:PASSWORD",
@@ -269,35 +271,9 @@ public class Main {
             throw new CmdLineException(p, "At least one -url option is required.", null);
         }
         if (m.webSocket) {
-            if (m.urls.isEmpty()) {
-                throw new CmdLineException(p, "-url is required in -webSocket mode", null);
-            }
+            assert !m.urls.isEmpty(); // depends="-url"
             if (m.urls.size() > 1) {
-                throw new CmdLineException(p, "multiple -url are not currently supported in -webSocket mode", null);
-            }
-            if (m.directConnection != null) {
-                throw new CmdLineException(p, "-webSocket and -direct are mutually exclusive", null);
-            }
-            if (m.tunnel != null) {
-                throw new CmdLineException(p, "-tunnel is not currently supported in -webSocket mode", null);
-            }
-            if (m.credentials != null) {
-                throw new CmdLineException(p, "-credentials is not currently supported in -webSocket mode", null);
-            }
-            if (m.proxyCredentials != null) {
-                throw new CmdLineException(p, "-proxyCredentials is not currently supported in -webSocket mode", null);
-            }
-            if (m.candidateCertificates != null) {
-                throw new CmdLineException(p, "-candidateCertificates is not currently supported in -webSocket mode", null);
-            }
-            if (m.disableHttpsCertValidation) {
-                throw new CmdLineException(p, "-disableHttpsCertValidation is not currently supported in -webSocket mode", null);
-            }
-            if (m.noKeepAlive) {
-                throw new CmdLineException(p, "-noKeepAlive is not currently supported in -webSocket mode", null);
-            }
-            if (m.noReconnect) {
-                throw new CmdLineException(p, "-noReconnect is not currently supported in -webSocket mode", null);
+                throw new CmdLineException(p, "-webSocket supports only a single -url", null);
             }
         }
         m.main();
