@@ -546,7 +546,6 @@ public class Engine extends Thread {
                         VersionNumber minimumSupportedVersion = new VersionNumber(remotingMinimumVersion.get(0));
                         VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
                         if (currentVersion.isOlderThan(minimumSupportedVersion)) {
-                            // TODO these errors should trigger a connection close
                             events.error(new IOException("Agent version " + minimumSupportedVersion + " or newer is required."));
                         }
                     }
