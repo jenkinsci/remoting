@@ -31,6 +31,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -164,7 +166,7 @@ public class JnlpProtocol2Handler extends LegacyJnlpProtocolHandler<LegacyJnlpCo
         if (secretKey == null) {
             throw new ConnectionRefusalException("Unknown client name: " + clientName);
         }
-        if (!secretKey.equals(secret)) {
+        if (!MessageDigest.isEqual(secretKey.getBytes(StandardCharsets.UTF_8), secret.getBytes(StandardCharsets.UTF_8))) {
             LOGGER.log(Level.WARNING, "An attempt was made to connect as {0} from {1} with an incorrect secret",
                     new Object[]{clientName, state.getSocket().getRemoteSocketAddress()});
             throw new ConnectionRefusalException("Authorization failure");
