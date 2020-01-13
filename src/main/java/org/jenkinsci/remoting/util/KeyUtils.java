@@ -58,10 +58,6 @@ public final class KeyUtils {
         if (key1 == null || key2 == null) {
             return false;
         }
-        if (key1.equals(key2)) {
-            // in the event that the key actually has implemented an equals() method, let's use that
-            return true;
-        }
         if (!equals(key1.getAlgorithm(), key1.getAlgorithm())) {
             return false;
         }
@@ -76,7 +72,7 @@ public final class KeyUtils {
             // If both do not support encoding, while they may be the same, we have no way of knowing.
             return false;
         }
-        return Arrays.equals(key1.getEncoded(), key2.getEncoded());
+        return MessageDigest.isEqual(key1.getEncoded(), key2.getEncoded());
     }
 
     /**
