@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.net.Socket;
 import java.nio.channels.Channels;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -234,7 +236,7 @@ public class JnlpProtocol4PlainHandler extends JnlpProtocolHandler<JnlpConnectio
                     // should never get hear unless there is a race condition in removing an entry from the DB
                     throw new ConnectionRefusalException("Unknown client name: " + clientName);
                 }
-                if (!secretKey.equals(headers.get(JnlpConnectionState.SECRET_KEY))) {
+                if (!MessageDigest.isEqual(secretKey.getBytes(StandardCharsets.UTF_8), headers.get(JnlpConnectionState.SECRET_KEY).getBytes(StandardCharsets.UTF_8))) {
                     LOGGER.log(Level.WARNING,
                             "An attempt was made to connect as {0} from {1} with an incorrect secret",
                             new Object[]{clientName, event.getSocket().getRemoteSocketAddress()});
