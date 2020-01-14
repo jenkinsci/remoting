@@ -2,6 +2,8 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -25,6 +27,12 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  * @see Channel#remoteCapability
  */
 public final class Capability implements Serializable {
+
+    /**
+     * Key usable as a WebSocket HTTP header to negotiate capabilities.
+     */
+    public static final String KEY = "X-Remoting-Capability";
+
     /**
      * Bit mask of optional capabilities.
      */
@@ -121,10 +129,17 @@ public final class Capability implements Serializable {
 
     //TODO: ideally preamble handling needs to be reworked in order to avoid FB suppression
     /**
-     * Writes out the capacity preamble.
+     * Writes {@link #PREAMBLE} then uses {@link #write}.
      */
     void writePreamble(OutputStream os) throws IOException {
         os.write(PREAMBLE);
+        write(os);
+    }
+
+    /**
+     * Writes this capability to a stream.
+     */
+    private void write(OutputStream os) throws IOException {
         try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os)) {
             @Override
             public void close() throws IOException {
@@ -144,7 +159,7 @@ public final class Capability implements Serializable {
     }
 
     /**
-     * The opposite operation of {@link #writePreamble(OutputStream)}.
+     * The opposite operation of {@link #write}.
      */
     @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "Capability is used for negotiating channel between authorized agent and server. Whitelisting and proper deserialization hygiene are used.")
     public static Capability read(InputStream is) throws IOException {
@@ -170,6 +185,25 @@ public final class Capability implements Serializable {
             return (Capability)ois.readObject();
         } catch (ClassNotFoundException e) {
             throw (Error)new NoClassDefFoundError(e.getMessage()).initCause(e);
+        }
+    }
+
+    /**
+     * Uses {@link #write} to serialize this object to a Base64-encoded ASCII stream.
+     */
+    public String toASCII() throws IOException {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+            write(baos);
+            return baos.toString(StandardCharsets.US_ASCII.name());
+        }
+    }
+
+    /**
+     * The inverse of {@link #toASCII}.
+     */
+    public static Capability fromASCII(String ascii) throws IOException {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(ascii.getBytes(StandardCharsets.US_ASCII))) {
+            return Capability.read(bais);
         }
     }
 

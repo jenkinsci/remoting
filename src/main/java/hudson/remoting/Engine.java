@@ -29,8 +29,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.Socket;
+import java.net.URI;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -45,6 +48,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +56,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -62,6 +67,13 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.websocket.ClientEndpointConfig;
+import javax.websocket.CloseReason;
+import javax.websocket.ContainerProvider;
+import javax.websocket.Endpoint;
+import javax.websocket.EndpointConfig;
+import javax.websocket.HandshakeResponse;
+import javax.websocket.Session;
 
 import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
@@ -79,6 +91,7 @@ import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
+import org.jenkinsci.remoting.util.VersionNumber;
 
 /**
  * Agent engine that proactively connects to Jenkins master.
@@ -87,6 +100,12 @@ import org.jenkinsci.remoting.util.KeyUtils;
  */
 @NotThreadSafe // the fields in this class should not be modified by multiple threads concurrently
 public class Engine extends Thread {
+
+    /**
+     * HTTP header sent by Jenkins to indicate the earliest version of Remoting it is prepared to accept connections from.
+     */
+    public static final String REMOTING_MINIMUM_VERSION_HEADER = "X-Remoting-Minimum-Version";
+
     /**
      * Thread pool that sets {@link #CURRENT}.
      */
@@ -135,6 +154,7 @@ public class Engine extends Thread {
     private URL hudsonUrl;
     private final String secretKey;
     private final String agentName;
+    private boolean webSocket;
     private String credentials;
     private String proxyCredentials = System.getProperty("proxyCredentials");
 
@@ -323,6 +343,10 @@ public class Engine extends Thread {
         return hudsonUrl;
     }
 
+    public void setWebSocket(boolean webSocket) {
+        this.webSocket = webSocket;
+    }
+
     /**
      * If set, connect to the specified host and port instead of connecting directly to Jenkins.
      * @param tunnel Value. {@code null} to disable tunneling
@@ -441,6 +465,10 @@ public class Engine extends Thread {
     @Override
     @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
     public void run() {
+        if (webSocket) {
+            runWebSocket();
+            return;
+        }
         // Create the engine
         try {
             IOHub hub = IOHub.create(executor);
@@ -492,6 +520,139 @@ public class Engine extends Thread {
                 hub.close();
             }
         } catch (IOException e) {
+            events.error(e);
+        }
+    }
+
+    @SuppressFBWarnings(value = {"REC_CATCH_EXCEPTION", "URLCONNECTION_SSRF_FD"}, justification = "checked exceptions were a mistake to begin with; connecting to Jenkins from agent")
+    private void runWebSocket() {
+        try {
+            while (true) {
+                AtomicReference<Channel> ch = new AtomicReference<>();
+                String localCap = new Capability().toASCII();
+                class HeaderHandler extends ClientEndpointConfig.Configurator {
+                    Capability remoteCapability = new Capability();
+                    @Override
+                    public void beforeRequest(Map<String, List<String>> headers) {
+                        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(agentName));
+                        headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
+                        headers.put(Capability.KEY, Collections.singletonList(localCap));
+                        // TODO use JnlpConnectionState.COOKIE_KEY somehow (see EngineJnlpConnectionStateListener.afterChannel)
+                        LOGGER.fine(() -> "Sending: " + headers);
+                    }
+                    @Override
+                    public void afterResponse(HandshakeResponse hr) {
+                        LOGGER.fine(() -> "Receiving: " + hr.getHeaders());
+                        List<String> remotingMinimumVersion = hr.getHeaders().get(REMOTING_MINIMUM_VERSION_HEADER);
+                        if (remotingMinimumVersion != null && !remotingMinimumVersion.isEmpty()) {
+                            VersionNumber minimumSupportedVersion = new VersionNumber(remotingMinimumVersion.get(0));
+                            VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
+                            if (currentVersion.isOlderThan(minimumSupportedVersion)) {
+                                events.error(new IOException("Agent version " + minimumSupportedVersion + " or newer is required."));
+                            }
+                        }
+                        try {
+                            remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
+                            LOGGER.fine(() -> "received " + remoteCapability);
+                        } catch (IOException x) {
+                            events.error(x);
+                        }
+                    }
+                }
+                HeaderHandler headerHandler = new HeaderHandler();
+                class AgentEndpoint extends Endpoint {
+                    @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
+                    AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
+                    @Override
+                    public void onOpen(Session session, EndpointConfig config) {
+                        events.status("WebSocket connection open");
+                        session.addMessageHandler(byte[].class, this::onMessage);
+                        try {
+                            ch.set(new ChannelBuilder(agentName, executor).
+                                withJarCacheOrDefault(jarCache). // unless EngineJnlpConnectionStateListener can be used for this purpose
+                                build(new Transport(session)));
+                        } catch (IOException x) {
+                            events.error(x);
+                        }
+                    }
+                    private void onMessage(byte[] message) {
+                        LOGGER.finest(() -> "received message of length " + message.length);
+                        receiver.handle(message);
+                    }
+                    @Override
+                    public void onClose(Session session, CloseReason closeReason) {
+                        LOGGER.fine(() -> "onClose: " + closeReason);
+                        receiver.terminate(new ChannelClosedException(ch.get(), null));
+                    }
+                    @Override
+                    public void onError(Session session, Throwable x) {
+                        // TODO or would events.error(x) be better?
+                        LOGGER.log(Level.FINE, null, x);
+                        receiver.terminate(new ChannelClosedException(ch.get(), x));
+                    }
+                    class Transport extends AbstractByteArrayCommandTransport {
+                        final Session session;
+                        Transport(Session session) {
+                            this.session = session;
+                        }
+                        @Override
+                        public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver _receiver) {
+                            events.status("Setting up channel");
+                            receiver = _receiver;
+                        }
+                        @Override
+                        public void writeBlock(Channel channel, byte[] payload) throws IOException {
+                            LOGGER.finest(() -> "sending message of length " + payload.length);
+                            session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload));
+                        }
+                        @Override
+                        public Capability getRemoteCapability() throws IOException {
+                            return headerHandler.remoteCapability;
+                        }
+                        @Override
+                        public void closeWrite() throws IOException {
+                            events.status("Write side closed");
+                            session.close();
+                        }
+                        @Override
+                        public void closeRead() throws IOException {
+                            events.status("Read side closed");
+                            session.close();
+                        }
+                    }
+                }
+                ContainerProvider.getWebSocketContainer().connectToServer(new AgentEndpoint(),
+                    ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
+                while (ch.get() == null) {
+                    Thread.sleep(100);
+                }
+                events.status("Connected");
+                ch.get().join();
+                events.status("Terminated");
+                if (noReconnect) {
+                    return;
+                }
+                events.onDisconnect();
+                while (true) {
+                    // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
+                    URL ping = new URL(candidateUrls.get(0), "login");
+                    try {
+                        HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
+                        int status = conn.getResponseCode();
+                        conn.disconnect();
+                        if (status == 200) {
+                            break;
+                        } else {
+                            events.status(ping + " is not ready: " + status);
+                        }
+                    } catch (IOException x) {
+                        events.status(ping + " is not ready", x);
+                    }
+                    Thread.sleep(10_000);
+                }
+                events.onReconnect();
+            }
+        } catch (Exception e) {
             events.error(e);
         }
     }

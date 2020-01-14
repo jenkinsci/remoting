@@ -45,11 +45,12 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
          *
          * As discussed in {@link AbstractByteArrayCommandTransport#writeBlock(Channel, byte[])},
          * the block boundary is significant.
+         * @see CommandReceiver#handle
          */
         void handle(byte[] payload);
 
         /**
-         * See {@link CommandReceiver#handle(Command)} for details.
+         * @see CommandReceiver#terminate
          */
         void terminate(IOException e);
     }

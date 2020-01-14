@@ -24,6 +24,7 @@
 package org.jenkinsci.remoting.engine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.remoting.Engine;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
 import org.jenkinsci.remoting.util.VersionNumber;
@@ -223,7 +224,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 }
 
                 // Check if current version of agent is supported
-                String minimumSupportedVersionHeader = first(header(con, "X-Remoting-Minimum-Version"));
+                String minimumSupportedVersionHeader = first(header(con, Engine.REMOTING_MINIMUM_VERSION_HEADER));
                 if (minimumSupportedVersionHeader != null) {
                     VersionNumber minimumSupportedVersion = new VersionNumber(minimumSupportedVersionHeader);
                     VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
