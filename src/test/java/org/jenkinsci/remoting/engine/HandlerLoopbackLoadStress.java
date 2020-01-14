@@ -554,8 +554,7 @@ public class HandlerLoopbackLoadStress {
         public void afterChannel(@NonNull JnlpConnectionState event) {
             String clientName = event.getProperty(JnlpConnectionState.CLIENT_NAME_KEY);
             if (clientName != null) {
-                System.out.println("Accepted connection from client " + clientName + " on " + event.getSocket()
-                        .getRemoteSocketAddress());
+                System.out.println("Accepted connection from client " + clientName + " on " + event.getRemoteEndpointDescription());
             }
         }
     }

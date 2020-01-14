@@ -1,17 +1,17 @@
-# Launching inbound TCP agents
+# Launching inbound agents
 Jenkins provides a number of ways of connecting remote agents.
-Two of the most popular are outbound SSH agents and inbound TCP agents.
+Two of the most popular are outbound SSH agents and inbound agents.
 SSH agents, most commonly used on Unix platforms, are master initiated.
 The master creates the connection when it needs.
-Inbound TCP agents, most commonly used on Windows platforms, are agent initiated.
+Inbound agents, most commonly used on Windows platforms, are agent initiated.
 The agent must first connect to the master and then the master sends commands as needed.
 These were formerly known as JNLP agents, but that name was erroneous and confusing.
-This document describes some of the primary mechanisms for launching inbound TCP agents.
+This document describes some of the primary mechanisms for launching inbound agents.
 
 For additional information about Jenkins agents see [Distributed builds](https://wiki.jenkins.io/display/JENKINS/Distributed+builds#Distributedbuilds-HavemasterlaunchagentonWindows).
 
 ## Launch mechanisms
-Part of the agent status page for TCP agents looks something like this:
+Part of the agent status page for inbound agents looks something like this:
 
 ![Tcp agent status UI](tcpAgentStatus.jpg)
 
@@ -33,7 +33,12 @@ This mechanism is not recommended, is deprecated, and may not be supported or av
 ### Download JNLP file
 Another mechanism, shown in the above status page fragment, runs the agent from a script or command-line to retrieve the JNLP file. 
 This mechanism does not use JNLP or WebStart but uses the downloaded file to obtain connection information. 
-Internally, this is a two-step process: 1) connect to an HTTP(S) port to retrieve the connection information, and 2) extract that information and connect to the TCP port.
+
+For an inbound agent using the TCP port, this is a two-step process:
+* Connect to an HTTP(S) port to retrieve the connection information.
+* Extract that information and connect to the TCP port.
+
+(When using the `-webSocket` option, only a single connection needs to be made.)
 
 Before invoking this command you must download the "agent.jar" file.
 The correct version can be obtained from your Jenkins server at something like "https://myjenkins.example.com/jnlpJars/agent.jar".
@@ -114,7 +119,7 @@ Similar to the usage in a number of other applications, this controls which host
 ### The '@' argument annotation
 
 If any command-line argument is prepended with the '@' symbol, special behavior is invoked. 
-For example, more recent versions of Jenkins show in the UI that one form of launching inbound TCP agents is
+For example, more recent versions of Jenkins show in the UI that one form of launching inbound agents is
 ```
 echo <secret key> > secret-file
 java -jar agent.jar -jnlpUrl <jnlp url> -secret @secret-file -workDir <work directory> 

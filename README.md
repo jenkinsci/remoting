@@ -24,7 +24,7 @@ Feel free to contribute.
 User documentation:
 
 * [Changelog](CHANGELOG.md) - Remoting release notes
-* [Launching inbound TCP agents](docs/tcpAgent.md) - Mechanisms and parameters for launching inbound TCP agents
+* [Launching inbound agents](docs/inbound-agent.md) - Mechanisms and parameters for launching inbound agents
 * [Remoting Protocols](docs/protocols.md) - Overview of protocols integrated with Jenkins
 * [Remoting Configuration](docs/configuration.md) - Configuring remoting agents
 * [Logging](docs/logging.md) - Logging
