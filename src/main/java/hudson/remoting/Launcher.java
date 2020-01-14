@@ -120,7 +120,7 @@ public class Launcher {
      */
     @Option(name="-agentLog", aliases = {"-slaveLog"}, usage="Local agent error log destination (overrides workDir)")
     @CheckForNull
-    public File slaveLog = null;
+    public File agentLog = null;
 
     @Option(name="-text",usage="encode communication with the master with base64. " +
             "Useful for running agent over 8-bit unsafe protocol like telnet")
@@ -132,10 +132,10 @@ public class Launcher {
     @Option(name="-jnlpUrl",usage="instead of talking to the master via stdin/stdout, " +
             "emulate a JNLP client by making a TCP connection to the master. " +
             "Connection parameters are obtained by parsing the JNLP file.")
-    public URL slaveJnlpURL = null;
+    public URL agentJnlpURL = null;
 
     @Option(name="-jnlpCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
-    public String slaveJnlpCredentials = null;
+    public String agentJnlpCredentials = null;
 
     @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret to use instead of -jnlpCredentials.")
     public String secret;
@@ -320,13 +320,13 @@ public class Launcher {
         // On the other hand, in such case there is no need to invoke WorkDirManager and handle the double initialization logic
         final WorkDirManager workDirManager = WorkDirManager.getInstance();
         final Path internalDirPath = workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
-        if (slaveLog != null) {
+        if (agentLog != null) {
             workDirManager.disable(WorkDirManager.DirType.LOGS_DIR);
         }
         if (loggingConfigFilePath != null) {
             workDirManager.setLoggingConfig(loggingConfigFilePath);
         }
-        workDirManager.setupLogging(internalDirPath, slaveLog != null ? PathUtils.fileToPath(slaveLog) : null);
+        workDirManager.setupLogging(internalDirPath, agentLog != null ? PathUtils.fileToPath(agentLog) : null);
 
         if(auth!=null) {
             final int idx = auth.indexOf(':');
@@ -343,7 +343,7 @@ public class Launcher {
         if(connectionTarget!=null) {
             runAsTcpClient();
         } else
-        if(slaveJnlpURL!=null) {
+        if(agentJnlpURL !=null) {
             List<String> jnlpArgs = parseJnlpArguments();
             if (jarCache != null) {
               jnlpArgs.add("-jar-cache");
@@ -355,9 +355,9 @@ public class Launcher {
             if (this.noKeepAlive) {
                 jnlpArgs.add("-noKeepAlive");
             }
-            if (slaveLog != null) {
+            if (agentLog != null) {
                 jnlpArgs.add("-agentLog");
-                jnlpArgs.add(slaveLog.getPath());
+                jnlpArgs.add(agentLog.getPath());
             }
             if (loggingConfigFilePath != null) {
                 jnlpArgs.add("-loggingConfig");
@@ -386,7 +386,7 @@ public class Launcher {
             try {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
             } catch (CmdLineException e) {
-                System.err.println("JNLP file "+slaveJnlpURL+" has invalid arguments: "+jnlpArgs);
+                System.err.println("JNLP file "+ agentJnlpURL +" has invalid arguments: "+jnlpArgs);
                 System.err.println("Most likely a configuration error in the master");
                 System.err.println(e.getMessage());
                 System.exit(1);
@@ -489,19 +489,19 @@ public class Launcher {
     @SuppressFBWarnings(value = {"CIPHER_INTEGRITY", "STATIC_IV"}, justification = "Integrity not needed here. IV used for decryption only, loaded from encryptor.")
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
         if (secret != null) {
-            slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
-            if (slaveJnlpCredentials != null) {
+            agentJnlpURL = new URL(agentJnlpURL + "?encrypt=true");
+            if (agentJnlpCredentials != null) {
                 throw new IOException("-jnlpCredentials and -secret are mutually exclusive");
             }
         }
         while (true) {
             URLConnection con = null;
             try {
-                con = Util.openURLConnection(slaveJnlpURL);
+                con = Util.openURLConnection(agentJnlpURL);
                 if (con instanceof HttpURLConnection) {
                     HttpURLConnection http = (HttpURLConnection) con;
-                    if  (slaveJnlpCredentials != null) {
-                        String userPassword = slaveJnlpCredentials;
+                    if  (agentJnlpCredentials != null) {
+                        String userPassword = agentJnlpCredentials;
                         String encoding = Base64.getEncoder().encodeToString(userPassword.getBytes(StandardCharsets.UTF_8));
                         http.setRequestProperty("Authorization", "Basic " + encoding);
                     }
@@ -516,7 +516,7 @@ public class Launcher {
                     HttpURLConnection http = (HttpURLConnection) con;
                     if(http.getResponseCode()>=400)
                         // got the error code. report that (such as 401)
-                        throw new IOException("Failed to load "+slaveJnlpURL+": "+http.getResponseCode()+" "+http.getResponseMessage());
+                        throw new IOException("Failed to load "+ agentJnlpURL +": "+http.getResponseCode()+" "+http.getResponseMessage());
                 }
 
                 Document dom;
@@ -543,14 +543,14 @@ public class Launcher {
                 if(contentType==null || !contentType.startsWith(expectedContentType)) {
                     // load DOM anyway, but if it fails to parse, that's probably because this is not an XML file to begin with.
                     try {
-                        dom = loadDom(slaveJnlpURL, input);
+                        dom = loadDom(agentJnlpURL, input);
                     } catch (SAXException e) {
-                        throw new IOException(slaveJnlpURL+" doesn't look like a JNLP file; content type was "+contentType);
+                        throw new IOException(agentJnlpURL +" doesn't look like a JNLP file; content type was "+contentType);
                     } catch (IOException e) {
-                        throw new IOException(slaveJnlpURL+" doesn't look like a JNLP file; content type was "+contentType);
+                        throw new IOException(agentJnlpURL +" doesn't look like a JNLP file; content type was "+contentType);
                     }
                 } else {
-                    dom = loadDom(slaveJnlpURL, input);
+                    dom = loadDom(agentJnlpURL, input);
                 }
 
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
@@ -558,9 +558,9 @@ public class Launcher {
                 List<String> jnlpArgs = new ArrayList<String>();
                 for( int i=0; i<argElements.getLength(); i++ )
                         jnlpArgs.add(argElements.item(i).getTextContent());
-                if (slaveJnlpCredentials != null) {
+                if (agentJnlpCredentials != null) {
                     jnlpArgs.add("-credentials");
-                    jnlpArgs.add(slaveJnlpCredentials);
+                    jnlpArgs.add(agentJnlpCredentials);
                 }
                 // force a headless mode
                 jnlpArgs.add("-headless");
@@ -574,9 +574,9 @@ public class Launcher {
                     throw e;
             } catch (IOException e) {
                 if (this.noReconnect)
-                    throw new IOException("Failing to obtain " + slaveJnlpURL, e);
+                    throw new IOException("Failed to obtain " + agentJnlpURL, e);
 
-                System.err.println("Failing to obtain "+slaveJnlpURL);
+                System.err.println("Failed to obtain "+ agentJnlpURL);
                 e.printStackTrace(System.err);
                 System.err.println("Waiting 10 seconds before retry");
                 Thread.sleep(10*1000);
