@@ -134,7 +134,7 @@ public class Engine extends Thread {
     @CheckForNull
     private URL hudsonUrl;
     private final String secretKey;
-    public final String slaveName;
+    private final String agentName;
     private String credentials;
     private String proxyCredentials = System.getProperty("proxyCredentials");
 
@@ -211,18 +211,18 @@ public class Engine extends Thread {
     private String instanceIdentity;
     private final Set<String> protocols;
 
-    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
-        this(listener, hudsonUrls, secretKey, slaveName, null, null, null);
+    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String agentName) {
+        this(listener, hudsonUrls, secretKey, agentName, null, null, null);
     }
 
-    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName, String directConnection, String instanceIdentity,
+    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String agentName, String directConnection, String instanceIdentity,
                   Set<String> protocols) {
         this.listener = listener;
         this.directConnection = directConnection;
         this.events.add(listener);
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
-        this.slaveName = slaveName;
+        this.agentName = agentName;
         this.instanceIdentity = instanceIdentity;
         this.protocols = protocols;
         if(candidateUrls.isEmpty() && instanceIdentity == null) {
@@ -505,7 +505,7 @@ public class Engine extends Thread {
                 .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
                 .handlers();
         final Map<String,String> headers = new HashMap<>();
-        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, slaveName);
+        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
         headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
         List<String> jenkinsUrls = new ArrayList<>();
         for (URL url: candidateUrls) {
