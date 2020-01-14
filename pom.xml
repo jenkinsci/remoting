@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>4.0</version>
 
   <name>Jenkins remoting layer</name>
   <description>
@@ -57,7 +57,7 @@ THE SOFTWARE.
     <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
     <url>https://github.com/jenkinsci/remoting</url>
-    <tag>${scmTag}</tag>
+    <tag>remoting-4.0</tag>
   </scm>
 
   <properties>
@@ -255,7 +255,7 @@ THE SOFTWARE.
                                   <Trusted-Library>true</Trusted-Library>
                               </manifestEntries>
                           </transformer>
-                          <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                          <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
                       </transformers>
                   </configuration>
               </execution>
