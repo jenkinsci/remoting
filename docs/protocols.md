@@ -28,7 +28,8 @@ Protocol uses non-blocking I/O wherever possible which removes the performance b
 
 ### WebSocket
 
-* Introduced in: Remoting version TODO, [JEP-222](https://jenkins.io/jep/222)
+* Introduced in: Remoting version 4.0, [JEP-222](https://jenkins.io/jep/222)
+* At initial release, this protocol is considered a beta release and has not yet undergone extensive testing.
 
 Uses WebSocket over an HTTP(S) port to handle handshakes, encryption, framing, etc.
 
