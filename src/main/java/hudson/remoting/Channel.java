@@ -1618,7 +1618,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      The remote port that the connection will be forwarded to.
      * @return
      *      Created {@link PortForwarder}
+     * @deprecated as of 3.39
      */
+    @Deprecated
     public ListeningPort createLocalToRemotePortForwarding(int recvPort, String forwardHost, int forwardPort) throws IOException, InterruptedException {
         PortForwarder portForwarder = new PortForwarder(recvPort,
                 ForwarderFactory.create(this, forwardHost, forwardPort));
@@ -1641,7 +1643,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      The remote port that the connection will be forwarded to.
      * @return
      *      Created {@link PortForwarder}.
+     * @deprecated as of 3.39
      */
+    @Deprecated
     public ListeningPort createRemoteToLocalPortForwarding(int recvPort, String forwardHost, int forwardPort) throws IOException, InterruptedException {
         return PortForwarder.create(this,recvPort,
                 ForwarderFactory.create(forwardHost, forwardPort));
