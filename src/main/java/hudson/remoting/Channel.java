@@ -403,6 +403,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(Channel.Mode.BINARY)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, InputStream is, OutputStream os) throws IOException {
@@ -412,6 +415,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(mode)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os) throws IOException {
@@ -421,6 +427,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(Channel.Mode.BINARY)
+     *                  .withHeaderStream(header)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, InputStream is, OutputStream os, OutputStream header) throws IOException {
@@ -430,6 +440,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(mode)
+     *                  .withHeaderStream(header)
+     *                  .withArbitraryCallableAllowed(true)
+     *                  .withRemoteClassLoadingAllowed(true)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header) throws IOException {
@@ -439,6 +455,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(mode)
+     *                  .withHeaderStream(header)
+     *                  .withArbitraryCallableAllowed(!restricted)
+     *                  .withRemoteClassLoadingAllowed(!restricted)
+     *                  .withBaseLoader(base)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted) throws IOException {
@@ -452,6 +475,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(mode)
+     *                  .withHeaderStream(header)
+     *                  .withArbitraryCallableAllowed(!restricted)
+     *                  .withRemoteClassLoadingAllowed(!restricted)
+     *                  .withBaseLoader(base)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted, ClassLoader base) throws IOException {
@@ -470,6 +500,11 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withArbitraryCallableAllowed(!restricted)
+     *                  .withRemoteClassLoadingAllowed(!restricted)
+     *                  .withBaseLoader(base)
+     *                  .build(transport)
      * @since 2.13
      */
     @Deprecated
@@ -501,6 +536,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * @since 2.24
      * @deprecated as of 2.38
+     *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withArbitraryCallableAllowed(!restricted)
+     *                  .withRemoteClassLoadingAllowed(!restricted)
+     *                  .withBaseLoader(base)
+     *                  .withJarCache(jarCache)
+     *                  .build(transport)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base, JarCache jarCache) throws IOException {
