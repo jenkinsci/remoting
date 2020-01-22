@@ -494,7 +494,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 .withBaseLoader(base)
                 .withCapability(capability)
                 .withHeaderStream(header)
-                .withRestricted(restricted), is, os);
+                .withArbitraryCallableAllowed(!restricted)
+                .withRemoteClassLoadingAllowed(!restricted)
+                , is, os);
     }
 
     /**
@@ -511,7 +513,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
         this(new ChannelBuilder(name,exec)
                 .withBaseLoader(base)
-                .withRestricted(restricted), transport);
+                .withArbitraryCallableAllowed(!restricted)
+                .withRemoteClassLoadingAllowed(!restricted)
+                , transport);
 
     }
 
