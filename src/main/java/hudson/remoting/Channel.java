@@ -549,7 +549,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this(new ChannelBuilder(name,exec)
             .withBaseLoader(base)
             .withRestricted(restricted)
-            .withJarCache(jarCache), transport);
+            .withJarCache(jarCache)
+            , transport);
     }
 
     /**
