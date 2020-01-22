@@ -182,6 +182,11 @@ THE SOFTWARE.
       <version>1.12</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>javax.websocket</groupId>
+      <artifactId>javax.websocket-api</artifactId>
+      <version>1.1</version>
+    </dependency>
   </dependencies>
 
   <build>
