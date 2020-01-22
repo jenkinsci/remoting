@@ -1865,7 +1865,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Notification that {@link Command#readFrom} has succeeded.
      * @param cmd the resulting command
      * @param blockSize the serialized size of the command
-     * @see CommandListener
+     * @see Listener
      */
     void notifyRead(Command cmd, long blockSize) {
         for (Listener listener : listeners) {
@@ -1881,7 +1881,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Notification that {@link Command#writeTo} has succeeded.
      * @param cmd the command passed in
      * @param blockSize the serialized size of the command
-     * @see CommandListener
+     * @see Listener
      */
     void notifyWrite(Command cmd, long blockSize) {
         for (Listener listener : listeners) {
@@ -1898,7 +1898,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param req the original request
      * @param rsp the resulting response
      * @param totalTime the total time in nanoseconds taken to service the request
-     * @see CommandListener
+     * @see Listener
      */
     void notifyResponse(Request<?, ?> req, Response<?, ?> rsp, long totalTime) {
         for (Listener listener : listeners) {
@@ -1913,7 +1913,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Notification that a JAR file will be delivered to the remote side.
      * @param jar the JAR file from which code is being loaded remotely
-     * @see CommandListener
+     * @see Listener
      */
     void notifyJar(File jar) {
         for (Listener listener : listeners) {
