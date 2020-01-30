@@ -153,6 +153,9 @@ public class Engine extends Thread {
     @CheckForNull
     private URL hudsonUrl;
     private final String secretKey;
+    /* This needs to stay public and named "slaveName" until slave-installer-module is updated
+      to not refer to it directly by this name. See [JENKINS-60926].
+     */
     public final String slaveName;
     private boolean webSocket;
     private String credentials;
