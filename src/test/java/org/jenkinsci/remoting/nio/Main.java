@@ -73,20 +73,6 @@ public class Main {
         }
     }
 
-    private static Object get(Object o, String field) throws Exception {
-        return field(o, field).get(o);
-    }
-
-    private static Field field(Object o, String field) throws NoSuchFieldException {
-        Field $ = o.getClass().getDeclaredField(field);
-        $.setAccessible(true);
-        return $;
-    }
-
-    private static void set(Object o, String field, Object value) throws Exception {
-        field(o,field).set(o,value);
-    }
-
     private static FileInputStream unwrap(InputStream i) throws Exception {
         while (true) {
             if (i instanceof FilterInputStream) {

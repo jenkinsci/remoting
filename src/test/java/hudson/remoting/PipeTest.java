@@ -99,6 +99,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
                 Thread.sleep(10);
             }
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private static class WritingCallable extends CallableBase<Integer, IOException> {
@@ -112,6 +113,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             write(pipe);
             return 5;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -212,6 +214,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
                 }
             });
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private static class ReadingCallable extends CallableBase<Integer, IOException> {
@@ -230,7 +233,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             }
             return 5;
         }
-
+        private static final long serialVersionUID = 1L;
     }
 
     private static void write(Pipe pipe) throws IOException {
@@ -281,7 +284,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
         public OutputStream call() throws IOException {
             return new RemoteOutputStream(new NullOutputStream());
         }
-
+        private static final long serialVersionUID = 1L;
     }
 
     public static Test suite() throws Exception {
@@ -304,5 +307,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             IOUtils.copy(p.getIn(), baos);
             return baos.size();
         }
+        private static final long serialVersionUID = 1L;
     }
+    private static final long serialVersionUID = 1L;
 }

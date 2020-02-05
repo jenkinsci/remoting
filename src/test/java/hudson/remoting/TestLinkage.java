@@ -24,7 +24,7 @@
 
 package hudson.remoting;
 
-public class TestLinkage extends CallableBase {
+public class TestLinkage extends CallableBase<Object, Throwable> {
 
     public Object call() throws Throwable {
         // force classloading of several classes
@@ -38,5 +38,5 @@ public class TestLinkage extends CallableBase {
     }
 
     public static class B {}
-
+    private static final long serialVersionUID = 1L;
 }

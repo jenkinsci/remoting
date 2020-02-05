@@ -1,7 +1,6 @@
 package hudson.remoting;
 
 import junit.framework.Test;
-import org.junit.Assume;
 import org.jvnet.hudson.test.Bug;
 
 import java.io.ByteArrayOutputStream;
@@ -146,6 +145,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             writeBunchOfData(w);
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private static class WeakReferenceCallable extends CallableBase<Void, IOException> {
@@ -167,6 +167,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             System.gc();
             return W.get() == null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private static class WriterCallable extends CallableBase<Void, IOException> {
@@ -180,5 +181,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             w.write("1--", 0, 1);
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
+    private static final long serialVersionUID = 1L;
 }
