@@ -994,6 +994,16 @@ public class Engine extends Thread {
      */
     static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName()+".socketTimeout",30*60*1000);
 
+    /**
+     * Get the agent name associated with this Engine instance.
+     *
+     * @return the agent name.
+     */
+    public String getAgentName() {
+        // This is used by various external components that need to get the name from the engine.
+        return agentName;
+    }
+
     private class EngineJnlpConnectionStateListener extends JnlpConnectionStateListener {
 
         private final RSAPublicKey publicKey;

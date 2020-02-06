@@ -27,6 +27,8 @@ import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.engine.WorkDirManagerRule;
@@ -113,7 +115,15 @@ public class EngineTest {
         File location = mgr.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
         Assert.assertThat("WorkDir manager should not be aware about external JAR cache location", location, nullValue());
     }
-    
+
+    @Test
+    @Issue("JENKINS-60926")
+    public void getAgentName() {
+        EngineListener l = new TestEngineListener();
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        assertThat(engine.getAgentName(), is(AGENT_NAME));
+    }
+
     private static class TestEngineListener implements EngineListener {
 
         @Override
