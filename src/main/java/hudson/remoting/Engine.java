@@ -153,10 +153,7 @@ public class Engine extends Thread {
     @CheckForNull
     private URL hudsonUrl;
     private final String secretKey;
-    /* This needs to stay public and named "slaveName" until slave-installer-module is updated
-      to not refer to it directly by this name. See [JENKINS-60926].
-     */
-    public final String slaveName;
+    private final String agentName;
     private boolean webSocket;
     private String credentials;
     private String proxyCredentials = System.getProperty("proxyCredentials");
@@ -245,7 +242,7 @@ public class Engine extends Thread {
         this.events.add(listener);
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
-        this.slaveName = agentName;
+        this.agentName = agentName;
         this.instanceIdentity = instanceIdentity;
         this.protocols = protocols;
         if(candidateUrls.isEmpty() && instanceIdentity == null) {
@@ -537,7 +534,7 @@ public class Engine extends Thread {
                     Capability remoteCapability = new Capability();
                     @Override
                     public void beforeRequest(Map<String, List<String>> headers) {
-                        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(slaveName));
+                        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(agentName));
                         headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
                         headers.put(Capability.KEY, Collections.singletonList(localCap));
                         // TODO use JnlpConnectionState.COOKIE_KEY somehow (see EngineJnlpConnectionStateListener.afterChannel)
@@ -571,7 +568,7 @@ public class Engine extends Thread {
                         events.status("WebSocket connection open");
                         session.addMessageHandler(byte[].class, this::onMessage);
                         try {
-                            ch.set(new ChannelBuilder(slaveName, executor).
+                            ch.set(new ChannelBuilder(agentName, executor).
                                 withJarCacheOrDefault(jarCache). // unless EngineJnlpConnectionStateListener can be used for this purpose
                                 build(new Transport(session)));
                         } catch (IOException x) {
@@ -669,7 +666,7 @@ public class Engine extends Thread {
                 .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
                 .handlers();
         final Map<String,String> headers = new HashMap<>();
-        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, slaveName);
+        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
         headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
         List<String> jenkinsUrls = new ArrayList<>();
         for (URL url: candidateUrls) {
