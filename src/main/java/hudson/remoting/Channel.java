@@ -403,6 +403,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(Channel.Mode.BINARY)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, InputStream is, OutputStream os) throws IOException {
@@ -412,6 +415,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(mode)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os) throws IOException {
@@ -421,6 +427,10 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(Channel.Mode.BINARY)
+     *                  .withHeaderStream(header)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, InputStream is, OutputStream os, OutputStream header) throws IOException {
@@ -430,6 +440,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(mode)
+     *                  .withHeaderStream(header)
+     *                  .withArbitraryCallableAllowed(true)
+     *                  .withRemoteClassLoadingAllowed(true)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header) throws IOException {
@@ -439,6 +455,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(mode)
+     *                  .withHeaderStream(header)
+     *                  .withArbitraryCallableAllowed(!restricted)
+     *                  .withRemoteClassLoadingAllowed(!restricted)
+     *                  .withBaseLoader(base)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted) throws IOException {
@@ -452,6 +475,13 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withMode(mode)
+     *                  .withHeaderStream(header)
+     *                  .withArbitraryCallableAllowed(!restricted)
+     *                  .withRemoteClassLoadingAllowed(!restricted)
+     *                  .withBaseLoader(base)
+     *                  .build(is, os)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, Mode mode, InputStream is, OutputStream os, OutputStream header, boolean restricted, ClassLoader base) throws IOException {
@@ -464,19 +494,28 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 .withBaseLoader(base)
                 .withCapability(capability)
                 .withHeaderStream(header)
-                .withRestricted(restricted), is, os);
+                .withArbitraryCallableAllowed(!restricted)
+                .withRemoteClassLoadingAllowed(!restricted)
+                , is, os);
     }
 
     /**
      * @deprecated as of 2.24
      *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withArbitraryCallableAllowed(!restricted)
+     *                  .withRemoteClassLoadingAllowed(!restricted)
+     *                  .withBaseLoader(base)
+     *                  .build(transport)
      * @since 2.13
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base) throws IOException {
         this(new ChannelBuilder(name,exec)
                 .withBaseLoader(base)
-                .withRestricted(restricted), transport);
+                .withArbitraryCallableAllowed(!restricted)
+                .withRemoteClassLoadingAllowed(!restricted)
+                , transport);
 
     }
 
@@ -501,13 +540,21 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * @since 2.24
      * @deprecated as of 2.38
+     *      Use {@link ChannelBuilder}
+     *      ChannelBuilder(name, exec)
+     *                  .withArbitraryCallableAllowed(!restricted)
+     *                  .withRemoteClassLoadingAllowed(!restricted)
+     *                  .withBaseLoader(base)
+     *                  .withJarCache(jarCache)
+     *                  .build(transport)
      */
     @Deprecated
     public Channel(String name, ExecutorService exec, CommandTransport transport, boolean restricted, ClassLoader base, JarCache jarCache) throws IOException {
         this(new ChannelBuilder(name,exec)
             .withBaseLoader(base)
             .withRestricted(restricted)
-            .withJarCache(jarCache), transport);
+            .withJarCache(jarCache)
+            , transport);
     }
 
     /**
@@ -1618,7 +1665,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      The remote port that the connection will be forwarded to.
      * @return
      *      Created {@link PortForwarder}
+     * @deprecated as of 3.39
      */
+    @Deprecated
     public ListeningPort createLocalToRemotePortForwarding(int recvPort, String forwardHost, int forwardPort) throws IOException, InterruptedException {
         PortForwarder portForwarder = new PortForwarder(recvPort,
                 ForwarderFactory.create(this, forwardHost, forwardPort));
@@ -1641,7 +1690,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      The remote port that the connection will be forwarded to.
      * @return
      *      Created {@link PortForwarder}.
+     * @deprecated as of 3.39
      */
+    @Deprecated
     public ListeningPort createRemoteToLocalPortForwarding(int recvPort, String forwardHost, int forwardPort) throws IOException, InterruptedException {
         return PortForwarder.create(this,recvPort,
                 ForwarderFactory.create(forwardHost, forwardPort));
@@ -1865,7 +1916,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Notification that {@link Command#readFrom} has succeeded.
      * @param cmd the resulting command
      * @param blockSize the serialized size of the command
-     * @see CommandListener
+     * @see Listener
      */
     void notifyRead(Command cmd, long blockSize) {
         for (Listener listener : listeners) {
@@ -1881,7 +1932,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Notification that {@link Command#writeTo} has succeeded.
      * @param cmd the command passed in
      * @param blockSize the serialized size of the command
-     * @see CommandListener
+     * @see Listener
      */
     void notifyWrite(Command cmd, long blockSize) {
         for (Listener listener : listeners) {
@@ -1898,7 +1949,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param req the original request
      * @param rsp the resulting response
      * @param totalTime the total time in nanoseconds taken to service the request
-     * @see CommandListener
+     * @see Listener
      */
     void notifyResponse(Request<?, ?> req, Response<?, ?> rsp, long totalTime) {
         for (Listener listener : listeners) {
@@ -1913,7 +1964,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Notification that a JAR file will be delivered to the remote side.
      * @param jar the JAR file from which code is being loaded remotely
-     * @see CommandListener
+     * @see Listener
      */
     void notifyJar(File jar) {
         for (Listener listener : listeners) {
