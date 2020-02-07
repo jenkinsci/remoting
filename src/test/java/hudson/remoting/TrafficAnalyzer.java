@@ -19,7 +19,7 @@ import java.io.ObjectInputStream;
 public class TrafficAnalyzer {
     public static void main(String[] args) throws Exception {
         File f = new File("/home/kohsuke/ws/hudson/investigations/javafx-windows-hang/out.log");
-        DataInputStream fin = new DataInputStream(new FileInputStream(f));
+        try (DataInputStream fin = new DataInputStream(new FileInputStream(f))) {
         fin.readFully(new byte[4]); // skip preamble
         try (ObjectInputStream ois = new ObjectInputStream(fin)) {
             for (int n=0; ; n++) {
@@ -40,5 +40,6 @@ public class TrafficAnalyzer {
                     o.createdAt.printStackTrace(System.out);
             }
         }
+    }
     }
 }

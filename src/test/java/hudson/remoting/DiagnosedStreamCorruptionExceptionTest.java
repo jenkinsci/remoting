@@ -56,7 +56,8 @@ public class DiagnosedStreamCorruptionExceptionTest {
     @Test(timeout=3000)
     public void blockingStreamShouldNotPreventDiagnosis() throws Exception {
         FastPipedInputStream in = new FastPipedInputStream();
-        try (FastPipedOutputStream out = new FastPipedOutputStream(in)) {
+        try (FastPipedInputStream in = new FastPipedInputStream();
+            FastPipedOutputStream out = new FastPipedOutputStream(in)) {
             out.write(payload);
         }
 
