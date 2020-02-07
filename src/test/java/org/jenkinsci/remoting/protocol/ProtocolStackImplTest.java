@@ -216,8 +216,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        //TODO hangs with close(null)
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -242,8 +241,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        //TODO hangs with close(null)
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -269,8 +267,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        //TODO hangs with close(null)
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -299,8 +296,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        //TODO hangs with close(null)
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -334,8 +330,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        //TODO hangs with close(null)
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -372,8 +367,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        //TODO Hangs with close(null)
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -423,8 +417,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        //TODO hangs with close(null)
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -477,8 +470,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        //TODO hangs with close(null)
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 

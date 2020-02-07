@@ -101,8 +101,7 @@ public class NetworkLayerTest {
         server.get().send(data);
         client.get().awaitByteContent(is(expected));
         assertThat(client.get().asByteArray(), is(expected));
-        //TODO using close(null) causes tests to hang
-        server.get().close();
+        server.get().close(null);
         client.get().awaitClose();
     }
 

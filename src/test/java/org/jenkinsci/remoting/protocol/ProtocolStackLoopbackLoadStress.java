@@ -195,6 +195,7 @@ public class ProtocolStackLoopbackLoadStress {
         public void checkRoles(RoleChecker checker) throws SecurityException {
 
         }
+        private static final long serialVersionUID = 1L;
     }
 
     public class Acceptor implements IOHubReadyListener, IOHubRegistrationCallback {

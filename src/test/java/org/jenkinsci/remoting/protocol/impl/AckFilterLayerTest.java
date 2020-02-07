@@ -111,8 +111,7 @@ public class AckFilterLayerTest {
         server.get().send(data);
         client.get().awaitByteContent(is(expected));
         assertThat(client.get().asByteArray(), is(expected));
-        // TODO fails if close(null)
-        server.get().close();
+        server.get().close(null);
         client.get().awaitClose();
     }
 
