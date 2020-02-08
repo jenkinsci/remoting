@@ -155,7 +155,7 @@ public class JnlpProtocolHandlerTest {
     }
 
     @Theory
-    public void happyPath(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Throwable {
+    public void happyPath(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
         JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
         HashMap<String, String> clientProps = createClientProperties(factory, SECRET_KEY);
