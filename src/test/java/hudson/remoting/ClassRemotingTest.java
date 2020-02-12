@@ -132,7 +132,7 @@ public class ClassRemotingTest extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> c = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, c.getClass().getClassLoader());
-        RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptThirdInvocation();
+        RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptNthInvocation(2);
         try {
             java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(c);
 
@@ -156,7 +156,7 @@ public class ClassRemotingTest extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> c = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, c.getClass().getClassLoader());
-        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptThirdInvocation();
+        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptNthInvocation(3);
 
         try {
             Future<Object> f1 = scheduleCallableLoad(c);
@@ -187,12 +187,15 @@ public class ClassRemotingTest extends RmiTestBase {
         });
     }
 
-    private static class InterruptThirdInvocation implements Runnable {
-        private int invocationCount = 0;
+    private static class InterruptNthInvocation implements Runnable {
+        private int countDown;
+        private InterruptNthInvocation(int n) {
+            countDown = n;
+        }
         @Override
         public void run() {
-            invocationCount++;
-            if (invocationCount == 3) {
+            countDown--;
+            if (countDown == 0) {
                 Thread.currentThread().interrupt();
             }
         }
