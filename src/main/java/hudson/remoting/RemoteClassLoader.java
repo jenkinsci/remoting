@@ -32,8 +32,11 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -130,10 +133,48 @@ final class RemoteClassLoader extends URLClassLoader {
         final Channel channel = RemoteInvocationHandler.unwrap(proxy);
         this.channel = channel == null ? null : channel.ref();
         this.underlyingProxy = proxy;
+        final IClassLoader targetProxy;
         if (channel == null || !channel.remoteCapability.supportsPrefetch() || channel.getJarCache()==null) {
-            proxy = new DumbClassLoaderBridge(proxy);
+            targetProxy = new DumbClassLoaderBridge(proxy);
+        } else {
+            targetProxy = proxy;
         }
-        this.proxy = proxy;
+        // JENKINS-61103: wrap the target (IClassLoader) proxy in a dynamic proxy which will handle retries in case of
+        // interrupt exception from the remoting system during class loading/initialization.
+        // It should take care of cases like JENKINS-36991, JENKINS-51854 and others.
+        this.proxy = (IClassLoader) Proxy.newProxyInstance(RemoteClassLoader.class.getClassLoader(),
+                new Class[] { IClassLoader.class },
+                (p, method, methodArgs) -> {
+                    Object result;
+                    boolean interrupted = false;
+                    try {
+                        while (true) {
+                            try {
+                                result = method.invoke(targetProxy, methodArgs);
+                                break;
+                            } catch (InvocationTargetException x) {
+                                Throwable e = x.getCause();
+                                if (e instanceof RemotingSystemException
+                                        // this really look like remote interruptions we should defer, to avoid screwing
+                                        // up class loading/initialization:
+                                        && (e.getCause() instanceof InterruptedException
+                                                || e.getCause() instanceof InterruptedIOException)
+                                        // this is only called from PreloadJarTask, we're not actually loading classes:
+                                        && !"fetchJar".equals(method.getName())) {
+                                    interrupted = true;
+                                } else {
+                                    throw e;
+                                }
+                            }
+                        }
+                    } finally {
+                        // honor deferred interruption
+                        if (interrupted) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                    return result;
+                });
     }
 
     /**
@@ -195,80 +236,52 @@ final class RemoteClassLoader extends URLClassLoader {
                     if (cr == null) {
                         LOGGER.log(Level.FINER, "fetch3({0})", name);
 
-                        boolean interrupted = false;
-                        try {
-                            // the code in this try block may throw InterruptException, but findClass
-                            // method is supposed to be uninterruptible. So we catch interrupt exception
-                            // and just retry until it succeeds, but in the end we set the interrupt flag
-                            // back on to let the interrupt in the next earliest occasion.
+                        if (TESTING_CLASS_REFERENCE_LOAD != null) {
+                            TESTING_CLASS_REFERENCE_LOAD.run();
+                        }
 
-                            while (true) {
-                                try {
-                                    if (TESTING_CLASS_REFERENCE_LOAD != null) {
-                                        TESTING_CLASS_REFERENCE_LOAD.run();
-                                    }
+                        Map<String,ClassFile2> all = proxy.fetch3(name);
+                        synchronized (prefetchedClasses) {
+                            /**
+                             * Converts {@link ClassFile2} to {@link ClassReference} with minimal
+                             * proxy creation. This creates a reference to {@link ClassLoader}, so
+                             * it shoudn't be kept beyond the scope of single {@link #findClass(String)}  call.
+                             */
+                            class ClassReferenceBuilder {
+                                private final Map<Integer,ClassLoader> classLoaders = new HashMap<Integer, ClassLoader>();
 
-                                    Map<String,ClassFile2> all = proxy.fetch3(name);
-                                    synchronized (prefetchedClasses) {
-                                        /**
-                                         * Converts {@link ClassFile2} to {@link ClassReference} with minimal
-                                         * proxy creation. This creates a reference to {@link ClassLoader}, so
-                                         * it shoudn't be kept beyond the scope of single {@link #findClass(String)}  call.
-                                         */
-                                        class ClassReferenceBuilder {
-                                            private final Map<Integer,ClassLoader> classLoaders = new HashMap<Integer, ClassLoader>();
+                                ClassReference toRef(ClassFile2 cf) {
+                                    int n = cf.classLoader;
 
-                                            ClassReference toRef(ClassFile2 cf) {
-                                                int n = cf.classLoader;
+                                    ClassLoader cl = classLoaders.get(n);
+                                    if (cl==null)
+                                        classLoaders.put(n,cl = channel.importedClassLoaders.get(n));
 
-                                                ClassLoader cl = classLoaders.get(n);
-                                                if (cl==null)
-                                                     classLoaders.put(n,cl = channel.importedClassLoaders.get(n));
+                                    return new ClassReference(cl,cf.image);
+                                }
+                            }
+                            ClassReferenceBuilder crf = new ClassReferenceBuilder();
 
-                                                return new ClassReference(cl,cf.image);
-                                            }
-                                        }
-                                        ClassReferenceBuilder crf = new ClassReferenceBuilder();
+                            for (Map.Entry<String,ClassFile2> entry : all.entrySet()) {
+                                String cn = entry.getKey();
+                                ClassFile2 cf = entry.getValue();
+                                ClassReference ref = crf.toRef(cf);
 
-                                        for (Map.Entry<String,ClassFile2> entry : all.entrySet()) {
-                                            String cn = entry.getKey();
-                                            ClassFile2 cf = entry.getValue();
-                                            ClassReference ref = crf.toRef(cf);
+                                if (cn.equals(name)) {
+                                    cr = ref;
+                                } else {
+                                    // where we remember the prefetch is sensitive to who references it,
+                                    // because classes need not be transitively visible in Java
+                                    if (cf.referer!=null)
+                                        ref.rememberIn(cn, crf.toRef(cf.referer).classLoader);
+                                    else
+                                        ref.rememberIn(cn, this);
 
-                                            if (cn.equals(name)) {
-                                                cr = ref;
-                                            } else {
-                                                // where we remember the prefetch is sensitive to who references it,
-                                                // because classes need not be transitively visible in Java
-                                                if (cf.referer!=null)
-                                                    ref.rememberIn(cn, crf.toRef(cf.referer).classLoader);
-                                                else
-                                                    ref.rememberIn(cn, this);
-
-                                                LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[]{name, cn});
-                                            }
-
-                                            ref.rememberIn(cn, ref.classLoader);
-                                        }
-                                    }
-                                    break;
-                                } catch (RemotingSystemException x) {
-                                    if (x.getCause() instanceof InterruptedException) {
-                                        // pretend as if this operation is not interruptible.
-                                        // but we need to remember to set the interrupt flag back on
-                                        // before we leave this call.
-                                        interrupted = true;
-                                        continue;   // JENKINS-19453: retry
-                                    }
-                                    throw x;
+                                    LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[]{name, cn});
                                 }
 
-                                // no code is allowed to reach here
+                                ref.rememberIn(cn, ref.classLoader);
                             }
-                        } finally {
-                            // process the interrupt later.
-                            if (interrupted)
-                                Thread.currentThread().interrupt();
                         }
 
                         assert cr != null;
