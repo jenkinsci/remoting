@@ -356,6 +356,11 @@ final class RemoteClassLoader extends URLClassLoader {
     static Runnable TESTING_CLASS_REFERENCE_LOAD;
 
     /**
+     * Intercept {@link RemoteClassLoader#findResource(String)} to allow unittests to be written.
+     */
+    static Runnable TESTING_RESOURCE_LOAD;
+
+    /**
      * Loads class from the byte array.
      * @param name Name of the class
      * @param bytes Bytes
@@ -422,6 +427,8 @@ final class RemoteClassLoader extends URLClassLoader {
                 URL u = f.toURL();
                 if (u!=null)    return u;
             }
+
+            if (TESTING_RESOURCE_LOAD != null) TESTING_RESOURCE_LOAD.run();
 
             long startTime = System.nanoTime();
 

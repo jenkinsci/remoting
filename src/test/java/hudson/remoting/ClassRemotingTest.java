@@ -25,6 +25,7 @@ package hudson.remoting;
 
 import junit.framework.Test;
 import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.EmptyVisitor;
 
@@ -174,6 +175,28 @@ public class ClassRemotingTest extends RmiTestBase {
         }
     }
 
+    @Issue("JENKINS-61103")
+    public void testInterruptionOfClassInitializationWithStaticResourceReference() throws Exception {
+        final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
+        final Callable<Object, Exception> c = (Callable) dcl.load(TestStaticResourceReference.class);
+        // make sure we get a remote interruption exception on "getResource" call
+        RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptNthInvocation(1);
+        try {
+            java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(c);
+
+            try {
+                f1.get();
+            } catch (ExecutionException ex) {
+                // Expected
+            }
+
+            // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+            assertEquals(String.class, channel.call(c).getClass());
+        } finally {
+            RemoteClassLoader.TESTING_RESOURCE_LOAD = null;
+        }
+    }
+
     private Future<Object> scheduleCallableLoad(final Callable<Object, Exception> c) {
         ExecutorService svc = Executors.newSingleThreadExecutor();
         return svc.submit(new java.util.concurrent.Callable<Object>() {
@@ -196,6 +219,7 @@ public class ClassRemotingTest extends RmiTestBase {
         public void run() {
             countDown--;
             if (countDown == 0) {
+                System.out.println("## interrupt");
                 Thread.currentThread().interrupt();
             }
         }
