@@ -35,7 +35,9 @@ import java.io.InputStream;
 import java.io.InterruptedIOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -139,42 +141,15 @@ final class RemoteClassLoader extends URLClassLoader {
         } else {
             targetProxy = proxy;
         }
-        // JENKINS-61103: wrap the target (IClassLoader) proxy in a dynamic proxy which will handle retries in case of
-        // interrupt exception from the remoting system during class loading/initialization.
-        // It should take care of cases like JENKINS-36991, JENKINS-51854 and others.
-        this.proxy = (IClassLoader) Proxy.newProxyInstance(RemoteClassLoader.class.getClassLoader(),
-                new Class[] { IClassLoader.class },
-                (p, method, methodArgs) -> {
-                    Object result;
-                    boolean interrupted = false;
-                    try {
-                        while (true) {
-                            try {
-                                result = method.invoke(targetProxy, methodArgs);
-                                break;
-                            } catch (InvocationTargetException x) {
-                                Throwable e = x.getCause();
-                                if (e instanceof RemotingSystemException
-                                        // this really look like remote interruptions we should defer, to avoid screwing
-                                        // up class loading/initialization:
-                                        && (e.getCause() instanceof InterruptedException
-                                                || e.getCause() instanceof InterruptedIOException)
-                                        // this is only called from PreloadJarTask, we're not actually loading classes:
-                                        && !"fetchJar".equals(method.getName())) {
-                                    interrupted = true;
-                                } else {
-                                    throw e;
-                                }
-                            }
-                        }
-                    } finally {
-                        // honor deferred interruption
-                        if (interrupted) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-                    return result;
-                });
+        if (MAX_RETRIES_ON_REMOTING_INTERRUPTION > 0) {
+            // JENKINS-61103: wrap the target (IClassLoader) proxy in a dynamic proxy which will handle retries in case
+            // of interruption exception from the remoting system during class loading/initialization.
+            // It should take care of cases like JENKINS-36991, JENKINS-51854 and others.
+            this.proxy = (IClassLoader) Proxy.newProxyInstance(RemoteClassLoader.class.getClassLoader(),
+                    new Class[] { IClassLoader.class }, new RemoteInterruptedExceptionCatcher(targetProxy));
+        } else {
+            this.proxy = targetProxy;
+        }
     }
 
     /**
@@ -1145,6 +1120,88 @@ final class RemoteClassLoader extends URLClassLoader {
             return Collections.emptySet();
         }
     }
+
+    /**
+     * An {@link InvocationHandler} for proxying calls to a target {@link IClassLoader} which catches
+     * {@link RemotingSystemException} caused by an {@link InterruptedException} (or {@link InterruptedIOException}).
+     * When this happens, the target method is called again, until it successfully returns (or throws a different kind
+     * of exception), or a maximum number of retries has been reached. The current thread is then interrupted again.
+     * <p>
+     * The purpose of this proxy is to avoid interruption of class loading/initialization, because that's something a
+     * class loader can't recover from. Later attempts at using an affected class will result in a {@link LinkageError},
+     * as reported in JENKINS-36991, JENKINS-51854, JENKINS-61103 and others.
+     *
+     * @see <a href="https://issues.jenkins-ci.org/browse/JENKINS-61103">JENKINS-61103</a>
+     */
+    static class RemoteInterruptedExceptionCatcher implements InvocationHandler {
+
+        private final IClassLoader targetProxy;
+
+        public RemoteInterruptedExceptionCatcher(IClassLoader targetProxy) {
+            this.targetProxy = targetProxy;
+        }
+
+        /**
+         * @inheritDoc
+         */
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            Object result;
+            boolean interrupted = false;
+            int retryCounter = 0;
+            try {
+                do {
+                    try {
+                        result = method.invoke(targetProxy, args);
+                        break;
+                    } catch (InvocationTargetException x) {
+                        Throwable e = x.getCause(); // get the actual exception thrown by the target method call
+                        if (retryCounter++ >= MAX_RETRIES_ON_REMOTING_INTERRUPTION || !shouldRetry(method, e)) {
+                            throw e;
+                        }
+                        // defer interruption, and try again
+                        interrupted = true;
+                    }
+                } while (true); // will eventually exit, either on successful invocation, or re-thrown exception
+            } finally {
+                // honor deferred interruption
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            return result;
+        }
+
+        /**
+         * Should we retry invoking {@code method}, given previous attempt has thrown {@code e}?
+         * <p>
+         * Returns true iff {@code e} is a {@link RemotingSystemException} caused by an {@link InterruptedException}
+         * (or {@link InterruptedIOException}), and {@method} may be part of some class loading/initialization.
+         *
+         * @param method the target method
+         * @param e the {@link Throwable} which has been previously thrown
+         * @return true if the method invocation should be retried
+         */
+        private boolean shouldRetry(Method method, Throwable e) {
+            return e instanceof RemotingSystemException
+                    && (e.getCause() instanceof InterruptedException
+                            || e.getCause() instanceof InterruptedIOException)
+                    // fetchJar() is only called from PreloadJarTask, we're not actually loading/initializing classes
+                    && !"fetchJar".equals(method.getName());
+        }
+    }
+
+    /**
+     * Maximum number of times the {@link RemoteInterruptedExceptionCatcher} would retry the same invocation of an
+     * {@link IClassLoader} method in case of interruption in the remoting system.
+     * <p>
+     * We are not really expecting repeated interruptions (and if it happens, it probably means there's no point
+     * insisting), so value can be low.
+     * <p>
+     * Set to zero (or negative) to completely disable usage of the {@link RemoteInterruptedExceptionCatcher}
+     * (can be useful when developing test cases).
+     */
+    static int MAX_RETRIES_ON_REMOTING_INTERRUPTION = Integer.getInteger(RemoteClassLoader.class.getName() + ".maxRetriesOnRemotingInterruption", 2);
 
     /**
      * If set to true, classes loaded by the bootstrap classloader will be also remoted to the remote JVM.
