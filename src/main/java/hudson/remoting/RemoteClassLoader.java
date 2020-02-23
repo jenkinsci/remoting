@@ -441,7 +441,9 @@ final class RemoteClassLoader extends URLClassLoader {
                 if (u!=null)    return u;
             }
 
-            if (TESTING_RESOURCE_LOAD != null) TESTING_RESOURCE_LOAD.run();
+            if (TESTING_RESOURCE_LOAD != null) {
+                TESTING_RESOURCE_LOAD.run();
+            }
 
             long startTime = System.nanoTime();
 
