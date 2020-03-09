@@ -141,7 +141,7 @@ final class RemoteClassLoader extends URLClassLoader {
         } else {
             targetProxy = proxy;
         }
-        if (MAX_RETRIES_ON_REMOTING_INTERRUPTION > 0) {
+        if (RemoteInterruptedExceptionCatcher.shouldBeEnabled()) {
             // JENKINS-61103: wrap the target (IClassLoader) proxy in a dynamic proxy which will handle retries in case
             // of interruption exception from the remoting system during class loading/initialization.
             // It should take care of cases like JENKINS-36991, JENKINS-51854 and others.
@@ -1124,8 +1124,8 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * An {@link InvocationHandler} for proxying calls to a target {@link IClassLoader} which catches
      * {@link RemotingSystemException} caused by an {@link InterruptedException} (or {@link InterruptedIOException}).
-     * When this happens, the target method is called again, until it successfully returns (or throws a different kind
-     * of exception), or a maximum number of retries has been reached. The current thread is then interrupted again.
+     * When this happens, the target method is called again, until it successfully returns, throws a different kind
+     * of exception, or a maximum number of retries has been reached. The current thread is then interrupted again.
      * <p>
      * The purpose of this proxy is to avoid interruption of class loading/initialization, because that's something a
      * class loader can't recover from. Later attempts at using an affected class will result in a {@link LinkageError},
@@ -1156,7 +1156,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         break;
                     } catch (InvocationTargetException x) {
                         Throwable e = x.getCause(); // get the actual exception thrown by the target method call
-                        if (retryCounter++ >= MAX_RETRIES_ON_REMOTING_INTERRUPTION || !shouldRetry(method, e)) {
+                        if (!shouldRetry(method, e, retryCounter++)) {
                             throw e;
                         }
                         // defer interruption, and try again
@@ -1180,14 +1180,23 @@ final class RemoteClassLoader extends URLClassLoader {
          *
          * @param method the target method
          * @param e the {@link Throwable} which has been previously thrown
+         * @param nbPreviousAttempts number of times we've already attempted this call
          * @return true if the method invocation should be retried
          */
-        private boolean shouldRetry(Method method, Throwable e) {
-            return e instanceof RemotingSystemException
+        private boolean shouldRetry(Method method, Throwable e, int nbPreviousAttempts) {
+            return nbPreviousAttempts < MAX_RETRIES_ON_REMOTING_INTERRUPTION
+                    && e instanceof RemotingSystemException
                     && (e.getCause() instanceof InterruptedException
                             || e.getCause() instanceof InterruptedIOException)
                     // fetchJar() is only called from PreloadJarTask, we're not actually loading/initializing classes
                     && !"fetchJar".equals(method.getName());
+        }
+
+        /**
+         * @return true if this dynamic proxy should be used at all
+         */
+        public static boolean shouldBeEnabled() {
+            return MAX_RETRIES_ON_REMOTING_INTERRUPTION > 0;
         }
     }
 
