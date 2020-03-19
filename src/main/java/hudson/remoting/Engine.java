@@ -591,6 +591,9 @@ public class Engine extends Thread {
                         receiver.terminate(new ChannelClosedException(ch.get(), x));
                     }
                     class Transport extends AbstractByteArrayCommandTransport {
+                        // Default maximum size accepted by jetty for websocket messages
+                        public static final int BLOCK_SIZE = 65_536;
+
                         final Session session;
                         Transport(Session session) {
                             this.session = session;
@@ -602,8 +605,12 @@ public class Engine extends Thread {
                         }
                         @Override
                         public void writeBlock(Channel channel, byte[] payload) throws IOException {
-                            LOGGER.finest(() -> "sending message of length " + payload.length);
-                            session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload));
+                            int size;
+                            for (int offset = 0; offset < payload.length; offset += size) {
+                                size = Math.min(BLOCK_SIZE, payload.length - offset);
+                                LOGGER.log(Level.FINEST, "sending message of length %d", size);
+                                session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload, offset, size));
+                            }
                         }
                         @Override
                         public Capability getRemoteCapability() throws IOException {
