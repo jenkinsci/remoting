@@ -592,7 +592,7 @@ public class Engine extends Thread {
                     }
                     class Transport extends AbstractByteArrayCommandTransport {
                         // Default maximum size accepted by jetty for websocket messages
-                        public static final int BLOCK_SIZE = 65_536;
+                        private static final int BLOCK_SIZE = 65_536;
 
                         final Session session;
                         Transport(Session session) {
