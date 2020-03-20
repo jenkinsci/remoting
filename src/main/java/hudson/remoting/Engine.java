@@ -562,56 +562,51 @@ public class Engine extends Thread {
                 HeaderHandler headerHandler = new HeaderHandler();
                 class AgentEndpoint extends Endpoint {
                     @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
-                    AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
+                    AgentEndpoint.Transport transport;
+
                     @Override
                     public void onOpen(Session session, EndpointConfig config) {
                         events.status("WebSocket connection open");
-                        session.addMessageHandler(byte[].class, this::onMessage);
+                        session.addMessageHandler(ByteBuffer.class, this::onMessage);
                         try {
+                            transport = new Transport(session);
                             ch.set(new ChannelBuilder(agentName, executor).
                                 withJarCacheOrDefault(jarCache). // unless EngineJnlpConnectionStateListener can be used for this purpose
-                                build(new Transport(session)));
+                                build(transport));
                         } catch (IOException x) {
                             events.error(x);
                         }
                     }
-                    private void onMessage(byte[] message) {
-                        LOGGER.finest(() -> "received message of length " + message.length);
-                        receiver.handle(message);
+                    private void onMessage(ByteBuffer message) {
+                        try {
+                            transport.receive(message);
+                        } catch (IOException|InterruptedException x) {
+                            events.error(x);
+                        }
                     }
                     @Override
                     public void onClose(Session session, CloseReason closeReason) {
                         LOGGER.fine(() -> "onClose: " + closeReason);
-                        receiver.terminate(new ChannelClosedException(ch.get(), null));
+                        transport.terminate(new ChannelClosedException(ch.get(), null));
                     }
                     @Override
                     public void onError(Session session, Throwable x) {
                         // TODO or would events.error(x) be better?
                         LOGGER.log(Level.FINE, null, x);
-                        receiver.terminate(new ChannelClosedException(ch.get(), x));
+                        transport.terminate(new ChannelClosedException(ch.get(), x));
                     }
-                    class Transport extends AbstractByteArrayCommandTransport {
-                        // Default maximum size accepted by jetty for websocket messages
-                        private static final int BLOCK_SIZE = 65_536;
 
+                    class Transport extends AbstractByteBufferCommandTransport {
                         final Session session;
                         Transport(Session session) {
                             this.session = session;
                         }
                         @Override
-                        public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver _receiver) {
-                            events.status("Setting up channel");
-                            receiver = _receiver;
+                        protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
+                            session.getBasicRemote().sendBinary(header, false);
+                            session.getBasicRemote().sendBinary(data, true);
                         }
-                        @Override
-                        public void writeBlock(Channel channel, byte[] payload) throws IOException {
-                            int size;
-                            for (int offset = 0; offset < payload.length; offset += size) {
-                                size = Math.min(BLOCK_SIZE, payload.length - offset);
-                                LOGGER.log(Level.FINEST, "sending message of length %d", size);
-                                session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload, offset, size));
-                            }
-                        }
+
                         @Override
                         public Capability getRemoteCapability() throws IOException {
                             return headerHandler.remoteCapability;
