@@ -603,6 +603,7 @@ public class Engine extends Thread {
                         }
                         @Override
                         protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
+                            LOGGER.finest(() -> "sending message of length + " + ChunkHeader.length(ChunkHeader.peek(header)));
                             session.getBasicRemote().sendBinary(header, false);
                             session.getBasicRemote().sendBinary(data, true);
                         }
