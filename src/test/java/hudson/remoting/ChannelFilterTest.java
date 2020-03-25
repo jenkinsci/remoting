@@ -43,6 +43,7 @@ public class ChannelFilterTest extends RmiTestBase {
         public Object call() throws Exception {
            return c.call();
         }
+        private static final long serialVersionUID = 1L;
     }
 
     public void testBlacklisting() throws Exception {
@@ -91,11 +92,13 @@ public class ChannelFilterTest extends RmiTestBase {
         public String call() {
             return "gun";
         }
+        private static final long serialVersionUID = 1L;
     }
 
     static class ReverseGunImporter extends CallableBase<String, Exception> {
         public String call() throws Exception {
             return Channel.currentOrFail().call(new GunImporter());
         }
+        private static final long serialVersionUID = 1L;
     }
 }

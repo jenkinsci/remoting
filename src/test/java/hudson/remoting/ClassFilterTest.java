@@ -266,6 +266,7 @@ public class ClassFilterTest implements Serializable {
         public String toString() {
             return "Security218";
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private String getAttack() {
@@ -288,5 +289,7 @@ public class ClassFilterTest implements Serializable {
             a.toString();   // this will ensure 'a' gets sent over
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
+    private static final long serialVersionUID = 1L;
 }

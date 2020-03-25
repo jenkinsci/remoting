@@ -63,6 +63,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
             c.meth("value");
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private static class Task2 extends CallableBase<Void,Error> {
@@ -74,6 +75,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
             c.meth2("value");
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
 
@@ -104,6 +106,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
                 notifyAll();
             }
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private static class AsyncTask extends CallableBase<Void,Error> {
@@ -115,5 +118,6 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
             c.meth("value");
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 }

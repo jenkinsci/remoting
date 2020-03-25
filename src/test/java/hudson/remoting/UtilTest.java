@@ -41,6 +41,7 @@ public class UtilTest {
     @Rule public TemporaryFolder temp = new TemporaryFolder();
 
     @Test
+    @SuppressWarnings("deprecation")
     public void mkdirs() throws IOException {
         File sandbox = temp.newFolder();
         // Dir exists already

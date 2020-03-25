@@ -37,7 +37,7 @@ import java.io.InputStream;
  * @author Kohsuke Kawaguchi
  * @see DummyClassLoader
  */
-public class TestCallable extends Exception implements Callable {
+public class TestCallable extends Exception implements Callable<Object, Throwable> {
     public Object call() throws Throwable {
         Object[] r = new Object[4];
 
@@ -68,6 +68,6 @@ public class TestCallable extends Exception implements Callable {
     public void checkRoles(RoleChecker checker) throws SecurityException {
     }
 
-    public static class Sub extends TestCallable {}
-
+    public static class Sub extends TestCallable {private static final long serialVersionUID = 1L;}
+    private static final long serialVersionUID = 1L;
 }

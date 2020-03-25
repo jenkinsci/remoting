@@ -96,7 +96,7 @@ public abstract class IOBufferMatcher {
      * Closes the buffer.
      * @param cause Cause. If {@code null}, an artificial cause will be added
      */
-    public void close(@CheckForNull IOException cause) {
+    public void close(@CheckForNull IOException cause) throws IOException {
         // If the close cause is not specified, just add an artificial one to capture the stacktrace
         // We do not close IOHub in production often, so it does not impact the performance
         final IOException causeToReport = cause != null ? cause : new IOException("Close requested");

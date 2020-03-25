@@ -19,8 +19,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.Nonnull;
-import static junit.framework.TestCase.assertFalse;
-import static junit.framework.TestCase.assertTrue;
 
 import org.jenkinsci.remoting.RoleChecker;
 import org.jvnet.hudson.test.Issue;
@@ -53,6 +51,7 @@ public class ChannelTest extends RmiTestBase {
         private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
             throw new ClassCastException("foobar");
         }
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -130,6 +129,7 @@ public class ChannelTest extends RmiTestBase {
             getChannelOrFail().setProperty("foo","bar");
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     public interface Greeter {
@@ -158,6 +158,7 @@ public class ChannelTest extends RmiTestBase {
             g.greet("Kohsuke");
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
 
@@ -177,6 +178,7 @@ public class ChannelTest extends RmiTestBase {
         public T call() throws RuntimeException {
             return t;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     @Bug(39150)
@@ -221,6 +223,7 @@ public class ChannelTest extends RmiTestBase {
         @Override public Void call() throws IOException {
             throw new IOException("Node Nested", new RuntimeException("Node says hello!"));
         }
+        private static final long serialVersionUID = 1L;
     }
     
     /**
@@ -294,6 +297,7 @@ public class ChannelTest extends RmiTestBase {
         public void checkRoles(RoleChecker checker) throws SecurityException {
 
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private static final class NeverEverCallable implements Callable<Void, Exception> {
