@@ -1,0 +1,24 @@
+<jnlp codebase="http://jenkins:8080/computer/local/" spec="1.0+">
+    <information>
+        <title>Agent for local</title>
+        <vendor>Jenkins project</vendor>
+        <homepage href="https://jenkins-ci.org/"></homepage>
+    </information>
+    <security>
+        <all-permissions></all-permissions>
+    </security>
+    <resources>
+        <j2se version="1.8+"></j2se>
+        <jar href="http://jenkins:8080/jnlpJars/remoting.jar"></jar>
+    </resources>
+    <application-desc main-class="hudson.remoting.jnlp.Main">
+        <argument>secret_key</argument>
+        <argument>local</argument>
+        <argument>-workDir</argument>
+        <argument>/jenkins/nodes/local</argument>
+        <argument>-internalDir</argument>
+        <argument>remoting</argument>
+        <argument>-url</argument>
+        <argument>http://jenkins:8080/</argument>
+    </application-desc>
+</jnlp>

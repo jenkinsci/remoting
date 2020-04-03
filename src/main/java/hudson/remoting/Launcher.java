@@ -543,14 +543,14 @@ public class Launcher {
                 if(contentType==null || !contentType.startsWith(expectedContentType)) {
                     // load DOM anyway, but if it fails to parse, that's probably because this is not an XML file to begin with.
                     try {
-                        dom = loadDom(agentJnlpURL, input);
+                        dom = loadDom(input);
                     } catch (SAXException e) {
                         throw new IOException(agentJnlpURL +" doesn't look like a JNLP file; content type was "+contentType);
                     } catch (IOException e) {
                         throw new IOException(agentJnlpURL +" doesn't look like a JNLP file; content type was "+contentType);
                     }
                 } else {
-                    dom = loadDom(agentJnlpURL, input);
+                    dom = loadDom(input);
                 }
 
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
@@ -607,11 +607,11 @@ public class Launcher {
         return r;
     }
 
-    private static Document loadDom(URL agentJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
+    static Document loadDom(InputStream is) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
         DocumentBuilder db = dbf.newDocumentBuilder();
-        return db.parse(is, agentJnlpURL.toExternalForm());
+        return db.parse(is);
     }
 
     /**
