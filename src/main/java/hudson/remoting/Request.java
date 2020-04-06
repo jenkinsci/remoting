@@ -145,6 +145,12 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      *      If the {@link #perform(Channel)} throws an exception.
      */
     final RSP call(Channel channel) throws EXC, InterruptedException, IOException {
+        // set the thread name to represent the channel we are blocked on,
+        // so that thread dump would give us more useful information.
+        Thread t = Thread.currentThread();
+        String name = t.getName();
+        try {
+            t.setName(name + " / waiting for " + channel.getName() + " id=" + id);
         checkIfCanBeExecutedOnChannel(channel);
         lastIoId = channel.lastIoId();
 
@@ -163,13 +169,6 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
 
         try {
             synchronized(this) {
-                // set the thread name to represent the channel we are blocked on,
-                // so that thread dump would give us more useful information.
-                Thread t = Thread.currentThread();
-                final String name = t.getName();
-                try {
-                    // wait until the response arrives
-                    t.setName(name+" / waiting for "+channel.getName()+" id="+id);
                     while(response==null && !channel.isInClosed())
                         // I don't know exactly when this can happen, as pendingCalls are cleaned up by Channel,
                         // but in production I've observed that in rare occasion it can block forever, even after a channel
@@ -179,9 +178,6 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                     if (response==null)
                         // channel is closed and we still don't have a response
                         throw new RequestAbortedException(null);
-                } finally {
-                    t.setName(name);
-                }
 
                 if (lastIo != null)
                     try {
@@ -213,6 +209,9 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                     channel.send(new Cancel(id));   // only send a cancel if we can, or else ChannelClosedException will mask the original cause
             }
             throw e;
+        }
+        } finally {
+            t.setName(name);
         }
     }
 
