@@ -67,7 +67,8 @@ import static java.util.logging.Level.WARNING;
  *
  * @author Kohsuke Kawaguchi
  */
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"DMI_COLLECTION_OF_URLS","DMI_BLOCKING_METHODS_ON_URL"}) // TODO: fix this
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DMI_COLLECTION_OF_URLS", "DMI_BLOCKING_METHODS_ON_URL"},
+        justification = "Since this is based on the URLClassLoader, it is difficult to switch to URIs. We have no indication this causes noticeable resource issues. The implementations here and in URL reduce the impact.")
 final class RemoteClassLoader extends URLClassLoader {
 
     private static final Logger LOGGER = Logger.getLogger(RemoteClassLoader.class.getName());
