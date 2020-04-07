@@ -1,5 +1,8 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE note SYSTEM "file:src/test/resources/hudson/remoting/note.dtd">
+<!DOCTYPE note [
+        <!ENTITY nbsp "&#xA0;">
+        <!ENTITY writer "Writer: Donald Duck.">
+        <!ENTITY copyright "Copyright: W3Schools.">
+        ]>
 <jnlp codebase="http://jenkins:8080/computer/local/" spec="1.0+">
     <information>
         <title>Agent for local</title>

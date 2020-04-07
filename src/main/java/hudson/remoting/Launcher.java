@@ -609,7 +609,7 @@ public class Launcher {
 
     static Document loadDom(InputStream is) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
         DocumentBuilder db = dbf.newDocumentBuilder();
         return db.parse(is);
     }

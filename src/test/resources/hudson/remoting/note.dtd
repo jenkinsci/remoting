@@ -1,0 +1,3 @@
+<!ELEMENT syllabus (#PCDATA)>
+<!ELEMENT author (#PCDATA)>
+<!ELEMENT booktitle (#PCDATA)>

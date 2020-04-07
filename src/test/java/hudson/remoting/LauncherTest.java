@@ -10,6 +10,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.is;
 
@@ -17,6 +18,7 @@ public class LauncherTest {
 
     @Test
     public void loadDom_Standard() throws IOException, SAXException, ParserConfigurationException {
+        // An example of a standard, regular JNLP file.
         FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/test.jnlp");
         Document document = Launcher.loadDom(jnlpFile);
         Element documentElement = document.getDocumentElement();
@@ -24,25 +26,41 @@ public class LauncherTest {
         assertThat(documentElement.getChildNodes().getLength(), is(9));
     }
 
-    @Test(expected = SAXParseException.class)
+    @Test
     public void loadDom_Lol() throws IOException, SAXException, ParserConfigurationException {
+        // A JNLP containing the Billion Laughs DTD
         FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/lol.jnlp");
-        Document document = Launcher.loadDom(jnlpFile);
-        document.getDocumentElement();
+        shouldFailWithDoctype(jnlpFile);
     }
 
-    @Test(expected = SAXParseException.class)
+    @Test
     public void loadDom_XxeFile() throws IOException, SAXException, ParserConfigurationException {
+        // A JNLP containing an file-type XXE
         FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/xxe_file.jnlp");
-        Document document = Launcher.loadDom(jnlpFile);
-        document.getDocumentElement();
+        shouldFailWithDoctype(jnlpFile);
     }
 
-    @Test(expected = SAXParseException.class)
+    @Test
     public void loadDom_XxeHttp() throws IOException, SAXException, ParserConfigurationException {
+        // A JNLP containing an http-type XXE
         FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/xxe_http.jnlp");
-        Document document = Launcher.loadDom(jnlpFile);
-        document.getDocumentElement();
+        shouldFailWithDoctype(jnlpFile);
+    }
+
+    @Test
+    public void loadDom_EmbeddedDoctype() throws IOException, SAXException, ParserConfigurationException {
+        // A JNLP containing an embedded doctype
+        FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/embedded_doctype.jnlp");
+        shouldFailWithDoctype(jnlpFile);
+    }
+
+    private void shouldFailWithDoctype(FileInputStream jnlpFile) throws ParserConfigurationException, SAXException, IOException {
+        try {
+            Launcher.loadDom(jnlpFile);
+            fail("Dom loading should have failed.");
+        } catch (SAXParseException spe) {
+            assertThat(spe.getMessage(), containsString("DOCTYPE is disallowed"));
+        }
     }
 
 }
