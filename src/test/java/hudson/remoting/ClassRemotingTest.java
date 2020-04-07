@@ -24,7 +24,7 @@
 package hudson.remoting;
 
 import junit.framework.Test;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.EmptyVisitor;
 
@@ -50,18 +50,13 @@ public class ClassRemotingTest extends RmiTestBase {
 
         Object[] r = (Object[]) channel.call(c);
 
-        System.out.println(r[0]);
-
         assertTrue(r[0].toString().startsWith("hudson.remoting.RemoteClassLoader@"));
 
         // make sure the bytes are what we are expecting
-        System.out.println("Resource is "+((byte[])r[1]).length+" bytes");
         ClassReader cr = new ClassReader((byte[])r[1]);
         cr.accept(new EmptyVisitor(),false);
 
         // make sure cache is taking effect
-        System.out.println(r[2]);
-        System.out.println(r[3]);
         assertEquals(r[2],r[3]);
     }
 
@@ -83,7 +78,7 @@ public class ClassRemotingTest extends RmiTestBase {
         channel.call(new RemotePropertyVerifier());
     }
 
-    @Bug(6604)
+    @Issue("JENKINS-6604")
     public void testRaceCondition() throws Throwable {
         DummyClassLoader parent = new DummyClassLoader(TestCallable.class);
         DummyClassLoader child1 = new DummyClassLoader(parent, TestCallable.Sub.class);
@@ -97,16 +92,8 @@ public class ClassRemotingTest extends RmiTestBase {
         ExecutorService svc = Executors.newFixedThreadPool(2);
         RemoteClassLoader.TESTING_CLASS_LOAD = new SleepForASec();
         try {
-            java.util.concurrent.Future<Object> f1 = svc.submit(new java.util.concurrent.Callable<Object>() {
-                public Object call() throws Exception {
-                    return channel.call(c1);
-                }
-            });
-            java.util.concurrent.Future<Object> f2 = svc.submit(new java.util.concurrent.Callable<Object>() {
-                public Object call() throws Exception {
-                    return channel.call(c2);
-                }
-            });
+            java.util.concurrent.Future<Object> f1 = svc.submit(() -> channel.call(c1));
+            java.util.concurrent.Future<Object> f2 = svc.submit(() -> channel.call(c2));
             f1.get();
             f2.get();
         } finally {
@@ -125,7 +112,7 @@ public class ClassRemotingTest extends RmiTestBase {
         }
     }
 
-    @Bug(19453)
+    @Issue("JENKINS-19453")
     public void testInterruptionOfClassCreation() throws Exception {
         DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
         final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
@@ -149,7 +136,7 @@ public class ClassRemotingTest extends RmiTestBase {
         }
     }
 
-    @Bug(36991)
+    @Issue("JENKINS-36991")
     public void testInterruptionOfClassReferenceCreation() throws Exception {
         DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
         final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
@@ -176,15 +163,7 @@ public class ClassRemotingTest extends RmiTestBase {
 
     private Future<Object> scheduleCallableLoad(final Callable<Object, Exception> c) {
         ExecutorService svc = Executors.newSingleThreadExecutor();
-        return svc.submit(new java.util.concurrent.Callable<Object>() {
-            public Object call() throws Exception {
-                try {
-                    return channel.call(c);
-                } catch (Throwable t) {
-                    throw new Exception(t);
-                }
-            }
-        });
+        return svc.submit(() -> channel.call(c));
     }
 
     private static class InterruptThirdInvocation implements Runnable {
@@ -198,7 +177,7 @@ public class ClassRemotingTest extends RmiTestBase {
         }
     }
 
-    public static Test suite() throws Exception {
+    public static Test suite() {
         return buildSuite(ClassRemotingTest.class);
     }
 
@@ -206,7 +185,7 @@ public class ClassRemotingTest extends RmiTestBase {
         public Object call() throws IOException {
             Object o = getOpenChannelOrFail().getRemoteProperty("test");
             assertEquals(o.getClass().getName(), CLASSNAME);
-            assertTrue(Channel.class.getClassLoader() != o.getClass().getClassLoader());
+            assertNotSame(Channel.class.getClassLoader(), o.getClass().getClassLoader());
             assertTrue(o.getClass().getClassLoader() instanceof RemoteClassLoader);
             return null;
         }
