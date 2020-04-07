@@ -72,6 +72,8 @@ import static java.util.logging.Level.WARNING;
 final class RemoteClassLoader extends URLClassLoader {
 
     private static final Logger LOGGER = Logger.getLogger(RemoteClassLoader.class.getName());
+    private static final int MAX_RETRIES = 3;
+    private static final long SLEEP_DURATION_MS = 100;
 
     /**
      * Proxy to the code running on remote end.
@@ -294,7 +296,9 @@ final class RemoteClassLoader extends URLClassLoader {
                 // and just retry until it succeeds, but in the end we set the interrupt flag
                 // back on to let the interrupt in the next earliest occasion.
 
-                while (true) {
+                int tries = 0;
+                while (tries < MAX_RETRIES) {
+                    tries++;
                     try {
                         if (TESTING_CLASS_REFERENCE_LOAD != null) {
                             TESTING_CLASS_REFERENCE_LOAD.run();
@@ -353,6 +357,11 @@ final class RemoteClassLoader extends URLClassLoader {
                             // but we need to remember to set the interrupt flag back on
                             // before we leave this call.
                             interrupted = true;
+                            try {
+                                Thread.sleep(SLEEP_DURATION_MS);
+                            } catch (InterruptedException e) {
+                                // Not much to do if we can't sleep. Run through the tries more quickly.
+                            }
                             continue;   // JENKINS-19453: retry
                         }
                         throw x;

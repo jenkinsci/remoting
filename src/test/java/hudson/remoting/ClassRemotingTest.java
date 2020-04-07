@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import junit.framework.Test;
+import org.junit.After;
 import org.jvnet.hudson.test.Issue;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.EmptyVisitor;
@@ -42,6 +43,12 @@ import java.util.concurrent.Future;
 public class ClassRemotingTest extends RmiTestBase {
 
     private static final String CLASSNAME = "hudson.rem0ting.TestCallable";
+
+    @After
+    public void tearDown() {
+        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = null;
+        RemoteClassLoader.TESTING_CLASS_LOAD = null;
+    }
 
     public void test1() throws Throwable {
         // call a class that's only available on DummyClassLoader, so that on the remote channel
@@ -91,14 +98,10 @@ public class ClassRemotingTest extends RmiTestBase {
         assertEquals(parent, c2.getClass().getSuperclass().getClassLoader());
         ExecutorService svc = Executors.newFixedThreadPool(2);
         RemoteClassLoader.TESTING_CLASS_LOAD = new SleepForASec();
-        try {
-            java.util.concurrent.Future<Object> f1 = svc.submit(() -> channel.call(c1));
-            java.util.concurrent.Future<Object> f2 = svc.submit(() -> channel.call(c2));
-            f1.get();
-            f2.get();
-        } finally {
-            RemoteClassLoader.TESTING_CLASS_LOAD = null;
-        }
+        java.util.concurrent.Future<Object> f1 = svc.submit(() -> channel.call(c1));
+        java.util.concurrent.Future<Object> f2 = svc.submit(() -> channel.call(c2));
+        f1.get();
+        f2.get();
     }
 
     private static final class SleepForASec implements Runnable {
@@ -119,21 +122,18 @@ public class ClassRemotingTest extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> c = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, c.getClass().getClassLoader());
-        RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptThirdInvocation();
+        RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptInvocation(3, 3);
+        java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(c);
+
         try {
-            java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(c);
-
-            try {
-                f1.get();
-            } catch (ExecutionException ex) {
-                // Expected
-            }
-
-            // verify that classes that we tried to load aren't irrevocably damaged and it's still available
-            assertEquals(String.class, channel.call(c).getClass());
-        } finally {
-            RemoteClassLoader.TESTING_CLASS_LOAD = null;
+            f1.get();
+        } catch (ExecutionException ex) {
+            // Expected
         }
+
+        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+        assertEquals(String.class, channel.call(c).getClass());
+
     }
 
     @Issue("JENKINS-36991")
@@ -143,22 +143,31 @@ public class ClassRemotingTest extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> c = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, c.getClass().getClassLoader());
-        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptThirdInvocation();
+        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptInvocation(3, 3);
+
+        Future<Object> f1 = scheduleCallableLoad(c);
 
         try {
-            Future<Object> f1 = scheduleCallableLoad(c);
-
-            try {
-                f1.get();
-            } catch (ExecutionException ex) {
-                // Expected
-            }
-
-            // verify that classes that we tried to load aren't irrevocably damaged and it's still available
-            assertEquals(String.class, channel.call(c).getClass());
-        } finally {
-            RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = null;
+            f1.get();
+        } catch (ExecutionException ex) {
+            // Expected
         }
+
+        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+        assertEquals(String.class, channel.call(c).getClass());
+    }
+
+    public void testSingleInterruptionOfFirstClassReferenceCreation() throws Exception {
+        Callable c = (Callable) DummyClassLoader.apply(TestCallable.class);
+
+        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptInvocation(1, 1);
+        try {
+            Object[] r = (Object[]) channel.call(c);
+        } catch (InterruptedException e) {
+            // Expected
+        }
+        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+        assertEquals(String.class, channel.call(c).getClass());
     }
 
     private Future<Object> scheduleCallableLoad(final Callable<Object, Exception> c) {
@@ -166,12 +175,21 @@ public class ClassRemotingTest extends RmiTestBase {
         return svc.submit(() -> channel.call(c));
     }
 
-    private static class InterruptThirdInvocation implements Runnable {
+    private static class InterruptInvocation implements Runnable {
         private int invocationCount = 0;
+        private int beginInterrupt;
+        private int endInterrupt;
+
+        private InterruptInvocation(int beginInterrupt, int endInterrupt) {
+            this.beginInterrupt = beginInterrupt;
+            this.endInterrupt = endInterrupt;
+        }
+
         @Override
         public void run() {
             invocationCount++;
-            if (invocationCount == 3) {
+            System.out.println(invocationCount);
+            if (invocationCount >= beginInterrupt && invocationCount <= endInterrupt) {
                 Thread.currentThread().interrupt();
             }
         }
