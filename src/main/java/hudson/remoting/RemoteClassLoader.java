@@ -72,8 +72,8 @@ import static java.util.logging.Level.WARNING;
 final class RemoteClassLoader extends URLClassLoader {
 
     private static final Logger LOGGER = Logger.getLogger(RemoteClassLoader.class.getName());
-    private static final int MAX_RETRIES = 3;
-    private static final long SLEEP_DURATION_MS = 100;
+    static int SLEEP_DURATION_MS = 100;
+    static int MAX_RETRIES = 10 * 60 * 1000 / SLEEP_DURATION_MS; // 10 minutes
 
     /**
      * Proxy to the code running on remote end.
@@ -241,10 +241,15 @@ final class RemoteClassLoader extends URLClassLoader {
                 // and just retry until it succeeds, but in the end we set the interrupt flag
                 // back on to let the interrupt in the next earliest occasion.
 
-                while (true) {
+                int tries = 0;
+                while (tries < MAX_RETRIES) {
+                    tries++;
                     try {
                         if (TESTING_CLASS_LOAD != null) {
                             TESTING_CLASS_LOAD.run();
+                            if (Thread.currentThread().isInterrupted()) {
+                                throw new InterruptedException("loading was interrupted.");
+                            }
                         }
 
                         if (c != null) {
@@ -271,10 +276,14 @@ final class RemoteClassLoader extends URLClassLoader {
                         // but we need to remember to set the interrupt flag back on
                         // before we leave this call.
                         interrupted = true;
+                        try {
+                            rcl.getClassLoadingLock(name).wait(SLEEP_DURATION_MS);
+                        } catch (InterruptedException e) {
+                            // Not much to do if we can't sleep. Run through the tries more quickly.
+                        }
                     }
-
-                    // no code is allowed to reach here
-                }
+                 }
+                throw new ClassNotFoundException("Could not load class " + name + " after " + MAX_RETRIES + " tries.");
             } finally {
                 // process the interrupt later.
                 if (interrupted)

@@ -24,13 +24,11 @@
 package hudson.remoting;
 
 import junit.framework.Test;
-import org.junit.After;
 import org.jvnet.hudson.test.Issue;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.EmptyVisitor;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -42,29 +40,18 @@ import java.util.concurrent.Future;
  */
 public class ClassRemotingTest extends RmiTestBase {
 
-    private static final String CLASSNAME = "hudson.rem0ting.TestCallable";
-
-    @After
-    public void tearDown() {
-        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = null;
-        RemoteClassLoader.TESTING_CLASS_LOAD = null;
-    }
+    static final String TESTCALLABLE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestCallable";
+    static final String TESTLINKAGE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestLinkage";
 
     public void test1() throws Throwable {
         // call a class that's only available on DummyClassLoader, so that on the remote channel
         // it will be fetched from this class loader and not from the system classloader.
-        Callable c = (Callable) DummyClassLoader.apply(TestCallable.class);
+        Callable callable = (Callable) DummyClassLoader.apply(TestCallable.class);
 
-        Object[] r = (Object[]) channel.call(c);
+        Object[] result = (Object[]) channel.call(callable);
 
-        assertTrue(r[0].toString().startsWith("hudson.remoting.RemoteClassLoader@"));
-
-        // make sure the bytes are what we are expecting
-        ClassReader cr = new ClassReader((byte[])r[1]);
-        cr.accept(new EmptyVisitor(),false);
-
-        // make sure cache is taking effect
-        assertEquals(r[2],r[3]);
+        assertTestCallableResults(result);
+        assertEquals(TESTCALLABLE_TRANSFORMED_CLASSNAME, callable.getClass().getName());
     }
 
     /**
@@ -73,8 +60,9 @@ public class ClassRemotingTest extends RmiTestBase {
     public void testRemoteProperty() throws Exception {
         // this test cannot run in the compatibility mode without the multi-classloader serialization support,
         // because it uses the class loader specified during proxy construction.
-        if (channelRunner instanceof InProcessCompatibilityRunner)
+        if (channelRunner instanceof InProcessCompatibilityRunner) {
             return;
+        }
 
         DummyClassLoader cl = new DummyClassLoader(TestCallable.class);
         Callable c = (Callable) cl.load(TestCallable.class);
@@ -100,8 +88,64 @@ public class ClassRemotingTest extends RmiTestBase {
         RemoteClassLoader.TESTING_CLASS_LOAD = new SleepForASec();
         java.util.concurrent.Future<Object> f1 = svc.submit(() -> channel.call(c1));
         java.util.concurrent.Future<Object> f2 = svc.submit(() -> channel.call(c2));
-        f1.get();
-        f2.get();
+        Object result1 = f1.get();
+        Object result2 = f2.get();
+        assertTestCallableResults((Object[])result1);
+        assertTestCallableResults((Object[])result2);
+    }
+
+    public void testClassCreation_TestCallable() throws Exception {
+        DummyClassLoader dummyClassLoader = new DummyClassLoader(TestCallable.class);
+        final Callable<Object, Exception> callable = (Callable) dummyClassLoader.load(TestCallable.class);
+        java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(channel, callable);
+
+        Object result = f1.get();
+
+        assertTestCallableResults((Object[])result);
+        Object loadResult = dummyClassLoader.load(TestCallable.class);
+        assertEquals(TESTCALLABLE_TRANSFORMED_CLASSNAME, loadResult.getClass().getName());
+    }
+
+    public void testClassCreation_TestLinkage() throws Exception {
+        DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
+        final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
+        final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
+        final Callable<Object, Exception> callable = (Callable) child2.load(TestLinkage.class);
+        assertEquals(child2, callable.getClass().getClassLoader());
+        java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(channel, callable);
+
+        Object result = f1.get();
+
+        assertTestLinkageResults(channel, parent, child1, child2, callable, result);
+    }
+
+
+    static Future<Object> scheduleCallableLoad(Channel channel, final Callable<Object, Exception> c) {
+        ExecutorService svc = Executors.newSingleThreadExecutor();
+        return svc.submit(() -> channel.call(c));
+    }
+
+    static void assertTestLinkageResults(Channel channel, DummyClassLoader parent, DummyClassLoader child1, DummyClassLoader child2, Callable<Object, Exception> callable, Object result) throws Exception {
+        assertEquals(String.class, channel.call(callable).getClass());
+        assertTrue(result.toString().startsWith(TESTLINKAGE_TRANSFORMED_CLASSNAME + "$B"));
+        Object loadResult = parent.load(TestLinkage.B.class);
+        assertEquals(TESTLINKAGE_TRANSFORMED_CLASSNAME + "$B", loadResult.getClass().getName());
+        loadResult = child1.load(TestLinkage.A.class);
+        assertEquals(TESTLINKAGE_TRANSFORMED_CLASSNAME + "$A", loadResult.getClass().getName());
+        loadResult = child2.load(TestLinkage.class);
+        assertEquals(TESTLINKAGE_TRANSFORMED_CLASSNAME, loadResult.getClass().getName());
+    }
+
+    private void assertTestCallableResults(Object[] result) {
+        assertTrue(result[0].toString().startsWith("hudson.remoting.RemoteClassLoader@"));
+
+        // make sure the bytes are what we are expecting
+        ClassReader cr = new ClassReader((byte[])result[1]);
+        cr.accept(new EmptyVisitor(),false);
+
+        // make sure cache is taking effect
+        assertEquals(result[2],result[3]);
+        assertTrue(result[2].toString().contains(TESTCALLABLE_TRANSFORMED_CLASSNAME.replace(".", "/") + ".class"));
     }
 
     private static final class SleepForASec implements Runnable {
@@ -115,86 +159,6 @@ public class ClassRemotingTest extends RmiTestBase {
         }
     }
 
-    @Issue("JENKINS-19453")
-    public void testInterruptionOfClassCreation() throws Exception {
-        DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
-        final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
-        final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
-        final Callable<Object, Exception> c = (Callable) child2.load(TestLinkage.class);
-        assertEquals(child2, c.getClass().getClassLoader());
-        RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptInvocation(3, 3);
-        java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(c);
-
-        try {
-            f1.get();
-        } catch (ExecutionException ex) {
-            // Expected
-        }
-
-        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
-        assertEquals(String.class, channel.call(c).getClass());
-
-    }
-
-    @Issue("JENKINS-36991")
-    public void testInterruptionOfClassReferenceCreation() throws Exception {
-        DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
-        final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
-        final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
-        final Callable<Object, Exception> c = (Callable) child2.load(TestLinkage.class);
-        assertEquals(child2, c.getClass().getClassLoader());
-        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptInvocation(3, 3);
-
-        Future<Object> f1 = scheduleCallableLoad(c);
-
-        try {
-            f1.get();
-        } catch (ExecutionException ex) {
-            // Expected
-        }
-
-        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
-        assertEquals(String.class, channel.call(c).getClass());
-    }
-
-    public void testSingleInterruptionOfFirstClassReferenceCreation() throws Exception {
-        Callable c = (Callable) DummyClassLoader.apply(TestCallable.class);
-
-        RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptInvocation(1, 1);
-        try {
-            Object[] r = (Object[]) channel.call(c);
-        } catch (InterruptedException e) {
-            // Expected
-        }
-        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
-        assertEquals(String.class, channel.call(c).getClass());
-    }
-
-    private Future<Object> scheduleCallableLoad(final Callable<Object, Exception> c) {
-        ExecutorService svc = Executors.newSingleThreadExecutor();
-        return svc.submit(() -> channel.call(c));
-    }
-
-    private static class InterruptInvocation implements Runnable {
-        private int invocationCount = 0;
-        private int beginInterrupt;
-        private int endInterrupt;
-
-        private InterruptInvocation(int beginInterrupt, int endInterrupt) {
-            this.beginInterrupt = beginInterrupt;
-            this.endInterrupt = endInterrupt;
-        }
-
-        @Override
-        public void run() {
-            invocationCount++;
-            System.out.println(invocationCount);
-            if (invocationCount >= beginInterrupt && invocationCount <= endInterrupt) {
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
-
     public static Test suite() {
         return buildSuite(ClassRemotingTest.class);
     }
@@ -202,7 +166,7 @@ public class ClassRemotingTest extends RmiTestBase {
     private static class RemotePropertyVerifier extends CallableBase<Object, IOException> {
         public Object call() throws IOException {
             Object o = getOpenChannelOrFail().getRemoteProperty("test");
-            assertEquals(o.getClass().getName(), CLASSNAME);
+            assertEquals(o.getClass().getName(), TESTCALLABLE_TRANSFORMED_CLASSNAME);
             assertNotSame(Channel.class.getClassLoader(), o.getClass().getClassLoader());
             assertTrue(o.getClass().getClassLoader() instanceof RemoteClassLoader);
             return null;
