@@ -119,6 +119,20 @@ public class ClassRemotingTest extends RmiTestBase {
         assertTestLinkageResults(channel, parent, child1, child2, callable, result);
     }
 
+    @Issue("JENKINS-61103")
+    public void testClassCreation_TestStaticResourceReference() throws Exception {
+        final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
+        final Callable<Object, Exception> callable = (Callable) dcl.load(TestStaticResourceReference.class);
+        Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
+
+        Object result = f1.get();
+        assertTestStaticResourceReferenceResults(channel, callable, result);
+    }
+
+    static void assertTestStaticResourceReferenceResults(Channel channel, Callable<Object, Exception> callable, Object result) throws Exception {
+        assertEquals(String.class, channel.call(callable).getClass());
+        assertTrue(result.toString().contains("impossible"));
+    }
 
     static Future<Object> scheduleCallableLoad(Channel channel, final Callable<Object, Exception> c) {
         ExecutorService svc = Executors.newSingleThreadExecutor();

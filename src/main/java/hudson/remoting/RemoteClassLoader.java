@@ -72,8 +72,38 @@ import static java.util.logging.Level.WARNING;
 final class RemoteClassLoader extends URLClassLoader {
 
     private static final Logger LOGGER = Logger.getLogger(RemoteClassLoader.class.getName());
-    static int SLEEP_DURATION_MS = 100;
-    static int MAX_RETRIES = 10 * 60 * 1000 / SLEEP_DURATION_MS; // 10 minutes
+
+    /**
+     * Intercept {@link RemoteClassLoader#loadRemoteClass(String, Channel, ClassReference, RemoteClassLoader)} for unit tests.
+     * See JENKINS-6604 and similar issues.
+     * Should not be used for any other purpose.
+     */
+    static Runnable TESTING_CLASS_LOAD;
+    /**
+     * Intercept {@link RemoteClassLoader#prefetchClassReference(String, Channel)} for unit tests.
+     * Should not be used for any other purpose.
+     */
+    static Runnable TESTING_CLASS_REFERENCE_LOAD;
+    /**
+     * Intercept {@link RemoteClassLoader#findResource(String)} for unit tests.
+     * Should not be used for any other purpose.
+     */
+    static Runnable TESTING_RESOURCE_LOAD;
+
+    /**
+     * The amount of time to sleep before retrying an interrupted class load.
+     * This sleep keeps it from hammering the channel if there is a failure.
+     * The default value is 100 (ms).
+     */
+    static int RETRY_SLEEP_DURATION_MILLISECONDS = Integer.getInteger(RemoteClassLoader.class.getName() + "retrySleepDurationMilliseconds", 100);
+    /**
+     * The total number of retries for an interrupted class load.
+     * This makes the operation retry for an extended period of time but eventually timeout.
+     * Combined with the default value for RETRY_SLEEP_DURATION_MILLISECONDS this gives a default
+     * timeout of 10 minutes, which is much less than the former (infinite) retry but still a significant
+     * amount of time.
+     */
+    static int MAX_RETRIES = Integer.getInteger(RemoteClassLoader.class.getName() + "maxRetries", 10 * 60 * 1000 / RETRY_SLEEP_DURATION_MILLISECONDS);
 
     /**
      * Proxy to the code running on remote end.
@@ -277,7 +307,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         // before we leave this call.
                         interrupted = true;
                         try {
-                            rcl.getClassLoadingLock(name).wait(SLEEP_DURATION_MS);
+                            rcl.getClassLoadingLock(name).wait(RETRY_SLEEP_DURATION_MILLISECONDS);
                         } catch (InterruptedException e) {
                             // Not much to do if we can't sleep. Run through the tries more quickly.
                         }
@@ -367,7 +397,7 @@ final class RemoteClassLoader extends URLClassLoader {
                             // before we leave this call.
                             interrupted = true;
                             try {
-                                Thread.sleep(SLEEP_DURATION_MS);
+                                Thread.sleep(RETRY_SLEEP_DURATION_MILLISECONDS);
                             } catch (InterruptedException e) {
                                 // Not much to do if we can't sleep. Run through the tries more quickly.
                             }
@@ -392,14 +422,6 @@ final class RemoteClassLoader extends URLClassLoader {
         }
         return cr;
     }
-
-    /**
-     * Intercept {@link RemoteClassLoader#findClass(String)} to allow unit tests to be written.
-     * <p>
-     * See JENKINS-6604 and similar issues
-     */
-    static Runnable TESTING_CLASS_LOAD;
-    static Runnable TESTING_CLASS_REFERENCE_LOAD;
 
     /**
      * Loads class from the byte array.
@@ -459,6 +481,7 @@ final class RemoteClassLoader extends URLClassLoader {
     }
 
     @CheckForNull
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE", justification = "False positive -- spotbugs mistake.")
     public URL findResource(String name) {
         // first attempt to load from locally fetched jars
         URL url = super.findResource(name);
@@ -467,39 +490,72 @@ final class RemoteClassLoader extends URLClassLoader {
             return url;
         }
 
+        boolean interrupted = false;
         try {
-            if (resourceMap.containsKey(name)) {
-                URLish f = resourceMap.get(name);
-                if (f == null) {
-                    return null;    // no such resource
+            int tries = 0;
+            while (tries < MAX_RETRIES) {
+                tries++;
+                try {
+                    if (resourceMap.containsKey(name)) {
+                        URLish f = resourceMap.get(name);
+                        if (f == null) {
+                            return null;    // no such resource
+                        }
+                        URL u = f.toURL();
+                        if (u != null) {
+                            return u;
+                        }
+                    }
+
+                    if (TESTING_RESOURCE_LOAD != null) {
+                        TESTING_RESOURCE_LOAD.run();
+                    }
+
+                    long startTime = System.nanoTime();
+
+                    ResourceFile r = proxy.getResource2(name);
+                    ResourceImageRef image = null;
+                    if (r != null) {
+                        image = r.image;
+                    }
+
+                    channel.resourceLoadingTime.addAndGet(System.nanoTime() - startTime);
+                    channel.resourceLoadingCount.incrementAndGet();
+                    if (image == null) {
+                        resourceMap.put(name, null);
+                        return null;
+                    }
+
+                    URLish res = image.resolveURL(channel, name).get();
+                    resourceMap.put(name, res);
+                    return res.toURL();
+                } catch (IOException | InterruptedException | ExecutionException e) {
+                    throw new Error("Unable to load resource " + name, e);
+                } catch (RemotingSystemException x) {
+                    if (x.getCause() instanceof InterruptedException) {
+                        // pretend as if this operation is not interruptible.
+                        // but we need to remember to set the interrupt flag back on
+                        // before we leave this call.
+                        interrupted = true;
+                        try {
+                            Thread.sleep(RETRY_SLEEP_DURATION_MILLISECONDS);
+                        } catch (InterruptedException e) {
+                            // Not much to do if we can't sleep. Run through the tries more quickly.
+                        }
+                        continue;   // JENKINS-19453: retry
+                    }
+                    throw x;
                 }
-                URL u = f.toURL();
-                if (u != null) {
-                    return u;
-                }
+
+                // no code is allowed to reach here
             }
-
-            long startTime = System.nanoTime();
-
-            ResourceFile r = proxy.getResource2(name);
-            ResourceImageRef image = null;
-            if (r != null) {
-                image = r.image;
+        } finally {
+            // process the interrupt later.
+            if (interrupted) {
+                Thread.currentThread().interrupt();
             }
-
-            channel.resourceLoadingTime.addAndGet(System.nanoTime() - startTime);
-            channel.resourceLoadingCount.incrementAndGet();
-            if (image == null) {
-                resourceMap.put(name, null);
-                return null;
-            }
-
-            URLish res = image.resolveURL(channel, name).get();
-            resourceMap.put(name, res);
-            return res.toURL();
-        } catch (IOException | InterruptedException | ExecutionException e) {
-            throw new Error("Unable to load resource " + name, e);
         }
+        throw new RuntimeException("Could not load resource " + name + " after " + MAX_RETRIES + " tries.");
     }
 
     /**

@@ -54,7 +54,8 @@ public class ClassRemoting2Test extends RmiTestBase {
     public void tearDown() {
         RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = null;
         RemoteClassLoader.TESTING_CLASS_LOAD = null;
-        RemoteClassLoader.SLEEP_DURATION_MS = 100;
+        RemoteClassLoader.TESTING_RESOURCE_LOAD = null;
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 100;
     }
 
     @Issue("JENKINS-19453")
@@ -64,7 +65,7 @@ public class ClassRemoting2Test extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> callable = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, callable.getClass().getClassLoader());
-        RemoteClassLoader.SLEEP_DURATION_MS = 1;
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
         RemoteClassLoader.MAX_RETRIES = 10;
         RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptInvocation(3, 3);
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
@@ -82,7 +83,7 @@ public class ClassRemoting2Test extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> callable = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, callable.getClass().getClassLoader());
-        RemoteClassLoader.SLEEP_DURATION_MS = 1;
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
         RemoteClassLoader.MAX_RETRIES = 10;
         RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptInvocation(3, 6);
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
@@ -99,7 +100,7 @@ public class ClassRemoting2Test extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> callable = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, callable.getClass().getClassLoader());
-        RemoteClassLoader.SLEEP_DURATION_MS = 1;
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
         RemoteClassLoader.MAX_RETRIES = 3;
         RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptInvocation(3, 10);
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
@@ -119,7 +120,7 @@ public class ClassRemoting2Test extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> callable = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, callable.getClass().getClassLoader());
-        RemoteClassLoader.SLEEP_DURATION_MS = 1;
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
         RemoteClassLoader.MAX_RETRIES = 10;
         RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptInvocation(3, 3);
 
@@ -138,7 +139,7 @@ public class ClassRemoting2Test extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> callable = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, callable.getClass().getClassLoader());
-        RemoteClassLoader.SLEEP_DURATION_MS = 1;
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
         RemoteClassLoader.MAX_RETRIES = 10;
         RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptInvocation(3, 6);
 
@@ -156,10 +157,56 @@ public class ClassRemoting2Test extends RmiTestBase {
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
         final Callable<Object, Exception> callable = (Callable) child2.load(TestLinkage.class);
         assertEquals(child2, callable.getClass().getClassLoader());
-        RemoteClassLoader.SLEEP_DURATION_MS = 1;
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
         RemoteClassLoader.MAX_RETRIES = 3;
         RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = new InterruptInvocation(3, 10);
 
+        Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
+
+        try {
+            f1.get();
+            fail("Should have timed out, exceeding the max retries.");
+        } catch (ExecutionException ex) {
+            // Expected when we exceed the retries.
+        }
+    }
+
+    @Issue("JENKINS-61103")
+    public void testSingleInterruptionOfClassInitializationWithStaticResourceReference() throws Exception {
+        final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
+        final Callable<Object, Exception> callable = (Callable) dcl.load(TestStaticResourceReference.class);
+        // make sure we get a remote interruption exception on "getResource" call
+        RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 1);
+        Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
+
+        Object result = f1.get();
+        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+        ClassRemotingTest.assertTestStaticResourceReferenceResults(channel, callable, result);
+    }
+
+    @Issue("JENKINS-61103")
+    public void testMultipleInterruptionOfClassInitializationWithStaticResourceReference() throws Exception {
+        final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
+        final Callable<Object, Exception> callable = (Callable) dcl.load(TestStaticResourceReference.class);
+        // make sure we get a remote interruption exception on "getResource" call
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
+        RemoteClassLoader.MAX_RETRIES = 10;
+        RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 5);
+        Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
+
+        Object result = f1.get();
+        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+        ClassRemotingTest.assertTestStaticResourceReferenceResults(channel, callable, result);
+    }
+
+    @Issue("JENKINS-61103")
+    public void testContinuedInterruptionOfClassInitializationWithStaticResourceReference() throws Exception {
+        final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
+        final Callable<Object, Exception> callable = (Callable) dcl.load(TestStaticResourceReference.class);
+        // make sure we get a remote interruption exception on "getResource" call
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
+        RemoteClassLoader.MAX_RETRIES = 3;
+        RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 10);
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
         try {
