@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!DOCTYPE lolz [
+ <!ENTITY lol "lol">
+ <!ELEMENT lolz (#PCDATA)>
+ <!ENTITY lol1 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+ <!ENTITY lol2 "&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;&lol1;">
+ <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+ <!ENTITY lol4 "&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;">
+ <!ENTITY lol5 "&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;">
+ <!ENTITY lol6 "&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;">
+ <!ENTITY lol7 "&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;">
+ <!ENTITY lol8 "&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;">
+ <!ENTITY lol9 "&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;">
+]>
+<lolz>&lol9;</lolz>
+<jnlp codebase="http://jenkins:8080/computer/local/" spec="1.0+">
+<information>
+    <title>Agent for local</title>
+    <vendor>Jenkins project</vendor>
+    <homepage href="https://jenkins-ci.org/"></homepage>
+</information>
+<security>
+    <all-permissions></all-permissions>
+</security>
+<resources>
+    <j2se version="1.8+"></j2se>
+    <jar href="http://jenkins:8080/jnlpJars/remoting.jar"></jar>
+</resources>
+<application-desc main-class="hudson.remoting.jnlp.Main">
+    <argument>secret_key</argument>
+    <argument>local</argument>
+    <argument>-workDir</argument>
+    <argument>/jenkins/nodes/local</argument>
+    <argument>-internalDir</argument>
+    <argument>remoting</argument>
+    <argument>-url</argument>
+    <argument>http://jenkins:8080/</argument>
+</application-desc>
+</jnlp>
