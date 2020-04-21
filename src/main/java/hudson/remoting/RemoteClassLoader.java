@@ -176,176 +176,203 @@ final class RemoteClassLoader extends URLClassLoader {
             return super.findClass(name);
         } catch (ClassNotFoundException e) {
             final Channel channel = channel();
-            if (channel == null || !channel.isRemoteClassLoadingAllowed())
+            if (channel == null || !channel.isRemoteClassLoadingAllowed()) {
                 throw e;
+            }
             // delegate to remote
-            long startTime = System.nanoTime();
             if (channel.remoteCapability.supportsMultiClassLoaderRPC()) {
-                /*
-                    In multi-classloader setup, RemoteClassLoaders do not retain the relationships among the original classloaders,
-                    so each RemoteClassLoader ends up loading classes on its own without delegating to other RemoteClassLoaders.
-
-                    See the classloader X/Y examples in HUDSON-5048 for the depiction of the problem.
-
-                    So instead, we find the right RemoteClassLoader to load the class on per class basis.
-                    The communication is optimized for the single classloader use, by always returning the class file image
-                    along with the reference to the initiating ClassLoader (if the initiating ClassLoader has already loaded this class,
-                    then the class file image is wasted.)
-                 */
-                ClassReference cr;
-                if (channel.remoteCapability.supportsPrefetch()) {
-                    cr = prefetchedClasses.remove(name);
-                    if (cr == null) {
-                        LOGGER.log(Level.FINER, "fetch3({0})", name);
-
-                        boolean interrupted = false;
-                        try {
-                            // the code in this try block may throw InterruptException, but findClass
-                            // method is supposed to be uninterruptible. So we catch interrupt exception
-                            // and just retry until it succeeds, but in the end we set the interrupt flag
-                            // back on to let the interrupt in the next earliest occasion.
-
-                            while (true) {
-                                try {
-                                    if (TESTING_CLASS_REFERENCE_LOAD != null) {
-                                        TESTING_CLASS_REFERENCE_LOAD.run();
-                                    }
-
-                                    Map<String, ClassFile2> all = proxy.fetch3(name);
-                                    synchronized (prefetchedClasses) {
-                                        /*
-                                         * Converts {@link ClassFile2} to {@link ClassReference} with minimal
-                                         * proxy creation. This creates a reference to {@link ClassLoader}, so
-                                         * it shouldn't be kept beyond the scope of single {@link #findClass(String)}  call.
-                                         */
-                                        class ClassReferenceBuilder {
-                                            private final Map<Integer, ClassLoader> classLoaders = new HashMap<>();
-
-                                            ClassReference toRef(ClassFile2 cf) {
-                                                int n = cf.classLoader;
-
-                                                ClassLoader cl = classLoaders.get(n);
-                                                if (cl == null)
-                                                    classLoaders.put(n, cl = channel.importedClassLoaders.get(n));
-
-                                                return new ClassReference(cl, cf.image);
-                                            }
-                                        }
-                                        ClassReferenceBuilder crf = new ClassReferenceBuilder();
-
-                                        for (Map.Entry<String, ClassFile2> entry : all.entrySet()) {
-                                            String cn = entry.getKey();
-                                            ClassFile2 cf = entry.getValue();
-                                            ClassReference ref = crf.toRef(cf);
-
-                                            if (cn.equals(name)) {
-                                                cr = ref;
-                                            } else {
-                                                // where we remember the prefetch is sensitive to who references it,
-                                                // because classes need not be transitively visible in Java
-                                                if (cf.referer != null)
-                                                    ref.rememberIn(cn, crf.toRef(cf.referer).classLoader);
-                                                else
-                                                    ref.rememberIn(cn, this);
-
-                                                LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[]{name, cn});
-                                            }
-
-                                            ref.rememberIn(cn, ref.classLoader);
-                                        }
-                                    }
-                                    break;
-                                } catch (RemotingSystemException x) {
-                                    if (x.getCause() instanceof InterruptedException) {
-                                        // pretend as if this operation is not interruptible.
-                                        // but we need to remember to set the interrupt flag back on
-                                        // before we leave this call.
-                                        interrupted = true;
-                                        continue;   // JENKINS-19453: retry
-                                    }
-                                    throw x;
-                                }
-
-                                // no code is allowed to reach here
-                            }
-                        } finally {
-                            // process the interrupt later.
-                            if (interrupted)
-                                Thread.currentThread().interrupt();
-                        }
-
-                        assert cr != null;
-                    } else {
-                        LOGGER.log(Level.FINER, "findClass({0}) -> prefetch hit", name);
-                        channel.classLoadingPrefetchCacheCount.incrementAndGet();
-                    }
-                } else {
-                    LOGGER.log(Level.FINER, "fetch2 on {0}", name);
-                    cr = new ClassReference(channel, proxy.fetch2(name));
-                }
-                channel.classLoadingTime.addAndGet(System.nanoTime() - startTime);
-                channel.classLoadingCount.incrementAndGet();
-
-                ClassLoader cl = cr.classLoader;
-                if (cl instanceof RemoteClassLoader) {
-                    RemoteClassLoader rcl = (RemoteClassLoader) cl;
-                    synchronized (rcl.getClassLoadingLock(name)) {
-                        Class<?> c = rcl.findLoadedClass(name);
-
-                        boolean interrupted = false;
-                        try {
-                            // the code in this try block may throw InterruptException, but findClass
-                            // method is supposed to be uninterruptible. So we catch interrupt exception
-                            // and just retry until it succeeds, but in the end we set the interrupt flag
-                            // back on to let the interrupt in the next earliest occasion.
-
-                            while (true) {
-                                try {
-                                    if (TESTING_CLASS_LOAD != null) TESTING_CLASS_LOAD.run();
-
-                                    if (c != null) return c;
-
-                                    // TODO: check inner class handling
-                                    Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
-                                    if (img.isDone()) {
-                                        try {
-                                            return rcl.loadClassFile(name, img.get());
-                                        } catch (ExecutionException x) {
-                                            // failure to retrieve a jar shouldn't fail the classloading
-                                        }
-                                    }
-
-                                    // if the load activity is still pending, or if the load had failed,
-                                    // fetch just this class file
-                                    return rcl.loadClassFile(name, proxy.fetch(name));
-                                } catch (IOException x) {
-                                    throw new ClassNotFoundException(name, x);
-                                } catch (InterruptedException x) {
-                                    // pretend as if this operation is not interruptible.
-                                    // but we need to remember to set the interrupt flag back on
-                                    // before we leave this call.
-                                    interrupted = true;
-                                }
-
-                                // no code is allowed to reach here
-                            }
-                        } finally {
-                            // process the interrupt later.
-                            if (interrupted)
-                                Thread.currentThread().interrupt();
-                        }
-                    }
-                } else {
-                    return cl.loadClass(name);
-                }
+                return loadWithMultiClassLoader(name, channel);
             } else {
-                byte[] bytes = proxy.fetch(name);
-                channel.classLoadingTime.addAndGet(System.nanoTime() - startTime);
-                channel.classLoadingCount.incrementAndGet();
-
-                return loadClassFile(name, bytes);
+                return fetchFromProxy(name, channel);
             }
         }
+    }
+
+    private Class<?> fetchFromProxy(String name, Channel channel) throws ClassNotFoundException {
+        long startTime = System.nanoTime();
+        byte[] bytes = proxy.fetch(name);
+        channel.classLoadingTime.addAndGet(System.nanoTime() - startTime);
+        channel.classLoadingCount.incrementAndGet();
+        return loadClassFile(name, bytes);
+    }
+
+    private Class<?> loadWithMultiClassLoader(String name, Channel channel) throws ClassNotFoundException {
+    /*
+        In multi-classloader setup, RemoteClassLoaders do not retain the relationships among the original classloaders,
+        so each RemoteClassLoader ends up loading classes on its own without delegating to other RemoteClassLoaders.
+
+        See the classloader X/Y examples in HUDSON-5048 for the depiction of the problem.
+
+        So instead, we find the right RemoteClassLoader to load the class on per class basis.
+        The communication is optimized for the single classloader use, by always returning the class file image
+        along with the reference to the initiating ClassLoader (if the initiating ClassLoader has already loaded this class,
+        then the class file image is wasted.)
+     */
+        long startTime = System.nanoTime();
+        ClassReference cr;
+        if (channel.remoteCapability.supportsPrefetch()) {
+            cr = prefetchClassReference(name, channel);
+        } else {
+            LOGGER.log(Level.FINER, "fetch2 on {0}", name);
+            cr = new ClassReference(channel, proxy.fetch2(name));
+        }
+        channel.classLoadingTime.addAndGet(System.nanoTime() - startTime);
+        channel.classLoadingCount.incrementAndGet();
+
+        ClassLoader cl = cr.classLoader;
+        if (cl instanceof RemoteClassLoader) {
+            RemoteClassLoader rcl = (RemoteClassLoader) cl;
+            return loadRemoteClass(name, channel, cr, rcl);
+        } else {
+            return cl.loadClass(name);
+        }
+    }
+
+    private Class<?> loadRemoteClass(String name, Channel channel, ClassReference cr, RemoteClassLoader rcl) throws ClassNotFoundException {
+        synchronized (rcl.getClassLoadingLock(name)) {
+            Class<?> c = rcl.findLoadedClass(name);
+
+            boolean interrupted = false;
+            try {
+                // the code in this try block may throw InterruptException, but findClass
+                // method is supposed to be uninterruptible. So we catch interrupt exception
+                // and just retry until it succeeds, but in the end we set the interrupt flag
+                // back on to let the interrupt in the next earliest occasion.
+
+                while (true) {
+                    try {
+                        if (TESTING_CLASS_LOAD != null) {
+                            TESTING_CLASS_LOAD.run();
+                        }
+
+                        if (c != null) {
+                            return c;
+                        }
+
+                        // TODO: check inner class handling
+                        Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
+                        if (img.isDone()) {
+                            try {
+                                return rcl.loadClassFile(name, img.get());
+                            } catch (ExecutionException x) {
+                                // failure to retrieve a jar shouldn't fail the classloading
+                            }
+                        }
+
+                        // if the load activity is still pending, or if the load had failed,
+                        // fetch just this class file
+                        return rcl.loadClassFile(name, proxy.fetch(name));
+                    } catch (IOException x) {
+                        throw new ClassNotFoundException(name, x);
+                    } catch (InterruptedException x) {
+                        // pretend as if this operation is not interruptible.
+                        // but we need to remember to set the interrupt flag back on
+                        // before we leave this call.
+                        interrupted = true;
+                    }
+
+                    // no code is allowed to reach here
+                }
+            } finally {
+                // process the interrupt later.
+                if (interrupted)
+                    Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    private ClassReference prefetchClassReference(String name, Channel channel) throws ClassNotFoundException {
+        ClassReference cr;
+        cr = prefetchedClasses.remove(name);
+        if (cr == null) {
+            LOGGER.log(Level.FINER, "fetch3({0})", name);
+
+            boolean interrupted = false;
+            try {
+                // the code in this try block may throw InterruptException, but findClass
+                // method is supposed to be uninterruptible. So we catch interrupt exception
+                // and just retry until it succeeds, but in the end we set the interrupt flag
+                // back on to let the interrupt in the next earliest occasion.
+
+                while (true) {
+                    try {
+                        if (TESTING_CLASS_REFERENCE_LOAD != null) {
+                            TESTING_CLASS_REFERENCE_LOAD.run();
+                        }
+
+                        Map<String, ClassFile2> all = proxy.fetch3(name);
+                        synchronized (prefetchedClasses) {
+                            /*
+                             * Converts {@link ClassFile2} to {@link ClassReference} with minimal
+                             * proxy creation. This creates a reference to {@link ClassLoader}, so
+                             * it shouldn't be kept beyond the scope of single {@link #findClass(String)}  call.
+                             */
+                            class ClassReferenceBuilder {
+                                private final Map<Integer, ClassLoader> classLoaders = new HashMap<>();
+
+                                ClassReference toRef(ClassFile2 cf) {
+                                    int n = cf.classLoader;
+
+                                    ClassLoader cl = classLoaders.get(n);
+                                    if (cl == null) {
+                                        classLoaders.put(n, cl = channel.importedClassLoaders.get(n));
+                                    }
+
+                                    return new ClassReference(cl, cf.image);
+                                }
+                            }
+                            ClassReferenceBuilder crf = new ClassReferenceBuilder();
+
+                            for (Map.Entry<String, ClassFile2> entry : all.entrySet()) {
+                                String cn = entry.getKey();
+                                ClassFile2 cf = entry.getValue();
+                                ClassReference ref = crf.toRef(cf);
+
+                                if (cn.equals(name)) {
+                                    cr = ref;
+                                } else {
+                                    // where we remember the prefetch is sensitive to who references it,
+                                    // because classes need not be transitively visible in Java
+                                    if (cf.referer != null) {
+                                        ref.rememberIn(cn, crf.toRef(cf.referer).classLoader);
+                                    }
+                                    else {
+                                        ref.rememberIn(cn, this);
+                                    }
+
+                                    LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[]{name, cn});
+                                }
+
+                                ref.rememberIn(cn, ref.classLoader);
+                            }
+                        }
+                        break;
+                    } catch (RemotingSystemException x) {
+                        if (x.getCause() instanceof InterruptedException) {
+                            // pretend as if this operation is not interruptible.
+                            // but we need to remember to set the interrupt flag back on
+                            // before we leave this call.
+                            interrupted = true;
+                            continue;   // JENKINS-19453: retry
+                        }
+                        throw x;
+                    }
+
+                    // no code is allowed to reach here
+                }
+            } finally {
+                // process the interrupt later.
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+
+            assert cr != null;
+        } else {
+            LOGGER.log(Level.FINER, "findClass({0}) -> prefetch hit", name);
+            channel.classLoadingPrefetchCacheCount.incrementAndGet();
+        }
+        return cr;
     }
 
     /**
@@ -401,11 +428,14 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     private void definePackage(String name) {
         int idx = name.lastIndexOf('.');
-        if (idx < 0) return; // not in a package
+        if (idx < 0) {
+            return; // not in a package
+        }
 
         String packageName = name.substring(0, idx);
-        if (getPackage(packageName) != null)    // already defined
+        if (getPackage(packageName) != null) {   // already defined
             return;
+        }
 
         definePackage(packageName, null, null, null, null, null, null, null);
     }
@@ -415,21 +445,29 @@ final class RemoteClassLoader extends URLClassLoader {
         // first attempt to load from locally fetched jars
         URL url = super.findResource(name);
         final Channel channel = channel();
-        if (url != null || channel == null || !channel.isRemoteClassLoadingAllowed()) return url;
+        if (url != null || channel == null || !channel.isRemoteClassLoadingAllowed()) {
+            return url;
+        }
 
         try {
             if (resourceMap.containsKey(name)) {
                 URLish f = resourceMap.get(name);
-                if (f == null) return null;    // no such resource
+                if (f == null) {
+                    return null;    // no such resource
+                }
                 URL u = f.toURL();
-                if (u != null) return u;
+                if (u != null) {
+                    return u;
+                }
             }
 
             long startTime = System.nanoTime();
 
             ResourceFile r = proxy.getResource2(name);
             ResourceImageRef image = null;
-            if (r != null) image = r.image;
+            if (r != null) {
+                image = r.image;
+            }
 
             channel.resourceLoadingTime.addAndGet(System.nanoTime() - startTime);
             channel.resourceLoadingCount.incrementAndGet();
@@ -455,7 +493,9 @@ final class RemoteClassLoader extends URLClassLoader {
         Vector<URL> r = new Vector<>(src.size());
         for (URLish s : src) {
             URL u = s.toURL();
-            if (u == null) return null;    // abort
+            if (u == null) {
+                return null;    // abort
+            }
             r.add(u);
         }
         return r;
@@ -463,8 +503,9 @@ final class RemoteClassLoader extends URLClassLoader {
 
     public Enumeration<URL> findResources(String name) throws IOException {
         final Channel channel = channel();
-        if (channel == null || !channel.isRemoteClassLoadingAllowed())
+        if (channel == null || !channel.isRemoteClassLoadingAllowed()) {
             return EMPTY_ENUMERATION;
+        }
 
         // TODO: use the locally fetched jars to speed up the look up
         // the challenge is how to combine the list from local jars
@@ -473,8 +514,9 @@ final class RemoteClassLoader extends URLClassLoader {
         Vector<URLish> v = resourcesMap.get(name);
         if (v != null) {
             Vector<URL> urls = toURLs(v);
-            if (urls != null)
+            if (urls != null) {
                 return urls.elements();
+            }
         }
 
         long startTime = System.nanoTime();
@@ -483,7 +525,7 @@ final class RemoteClassLoader extends URLClassLoader {
         channel.resourceLoadingCount.incrementAndGet();
 
         v = new Vector<>();
-        for (ResourceFile image : images)
+        for (ResourceFile image : images) {
             try {
                 // getResources2 always give us ResourceImageBoth so
                 // .get() shouldn't block
@@ -491,6 +533,7 @@ final class RemoteClassLoader extends URLClassLoader {
             } catch (InterruptedException | ExecutionException e) {
                 throw new Error("Failed to load resources " + name, e);
             }
+        }
         resourcesMap.put(name, v);
 
         Vector<URL> resURLs = toURLs(v);
@@ -520,8 +563,9 @@ final class RemoteClassLoader extends URLClassLoader {
      */
     /*package*/ boolean prefetch(URL jar) throws IOException {
         synchronized (prefetchedJars) {
-            if (prefetchedJars.contains(jar))
+            if (prefetchedJars.contains(jar)) {
                 return false;
+            }
 
             String p = jar.getPath().replace('\\', '/');
             p = getBaseName(p);
@@ -801,8 +845,9 @@ final class RemoteClassLoader extends URLClassLoader {
             }
 
             InputStream in = cl.getResourceAsStream(className.replace('.', '/') + ".class");
-            if (in == null)
+            if (in == null) {
                 throw new ClassNotFoundException(className);
+            }
 
             try {
                 return readFully(in);
@@ -823,8 +868,9 @@ final class RemoteClassLoader extends URLClassLoader {
 
             try {
                 InputStream in = ecl.getResourceAsStream(className.replace('.', '/') + ".class");
-                if (in == null)
+                if (in == null) {
                     throw new ClassNotFoundException(className + " (" + ecl + " did not find class file)");
+                }
                 return new ClassFile(
                         exportId(ecl, channel),
                         readFully(in));
@@ -934,7 +980,9 @@ final class RemoteClassLoader extends URLClassLoader {
         @CheckForNull
         public ResourceFile getResource2(String name) throws IOException {
             URL resource = getResourceURL(name);
-            if (resource == null) return null;
+            if (resource == null) {
+                return null;
+            }
 
             return makeResource(name, resource);
         }
@@ -964,7 +1012,9 @@ final class RemoteClassLoader extends URLClassLoader {
         @CheckForNull
         public byte[] getResource(String name) throws IOException {
             URL resource = getResourceURL(name);
-            if (resource == null) return null;
+            if (resource == null) {
+                return null;
+            }
             return readFully(resource.openStream());
         }
 
@@ -996,8 +1046,9 @@ final class RemoteClassLoader extends URLClassLoader {
         public byte[][] getResources(String name) throws IOException {
             List<URL> x = getResourcesURL(name);
             byte[][] r = new byte[x.size()][];
-            for (int i = 0; i < r.length; i++)
+            for (int i = 0; i < r.length; i++) {
                 r[i] = readFully(x.get(i).openStream());
+            }
             return r;
         }
 
@@ -1013,8 +1064,12 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         public boolean equals(Object that) {
-            if (this == that) return true;
-            if (that == null || getClass() != that.getClass()) return false;
+            if (this == that) {
+                return true;
+            }
+            if (that == null || getClass() != that.getClass()) {
+                return false;
+            }
 
             return cl.equals(((ClassLoaderProxy) that).cl);
         }
