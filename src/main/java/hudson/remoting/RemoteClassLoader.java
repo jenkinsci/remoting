@@ -271,9 +271,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 // and just retry until it succeeds, but in the end we set the interrupt flag
                 // back on to let the interrupt in the next earliest occasion.
 
-                int tries = 0;
-                while (tries < MAX_RETRIES) {
-                    tries++;
+                for (int tries = 0; tries < MAX_RETRIES; tries++) {
                     try {
                         invokeClassLoadTestingHookIfNeeded();
 
@@ -342,9 +340,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 // and just retry until it succeeds, but in the end we set the interrupt flag
                 // back on to let the interrupt in the next earliest occasion.
 
-                int tries = 0;
-                while (tries < MAX_RETRIES) {
-                    tries++;
+                 for (int tries = 0; tries < MAX_RETRIES; tries++) {
                     try {
                         invokeClassReferenceLoadTestingHookIfNeeded();
 
@@ -494,7 +490,6 @@ final class RemoteClassLoader extends URLClassLoader {
     }
 
     @CheckForNull
-    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE", justification = "False positive -- spotbugs mistake.")
     public URL findResource(String name) {
         // first attempt to load from locally fetched jars
         URL url = super.findResource(name);
@@ -505,9 +500,7 @@ final class RemoteClassLoader extends URLClassLoader {
 
         boolean interrupted = false;
         try {
-            int tries = 0;
-            while (tries < MAX_RETRIES) {
-                tries++;
+            for (int tries = 0; tries < MAX_RETRIES; tries++) {
                 try {
                     if (resourceMap.containsKey(name)) {
                         URLish f = resourceMap.get(name);
