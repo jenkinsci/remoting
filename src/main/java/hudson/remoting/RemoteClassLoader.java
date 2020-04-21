@@ -275,12 +275,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 while (tries < MAX_RETRIES) {
                     tries++;
                     try {
-                        if (TESTING_CLASS_LOAD != null) {
-                            TESTING_CLASS_LOAD.run();
-                            if (Thread.currentThread().isInterrupted()) {
-                                throw new InterruptedException("loading was interrupted.");
-                            }
-                        }
+                        invokeClassLoadTestingHookIfNeeded();
 
                         if (c != null) {
                             return c;
@@ -322,6 +317,17 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
+    private void invokeClassLoadTestingHookIfNeeded() throws InterruptedException {
+        // Testing support only.
+        if (TESTING_CLASS_LOAD != null) {
+            TESTING_CLASS_LOAD.run();
+            if (Thread.currentThread().isInterrupted()) {
+                // Otherwise the interrupt isn't recognized and the test doesn't work.
+                throw new InterruptedException("loading was interrupted.");
+            }
+        }
+    }
+
     private ClassReference prefetchClassReference(String name, Channel channel) throws ClassNotFoundException {
         ClassReference cr;
         cr = prefetchedClasses.remove(name);
@@ -339,9 +345,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 while (tries < MAX_RETRIES) {
                     tries++;
                     try {
-                        if (TESTING_CLASS_REFERENCE_LOAD != null) {
-                            TESTING_CLASS_REFERENCE_LOAD.run();
-                        }
+                        invokeClassReferenceLoadTestingHookIfNeeded();
 
                         Map<String, ClassFile2> all = proxy.fetch3(name);
                         synchronized (prefetchedClasses) {
@@ -421,6 +425,13 @@ final class RemoteClassLoader extends URLClassLoader {
             channel.classLoadingPrefetchCacheCount.incrementAndGet();
         }
         return cr;
+    }
+
+    private void invokeClassReferenceLoadTestingHookIfNeeded() {
+        // Testing support only.
+        if (TESTING_CLASS_REFERENCE_LOAD != null) {
+            TESTING_CLASS_REFERENCE_LOAD.run();
+        }
     }
 
     /**
@@ -507,9 +518,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         }
                     }
 
-                    if (TESTING_RESOURCE_LOAD != null) {
-                        TESTING_RESOURCE_LOAD.run();
-                    }
+                    invokeResourceLoadTestingHookIfNeeded();
 
                     long startTime = System.nanoTime();
 
@@ -542,7 +551,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         } catch (InterruptedException e) {
                             // Not much to do if we can't sleep. Run through the tries more quickly.
                         }
-                        continue;   // JENKINS-19453: retry
+                        continue;
                     }
                     throw x;
                 }
@@ -556,6 +565,13 @@ final class RemoteClassLoader extends URLClassLoader {
             }
         }
         throw new RuntimeException("Could not load resource " + name + " after " + MAX_RETRIES + " tries.");
+    }
+
+    private void invokeResourceLoadTestingHookIfNeeded() {
+        // Testing support only.
+        if (TESTING_RESOURCE_LOAD != null) {
+            TESTING_RESOURCE_LOAD.run();
+        }
     }
 
     /**

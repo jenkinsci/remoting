@@ -46,7 +46,7 @@ public class ClassRemotingTest extends RmiTestBase {
     public void test1() throws Throwable {
         // call a class that's only available on DummyClassLoader, so that on the remote channel
         // it will be fetched from this class loader and not from the system classloader.
-        Callable callable = (Callable) DummyClassLoader.apply(TestCallable.class);
+        Callable<Object, Exception> callable = (Callable<Object, Exception>) DummyClassLoader.apply(TestCallable.class);
 
         Object[] result = (Object[]) channel.call(callable);
 
@@ -65,7 +65,7 @@ public class ClassRemotingTest extends RmiTestBase {
         }
 
         DummyClassLoader cl = new DummyClassLoader(TestCallable.class);
-        Callable c = (Callable) cl.load(TestCallable.class);
+        Callable<Object, Exception> c = (Callable<Object, Exception>) cl.load(TestCallable.class);
         assertSame(c.getClass().getClassLoader(), cl);
 
         channel.setProperty("test",c);
@@ -77,11 +77,11 @@ public class ClassRemotingTest extends RmiTestBase {
     public void testRaceCondition() throws Throwable {
         DummyClassLoader parent = new DummyClassLoader(TestCallable.class);
         DummyClassLoader child1 = new DummyClassLoader(parent, TestCallable.Sub.class);
-        final Callable<Object,Exception> c1 = (Callable) child1.load(TestCallable.Sub.class);
+        final Callable<Object,Exception> c1 = (Callable<Object, Exception>) child1.load(TestCallable.Sub.class);
         assertEquals(child1, c1.getClass().getClassLoader());
         assertEquals(parent, c1.getClass().getSuperclass().getClassLoader());
         DummyClassLoader child2 = new DummyClassLoader(parent, TestCallable.Sub.class);
-        final Callable<Object,Exception> c2 = (Callable) child2.load(TestCallable.Sub.class);
+        final Callable<Object,Exception> c2 = (Callable<Object, Exception>) child2.load(TestCallable.Sub.class);
         assertEquals(child2, c2.getClass().getClassLoader());
         assertEquals(parent, c2.getClass().getSuperclass().getClassLoader());
         ExecutorService svc = Executors.newFixedThreadPool(2);
@@ -96,7 +96,7 @@ public class ClassRemotingTest extends RmiTestBase {
 
     public void testClassCreation_TestCallable() throws Exception {
         DummyClassLoader dummyClassLoader = new DummyClassLoader(TestCallable.class);
-        final Callable<Object, Exception> callable = (Callable) dummyClassLoader.load(TestCallable.class);
+        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dummyClassLoader.load(TestCallable.class);
         java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(channel, callable);
 
         Object result = f1.get();
@@ -110,7 +110,7 @@ public class ClassRemotingTest extends RmiTestBase {
         DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
         final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
         final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
-        final Callable<Object, Exception> callable = (Callable) child2.load(TestLinkage.class);
+        final Callable<Object, Exception> callable = (Callable<Object, Exception>) child2.load(TestLinkage.class);
         assertEquals(child2, callable.getClass().getClassLoader());
         java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(channel, callable);
 
@@ -122,7 +122,7 @@ public class ClassRemotingTest extends RmiTestBase {
     @Issue("JENKINS-61103")
     public void testClassCreation_TestStaticResourceReference() throws Exception {
         final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
-        final Callable<Object, Exception> callable = (Callable) dcl.load(TestStaticResourceReference.class);
+        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
         Object result = f1.get();

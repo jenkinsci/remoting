@@ -26,7 +26,7 @@ public class ForkRunner implements ChannelRunner {
     protected List<String> buildCommandLine() {
         String cp = getClasspath();
 
-        List<String> r = new ArrayList<String>();
+        List<String> r = new ArrayList<>();
         r.add("-cp");
         r.add(cp);
         r.add(Launcher.class.getName());
@@ -43,11 +43,6 @@ public class ForkRunner implements ChannelRunner {
 
         executor = Executors.newCachedThreadPool();
         OutputStream out = proc.getOutputStream();
-        if (RECORD_OUTPUT) {
-            File f = File.createTempFile("remoting",".log");
-            System.out.println("Recording to "+f);
-            out = new TeeOutputStream(out,new FileOutputStream(f));
-        }
         return new ChannelBuilder("north", executor).build(proc.getInputStream(), out);
     }
 
@@ -78,8 +73,4 @@ public class ForkRunner implements ChannelRunner {
         return buf.toString();
     }
 
-    /**
-     * Record the communication to the remote node. Used during debugging.
-     */
-    private static boolean RECORD_OUTPUT = false;
 }
