@@ -306,6 +306,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         } catch (InterruptedException e) {
                             // Not much to do if we can't sleep. Run through the tries more quickly.
                         }
+                        LOGGER.finer("Handling interrupt while loading remote class. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                     }
                  }
                 throw new ClassNotFoundException("Could not load class " + name + " after " + MAX_RETRIES + " tries.");
@@ -405,6 +406,7 @@ final class RemoteClassLoader extends URLClassLoader {
                             } catch (InterruptedException e) {
                                 // Not much to do if we can't sleep. Run through the tries more quickly.
                             }
+                            LOGGER.finer("Handling interrupt while fetching class reference. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                             continue;   // JENKINS-19453: retry
                         }
                         throw x;
@@ -551,6 +553,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         } catch (InterruptedException e) {
                             // Not much to do if we can't sleep. Run through the tries more quickly.
                         }
+                        LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                         continue;
                     }
                     throw x;
