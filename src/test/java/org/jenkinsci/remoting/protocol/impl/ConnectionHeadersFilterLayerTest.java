@@ -133,7 +133,7 @@ public class ConnectionHeadersFilterLayerTest {
         server.get().send(data);
         client.get().awaitByteContent(is(expected));
         assertThat(client.get().asByteArray(), is(expected));
-        server.get().close();
+        server.get().close(null);
         client.get().awaitClose();
     }
 

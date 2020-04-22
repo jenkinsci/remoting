@@ -52,6 +52,7 @@ public class SimpleTest extends RmiTestBase {
             System.err.println("invoked");
             return 5;
         }
+        private static final long serialVersionUID = 1L;
     }
 
 
@@ -78,6 +79,7 @@ public class SimpleTest extends RmiTestBase {
         public Integer call() throws RuntimeException {
             throw new RuntimeException("foo");
         }
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -102,6 +104,7 @@ public class SimpleTest extends RmiTestBase {
         public T call() throws RuntimeException {
             return t;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -131,6 +134,7 @@ public class SimpleTest extends RmiTestBase {
             ran = true;
             return 0;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     public static Test suite() throws Exception {

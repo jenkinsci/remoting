@@ -26,7 +26,6 @@ package hudson.remoting;
 import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
 /**
@@ -38,8 +37,8 @@ import java.io.InputStream;
  * @author Kohsuke Kawaguchi
  * @see DummyClassLoader
  */
-public class TestCallable extends Exception implements Callable<Object, IOException> {
-    public Object call() throws IOException {
+public class TestCallable extends Exception implements Callable<Object, Throwable> {
+    public Object call() throws Throwable {
         Object[] r = new Object[4];
 
         // to verify that this class is indeed loaded by the remote classloader
@@ -69,6 +68,6 @@ public class TestCallable extends Exception implements Callable<Object, IOExcept
     public void checkRoles(RoleChecker checker) throws SecurityException {
     }
 
-    public static class Sub extends TestCallable {}
-
+    public static class Sub extends TestCallable {private static final long serialVersionUID = 1L;}
+    private static final long serialVersionUID = 1L;
 }

@@ -1,4 +1,4 @@
-    package hudson.remoting;
+package hudson.remoting;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -107,6 +107,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 throw new Error(e);
             }
         }
+        private static final long serialVersionUID = 1L;
     }
 
     public void testGetResource() throws Exception {
@@ -201,6 +202,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         public V call() throws IOException {
             return value;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -229,6 +231,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 throw new IOException(e);
             }
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class JarCacherCallable extends CallableBase<Void, IOException> {
@@ -236,5 +239,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
             Channel.currentOrFail().setJarCache(new FileSystemJarCache(dir, true));
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
+    private static final long serialVersionUID = 1L;
 }

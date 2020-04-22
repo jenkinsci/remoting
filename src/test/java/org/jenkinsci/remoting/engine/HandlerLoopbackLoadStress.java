@@ -579,6 +579,7 @@ public class HandlerLoopbackLoadStress {
         public void checkRoles(RoleChecker checker) throws SecurityException {
 
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class Stats implements Runnable {

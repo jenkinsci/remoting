@@ -306,4 +306,13 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         }
     }
 
+    /**
+     * Indicates that the endpoint has encountered a problem.
+     * This tells the transport that it shouldn't expect future invocation of {@link #receive(ByteBuffer)},
+     * and it'll abort the communication.
+     */
+    public void terminate(IOException e) {
+        receiver.terminate(e);
+    }
+
 }

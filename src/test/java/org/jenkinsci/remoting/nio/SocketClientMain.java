@@ -48,5 +48,6 @@ public class SocketClientMain {
             LOGGER.info("Echoing back " + arg);
             return arg;
         }
+        private static final long serialVersionUID = 1L;
     }
 }

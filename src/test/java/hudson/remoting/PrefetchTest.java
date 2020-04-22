@@ -45,5 +45,6 @@ public class PrefetchTest extends RmiTestBase {
             StackMapAttribute sma = new StackMapAttribute();
             return Which.jarFile(sma.getClass()).getPath();
         }
+        private static final long serialVersionUID = 1L;
     }
 }

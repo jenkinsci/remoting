@@ -68,6 +68,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
          * This is where the actual I/O happens.
          */
         abstract void touch() throws IOException;
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -116,6 +117,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
          * This is where the actual I/O happens.
          */
         abstract void touch() throws IOException;
+        private static final long serialVersionUID = 1L;
     }
 
     public void testRequestIoCoord() throws Exception {
@@ -180,35 +182,42 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
         void touch() throws IOException {
             ros.write(0);
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class ResponseCallableFlusher extends ResponseIoCoordCallable {
         void touch() throws IOException {
             ros.flush();
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class ResponseCallableCloser extends ResponseIoCoordCallable {
         void touch() throws IOException {
             ros.close();
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class RequestCallableWriter extends RequestIoCoordCallable {
         void touch() throws IOException {
             ros.write(0);
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class RequestCallableFlusher extends RequestIoCoordCallable {
         void touch() throws IOException {
             ros.flush();
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class RequestCallableCloser extends RequestIoCoordCallable {
         void touch() throws IOException {
             ros.close();
         }
+        private static final long serialVersionUID = 1L;
     }
+    private static final long serialVersionUID = 1L;
 }

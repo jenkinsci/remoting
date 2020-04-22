@@ -216,7 +216,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -241,7 +241,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -267,7 +267,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -296,7 +296,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -330,7 +330,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -367,7 +367,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -417,7 +417,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -470,7 +470,7 @@ public class ProtocolStackImplTest {
         west.get().send(data);
         east.get().awaitByteContent(is(expected));
         assertThat(east.get().asByteArray(), is(expected));
-        west.get().close();
+        west.get().close(null);
         east.get().awaitClose();
     }
 
@@ -1174,7 +1174,6 @@ public class ProtocolStackImplTest {
     }
 
     private static class ProbeCallable implements Callable<String, IOException> {
-
         @Override
         public String call() throws IOException {
             System.out.println("Hello from: " + getChannelOrFail());
@@ -1185,6 +1184,7 @@ public class ProtocolStackImplTest {
         public void checkRoles(RoleChecker checker) throws SecurityException {
 
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private static class CreateSaturationTestProxy implements Callable<ISaturationTest, IOException> {
@@ -1216,6 +1216,7 @@ public class ProtocolStackImplTest {
         public void checkRoles(RoleChecker checker) throws SecurityException {
 
         }
+        private static final long serialVersionUID = 1L;
     }
 
 

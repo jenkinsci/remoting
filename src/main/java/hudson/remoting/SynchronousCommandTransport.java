@@ -57,14 +57,14 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
         public void run() {
             final String name =channel.getName();
             try {
-                while(!channel.isInClosed()) {
+                while (!channel.isInClosed()) {
                     Command cmd = null;
                     try {
                         cmd = read();
                     } catch (SocketTimeoutException ex) {
                         if (RDR_FAIL_ON_SOCKET_TIMEOUT) {
                             LOGGER.log(Level.SEVERE, "Socket timeout in the Synchronous channel reader."
-                                    + " The channel will be interrupted, because " + RDR_SOCKET_TIMEOUT_PROPERTY_NAME 
+                                    + " The channel will be interrupted, because " + RDR_SOCKET_TIMEOUT_PROPERTY_NAME
                                     + " is set", ex);
                             throw ex;
                         }
@@ -76,7 +76,7 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
                     } catch (EOFException e) {
                         throw new IOException("Unexpected termination of the channel", e);
                     } catch (ClassNotFoundException e) {
-                        LOGGER.log(Level.SEVERE, "Unable to read a command (channel " + name + ")",e);
+                        LOGGER.log(Level.SEVERE, "Unable to read a command (channel " + name + ")", e);
                         continue;
                     } finally {
                         commandsReceived++;

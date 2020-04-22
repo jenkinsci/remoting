@@ -153,10 +153,7 @@ public class Engine extends Thread {
     @CheckForNull
     private URL hudsonUrl;
     private final String secretKey;
-    /* This needs to stay public and named "slaveName" until slave-installer-module is updated
-      to not refer to it directly by this name. See [JENKINS-60926].
-     */
-    public final String slaveName;
+    private final String agentName;
     private boolean webSocket;
     private String credentials;
     private String proxyCredentials = System.getProperty("proxyCredentials");
@@ -245,7 +242,7 @@ public class Engine extends Thread {
         this.events.add(listener);
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
-        this.slaveName = agentName;
+        this.agentName = agentName;
         this.instanceIdentity = instanceIdentity;
         this.protocols = protocols;
         if(candidateUrls.isEmpty() && instanceIdentity == null) {
@@ -537,7 +534,7 @@ public class Engine extends Thread {
                     Capability remoteCapability = new Capability();
                     @Override
                     public void beforeRequest(Map<String, List<String>> headers) {
-                        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(slaveName));
+                        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(agentName));
                         headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
                         headers.put(Capability.KEY, Collections.singletonList(localCap));
                         // TODO use JnlpConnectionState.COOKIE_KEY somehow (see EngineJnlpConnectionStateListener.afterChannel)
@@ -565,49 +562,52 @@ public class Engine extends Thread {
                 HeaderHandler headerHandler = new HeaderHandler();
                 class AgentEndpoint extends Endpoint {
                     @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
-                    AbstractByteArrayCommandTransport.ByteArrayReceiver receiver;
+                    AgentEndpoint.Transport transport;
+
                     @Override
                     public void onOpen(Session session, EndpointConfig config) {
                         events.status("WebSocket connection open");
-                        session.addMessageHandler(byte[].class, this::onMessage);
+                        session.addMessageHandler(ByteBuffer.class, this::onMessage);
                         try {
-                            ch.set(new ChannelBuilder(slaveName, executor).
+                            transport = new Transport(session);
+                            ch.set(new ChannelBuilder(agentName, executor).
                                 withJarCacheOrDefault(jarCache). // unless EngineJnlpConnectionStateListener can be used for this purpose
-                                build(new Transport(session)));
+                                build(transport));
                         } catch (IOException x) {
                             events.error(x);
                         }
                     }
-                    private void onMessage(byte[] message) {
-                        LOGGER.finest(() -> "received message of length " + message.length);
-                        receiver.handle(message);
+                    private void onMessage(ByteBuffer message) {
+                        try {
+                            transport.receive(message);
+                        } catch (IOException|InterruptedException x) {
+                            events.error(x);
+                        }
                     }
                     @Override
                     public void onClose(Session session, CloseReason closeReason) {
                         LOGGER.fine(() -> "onClose: " + closeReason);
-                        receiver.terminate(new ChannelClosedException(ch.get(), null));
+                        transport.terminate(new ChannelClosedException(ch.get(), null));
                     }
                     @Override
                     public void onError(Session session, Throwable x) {
                         // TODO or would events.error(x) be better?
                         LOGGER.log(Level.FINE, null, x);
-                        receiver.terminate(new ChannelClosedException(ch.get(), x));
+                        transport.terminate(new ChannelClosedException(ch.get(), x));
                     }
-                    class Transport extends AbstractByteArrayCommandTransport {
+
+                    class Transport extends AbstractByteBufferCommandTransport {
                         final Session session;
                         Transport(Session session) {
                             this.session = session;
                         }
                         @Override
-                        public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver _receiver) {
-                            events.status("Setting up channel");
-                            receiver = _receiver;
+                        protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
+                            LOGGER.finest(() -> "sending message of length + " + ChunkHeader.length(ChunkHeader.peek(header)));
+                            session.getBasicRemote().sendBinary(header, false);
+                            session.getBasicRemote().sendBinary(data, true);
                         }
-                        @Override
-                        public void writeBlock(Channel channel, byte[] payload) throws IOException {
-                            LOGGER.finest(() -> "sending message of length " + payload.length);
-                            session.getBasicRemote().sendBinary(ByteBuffer.wrap(payload));
-                        }
+
                         @Override
                         public Capability getRemoteCapability() throws IOException {
                             return headerHandler.remoteCapability;
@@ -669,7 +669,7 @@ public class Engine extends Thread {
                 .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
                 .handlers();
         final Map<String,String> headers = new HashMap<>();
-        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, slaveName);
+        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
         headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
         List<String> jenkinsUrls = new ArrayList<>();
         for (URL url: candidateUrls) {
@@ -996,6 +996,17 @@ public class Engine extends Thread {
      * @since 2.4
      */
     static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName()+".socketTimeout",30*60*1000);
+
+    /**
+     * Get the agent name associated with this Engine instance.
+     *
+     * @return the agent name.
+     * @since TODO
+     */
+    public String getAgentName() {
+        // This is used by various external components that need to get the name from the engine.
+        return agentName;
+    }
 
     private class EngineJnlpConnectionStateListener extends JnlpConnectionStateListener {
 

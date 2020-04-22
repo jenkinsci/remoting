@@ -48,6 +48,7 @@ class DumbClassLoaderBridge implements IClassLoader {
     }
 
     @Override
+    @Nonnull
     public byte[][] getResources(String name) throws IOException {
         return base.getResources(name);
     }
@@ -66,6 +67,7 @@ class DumbClassLoaderBridge implements IClassLoader {
     }
 
     @Override
+    @Nonnull
     public ResourceFile[] getResources2(String name) throws IOException {
         byte[][] r = base.getResources(name);
         ResourceFile[] res = new ResourceFile[r.length];

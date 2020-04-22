@@ -58,7 +58,7 @@ public class FileSystemJarCache extends JarCacheSupport {
             throw new IllegalArgumentException("Root directory is null");
 
         try {
-            Util.mkdirs(rootDir);
+            Files.createDirectories(rootDir.toPath());
         } catch (IOException ex) {
             throw new IllegalArgumentException("Root directory not writable: " + rootDir, ex);
         }
@@ -175,7 +175,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
     /*package for testing*/ File createTempJar(@Nonnull File target) throws IOException {
         File parent = target.getParentFile();
-        Util.mkdirs(parent);
+        Files.createDirectories(parent.toPath());
         return File.createTempFile(target.getName(), "tmp", parent);
     }
 

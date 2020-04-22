@@ -62,6 +62,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
             assertTrue(Arrays.equals(readFully(in,expected.length),expected));
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
 
@@ -89,6 +90,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
             assertEquals(i.read(),-1);
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
 
@@ -107,7 +109,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
         }
     }
 
-    private static class SkyIsFalling extends IOException {}
+    private static class SkyIsFalling extends IOException {private static final long serialVersionUID = 1L;}
 
     private static class TestErrorPropagation extends CallableBase<Void, IOException> {
         private final RemoteInputStream i;
@@ -131,6 +133,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
                 throw e;
             }
         }
+        private static final long serialVersionUID = 1L;
     }
 
 
