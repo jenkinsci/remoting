@@ -294,17 +294,19 @@ final class RemoteClassLoader extends URLClassLoader {
                         return rcl.loadClassFile(name, proxy.fetch(name));
                     } catch (IOException x) {
                         throw new ClassNotFoundException(name, x);
-                    } catch (InterruptedException x) {
-                        // pretend as if this operation is not interruptible.
-                        // but we need to remember to set the interrupt flag back on
-                        // before we leave this call.
-                        interrupted = true;
-                        try {
-                            rcl.getClassLoadingLock(name).wait(RETRY_SLEEP_DURATION_MILLISECONDS);
-                        } catch (InterruptedException e) {
-                            // Not much to do if we can't sleep. Run through the tries more quickly.
+                    } catch (InterruptedException | RemotingSystemException x) {
+                        if (x instanceof InterruptedException | x.getCause() instanceof InterruptedException) {
+                            // pretend as if this operation is not interruptible.
+                            // but we need to remember to set the interrupt flag back on
+                            // before we leave this call.
+                            interrupted = true;
+                            try {
+                                rcl.getClassLoadingLock(name).wait(RETRY_SLEEP_DURATION_MILLISECONDS);
+                            } catch (InterruptedException e) {
+                                // Not much to do if we can't sleep. Run through the tries more quickly.
+                            }
+                            LOGGER.finer("Handling interrupt while loading remote class. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                         }
-                        LOGGER.finer("Handling interrupt while loading remote class. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                     }
                  }
                 throw new ClassNotFoundException("Could not load class " + name + " after " + MAX_RETRIES + " tries.");
