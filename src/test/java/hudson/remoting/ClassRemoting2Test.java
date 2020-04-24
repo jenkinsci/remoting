@@ -218,6 +218,52 @@ public class ClassRemoting2Test extends RmiTestBase {
         }
     }
 
+    @Issue("JENKINS-61103")
+    public void testSingleInterruptionOfFindResources() throws Exception {
+        final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
+        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
+        // make sure we get a remote interruption exception on "findResources" call
+        RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 1);
+        Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
+
+        Object result = f1.get();
+        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+        ClassRemotingTest.assertTestStaticResourceReferenceResults(channel, callable, result);
+    }
+
+    @Issue("JENKINS-61103")
+    public void testMultipleInterruptionOfFindResources() throws Exception {
+        final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
+        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
+        // make sure we get a remote interruption exception on "getResource" call
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
+        RemoteClassLoader.MAX_RETRIES = 10;
+        RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 5);
+        Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
+
+        Object result = f1.get();
+        // verify that classes that we tried to load aren't irrevocably damaged and it's still available
+        ClassRemotingTest.assertTestStaticResourceReferenceResults(channel, callable, result);
+    }
+
+    @Issue("JENKINS-61103")
+    public void testContinuedInterruptionOfFindResources() throws Exception {
+        final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
+        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
+        // make sure we get a remote interruption exception on "getResource" call
+        RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
+        RemoteClassLoader.MAX_RETRIES = 3;
+        RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 10);
+        Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
+
+        try {
+            f1.get();
+            fail("Should have timed out, exceeding the max retries.");
+        } catch (ExecutionException ex) {
+            // Expected when we exceed the retries.
+        }
+    }
+
     private static class InterruptInvocation implements Runnable {
         private int invocationCount = 0;
         private int beginInterrupt;

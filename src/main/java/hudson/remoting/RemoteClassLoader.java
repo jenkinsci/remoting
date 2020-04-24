@@ -599,37 +599,69 @@ final class RemoteClassLoader extends URLClassLoader {
         // the challenge is how to combine the list from local jars
         // and the remote list
 
-        Vector<URLish> v = resourcesMap.get(name);
-        if (v != null) {
-            Vector<URL> urls = toURLs(v);
-            if (urls != null) {
-                return urls.elements();
+        boolean interrupted = false;
+        try {
+            for (int tries = 0; tries < MAX_RETRIES; tries++) {
+                try {
+                    Vector<URLish> v = resourcesMap.get(name);
+                    if (v != null) {
+                        Vector<URL> urls = toURLs(v);
+                        if (urls != null) {
+                            return urls.elements();
+                        }
+                    }
+
+                    invokeResourceLoadTestingHookIfNeeded();
+
+                    long startTime = System.nanoTime();
+                    ResourceFile[] images = proxy.getResources2(name);
+                    channel.resourceLoadingTime.addAndGet(System.nanoTime() - startTime);
+                    channel.resourceLoadingCount.incrementAndGet();
+
+                    v = new Vector<>();
+                    for (ResourceFile image : images) {
+                        try {
+                            // getResources2 always give us ResourceImageBoth so
+                            // .get() shouldn't block
+                            v.add(image.image.resolveURL(channel, name).get());
+                        } catch (InterruptedException | ExecutionException e) {
+                            throw new Error("Failed to load resources " + name, e);
+                        }
+                    }
+                    resourcesMap.put(name, v);
+
+                    Vector<URL> resURLs = toURLs(v);
+                    if (resURLs == null) {
+                        // TODO: Better than NPE, but ideally needs correct error propagation from URLish
+                        throw new IOException("One of the URLish objects cannot be converted to URL");
+                    }
+                    return resURLs.elements();
+                } catch (RemotingSystemException x) {
+                    if (x.getCause() instanceof InterruptedException) {
+                        // pretend as if this operation is not interruptible.
+                        // but we need to remember to set the interrupt flag back on
+                        // before we leave this call.
+                        interrupted = true;
+                        try {
+                            Thread.sleep(RETRY_SLEEP_DURATION_MILLISECONDS);
+                        } catch (InterruptedException e) {
+                            // Not much to do if we can't sleep. Run through the tries more quickly.
+                        }
+                        LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
+                        continue;
+                    }
+                    throw x;
+                }
+
+                // no code is allowed to reach here
+            }
+        } finally {
+            // process the interrupt later.
+            if (interrupted) {
+                Thread.currentThread().interrupt();
             }
         }
-
-        long startTime = System.nanoTime();
-        ResourceFile[] images = proxy.getResources2(name);
-        channel.resourceLoadingTime.addAndGet(System.nanoTime() - startTime);
-        channel.resourceLoadingCount.incrementAndGet();
-
-        v = new Vector<>();
-        for (ResourceFile image : images) {
-            try {
-                // getResources2 always give us ResourceImageBoth so
-                // .get() shouldn't block
-                v.add(image.image.resolveURL(channel, name).get());
-            } catch (InterruptedException | ExecutionException e) {
-                throw new Error("Failed to load resources " + name, e);
-            }
-        }
-        resourcesMap.put(name, v);
-
-        Vector<URL> resURLs = toURLs(v);
-        if (resURLs == null) {
-            // TODO: Better than NPE, but ideally needs correct error propagation from URLish
-            throw new IOException("One of the URLish objects cannot be converted to URL");
-        }
-        return resURLs.elements();
+        throw new RuntimeException("Could not load resources " + name + " after " + MAX_RETRIES + " tries.");
     }
 
     /**
