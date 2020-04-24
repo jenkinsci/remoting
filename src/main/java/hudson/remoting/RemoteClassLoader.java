@@ -308,7 +308,7 @@ final class RemoteClassLoader extends URLClassLoader {
                             LOGGER.finer("Handling interrupt while loading remote class. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                         }
                     }
-                 }
+                }
                 throw new ClassNotFoundException("Could not load class " + name + " after " + MAX_RETRIES + " tries.");
             } finally {
                 // process the interrupt later.
