@@ -122,7 +122,7 @@ public class ClassRemotingTest extends RmiTestBase {
     @Issue("JENKINS-61103")
     public void testClassCreation_TestStaticResourceReference() throws Exception {
         final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
-        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
+        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
         Object result = f1.get();
