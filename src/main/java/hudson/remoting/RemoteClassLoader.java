@@ -32,6 +32,7 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InterruptedIOException;
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.net.MalformedURLException;
@@ -295,7 +296,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     } catch (IOException x) {
                         throw new ClassNotFoundException(name, x);
                     } catch (InterruptedException | RemotingSystemException x) {
-                        if (x instanceof InterruptedException | x.getCause() instanceof InterruptedException) {
+                        if (shouldRetry(x)) {
                             // pretend as if this operation is not interruptible.
                             // but we need to remember to set the interrupt flag back on
                             // before we leave this call.
@@ -327,6 +328,12 @@ final class RemoteClassLoader extends URLClassLoader {
                 throw new InterruptedException("loading was interrupted.");
             }
         }
+    }
+
+    private boolean shouldRetry(Throwable e) {
+        return e instanceof InterruptedException || (e instanceof RemotingSystemException
+                && (e.getCause() instanceof InterruptedException
+                || e.getCause() instanceof InterruptedIOException));
     }
 
     private ClassReference prefetchClassReference(String name, Channel channel) throws ClassNotFoundException {
@@ -394,7 +401,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         }
                         break;
                     } catch (RemotingSystemException x) {
-                        if (x.getCause() instanceof InterruptedException) {
+                        if (shouldRetry(x)) {
                             // pretend as if this operation is not interruptible.
                             // but we need to remember to set the interrupt flag back on
                             // before we leave this call.
@@ -538,7 +545,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 } catch (IOException | InterruptedException | ExecutionException e) {
                     throw new Error("Unable to load resource " + name, e);
                 } catch (RemotingSystemException x) {
-                    if (x.getCause() instanceof InterruptedException) {
+                    if (shouldRetry(x)) {
                         // pretend as if this operation is not interruptible.
                         // but we need to remember to set the interrupt flag back on
                         // before we leave this call.
@@ -637,7 +644,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     }
                     return resURLs.elements();
                 } catch (RemotingSystemException x) {
-                    if (x.getCause() instanceof InterruptedException) {
+                    if (shouldRetry(x)) {
                         // pretend as if this operation is not interruptible.
                         // but we need to remember to set the interrupt flag back on
                         // before we leave this call.
