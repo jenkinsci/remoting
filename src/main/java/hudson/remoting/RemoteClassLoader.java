@@ -542,9 +542,9 @@ final class RemoteClassLoader extends URLClassLoader {
                     URLish res = image.resolveURL(channel, name).get();
                     resourceMap.put(name, res);
                     return res.toURL();
-                } catch (IOException | InterruptedException | ExecutionException e) {
+                } catch (IOException | ExecutionException e) {
                     throw new Error("Unable to load resource " + name, e);
-                } catch (RemotingSystemException x) {
+                } catch (InterruptedException | RemotingSystemException x) {
                     if (shouldRetry(x)) {
                         // pretend as if this operation is not interruptible.
                         // but we need to remember to set the interrupt flag back on
@@ -558,7 +558,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                         continue;
                     }
-                    throw x;
+                    throw x instanceof RemotingSystemException ? (RemotingSystemException)x : new RemotingSystemException(x);
                 }
 
                 // no code is allowed to reach here
