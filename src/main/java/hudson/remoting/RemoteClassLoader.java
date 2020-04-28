@@ -101,10 +101,12 @@ final class RemoteClassLoader extends URLClassLoader {
      * The total number of retries for an interrupted class load.
      * This makes the operation retry for an extended period of time but eventually timeout.
      * Combined with the default value for RETRY_SLEEP_DURATION_MILLISECONDS this gives a default
-     * timeout of 10 minutes, which is much less than the former (infinite) retry but still a significant
+     * timeout of about 10 minutes, which is much less than the former (infinite) retry but still a significant
      * amount of time.
+     *
+     * Setting this to zero keeps retrying forever.
      */
-    static int MAX_RETRIES = Integer.getInteger(RemoteClassLoader.class.getName() + "maxRetries", 10 * 60 * 1000 / RETRY_SLEEP_DURATION_MILLISECONDS);
+    static int MAX_RETRIES = Integer.getInteger(RemoteClassLoader.class.getName() + "maxRetries", 6000);
 
     /**
      * Proxy to the code running on remote end.
@@ -272,7 +274,8 @@ final class RemoteClassLoader extends URLClassLoader {
                 // and just retry until it succeeds, but in the end we set the interrupt flag
                 // back on to let the interrupt in the next earliest occasion.
 
-                for (int tries = 0; tries < MAX_RETRIES; tries++) {
+                int tries = 0;
+                while (true) {
                     try {
                         invokeClassLoadTestingHookIfNeeded();
 
@@ -296,21 +299,20 @@ final class RemoteClassLoader extends URLClassLoader {
                     } catch (IOException x) {
                         throw new ClassNotFoundException(name, x);
                     } catch (InterruptedException | RemotingSystemException x) {
-                        if (shouldRetry(x)) {
+                        tries++;
+                        if (shouldRetry(x, tries)) {
                             // pretend as if this operation is not interruptible.
                             // but we need to remember to set the interrupt flag back on
                             // before we leave this call.
                             interrupted = true;
-                            try {
-                                rcl.getClassLoadingLock(name).wait(RETRY_SLEEP_DURATION_MILLISECONDS);
-                            } catch (InterruptedException e) {
-                                // Not much to do if we can't sleep. Run through the tries more quickly.
-                            }
+                            sleepForRetry();
                             LOGGER.finer("Handling interrupt while loading remote class. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
+                            continue;
                         }
+                        break;
                     }
                 }
-                throw new ClassNotFoundException("Could not load class " + name + " after " + MAX_RETRIES + " tries.");
+                throw new ClassNotFoundException("Could not load class " + name + " after " + tries + " tries.");
             } finally {
                 // process the interrupt later.
                 if (interrupted)
@@ -330,8 +332,17 @@ final class RemoteClassLoader extends URLClassLoader {
         }
     }
 
-    private boolean shouldRetry(Throwable e) {
-        return e instanceof InterruptedException || (e instanceof RemotingSystemException
+    private boolean shouldRetry(Throwable e, int tries) {
+        return isRetryException(e) && hasMoreRetries(tries);
+    }
+
+    private boolean hasMoreRetries(int tries) {
+        return MAX_RETRIES <= 0 || tries <= MAX_RETRIES;
+    }
+
+    private boolean isRetryException(Throwable e) {
+        return e instanceof InterruptedException
+                || (e instanceof RemotingSystemException
                 && (e.getCause() instanceof InterruptedException
                 || e.getCause() instanceof InterruptedIOException));
     }
@@ -349,7 +360,8 @@ final class RemoteClassLoader extends URLClassLoader {
                 // and just retry until it succeeds, but in the end we set the interrupt flag
                 // back on to let the interrupt in the next earliest occasion.
 
-                 for (int tries = 0; tries < MAX_RETRIES; tries++) {
+                int tries = 0;
+                while (true) {
                     try {
                         invokeClassReferenceLoadTestingHookIfNeeded();
 
@@ -401,18 +413,15 @@ final class RemoteClassLoader extends URLClassLoader {
                         }
                         break;
                     } catch (RemotingSystemException x) {
-                        if (shouldRetry(x)) {
+                        tries++;
+                        if (shouldRetry(x, tries)) {
                             // pretend as if this operation is not interruptible.
                             // but we need to remember to set the interrupt flag back on
                             // before we leave this call.
                             interrupted = true;
-                            try {
-                                Thread.sleep(RETRY_SLEEP_DURATION_MILLISECONDS);
-                            } catch (InterruptedException e) {
-                                // Not much to do if we can't sleep. Run through the tries more quickly.
-                            }
+                            sleepForRetry();
                             LOGGER.finer("Handling interrupt while fetching class reference. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
-                            continue;   // JENKINS-19453: retry
+                            continue;
                         }
                         throw x;
                     }
@@ -509,7 +518,8 @@ final class RemoteClassLoader extends URLClassLoader {
 
         boolean interrupted = false;
         try {
-            for (int tries = 0; tries < MAX_RETRIES; tries++) {
+            int tries = 0;
+            while (true) {
                 try {
                     if (resourceMap.containsKey(name)) {
                         URLish f = resourceMap.get(name);
@@ -545,16 +555,13 @@ final class RemoteClassLoader extends URLClassLoader {
                 } catch (IOException | ExecutionException e) {
                     throw new Error("Unable to load resource " + name, e);
                 } catch (InterruptedException | RemotingSystemException x) {
-                    if (shouldRetry(x)) {
+                    tries++;
+                    if (shouldRetry(x, tries)) {
                         // pretend as if this operation is not interruptible.
                         // but we need to remember to set the interrupt flag back on
                         // before we leave this call.
                         interrupted = true;
-                        try {
-                            Thread.sleep(RETRY_SLEEP_DURATION_MILLISECONDS);
-                        } catch (InterruptedException e) {
-                            // Not much to do if we can't sleep. Run through the tries more quickly.
-                        }
+                        sleepForRetry();
                         LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                         continue;
                     }
@@ -569,7 +576,6 @@ final class RemoteClassLoader extends URLClassLoader {
                 Thread.currentThread().interrupt();
             }
         }
-        throw new RuntimeException("Could not load resource " + name + " after " + MAX_RETRIES + " tries.");
     }
 
     private void invokeResourceLoadTestingHookIfNeeded() {
@@ -608,7 +614,8 @@ final class RemoteClassLoader extends URLClassLoader {
 
         boolean interrupted = false;
         try {
-            for (int tries = 0; tries < MAX_RETRIES; tries++) {
+            int tries = 0;
+            while (true) {
                 try {
                     Vector<URLish> v = resourcesMap.get(name);
                     if (v != null) {
@@ -644,16 +651,13 @@ final class RemoteClassLoader extends URLClassLoader {
                     }
                     return resURLs.elements();
                 } catch (RemotingSystemException x) {
-                    if (shouldRetry(x)) {
+                    tries++;
+                    if (shouldRetry(x, tries)) {
                         // pretend as if this operation is not interruptible.
                         // but we need to remember to set the interrupt flag back on
                         // before we leave this call.
                         interrupted = true;
-                        try {
-                            Thread.sleep(RETRY_SLEEP_DURATION_MILLISECONDS);
-                        } catch (InterruptedException e) {
-                            // Not much to do if we can't sleep. Run through the tries more quickly.
-                        }
+                        sleepForRetry();
                         LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                         continue;
                     }
@@ -668,7 +672,16 @@ final class RemoteClassLoader extends URLClassLoader {
                 Thread.currentThread().interrupt();
             }
         }
-        throw new RuntimeException("Could not load resources " + name + " after " + MAX_RETRIES + " tries.");
+    }
+
+    private void sleepForRetry() {
+        try {
+            if (RETRY_SLEEP_DURATION_MILLISECONDS > 0) {
+                Thread.sleep(RETRY_SLEEP_DURATION_MILLISECONDS);
+            }
+        } catch (InterruptedException e) {
+            // Not much to do if we can't sleep. Run through the tries more quickly.
+        }
     }
 
     /**
