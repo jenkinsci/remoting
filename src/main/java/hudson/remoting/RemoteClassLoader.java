@@ -103,7 +103,7 @@ final class RemoteClassLoader extends URLClassLoader {
      * Combined with the default value for RETRY_SLEEP_DURATION_MILLISECONDS this gives a default
      * timeout of about 10 minutes, which is much less than the former (infinite) retry but still a significant
      * amount of time.
-     *
+     * <p>
      * Setting this to zero keeps retrying forever.
      */
     static int MAX_RETRIES = Integer.getInteger(RemoteClassLoader.class.getName() + "maxRetries", 6000);
@@ -267,57 +267,44 @@ final class RemoteClassLoader extends URLClassLoader {
         synchronized (rcl.getClassLoadingLock(name)) {
             Class<?> c = rcl.findLoadedClass(name);
 
-            boolean interrupted = false;
-            try {
-                // the code in this try block may throw InterruptException, but findClass
-                // method is supposed to be uninterruptible. So we catch interrupt exception
-                // and just retry until it succeeds, but in the end we set the interrupt flag
-                // back on to let the interrupt in the next earliest occasion.
+            int tries = 0;
+            while (true) {
+                try {
+                    invokeClassLoadTestingHookIfNeeded();
 
-                int tries = 0;
-                while (true) {
-                    try {
-                        invokeClassLoadTestingHookIfNeeded();
-
-                        if (c != null) {
-                            return c;
-                        }
-
-                        // TODO: check inner class handling
-                        Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
-                        if (img.isDone()) {
-                            try {
-                                return rcl.loadClassFile(name, img.get());
-                            } catch (ExecutionException x) {
-                                // failure to retrieve a jar shouldn't fail the classloading
-                            }
-                        }
-
-                        // if the load activity is still pending, or if the load had failed,
-                        // fetch just this class file
-                        return rcl.loadClassFile(name, proxy.fetch(name));
-                    } catch (IOException x) {
-                        throw new ClassNotFoundException(name, x);
-                    } catch (InterruptedException | RemotingSystemException x) {
-                        tries++;
-                        if (shouldRetry(x, tries)) {
-                            // pretend as if this operation is not interruptible.
-                            // but we need to remember to set the interrupt flag back on
-                            // before we leave this call.
-                            interrupted = true;
-                            sleepForRetry();
-                            LOGGER.finer("Handling interrupt while loading remote class. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
-                            continue;
-                        }
-                        break;
+                    if (c != null) {
+                        return c;
                     }
+
+                    // TODO: check inner class handling
+                    Future<byte[]> img = cr.classImage.resolve(channel, name.replace('.', '/') + ".class");
+                    if (img.isDone()) {
+                        try {
+                            return rcl.loadClassFile(name, img.get());
+                        } catch (ExecutionException x) {
+                            // failure to retrieve a jar shouldn't fail the classloading
+                        }
+                    }
+
+                    // if the load activity is still pending, or if the load had failed,
+                    // fetch just this class file
+                    return rcl.loadClassFile(name, proxy.fetch(name));
+                } catch (IOException x) {
+                    throw new ClassNotFoundException(name, x);
+                } catch (InterruptedException | RemotingSystemException x) {
+                    tries++;
+                    if (shouldRetry(x, tries)) {
+                        // pretend as if this operation is not interruptible.
+                        // but we need to remember to set the interrupt flag back on
+                        // before we leave this call.
+                        sleepForRetry();
+                        LOGGER.finer("Handling interrupt while loading remote class. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
+                        continue;
+                    }
+                    break;
                 }
-                throw new ClassNotFoundException("Could not load class " + name + " after " + tries + " tries.");
-            } finally {
-                // process the interrupt later.
-                if (interrupted)
-                    Thread.currentThread().interrupt();
             }
+            throw new ClassNotFoundException("Could not load class " + name + " after " + tries + " tries.");
         }
     }
 
@@ -353,86 +340,71 @@ final class RemoteClassLoader extends URLClassLoader {
         if (cr == null) {
             LOGGER.log(Level.FINER, "fetch3({0})", name);
 
-            boolean interrupted = false;
-            try {
-                // the code in this try block may throw InterruptException, but findClass
-                // method is supposed to be uninterruptible. So we catch interrupt exception
-                // and just retry until it succeeds, but in the end we set the interrupt flag
-                // back on to let the interrupt in the next earliest occasion.
+            int tries = 0;
+            while (true) {
+                try {
+                    invokeClassReferenceLoadTestingHookIfNeeded();
 
-                int tries = 0;
-                while (true) {
-                    try {
-                        invokeClassReferenceLoadTestingHookIfNeeded();
+                    Map<String, ClassFile2> all = proxy.fetch3(name);
+                    synchronized (prefetchedClasses) {
+                        /*
+                         * Converts {@link ClassFile2} to {@link ClassReference} with minimal
+                         * proxy creation. This creates a reference to {@link ClassLoader}, so
+                         * it shouldn't be kept beyond the scope of single {@link #findClass(String)}  call.
+                         */
+                        class ClassReferenceBuilder {
+                            private final Map<Integer, ClassLoader> classLoaders = new HashMap<>();
 
-                        Map<String, ClassFile2> all = proxy.fetch3(name);
-                        synchronized (prefetchedClasses) {
-                            /*
-                             * Converts {@link ClassFile2} to {@link ClassReference} with minimal
-                             * proxy creation. This creates a reference to {@link ClassLoader}, so
-                             * it shouldn't be kept beyond the scope of single {@link #findClass(String)}  call.
-                             */
-                            class ClassReferenceBuilder {
-                                private final Map<Integer, ClassLoader> classLoaders = new HashMap<>();
+                            ClassReference toRef(ClassFile2 cf) {
+                                int n = cf.classLoader;
 
-                                ClassReference toRef(ClassFile2 cf) {
-                                    int n = cf.classLoader;
-
-                                    ClassLoader cl = classLoaders.get(n);
-                                    if (cl == null) {
-                                        classLoaders.put(n, cl = channel.importedClassLoaders.get(n));
-                                    }
-
-                                    return new ClassReference(cl, cf.image);
+                                ClassLoader cl = classLoaders.get(n);
+                                if (cl == null) {
+                                    classLoaders.put(n, cl = channel.importedClassLoaders.get(n));
                                 }
+
+                                return new ClassReference(cl, cf.image);
                             }
-                            ClassReferenceBuilder crf = new ClassReferenceBuilder();
+                        }
+                        ClassReferenceBuilder crf = new ClassReferenceBuilder();
 
-                            for (Map.Entry<String, ClassFile2> entry : all.entrySet()) {
-                                String cn = entry.getKey();
-                                ClassFile2 cf = entry.getValue();
-                                ClassReference ref = crf.toRef(cf);
+                        for (Map.Entry<String, ClassFile2> entry : all.entrySet()) {
+                            String cn = entry.getKey();
+                            ClassFile2 cf = entry.getValue();
+                            ClassReference ref = crf.toRef(cf);
 
-                                if (cn.equals(name)) {
-                                    cr = ref;
+                            if (cn.equals(name)) {
+                                cr = ref;
+                            } else {
+                                // where we remember the prefetch is sensitive to who references it,
+                                // because classes need not be transitively visible in Java
+                                if (cf.referer != null) {
+                                    ref.rememberIn(cn, crf.toRef(cf.referer).classLoader);
                                 } else {
-                                    // where we remember the prefetch is sensitive to who references it,
-                                    // because classes need not be transitively visible in Java
-                                    if (cf.referer != null) {
-                                        ref.rememberIn(cn, crf.toRef(cf.referer).classLoader);
-                                    }
-                                    else {
-                                        ref.rememberIn(cn, this);
-                                    }
-
-                                    LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[]{name, cn});
+                                    ref.rememberIn(cn, this);
                                 }
 
-                                ref.rememberIn(cn, ref.classLoader);
+                                LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[]{name, cn});
                             }
-                        }
-                        break;
-                    } catch (RemotingSystemException x) {
-                        tries++;
-                        if (shouldRetry(x, tries)) {
-                            // pretend as if this operation is not interruptible.
-                            // but we need to remember to set the interrupt flag back on
-                            // before we leave this call.
-                            interrupted = true;
-                            sleepForRetry();
-                            LOGGER.finer("Handling interrupt while fetching class reference. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
-                            continue;
-                        }
-                        throw x;
-                    }
 
-                    // no code is allowed to reach here
+                            ref.rememberIn(cn, ref.classLoader);
+                        }
+                    }
+                    break;
+                } catch (RemotingSystemException x) {
+                    tries++;
+                    if (shouldRetry(x, tries)) {
+                        // pretend as if this operation is not interruptible.
+                        // but we need to remember to set the interrupt flag back on
+                        // before we leave this call.
+                        sleepForRetry();
+                        LOGGER.finer("Handling interrupt while fetching class reference. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
+                        continue;
+                    }
+                    throw x;
                 }
-            } finally {
-                // process the interrupt later.
-                if (interrupted) {
-                    Thread.currentThread().interrupt();
-                }
+
+                // no code is allowed to reach here
             }
 
             assert cr != null;
@@ -516,65 +488,56 @@ final class RemoteClassLoader extends URLClassLoader {
             return url;
         }
 
-        boolean interrupted = false;
-        try {
-            int tries = 0;
-            while (true) {
-                try {
-                    if (resourceMap.containsKey(name)) {
-                        URLish f = resourceMap.get(name);
-                        if (f == null) {
-                            return null;    // no such resource
-                        }
-                        URL u = f.toURL();
-                        if (u != null) {
-                            return u;
-                        }
+        int tries = 0;
+        while (true) {
+            try {
+                if (resourceMap.containsKey(name)) {
+                    URLish f = resourceMap.get(name);
+                    if (f == null) {
+                        return null;    // no such resource
                     }
-
-                    invokeResourceLoadTestingHookIfNeeded();
-
-                    long startTime = System.nanoTime();
-
-                    ResourceFile r = proxy.getResource2(name);
-                    ResourceImageRef image = null;
-                    if (r != null) {
-                        image = r.image;
+                    URL u = f.toURL();
+                    if (u != null) {
+                        return u;
                     }
-
-                    channel.resourceLoadingTime.addAndGet(System.nanoTime() - startTime);
-                    channel.resourceLoadingCount.incrementAndGet();
-                    if (image == null) {
-                        resourceMap.put(name, null);
-                        return null;
-                    }
-
-                    URLish res = image.resolveURL(channel, name).get();
-                    resourceMap.put(name, res);
-                    return res.toURL();
-                } catch (IOException | ExecutionException e) {
-                    throw new Error("Unable to load resource " + name, e);
-                } catch (InterruptedException | RemotingSystemException x) {
-                    tries++;
-                    if (shouldRetry(x, tries)) {
-                        // pretend as if this operation is not interruptible.
-                        // but we need to remember to set the interrupt flag back on
-                        // before we leave this call.
-                        interrupted = true;
-                        sleepForRetry();
-                        LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
-                        continue;
-                    }
-                    throw x instanceof RemotingSystemException ? (RemotingSystemException)x : new RemotingSystemException(x);
                 }
 
-                // no code is allowed to reach here
+                invokeResourceLoadTestingHookIfNeeded();
+
+                long startTime = System.nanoTime();
+
+                ResourceFile r = proxy.getResource2(name);
+                ResourceImageRef image = null;
+                if (r != null) {
+                    image = r.image;
+                }
+
+                channel.resourceLoadingTime.addAndGet(System.nanoTime() - startTime);
+                channel.resourceLoadingCount.incrementAndGet();
+                if (image == null) {
+                    resourceMap.put(name, null);
+                    return null;
+                }
+
+                URLish res = image.resolveURL(channel, name).get();
+                resourceMap.put(name, res);
+                return res.toURL();
+            } catch (IOException | ExecutionException e) {
+                throw new Error("Unable to load resource " + name, e);
+            } catch (InterruptedException | RemotingSystemException x) {
+                tries++;
+                if (shouldRetry(x, tries)) {
+                    // pretend as if this operation is not interruptible.
+                    // but we need to remember to set the interrupt flag back on
+                    // before we leave this call.
+                    sleepForRetry();
+                    LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
+                    continue;
+                }
+                throw x instanceof RemotingSystemException ? (RemotingSystemException) x : new RemotingSystemException(x);
             }
-        } finally {
-            // process the interrupt later.
-            if (interrupted) {
-                Thread.currentThread().interrupt();
-            }
+
+            // no code is allowed to reach here
         }
     }
 
@@ -612,65 +575,56 @@ final class RemoteClassLoader extends URLClassLoader {
         // the challenge is how to combine the list from local jars
         // and the remote list
 
-        boolean interrupted = false;
-        try {
-            int tries = 0;
-            while (true) {
-                try {
-                    Vector<URLish> v = resourcesMap.get(name);
-                    if (v != null) {
-                        Vector<URL> urls = toURLs(v);
-                        if (urls != null) {
-                            return urls.elements();
-                        }
+        int tries = 0;
+        while (true) {
+            try {
+                Vector<URLish> v = resourcesMap.get(name);
+                if (v != null) {
+                    Vector<URL> urls = toURLs(v);
+                    if (urls != null) {
+                        return urls.elements();
                     }
-
-                    invokeResourceLoadTestingHookIfNeeded();
-
-                    long startTime = System.nanoTime();
-                    ResourceFile[] images = proxy.getResources2(name);
-                    channel.resourceLoadingTime.addAndGet(System.nanoTime() - startTime);
-                    channel.resourceLoadingCount.incrementAndGet();
-
-                    v = new Vector<>();
-                    for (ResourceFile image : images) {
-                        try {
-                            // getResources2 always give us ResourceImageBoth so
-                            // .get() shouldn't block
-                            v.add(image.image.resolveURL(channel, name).get());
-                        } catch (InterruptedException | ExecutionException e) {
-                            throw new Error("Failed to load resources " + name, e);
-                        }
-                    }
-                    resourcesMap.put(name, v);
-
-                    Vector<URL> resURLs = toURLs(v);
-                    if (resURLs == null) {
-                        // TODO: Better than NPE, but ideally needs correct error propagation from URLish
-                        throw new IOException("One of the URLish objects cannot be converted to URL");
-                    }
-                    return resURLs.elements();
-                } catch (RemotingSystemException x) {
-                    tries++;
-                    if (shouldRetry(x, tries)) {
-                        // pretend as if this operation is not interruptible.
-                        // but we need to remember to set the interrupt flag back on
-                        // before we leave this call.
-                        interrupted = true;
-                        sleepForRetry();
-                        LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
-                        continue;
-                    }
-                    throw x;
                 }
 
-                // no code is allowed to reach here
+                invokeResourceLoadTestingHookIfNeeded();
+
+                long startTime = System.nanoTime();
+                ResourceFile[] images = proxy.getResources2(name);
+                channel.resourceLoadingTime.addAndGet(System.nanoTime() - startTime);
+                channel.resourceLoadingCount.incrementAndGet();
+
+                v = new Vector<>();
+                for (ResourceFile image : images) {
+                    try {
+                        // getResources2 always give us ResourceImageBoth so
+                        // .get() shouldn't block
+                        v.add(image.image.resolveURL(channel, name).get());
+                    } catch (InterruptedException | ExecutionException e) {
+                        throw new Error("Failed to load resources " + name, e);
+                    }
+                }
+                resourcesMap.put(name, v);
+
+                Vector<URL> resURLs = toURLs(v);
+                if (resURLs == null) {
+                    // TODO: Better than NPE, but ideally needs correct error propagation from URLish
+                    throw new IOException("One of the URLish objects cannot be converted to URL");
+                }
+                return resURLs.elements();
+            } catch (RemotingSystemException x) {
+                tries++;
+                if (shouldRetry(x, tries)) {
+                    // pretend as if this operation is not interruptible.
+                    // but we need to remember to set the interrupt flag back on
+                    // before we leave this call.
+                    sleepForRetry();
+                    LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
+                    continue;
+                }
+                throw x;
             }
-        } finally {
-            // process the interrupt later.
-            if (interrupted) {
-                Thread.currentThread().interrupt();
-            }
+
+            // no code is allowed to reach here
         }
     }
 
