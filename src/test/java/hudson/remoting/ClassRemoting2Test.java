@@ -275,10 +275,10 @@ public class ClassRemoting2Test extends RmiTestBase {
         }
 
         @Override
-        public void run() {
+        public void run() throws InterruptedException {
             invocationCount++;
             if (invocationCount >= beginInterrupt && invocationCount <= endInterrupt) {
-                Thread.currentThread().interrupt();
+                throw new InterruptedException("Artificial testing interrupt.");
             }
         }
     }
