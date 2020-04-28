@@ -74,22 +74,26 @@ final class RemoteClassLoader extends URLClassLoader {
 
     private static final Logger LOGGER = Logger.getLogger(RemoteClassLoader.class.getName());
 
+    interface Interruptible {
+        void run() throws InterruptedException;
+    }
+
     /**
      * Intercept {@link RemoteClassLoader#loadRemoteClass(String, Channel, ClassReference, RemoteClassLoader)} for unit tests.
      * See JENKINS-6604 and similar issues.
      * Should not be used for any other purpose.
      */
-    static Runnable TESTING_CLASS_LOAD;
+    static Interruptible TESTING_CLASS_LOAD;
     /**
      * Intercept {@link RemoteClassLoader#prefetchClassReference(String, Channel)} for unit tests.
      * Should not be used for any other purpose.
      */
-    static Runnable TESTING_CLASS_REFERENCE_LOAD;
+    static Interruptible TESTING_CLASS_REFERENCE_LOAD;
     /**
      * Intercept {@link RemoteClassLoader#findResource(String)} for unit tests.
      * Should not be used for any other purpose.
      */
-    static Runnable TESTING_RESOURCE_LOAD;
+    static Interruptible TESTING_RESOURCE_LOAD;
 
     /**
      * The amount of time to sleep before retrying an interrupted class load.
@@ -312,10 +316,6 @@ final class RemoteClassLoader extends URLClassLoader {
         // Testing support only.
         if (TESTING_CLASS_LOAD != null) {
             TESTING_CLASS_LOAD.run();
-            if (Thread.currentThread().isInterrupted()) {
-                // Otherwise the interrupt isn't recognized and the test doesn't work.
-                throw new InterruptedException("loading was interrupted.");
-            }
         }
     }
 
@@ -391,7 +391,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         }
                     }
                     break;
-                } catch (RemotingSystemException x) {
+                } catch (InterruptedException | RemotingSystemException x) {
                     tries++;
                     if (shouldRetry(x, tries)) {
                         // pretend as if this operation is not interruptible.
@@ -401,7 +401,7 @@ final class RemoteClassLoader extends URLClassLoader {
                         LOGGER.finer("Handling interrupt while fetching class reference. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                         continue;
                     }
-                    throw x;
+                    throw determineRemotingSystemException(x);
                 }
 
                 // no code is allowed to reach here
@@ -415,7 +415,7 @@ final class RemoteClassLoader extends URLClassLoader {
         return cr;
     }
 
-    private void invokeClassReferenceLoadTestingHookIfNeeded() {
+    private void invokeClassReferenceLoadTestingHookIfNeeded() throws InterruptedException {
         // Testing support only.
         if (TESTING_CLASS_REFERENCE_LOAD != null) {
             TESTING_CLASS_REFERENCE_LOAD.run();
@@ -534,14 +534,18 @@ final class RemoteClassLoader extends URLClassLoader {
                     LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                     continue;
                 }
-                throw x instanceof RemotingSystemException ? (RemotingSystemException) x : new RemotingSystemException(x);
+                throw determineRemotingSystemException(x);
             }
 
             // no code is allowed to reach here
         }
     }
 
-    private void invokeResourceLoadTestingHookIfNeeded() {
+    private RemotingSystemException determineRemotingSystemException(Exception x) {
+        return x instanceof RemotingSystemException ? (RemotingSystemException) x : new RemotingSystemException(x);
+    }
+
+    private void invokeResourceLoadTestingHookIfNeeded() throws InterruptedException {
         // Testing support only.
         if (TESTING_RESOURCE_LOAD != null) {
             TESTING_RESOURCE_LOAD.run();
@@ -611,7 +615,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     throw new IOException("One of the URLish objects cannot be converted to URL");
                 }
                 return resURLs.elements();
-            } catch (RemotingSystemException x) {
+            } catch (InterruptedException | RemotingSystemException x) {
                 tries++;
                 if (shouldRetry(x, tries)) {
                     // pretend as if this operation is not interruptible.
@@ -621,7 +625,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     LOGGER.finer("Handling interrupt while finding resource. Current retry count = " + tries + ", maximum = " + MAX_RETRIES);
                     continue;
                 }
-                throw x;
+                throw determineRemotingSystemException(x);
             }
 
             // no code is allowed to reach here

@@ -85,7 +85,7 @@ public class ClassRemotingTest extends RmiTestBase {
         assertEquals(child2, c2.getClass().getClassLoader());
         assertEquals(parent, c2.getClass().getSuperclass().getClassLoader());
         ExecutorService svc = Executors.newFixedThreadPool(2);
-        RemoteClassLoader.TESTING_CLASS_LOAD = new SleepForASec();
+        RemoteClassLoader.TESTING_CLASS_LOAD = () -> Thread.sleep(1000);
         java.util.concurrent.Future<Object> f1 = svc.submit(() -> channel.call(c1));
         java.util.concurrent.Future<Object> f2 = svc.submit(() -> channel.call(c2));
         Object result1 = f1.get();
@@ -170,17 +170,6 @@ public class ClassRemotingTest extends RmiTestBase {
         // make sure cache is taking effect
         assertEquals(result[2],result[3]);
         assertTrue(result[2].toString().contains(TESTCALLABLE_TRANSFORMED_CLASSNAME.replace(".", "/") + ".class"));
-    }
-
-    private static final class SleepForASec implements Runnable {
-        @Override
-        public void run() {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                // Nothing
-            }
-        }
     }
 
     public static Test suite() {

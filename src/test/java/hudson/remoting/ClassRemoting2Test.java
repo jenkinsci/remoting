@@ -264,7 +264,7 @@ public class ClassRemoting2Test extends RmiTestBase {
         }
     }
 
-    private static class InterruptInvocation implements Runnable {
+    private static class InterruptInvocation implements RemoteClassLoader.Interruptible {
         private int invocationCount = 0;
         private int beginInterrupt;
         private int endInterrupt;
