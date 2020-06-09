@@ -64,7 +64,6 @@ public abstract class PingThread extends Thread {
     private final long interval;
 
     private final int maxTimeouts;
-    private int timeouts = 0;
 
     public PingThread(Channel channel, long timeout, long interval, int maxTimeouts) {
         super("Ping thread for channel "+channel);
@@ -89,20 +88,22 @@ public abstract class PingThread extends Thread {
 
     public void run() {
         try {
+            int timeouts = 0;
+
             while(true) {
                 long nextCheck = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(interval);
 
                 try {
                     ping();
-                    this.timeouts = 0;
+                    timeouts = 0;
                 } catch (TimeoutException e) {
-                    if (++this.timeouts >= this.maxTimeouts) {
+                    if (++timeouts >= this.maxTimeouts) {
                         onDead(e);
                     } else {
-                        LOGGER.log( Level.WARNING, "timeout {0}/{1} pinging {2}",
-                                    new Object[] {this.timeouts,
-                                                  this.maxTimeouts,
-                                                  channel.getName()} );
+                        LOGGER.log( Level.WARNING,
+                                    "timeout {0}/{1} pinging {2}",
+                                    new Object[]
+                                    {timeouts, this.maxTimeouts, channel.getName()} );
                     }
                 } catch (ExecutionException e) {
                     onDead(e);
