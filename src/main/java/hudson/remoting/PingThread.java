@@ -48,6 +48,8 @@ import java.util.logging.Level;
  * @since 1.170
  */
 public abstract class PingThread extends Thread {
+    private final static int DEFAULT_MAX_TIMEOUTS = 3;
+
     private final Channel channel;
 
     /**
@@ -61,7 +63,8 @@ public abstract class PingThread extends Thread {
      */
     private final long interval;
 
-    private final static int DEFAULT_MAX_TIMEOUTS = 3;
+    private final int maxTimeouts;
+    private int timeouts = 0;
 
     public PingThread(Channel channel, long timeout, long interval, int maxTimeouts) {
         super("Ping thread for channel "+channel);
@@ -89,25 +92,20 @@ public abstract class PingThread extends Thread {
             while(true) {
                 long nextCheck = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(interval);
 
-                int timeouts = 0;
-                while (true) {
-                    try {
-                        ping();
-                        break;
-                    } catch (TimeoutException e) {
-                        if (++timeouts >= this.maxTimeouts) {
-                            onDead(e);
-                            break;
-                        } else {
-                            LOGGER.log( Level.WARNING,
-                                        "timeout {0}/{1} pinging {2}, retrying...",
-                                        new Object[]
-                                        {timeouts, this.maxTimeouts, channel.getName()} );
-                        }
-                    } catch (ExecutionException e) {
+                try {
+                    ping();
+                    this.timeouts = 0;
+                } catch (TimeoutException e) {
+                    if (++this.timeouts >= this.maxTimeouts) {
                         onDead(e);
-                        break;
+                    } else {
+                        LOGGER.log( Level.WARNING, "timeout {0}/{1} pinging {2}",
+                                    new Object[] {this.timeouts,
+                                                  this.maxTimeouts,
+                                                  channel.getName()} );
                     }
+                } catch (ExecutionException e) {
+                    onDead(e);
                 }
 
                 // wait until the next check
