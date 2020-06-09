@@ -61,11 +61,14 @@ public abstract class PingThread extends Thread {
      */
     private final long interval;
 
-    public PingThread(Channel channel, long timeout, long interval) {
+    private final static int DEFAULT_MAX_TIMEOUTS = 3;
+
+    public PingThread(Channel channel, long timeout, long interval, int maxTimeouts) {
         super("Ping thread for channel "+channel);
         this.channel = channel;
         this.timeout = timeout;
         this.interval = interval;
+        this.maxTimeouts = maxTimeouts;
         setDaemon(true);
         setUncaughtExceptionHandler((t, e) -> {
             LOGGER.log(Level.SEVERE, "Uncaught exception in PingThread " + t, e);
@@ -74,7 +77,7 @@ public abstract class PingThread extends Thread {
     }
 
     public PingThread(Channel channel, long interval) {
-        this(channel, TimeUnit.MINUTES.toMillis(4), interval);
+        this(channel, TimeUnit.MINUTES.toMillis(4), interval, DEFAULT_MAX_TIMEOUTS);
     }
 
     public PingThread(Channel channel) {
@@ -86,7 +89,26 @@ public abstract class PingThread extends Thread {
             while(true) {
                 long nextCheck = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(interval);
 
-                ping();
+                int timeouts = 0;
+                while (true) {
+                    try {
+                        ping();
+                        break;
+                    } catch (TimeoutException e) {
+                        if (++timeouts >= this.maxTimeouts) {
+                            onDead(e);
+                            break;
+                        } else {
+                            LOGGER.log( Level.WARNING,
+                                        "timeout {0}/{1} pinging {2}, retrying...",
+                                        new Object[]
+                                        {timeouts, this.maxTimeouts, channel.getName()} );
+                        }
+                    } catch (ExecutionException e) {
+                        onDead(e);
+                        break;
+                    }
+                }
 
                 // wait until the next check
                 long diff;
@@ -121,8 +143,7 @@ public abstract class PingThread extends Thread {
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof RequestAbortedException)
                     return; // connection has shut down orderly.
-                onDead(e);
-                return;
+                throw e;
             } catch (TimeoutException e) {
                 // get method waits "at most the amount specified in the timeout",
                 // so let's make sure that it really waited enough
@@ -130,7 +151,8 @@ public abstract class PingThread extends Thread {
             remaining = end - System.nanoTime();
         } while(remaining>0);
 
-        onDead(new TimeoutException("Ping started at "+start+" hasn't completed by "+System.currentTimeMillis()));//.initCause(e)
+        throw new TimeoutException( "Ping started at " + start +
+                                    " hasn't completed by " + System.currentTimeMillis() );
     }
 
     /**
