@@ -157,8 +157,8 @@ public abstract class PingThread extends Thread {
                        new Object[] {timeouts, maxTimeouts, channel.getName()} );
         }
 
-        onDead( new TimeoutException( String.format("Ping started at %d hasn't completed by %d",
-                                                    start, System.currentTimeMillis()) );
+        onDead(new TimeoutException( String.format("Ping started at %d hasn't completed by %d",
+                                                   start, System.currentTimeMillis()) ));
     }
 
     /**
