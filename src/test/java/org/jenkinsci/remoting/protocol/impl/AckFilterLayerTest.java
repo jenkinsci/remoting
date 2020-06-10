@@ -82,7 +82,7 @@ public class AckFilterLayerTest {
     }
 
     @After
-    public void tearDownPipe() throws Exception {
+    public void tearDownPipe() {
         IOUtils.closeQuietly(clientToServer.sink());
         IOUtils.closeQuietly(clientToServer.source());
         IOUtils.closeQuietly(serverToClient.sink());

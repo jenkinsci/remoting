@@ -76,7 +76,7 @@ public abstract class IOBufferMatcher {
     private final CountDownLatch anything = new CountDownLatch(1);
     private final Lock state = new ReentrantLock();
     private final Condition changed = state.newCondition();
-    private final List<Closeable> closeables = new ArrayList<Closeable>(1);
+    private final List<Closeable> closeables = new ArrayList<>(1);
 
     public IOBufferMatcher() {
         this(null);
@@ -167,11 +167,9 @@ public abstract class IOBufferMatcher {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("SimpleBufferReceiver{");
-        sb.append("name='").append(name).append('\'');
-        sb.append(", content='").append(asString()).append('\'');
-        sb.append('}');
-        return sb.toString();
+        return "SimpleBufferReceiver{" + "name='" + name + '\'' +
+                ", content='" + asString() + '\'' +
+                '}';
     }
 
     /**

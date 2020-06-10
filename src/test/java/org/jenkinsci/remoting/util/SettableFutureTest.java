@@ -53,23 +53,18 @@ public class SettableFutureTest {
     private CountDownLatch latch;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         exec = Executors.newCachedThreadPool();
         latch = new CountDownLatch(1);
         future = SettableFuture.create();
-        future.addListener(new Runnable() {
-            @Override
-            public void run() {
-                latch.countDown();
-            }
-        }, exec);
+        future.addListener(() -> latch.countDown(), exec);
         assertEquals(1, latch.getCount());
         assertFalse(future.isDone());
         assertFalse(future.isCancelled());
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         exec.shutdownNow();
     }
 
@@ -114,7 +109,7 @@ public class SettableFutureTest {
     }
 
     @Test
-    public void create() throws Exception {
+    public void create() {
         SettableFuture<Integer> future = SettableFuture.create();
         assertFalse(future.isDone());
         assertFalse(future.isCancelled());
@@ -153,7 +148,7 @@ public class SettableFutureTest {
     }
 
     @Test
-    public void cancel_beforeSet() throws Exception {
+    public void cancel_beforeSet() {
         SettableFuture<Object> async = SettableFuture.create();
         async.cancel(true);
         assertFalse(async.set(42));
