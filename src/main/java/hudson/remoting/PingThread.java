@@ -48,6 +48,10 @@ import java.util.logging.Level;
  * @since 1.170
  */
 public abstract class PingThread extends Thread {
+    private static final long     DEFAULT_TIMEOUT      = TimeUnit.MINUTES.toMillis(1);
+    private static final long     DEFAULT_INTERVAL     = TimeUnit.MINUTES.toMillis(10);
+    private static final unsigned DEFAULT_MAX_TIMEOUTS = 4;
+
     private final Channel channel;
 
     /**
@@ -61,11 +65,17 @@ public abstract class PingThread extends Thread {
      */
     private final long interval;
 
-    public PingThread(Channel channel, long timeout, long interval) {
+    /**
+     * Tolerate max timeouts before assuming ping error.
+     */
+    private final unsigned maxTimeouts;
+
+    public PingThread(Channel channel, long timeout, long interval, unsigned maxTimeouts) {
         super("Ping thread for channel "+channel);
         this.channel = channel;
         this.timeout = timeout;
         this.interval = interval;
+        this.maxTimeouts = maxTimeouts;
         setDaemon(true);
         setUncaughtExceptionHandler((t, e) -> {
             LOGGER.log(Level.SEVERE, "Uncaught exception in PingThread " + t, e);
@@ -73,12 +83,16 @@ public abstract class PingThread extends Thread {
         });
     }
 
+    public PingThread(Channel channel, long timeout, long interval) {
+        this(channel, timeout, interval, DEFAULT_MAX_TIMEOUTS);
+    }
+
     public PingThread(Channel channel, long interval) {
-        this(channel, TimeUnit.MINUTES.toMillis(4), interval);
+        this(channel, DEFAULT_TIMEOUT, interval);
     }
 
     public PingThread(Channel channel) {
-        this(channel, TimeUnit.MINUTES.toMillis(10));
+        this(channel, DEFAULT_INTERVAL);
     }
 
     public void run() {
@@ -106,31 +120,45 @@ public abstract class PingThread extends Thread {
 
     private void ping() throws IOException, InterruptedException {
         LOGGER.log(Level.FINE, "pinging {0}", channel.getName());
-        Future<?> f = channel.callAsync(new Ping());
-        long start = System.currentTimeMillis();
 
-        long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
-        long remaining = end - System.nanoTime();
+        unsigned timeouts = 0;
 
-        do {
-            LOGGER.log(Level.FINE, "waiting {0}s on {1}", new Object[] {TimeUnit.NANOSECONDS.toSeconds(remaining), channel.getName()});
-            try {
-                f.get(Math.max(1,remaining),TimeUnit.NANOSECONDS);
-                LOGGER.log(Level.FINE, "ping succeeded on {0}", channel.getName());
-                return;
-            } catch (ExecutionException e) {
-                if (e.getCause() instanceof RequestAbortedException)
-                    return; // connection has shut down orderly.
-                onDead(e);
-                return;
-            } catch (TimeoutException e) {
-                // get method waits "at most the amount specified in the timeout",
-                // so let's make sure that it really waited enough
+        while (true) {
+            Future<?> f = channel.callAsync(new Ping());
+            long start = System.currentTimeMillis();
+
+            long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
+            long remaining = end - System.nanoTime();
+
+            do {
+                LOGGER.log( Level.FINE, "waiting {0}s on {1}",
+                            new Object[] {TimeUnit.NANOSECONDS.toSeconds(remaining), channel.getName()} );
+                try {
+                    f.get(Math.max(1,remaining),TimeUnit.NANOSECONDS);
+                    LOGGER.log(Level.FINE, "ping succeeded on {0}", channel.getName());
+                    return;
+                } catch (ExecutionException e) {
+                    if (e.getCause() instanceof RequestAbortedException)
+                        return; // connection has shut down orderly.
+                    onDead(e);
+                    return;
+                } catch (TimeoutException e) {
+                    // get method waits "at most the amount specified in the timeout",
+                    // so let's make sure that it really waited enough
+                }
+                remaining = end - System.nanoTime();
+            } while(remaining>0);
+
+            if (++timeouts >= maxTimeouts) {
+                break;
             }
-            remaining = end - System.nanoTime();
-        } while(remaining>0);
 
-        onDead(new TimeoutException("Ping started at "+start+" hasn't completed by "+System.currentTimeMillis()));//.initCause(e)
+            Logger.log(Level.WARNING, "ping timeout {0}/{1} on {2}",
+                       new Object[] {timeouts, maxTimeouts, channel.getName()} );
+        }
+
+        onDead( new TimeoutException( String.format("Ping started at %d hasn't completed by %d",
+                                                    start, System.currentTimeMillis()) );
     }
 
     /**
