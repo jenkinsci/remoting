@@ -27,7 +27,7 @@ public class InProcessRunner implements DualSideChannelRunner {
         final FastPipedInputStream in2 = new FastPipedInputStream();
         final FastPipedOutputStream out2 = new FastPipedOutputStream(in2);
 
-        final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<Channel>();
+        final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<>();
 
         executor = Executors.newCachedThreadPool();
 

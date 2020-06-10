@@ -86,24 +86,20 @@ public class ChunkedInputStreamTest extends Assert {
 
 
     private void test(final Workload w, final InputStream i, final OutputStream o) throws Exception {
-        Future<Object> fw = es.submit(new Callable<Object>() {
-            public Object call() throws Exception {
-                w.write(o);
-                return null;
-            }
+        Future<Object> fw = es.submit(() -> {
+            w.write(o);
+            return null;
         });
-        Future<Object> fr = es.submit(new Callable<Object>() {
-            public Object call() throws Exception {
-                w.read(i);
-                return null;
-            }
+        Future<Object> fr = es.submit(() -> {
+            w.read(i);
+            return null;
         });
 
         fr.get();
         fw.get();
     }
 
-    class AutoChunkedOutputStream extends FilterOutputStream {
+    static class AutoChunkedOutputStream extends FilterOutputStream {
         AutoChunkedOutputStream(ChunkedOutputStream out) {
             super(out);
         }

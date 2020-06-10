@@ -148,7 +148,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
     /**
      * Induces delay.
      */
-    class SlowOutputStream extends OutputStream {
+    static class SlowOutputStream extends OutputStream {
         boolean closed,flushed,written;
 
         @Override

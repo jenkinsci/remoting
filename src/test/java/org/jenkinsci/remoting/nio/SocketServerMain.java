@@ -33,19 +33,17 @@ public class SocketServerMain {
                     ServerSocketChannel ss = (ServerSocketChannel) key.channel();
                     LOGGER.info("Acccepted");
                     final SocketChannel con = ss.accept();
-                    es.submit(new Runnable() {
-                        public void run() {
-                            try {
-                                // TODO: this is where we do more config
-                                Socket socket = con.socket();
-                                // TODO: does this actually produce async channel?
-                                Channel ch = newChannelBuilder(con.toString(), es)
-                                        .withHeaderStream(new FlushEveryByteStream(System.out))
-                                        .build(socket);
-                                LOGGER.info("Connected to " + ch);
-                            } catch (IOException e) {
-                                LOGGER.log(Level.WARNING, "Handshake failed", e);
-                            }
+                    es.submit(() -> {
+                        try {
+                            // TODO: this is where we do more config
+                            Socket socket = con.socket();
+                            // TODO: does this actually produce async channel?
+                            Channel ch = newChannelBuilder(con.toString(), es)
+                                    .withHeaderStream(new FlushEveryByteStream(System.out))
+                                    .build(socket);
+                            LOGGER.info("Connected to " + ch);
+                        } catch (IOException e) {
+                            LOGGER.log(Level.WARNING, "Handshake failed", e);
                         }
                     });
                 } catch (IOException e) {

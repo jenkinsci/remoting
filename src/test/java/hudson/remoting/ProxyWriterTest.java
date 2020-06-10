@@ -84,7 +84,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
 
         StringWriter sw = new StringWriter() {
             @Override
-            public void close() throws IOException {
+            public void close() {
                 streamClosed = true;
             }
         };
@@ -96,7 +96,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
         // and if GC doesn't happen within this loop, the test can pass
         // even when the underlying problem exists.
         for (int i=0; i<30; i++) {
-            assertTrue("There shouldn't be any errors: " + log.toString(), log.size() == 0);
+            assertEquals("There shouldn't be any errors: " + log.toString(), 0, log.size());
 
             Thread.sleep(100);
             if (channel.call(new GcCallable()))
@@ -130,7 +130,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
         return null;
     }
 
-    public static Test suite() throws Exception {
+    public static Test suite() {
         return buildSuite(ProxyWriterTest.class);
     }
 
@@ -157,7 +157,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
 
         public Void call() throws IOException {
             w.write("hello");
-            W = new WeakReference<RemoteWriter>(w);
+            W = new WeakReference<>(w);
             return null;
         }
     }

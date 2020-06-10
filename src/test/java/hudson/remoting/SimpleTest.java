@@ -88,7 +88,7 @@ public class SimpleTest extends RmiTestBase {
     public void test3() throws Exception {
         Foo c = new Foo() {};
 
-        Foo r = channel.call(new Echo<Foo>(channel.export(Foo.class,c)));
+        Foo r = channel.call(new Echo<>(channel.export(Foo.class, c)));
         assertSame(c,r);
     }
 
@@ -137,7 +137,7 @@ public class SimpleTest extends RmiTestBase {
         private static final long serialVersionUID = 1L;
     }
 
-    public static Test suite() throws Exception {
+    public static Test suite() {
         return buildSuite(SimpleTest.class);
     }
 }

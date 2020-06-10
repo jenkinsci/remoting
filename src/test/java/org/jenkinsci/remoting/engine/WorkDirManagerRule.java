@@ -51,7 +51,7 @@ public class WorkDirManagerRule extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Throwable {
+    protected void before() {
         WorkDirManager.reset();
     }
 }

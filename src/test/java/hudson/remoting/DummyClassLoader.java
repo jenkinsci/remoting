@@ -79,7 +79,7 @@ class DummyClassLoader extends ClassLoader {
         }
     }
 
-    private final List<Entry> entries = new ArrayList<Entry>();
+    private final List<Entry> entries = new ArrayList<>();
 
     public DummyClassLoader(Class<?>... classes) {
         this(DummyClassLoader.class.getClassLoader(), classes);
@@ -109,11 +109,7 @@ class DummyClassLoader extends ClassLoader {
             if (e.c==c) {
                 try {
                     return loadClass(e.logicalName).newInstance();
-                } catch (InstantiationException x) {
-                    throw new Error(x);
-                } catch (IllegalAccessException x) {
-                    throw new Error(x);
-                } catch (ClassNotFoundException x) {
+                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException x) {
                     throw new Error(x);
                 }
             }

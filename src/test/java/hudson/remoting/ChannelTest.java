@@ -63,8 +63,7 @@ public class ChannelTest extends RmiTestBase {
             final GreeterImpl g = new GreeterImpl();
             channel.call(new GreetingTask(g));
             assertEquals(g.name,"Kohsuke");
-            assertTrue("in this scenario, auto-unexport by the caller should kick in.",
-                    !channel.exportedObjects.isExported(g));
+            assertFalse("in this scenario, auto-unexport by the caller should kick in.", channel.exportedObjects.isExported(g));
         }
     }
 
@@ -96,9 +95,7 @@ public class ChannelTest extends RmiTestBase {
                 Thread.sleep(100);
             }
 
-            assertTrue(
-                    "Object isn't getting unexported by remote",
-                    !channel.exportedObjects.isExported(g));
+            assertFalse("Object isn't getting unexported by remote", channel.exportedObjects.isExported(g));
 
             return;
         }
@@ -111,7 +108,7 @@ public class ChannelTest extends RmiTestBase {
         assertEquals("bar", channel.getProperty("foo"));
         assertEquals("bar",channel.waitForProperty("foo"));
 
-        ChannelProperty<Class> typedProp = new ChannelProperty<Class>(Class.class,"a type-safe property");
+        ChannelProperty<Class> typedProp = new ChannelProperty<>(Class.class, "a type-safe property");
         channel.setProperty(typedProp, Void.class);
         assertEquals(Void.class, channel.getProperty(typedProp));
         assertEquals(Void.class, channel.waitForProperty(typedProp));
@@ -164,7 +161,7 @@ public class ChannelTest extends RmiTestBase {
 
     public void testClassLoaderHolder() throws Exception {
         URLClassLoader ucl = new URLClassLoader(new URL[0]);
-        ClassLoaderHolder h = channel.call(new Echo<ClassLoaderHolder>(new ClassLoaderHolder(ucl)));
+        ClassLoaderHolder h = channel.call(new Echo<>(new ClassLoaderHolder(ucl)));
         assertSame(ucl,h.get());
     }
 
@@ -182,7 +179,7 @@ public class ChannelTest extends RmiTestBase {
     }
 
     @Bug(39150)
-    public void testDiagnostics() throws Exception {
+    public void testDiagnostics() {
         StringWriter sw = new StringWriter();
         Channel.dumpDiagnosticsForAll(new PrintWriter(sw));
         System.out.println(sw);
@@ -192,7 +189,7 @@ public class ChannelTest extends RmiTestBase {
         assertTrue(sw.toString().contains("Commands received=0"));
     }
 
-    public void testCallSiteStacktrace() throws Exception {
+    public void testCallSiteStacktrace() {
         try {
             failRemotelyToBeWrappedLocally();
             fail();
@@ -244,8 +241,8 @@ public class ChannelTest extends RmiTestBase {
             assertFailsWithChannelClosedException(TestRunnable.forUserRequest_constructor(testPayload));
 
             // Check if the previously created command also fails to execute
-            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_call(delayedRequest, testPayload));
-            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_callAsync(delayedRequest, testPayload));
+            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_call(delayedRequest));
+            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_callAsync(delayedRequest));
         }
     }
 
@@ -268,7 +265,7 @@ public class ChannelTest extends RmiTestBase {
             // Call Async
             assertFailsWithChannelClosedException(new TestRunnable() {
                 @Override
-                public void run(Channel channel) throws Exception, AssertionError {
+                public void run(Channel channel) throws AssertionError {
                     remoteList.size();
                 }
             });
@@ -305,7 +302,7 @@ public class ChannelTest extends RmiTestBase {
         private static final long serialVersionUID = 1L;
 
         @Override
-        public Void call() throws Exception {
+        public Void call() {
             throw new AssertionError("This method should be never executed");
         }
 
@@ -330,26 +327,20 @@ public class ChannelTest extends RmiTestBase {
             this.channel = channel;
             
             // Lock channel
-            java.util.concurrent.Future<Void> lockChannel = svc.submit(new java.util.concurrent.Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    synchronized (channel) {
-                        System.out.println("All your channel belongs to us");
-                        Thread.sleep(Long.MAX_VALUE);
-                        return null;
-                    }
+            java.util.concurrent.Future<Void> lockChannel = svc.submit(() -> {
+                synchronized (channel) {
+                    System.out.println("All your channel belongs to us");
+                    Thread.sleep(Long.MAX_VALUE);
+                    return null;
                 }
             });
 
             // Try to close the channel in another task
-            java.util.concurrent.Future<Void> closeChannel = svc.submit(new java.util.concurrent.Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    System.out.println("Trying to close the channel");
-                    channel.close();
-                    System.out.println("Channel is closed");
-                    return null;
-                }
+            java.util.concurrent.Future<Void> closeChannel = svc.submit(() -> {
+                System.out.println("Trying to close the channel");
+                channel.close();
+                System.out.println("Channel is closed");
+                return null;
             });
 
             // Check the state
@@ -360,7 +351,7 @@ public class ChannelTest extends RmiTestBase {
         }
         
         @Override
-        public void close() throws Exception {
+        public void close() {
             svc.shutdownNow();
         }
         
@@ -369,7 +360,7 @@ public class ChannelTest extends RmiTestBase {
     private abstract static class TestRunnable {
         public abstract void run(Channel channel) throws Exception, AssertionError;
         
-        private static final TestRunnable forChannel_call(final Callable<Void, Exception> payload) {
+        private static TestRunnable forChannel_call(final Callable<Void, Exception> payload) {
             return new TestRunnable() {
                 @Override
                 public void run(Channel channel) throws Exception, AssertionError {
@@ -378,7 +369,7 @@ public class ChannelTest extends RmiTestBase {
             };
         }
         
-        private static final TestRunnable forChannel_callAsync(final Callable<Void, Exception> payload) {
+        private static TestRunnable forChannel_callAsync(final Callable<Void, Exception> payload) {
             return new TestRunnable() {
                 @Override
                 public void run(Channel channel) throws Exception, AssertionError {
@@ -387,7 +378,7 @@ public class ChannelTest extends RmiTestBase {
             };
         }
         
-        private static final TestRunnable forUserRequest_constructor(final Callable<Void, Exception> payload) {
+        private static TestRunnable forUserRequest_constructor(final Callable<Void, Exception> payload) {
             return new TestRunnable() {
                 @Override
                 public void run(Channel channel) throws Exception, AssertionError {
@@ -396,7 +387,7 @@ public class ChannelTest extends RmiTestBase {
             };
         }
         
-        private static final TestRunnable forUserRequest_call(final UserRequest<Void, Exception> req, final Callable<Void, Exception> payload) {
+        private static TestRunnable forUserRequest_call(final UserRequest<Void, Exception> req) {
             return new TestRunnable() {
                 @Override
                 public void run(Channel channel) throws Exception, AssertionError {
@@ -405,7 +396,7 @@ public class ChannelTest extends RmiTestBase {
             };
         }
         
-        private static final TestRunnable forUserRequest_callAsync(final UserRequest<Void, Exception> req, final Callable<Void, Exception> payload) {
+        private static TestRunnable forUserRequest_callAsync(final UserRequest<Void, Exception> req) {
             return new TestRunnable() {
                 @Override
                 public void run(Channel channel) throws Exception, AssertionError {

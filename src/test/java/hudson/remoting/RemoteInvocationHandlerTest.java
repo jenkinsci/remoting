@@ -85,7 +85,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
 
         synchronized (i) {
             channel.call(new AsyncTask(c));
-            assertEquals(null, i.arg);  // async call should be blocking
+            assertNull(i.arg);  // async call should be blocking
 
             while (i.arg==null)
                 i.wait();
