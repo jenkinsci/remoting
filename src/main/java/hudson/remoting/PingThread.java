@@ -48,9 +48,9 @@ import java.util.logging.Level;
  * @since 1.170
  */
 public abstract class PingThread extends Thread {
-    private static final long     DEFAULT_TIMEOUT      = TimeUnit.MINUTES.toMillis(1);
-    private static final long     DEFAULT_INTERVAL     = TimeUnit.MINUTES.toMillis(10);
-    private static final unsigned DEFAULT_MAX_TIMEOUTS = 4;
+    private static final long  DEFAULT_TIMEOUT      = TimeUnit.MINUTES.toMillis(1);
+    private static final long  DEFAULT_INTERVAL     = TimeUnit.MINUTES.toMillis(10);
+    private static final int   DEFAULT_MAX_TIMEOUTS = 4;
 
     private final Channel channel;
 
@@ -68,9 +68,9 @@ public abstract class PingThread extends Thread {
     /**
      * Tolerate max timeouts before assuming ping error.
      */
-    private final unsigned maxTimeouts;
+    private final int maxTimeouts;
 
-    public PingThread(Channel channel, long timeout, long interval, unsigned maxTimeouts) {
+    public PingThread(Channel channel, long timeout, long interval, int maxTimeouts) {
         super("Ping thread for channel "+channel);
         this.channel = channel;
         this.timeout = timeout;
@@ -121,7 +121,7 @@ public abstract class PingThread extends Thread {
     private void ping() throws IOException, InterruptedException {
         LOGGER.log(Level.FINE, "pinging {0}", channel.getName());
 
-        unsigned timeouts = 0;
+        int timeouts = 0;
 
         while (true) {
             Future<?> f = channel.callAsync(new Ping());
