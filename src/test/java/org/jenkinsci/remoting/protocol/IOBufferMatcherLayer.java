@@ -61,7 +61,7 @@ public class IOBufferMatcherLayer extends ApplicationLayer<IOBufferMatcher> {
     }
 
     @Override
-    public void start() throws IOException {
+    public void start() {
     }
 
     @Override

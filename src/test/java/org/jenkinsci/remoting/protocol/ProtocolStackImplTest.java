@@ -40,16 +40,12 @@ import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.theories.Theory;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
 import javax.net.ssl.SSLEngine;
-import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -58,7 +54,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -386,13 +381,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
 
 
@@ -401,13 +390,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
@@ -439,13 +422,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
 
 
@@ -454,13 +431,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
@@ -490,13 +461,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         ProtocolStack<Future<Channel>> west =
@@ -504,13 +469,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
         west.get().get().call(new ProbeCallable());
@@ -538,13 +497,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         ProtocolStack<Future<Channel>> west =
@@ -553,13 +506,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
         west.get().get().call(new ProbeCallable());
@@ -583,13 +530,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         ProtocolStack<Future<Channel>> west =
@@ -597,13 +538,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
         west.get().get().call(new ProbeCallable());
@@ -631,13 +566,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         ProtocolStack<Future<Channel>> west =
@@ -645,13 +574,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
         west.get().get().call(new ProbeCallable());
@@ -677,12 +600,8 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new ConnectionRefusalException("I don't like you, Mr. Server");
-                                    }
+                                headers -> {
+                                    throw new ConnectionRefusalException("I don't like you, Mr. Server");
                                 }))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -692,13 +611,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         try {
             client.get().get().call(new ProbeCallable());
@@ -734,12 +647,8 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new ConnectionRefusalException("I don't like you, Mr. Server");
-                                    }
+                                headers -> {
+                                    throw new ConnectionRefusalException("I don't like you, Mr. Server");
                                 }))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -748,13 +657,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         try {
             client.get().get().call(new ProbeCallable());
@@ -788,12 +691,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         ProtocolStack<Future<Channel>> server =
@@ -802,12 +700,8 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new ConnectionRefusalException("I don't like you, Mr. Server");
-                                    }
+                                headers -> {
+                                    throw new ConnectionRefusalException("I don't like you, Mr. Server");
                                 }))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         try {
@@ -844,12 +738,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         ProtocolStack<Future<Channel>> server =
@@ -857,12 +746,8 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new ConnectionRefusalException("I don't like you, Mr. Client");
-                                    }
+                                headers -> {
+                                    throw new ConnectionRefusalException("I don't like you, Mr. Client");
                                 }))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         try {
@@ -899,12 +784,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         HoldFilterLayer serverHold = new HoldFilterLayer();
@@ -915,12 +795,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer("ACk"))
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         clientHold.release();
         serverHold.release();
@@ -961,12 +836,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         HoldFilterLayer serverHold = new HoldFilterLayer();
@@ -976,12 +846,7 @@ public class ProtocolStackImplTest {
                         .filter(new AckFilterLayer("ACk"))
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         clientHold.release();
         serverHold.release();
@@ -1001,178 +866,6 @@ public class ProtocolStackImplTest {
         }
     }
 
-    @Theory
-    public void pipeSaturation(NetworkLayerFactory clientFactory, NetworkLayerFactory serverFactory) throws Exception {
-        Pipe clientToServer = Pipe.open();
-        Pipe serverToClient = Pipe.open();
-        SSLEngine serverEngine = context.createSSLEngine();
-        serverEngine.setUseClientMode(false);
-        serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = context.createSSLEngine();
-        clientEngine.setUseClientMode(true);
-
-        ProtocolStack<Future<Channel>> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new AckFilterLayer("ACK"))
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
-
-        ProtocolStack<Future<Channel>> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new AckFilterLayer("ACK"))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
-        final hudson.remoting.Pipe p = hudson.remoting.Pipe.createLocalToRemote();
-
-        Thread writer = new Thread() {
-            final Thread mainThread = Thread.currentThread();
-            // this makes it easy to see the relationship between the thread pair in the debugger
-
-            @Override
-            public void run() {
-                OutputStream os = p.getOut();
-                try {
-                    byte[] buf = new byte[Channel.PIPE_WINDOW_SIZE * 2 + 1];
-                    os.write(buf);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        Channel channel = client.get().get();
-
-        // 1. wait until the receiver sees the first byte. at this point the pipe should be completely clogged
-        // 2. make sure the writer thread is still alive, blocking
-        // 3. read the rest
-
-        ISaturationTest target = channel.call(new CreateSaturationTestProxy(p));
-
-        // make sure the pipe is connected
-        target.ensureConnected();
-        channel.syncLocalIO();
-        // then let the writer commence
-        writer.start();
-
-        // make sure that some data arrived to the receiver
-        // at this point the pipe should be fully clogged
-        assertThat(target.readFirst(), is(0));
-
-        // the writer should be still blocked
-        Thread.sleep(1000);
-        assertThat(writer.isAlive(), is(true));
-
-        target.readRest();
-    }
-
-    @Theory
-    public void socketSaturation(NetworkLayerFactory clientFactory, NetworkLayerFactory serverFactory)
-            throws Exception {
-        ServerSocketChannel serverServerSocketChannel = ServerSocketChannel.open();
-        serverServerSocketChannel.socket().bind(new InetSocketAddress(0));
-        SocketChannel clientSocketChannel = SocketChannel.open();
-        clientSocketChannel.connect(serverServerSocketChannel.getLocalAddress());
-        SocketChannel serverSocketChannel = serverServerSocketChannel.accept();
-        SSLEngine serverEngine = context.createSSLEngine();
-        serverEngine.setUseClientMode(false);
-        serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = context.createSSLEngine();
-        clientEngine.setUseClientMode(true);
-
-        ProtocolStack<Future<Channel>> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), clientSocketChannel, clientSocketChannel))
-                        .filter(new AckFilterLayer("ACK"))
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
-
-        ProtocolStack<Future<Channel>> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), serverSocketChannel, serverSocketChannel))
-                        .filter(new AckFilterLayer("ACK"))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                    }
-                                }))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
-        final hudson.remoting.Pipe p = hudson.remoting.Pipe.createLocalToRemote();
-
-        Thread writer = new Thread() {
-            final Thread mainThread = Thread.currentThread();
-            // this makes it easy to see the relationship between the thread pair in the debugger
-
-            @Override
-            public void run() {
-                OutputStream os = p.getOut();
-                try {
-                    byte[] buf = new byte[Channel.PIPE_WINDOW_SIZE * 2 + 1];
-                    os.write(buf);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
-
-        Channel channel = client.get().get();
-
-        // 1. wait until the receiver sees the first byte. at this point the pipe should be completely clogged
-        // 2. make sure the writer thread is still alive, blocking
-        // 3. read the rest
-
-        ISaturationTest target = channel.call(new CreateSaturationTestProxy(p));
-
-        // make sure the pipe is connected
-        target.ensureConnected();
-        channel.syncLocalIO();
-        // then let the writer commence
-        writer.start();
-
-        // make sure that some data arrived to the receiver
-        // at this point the pipe should be fully clogged
-        assertThat(target.readFirst(), is(0));
-
-        // the writer should be still blocked
-        Thread.sleep(1000);
-        assertThat(writer.isAlive(), is(true));
-
-        target.readRest();
-    }
-
-    public interface ISaturationTest {
-        void ensureConnected() throws IOException;
-
-        int readFirst() throws IOException;
-
-        void readRest() throws IOException;
-    }
-
     private static class ProbeCallable implements Callable<String, IOException> {
         @Override
         public String call() throws IOException {
@@ -1186,38 +879,5 @@ public class ProtocolStackImplTest {
         }
         private static final long serialVersionUID = 1L;
     }
-
-    private static class CreateSaturationTestProxy implements Callable<ISaturationTest, IOException> {
-        private final hudson.remoting.Pipe pipe;
-
-        public CreateSaturationTestProxy(hudson.remoting.Pipe pipe) {
-            this.pipe = pipe;
-        }
-
-        public ISaturationTest call() throws IOException {
-            return getOpenChannelOrFail().export(ISaturationTest.class, new ISaturationTest() {
-                private InputStream in;
-
-                public void ensureConnected() throws IOException {
-                    in = pipe.getIn();
-                }
-
-                public int readFirst() throws IOException {
-                    return in.read();
-                }
-
-                public void readRest() throws IOException {
-                    new DataInputStream(in).readFully(new byte[Channel.PIPE_WINDOW_SIZE * 2]);
-                }
-            });
-        }
-
-        @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
-
-        }
-        private static final long serialVersionUID = 1L;
-    }
-
 
 }

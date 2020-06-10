@@ -41,7 +41,7 @@ public class RSAKeyPairRule extends KeyPairRule<RSAPublicKey, RSAPrivateKey> {
     }
 
     @Override
-    protected KeyPair generateKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+    protected KeyPair generateKeyPair() throws NoSuchAlgorithmException {
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048); // maximum supported by JVM with export restrictions
         return gen.generateKeyPair();

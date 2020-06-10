@@ -200,7 +200,7 @@ public class ValidityCheckingX509ExtendedTrustManagerTest {
     }
 
     @Test
-    public void getAcceptedIssuers() throws Exception {
+    public void getAcceptedIssuers() {
         assertThat(instance.getAcceptedIssuers(), notNullValue());
     }
 

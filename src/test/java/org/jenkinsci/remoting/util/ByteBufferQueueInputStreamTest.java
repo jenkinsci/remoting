@@ -117,7 +117,7 @@ public class ByteBufferQueueInputStreamTest {
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue);
 
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         int b;
         do {
             if (instance.skip(1) != 1) {
