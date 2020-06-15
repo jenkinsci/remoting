@@ -22,7 +22,7 @@ public class GCTask extends CallableBase<Object, IOException> {
 
     public Object call() throws IOException {
         if (agressive) {
-            Set<Object[]> objects = new HashSet<Object[]>();
+            Set<Object[]> objects = new HashSet<>();
             int size = ((int)Math.min(Runtime.getRuntime().freeMemory(), Integer.MAX_VALUE)) / 32;
             while (true) {
                 try {
@@ -31,7 +31,6 @@ public class GCTask extends CallableBase<Object, IOException> {
                     break;
                 }
             }
-            objects = null;        
         }
         System.gc();
         return null;

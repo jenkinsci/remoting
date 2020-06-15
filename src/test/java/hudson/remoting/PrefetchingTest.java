@@ -138,7 +138,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     /**
      * Validates that the resource is coming from a jar.
      */
-    private void verifyResource(String v) throws IOException, InterruptedException {
+    private void verifyResource(String v) {
         Assert.assertThat(v, allOf(startsWith("jar:file:"), 
                                    containsString(dir.toURI().getPath()), 
                                    endsWith("::hello")));
@@ -147,7 +147,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     /**
      * Validates that the resource is coming from a file path.
      */
-    private void verifyResourcePrecache(String v) throws IOException, InterruptedException {
+    private void verifyResourcePrecache(String v) {
         assertTrue(v, v.startsWith("file:"));
         assertTrue(v, v.endsWith("::hello"));
     }
@@ -189,7 +189,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     }
 
     public void testInnerClass() throws Exception {
-        Echo<Object> e = new Echo<Object>();
+        Echo<Object> e = new Echo<>();
         e.value = cl.loadClass("test.Foo").newInstance();
         Object r = channel.call(e);
 
@@ -199,7 +199,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     private static final class Echo<V> extends CallableBase<V,IOException> implements Serializable {
         V value;
 
-        public V call() throws IOException {
+        public V call() {
             return value;
         }
         private static final long serialVersionUID = 1L;
@@ -225,9 +225,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 }
                 jarCache.resolve(ch,sum1,sum2).get();
                 return null;
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            } catch (ExecutionException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 throw new IOException(e);
             }
         }

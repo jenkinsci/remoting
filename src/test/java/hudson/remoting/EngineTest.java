@@ -23,13 +23,6 @@
  */
 package hudson.remoting;
 
-import java.io.File;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.engine.WorkDirManagerRule;
 import org.junit.Assert;
@@ -38,6 +31,16 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
+
+import java.io.File;
+import java.net.URL;
+import java.util.Collections;
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Tests of {@link Engine}
@@ -57,7 +60,7 @@ public class EngineTest {
     
     @Before
     public void init() throws Exception {
-        jenkinsUrls = Arrays.asList(new URL("http://my.jenkins.not.existent"));
+        jenkinsUrls = Collections.singletonList(new URL("http://my.jenkins.not.existent"));
     }
     
     @Test

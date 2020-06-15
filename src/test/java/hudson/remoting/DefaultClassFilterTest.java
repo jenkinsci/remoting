@@ -32,6 +32,7 @@ import static org.junit.Assert.assertThat;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
@@ -59,7 +60,7 @@ public class DefaultClassFilterTest {
     public TemporaryFolder folder = new TemporaryFolder();
 
     @After
-    public void clearProperty() throws Exception {
+    public void clearProperty() {
         setOverrideProperty(null);
     }
 
@@ -81,14 +82,11 @@ public class DefaultClassFilterTest {
     public void testDefaultsOverrideExists() throws Exception {
         List<String> badClasses = Arrays.asList("eric.Clapton", "john.winston.ono.Lennon", "jimmy.Page");
         File f = folder.newFile("overrides.txt");
-        FileOutputStream fos = new FileOutputStream(f);
-        try {
+        try (FileOutputStream fos = new FileOutputStream(f)) {
             for (String s : badClasses) {
                 IOUtils.write(s, fos);
                 IOUtils.write("\n", fos);
             }
-        } finally {
-            fos.close();
         }
         setOverrideProperty(f.getAbsolutePath());
         assertThat("Default blacklist should not be used", defaultBadClasses, everyItem(is(not(blacklisted()))));
@@ -101,16 +99,13 @@ public class DefaultClassFilterTest {
      */
     @Test(expected=Error.class)
     public void testDefaultsAreUsedIfOverridesAreGarbage() throws Exception {
-        List<String> badClasses = Arrays.asList("Z{100,0}" /* min > max for repetition */);
+        List<String> badClasses = Collections.singletonList("Z{100,0}" /* min > max for repetition */);
         File f = folder.newFile("overrides.txt");
-        FileOutputStream fos = new FileOutputStream(f);
-        try {
+        try (FileOutputStream fos = new FileOutputStream(f)) {
             for (String s : badClasses) {
                 IOUtils.write(s, fos);
                 IOUtils.write("\n", fos);
             }
-        } finally {
-            fos.close();
         }
         setOverrideProperty(f.getAbsolutePath());
 
@@ -127,7 +122,7 @@ public class DefaultClassFilterTest {
         ClassFilter.createDefaultInstance();
     }
 
-    public static void setOverrideProperty(String value) throws Exception {
+    public static void setOverrideProperty(String value) {
         if (value == null) {
             System.clearProperty(hudson.remoting.ClassFilter.FILE_OVERRIDE_LOCATION_PROPERTY);
         } else {

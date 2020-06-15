@@ -3,7 +3,6 @@ import org.jvnet.hudson.test.Bug;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -23,23 +22,21 @@ public class Driver8703 {
 //        }
 
         ExecutorService es = Executors.newCachedThreadPool();
-        List<Future<Object>> flist = new ArrayList<Future<Object>>();
+        List<Future<Object>> flist = new ArrayList<>();
         for (int i=0; i<10000; i++) {
-            flist.add(es.submit(new Callable<Object>() {
-                public Object call() throws Exception {
-                    Thread.currentThread().setName("testing");
-                    try {
-                        foo();
-                        return null;
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw e;
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                        throw new Exception(t);
-                    } finally {
-                        Thread.currentThread().setName("done");
-                    }
+            flist.add(es.submit(() -> {
+                Thread.currentThread().setName("testing");
+                try {
+                    foo();
+                    return null;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw e;
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    throw new Exception(t);
+                } finally {
+                    Thread.currentThread().setName("done");
                 }
             }));
         }

@@ -11,7 +11,6 @@ import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Bug;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
@@ -88,13 +87,10 @@ public class FileSystemJarCacheTest {
     @Test
     public void testRetrieveChecksumDifferent() throws Exception {
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
-        doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
-                RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-                o.write("Some other contents".getBytes(StandardCharsets.UTF_8));
-                return null;
-            }
+        doAnswer((Answer<Void>) invocationOnMock -> {
+            RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
+            o.write("Some other contents".getBytes(StandardCharsets.UTF_8));
+            return null;
         }).when(mockJarLoader).writeJarTo(
                 eq(expectedChecksum.sum1),
                 eq(expectedChecksum.sum2),
@@ -123,11 +119,8 @@ public class FileSystemJarCacheTest {
 
     private void writeToFile(File expected, String content) throws IOException {
         expected.getParentFile().mkdirs();
-        FileWriter fileWriter = new FileWriter(expected);
-        try {
+        try (FileWriter fileWriter = new FileWriter(expected)) {
             fileWriter.write(content);
-        } finally {
-            fileWriter.close();
         }
     }
 
@@ -157,14 +150,11 @@ public class FileSystemJarCacheTest {
         doReturn(fileSpy).when(jarCache).createTempJar(any(File.class));
 
         mockCorrectLoad();
-        doAnswer(new Answer<Boolean>() {
-            @Override
-            public Boolean answer(InvocationOnMock invocationOnMock) throws Throwable {
-                Files.createParentDirs(expectedFile);
-                expectedFile.createNewFile();
-                Files.append("Some other contents", expectedFile, StandardCharsets.UTF_8);
-                return false;
-            }
+        doAnswer((Answer<Boolean>) invocationOnMock -> {
+            Files.createParentDirs(expectedFile);
+            expectedFile.createNewFile();
+            Files.append("Some other contents", expectedFile, StandardCharsets.UTF_8);
+            return false;
         }).when(fileSpy).renameTo(expectedFile);
 
         expectedEx.expect(IOException.class);
@@ -176,13 +166,10 @@ public class FileSystemJarCacheTest {
 
     private void mockCorrectLoad() throws IOException, InterruptedException {
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
-        doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
-                RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-                o.write(CONTENTS.getBytes(StandardCharsets.UTF_8));
-                return null;
-            }
+        doAnswer((Answer<Void>) invocationOnMock -> {
+            RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
+            o.write(CONTENTS.getBytes(StandardCharsets.UTF_8));
+            return null;
         }).when(mockJarLoader).writeJarTo(
                 eq(expectedChecksum.sum1),
                 eq(expectedChecksum.sum2),

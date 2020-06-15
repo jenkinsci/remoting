@@ -64,8 +64,7 @@ public class RegExpBenchmark {
         final long startRegExp = System.nanoTime();
         final List<String> matchesRegExp = checkClassesRegExp(classes);
         final long durationRegexpNanos = System.nanoTime() - startRegExp;
-        classes=null;
-        
+
         System.gc();System.gc();System.gc();
         
         // make sure we use new Strings each time so that hotpsot does not do funky caching (after all the strings we will be testing will come from the stream and be new).
@@ -73,7 +72,6 @@ public class RegExpBenchmark {
         final long startSingleRegExp = System.nanoTime();
         final List<String> matchesSingleRegExp = checkClassesSingleRegExp(classes);
         final long durationSingleRegexpNanos = System.nanoTime() - startSingleRegExp;
-        classes=null;
         System.gc();System.gc();System.gc();
         
         // make sure we use new Strings each time so that hotpsot does not do funky caching (after all the strings we will be testing will come from the stream and be new).
@@ -91,7 +89,7 @@ public class RegExpBenchmark {
     }
 
     private List<String> checkClassesRegExp(List<String> classnames) {
-        List<String> blacklistedClasses = new ArrayList<String>();
+        List<String> blacklistedClasses = new ArrayList<>();
         for (String s : classnames) {
             if (p1.matcher(s).matches() || p2.matcher(s).matches() || p3.matcher(s).matches()) {
                 // something with a side effect
@@ -102,7 +100,7 @@ public class RegExpBenchmark {
     }
 
     private List<String> checkClassesSingleRegExp(List<String> classnames) {
-        List<String> blacklistedClasses = new ArrayList<String>();
+        List<String> blacklistedClasses = new ArrayList<>();
         for (String s : classnames) {
             if (p4.matcher(s).matches()) {
                 // something with a side effect
@@ -113,7 +111,7 @@ public class RegExpBenchmark {
     }
  
     private List<String> checkClassesString(List<String> classnames) {
-        List<String> blacklistedClasses = new ArrayList<String>();
+        List<String> blacklistedClasses = new ArrayList<>();
         for (String s : classnames) {
             if (s.startsWith(s1) || s.startsWith(s2) || s.contains(s3)) {
                 // something with a side effect
@@ -124,7 +122,7 @@ public class RegExpBenchmark {
     }
     
     private List<String> getAllRTClasses() throws Exception {
-        List<String> classes = new ArrayList<String>();
+        List<String> classes = new ArrayList<>();
         // Object.class.getProtectionDomain().getCodeSource() returns null :(
         String javaHome = System.getProperty("java.home");
         JarFile jf = new JarFile(javaHome +  "/lib/rt.jar");

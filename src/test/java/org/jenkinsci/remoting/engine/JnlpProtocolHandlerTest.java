@@ -333,7 +333,7 @@ public class JnlpProtocolHandlerTest {
         };
     }
 
-    private class StateListener extends JnlpConnectionStateListener {
+    private static class StateListener extends JnlpConnectionStateListener {
         private Channel.Mode mode;
         private Consumer<JnlpConnectionState> afterPropertiesConsumer;
 

@@ -59,9 +59,7 @@ public abstract class RmiTestBase extends TestCase {
         try {
             this.channelRunner = runner.newInstance();
             testSuffix = "-"+channelRunner.getName();
-        } catch (InstantiationException e) {
-            throw new Error(e);
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             throw new Error(e);
         }
     }

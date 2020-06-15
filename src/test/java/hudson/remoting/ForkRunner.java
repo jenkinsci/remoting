@@ -27,7 +27,7 @@ public class ForkRunner implements ChannelRunner {
         String cp = getClasspath();
 
         System.out.println(cp);
-        List<String> r = new ArrayList<String>();
+        List<String> r = new ArrayList<>();
         r.add("-cp");
         r.add(cp);
         r.add(Launcher.class.getName());
