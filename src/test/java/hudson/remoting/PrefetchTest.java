@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import org.junit.Ignore;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.attrs.StackMapAttribute;
 
@@ -31,6 +32,7 @@ import java.io.IOException;
 /**
  * @author Kohsuke Kawaguchi
  */
+@Ignore
 public class PrefetchTest extends RmiTestBase {
     public void testPrefetch() throws Exception {
         VerifyTask vt = new VerifyTask();
