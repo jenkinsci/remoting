@@ -146,11 +146,11 @@ public class DefaultClassFilterTest {
         public boolean matches(Object item) {
             try {
                 ClassFilter.createDefaultInstance().check(item.toString());
-                return Boolean.FALSE;
+                return false;
             } catch (ClassFilter.ClassFilterException ex) {
                 throw new IllegalStateException("Failed to initialize the default class filter", ex);
             } catch (SecurityException sex) {
-                return Boolean.TRUE;
+                return true;
             }
         }
 
