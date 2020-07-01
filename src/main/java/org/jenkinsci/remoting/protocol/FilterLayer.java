@@ -272,6 +272,7 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
     /**
      * {@inheritDoc}
      */
+    @Override
     @OverridingMethodsMustInvokeSuper
     public void onRecvClosed(IOException cause) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
@@ -313,6 +314,7 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
     /**
      * {@inheritDoc}
      */
+    @Override
     @OverridingMethodsMustInvokeSuper
     public void doCloseSend() throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {

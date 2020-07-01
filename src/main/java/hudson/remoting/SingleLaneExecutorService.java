@@ -64,6 +64,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
      * <p>
      * Note that this does not shutdown the wrapped {@link ExecutorService}.
      */
+    @Override
     public synchronized void shutdown() {
         shuttingDown = true;
         if (tasks.isEmpty())
@@ -76,6 +77,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
      * <p>
      * Note that this does not shutdown the wrapped {@link ExecutorService}.
      */
+    @Override
     public synchronized List<Runnable> shutdownNow() {
         shuttingDown = shutDown = true;
         List<Runnable> all = new LinkedList<Runnable>(tasks);
@@ -83,14 +85,17 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
         return all;
     }
 
+    @Override
     public synchronized boolean isShutdown() {
         return shuttingDown;
     }
 
+    @Override
     public synchronized boolean isTerminated() {
         return shutDown;
     }
 
+    @Override
     public synchronized boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         long now = System.nanoTime();
         long end = now + unit.toNanos(timeout);

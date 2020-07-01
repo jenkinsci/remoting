@@ -19,6 +19,7 @@ public abstract class AbstractNioChannelRunner implements DualSideChannelRunner 
     protected Channel south;
 
 
+    @Override
     public void stop(Channel channel) throws Exception {
         channel.close();
         channel.join();

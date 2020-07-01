@@ -96,6 +96,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     }
 
     private static class Verifier implements Function<Object,Object>, Serializable {
+        @Override
         public Object apply(Object o) {
             try {
                 // verify that 'o' is loaded from a jar file
@@ -199,6 +200,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     private static final class Echo<V> extends CallableBase<V,IOException> implements Serializable {
         V value;
 
+        @Override
         public V call() {
             return value;
         }
@@ -216,6 +218,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
             this.sum2 = sum.sum2;
         }
 
+        @Override
         public Void call() throws IOException {
             try {
                 final Channel ch = Channel.currentOrFail();
@@ -233,6 +236,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     }
 
     private class JarCacherCallable extends CallableBase<Void, IOException> {
+        @Override
         public Void call() throws IOException {
             Channel.currentOrFail().setJarCache(new FileSystemJarCache(dir, true));
             return null;

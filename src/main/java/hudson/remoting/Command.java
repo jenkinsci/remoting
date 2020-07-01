@@ -185,6 +185,7 @@ public abstract class Command implements Serializable {
             super(cause);
         }
 
+        @Override
         public String toString() {
             return "Command "+Command.this.toString()+" created at";
         }

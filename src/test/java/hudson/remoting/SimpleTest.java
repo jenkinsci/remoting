@@ -48,6 +48,7 @@ public class SimpleTest extends RmiTestBase {
     }
 
     private static class Callable1 extends CallableBase<Integer, RuntimeException> {
+        @Override
         public Integer call() throws RuntimeException {
             System.err.println("invoked");
             return 5;
@@ -76,6 +77,7 @@ public class SimpleTest extends RmiTestBase {
     }
 
     private static class Callable2 extends CallableBase<Integer, RuntimeException> {
+        @Override
         public Integer call() throws RuntimeException {
             throw new RuntimeException("foo");
         }
@@ -101,6 +103,7 @@ public class SimpleTest extends RmiTestBase {
             this.t = t;
         }
 
+        @Override
         public T call() throws RuntimeException {
             return t;
         }
@@ -129,6 +132,7 @@ public class SimpleTest extends RmiTestBase {
     }
     private static class Cancellable extends CallableBase<Integer, InterruptedException> {
         boolean ran;
+        @Override
         public Integer call() throws InterruptedException {
             Thread.sleep(9999);
             ran = true;

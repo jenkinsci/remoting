@@ -15,23 +15,28 @@ class SynchronousExecutorService extends AbstractExecutorService {
     private volatile boolean shutdown = false;
     private int count = 0;
 
+    @Override
     public void shutdown() {
         shutdown = true;
     }
 
+    @Override
     public List<Runnable> shutdownNow() {
         shutdown = true;
         return Collections.emptyList();
     }
 
+    @Override
     public boolean isShutdown() {
         return shutdown;
     }
 
+    @Override
     public synchronized boolean isTerminated() {
         return shutdown && count==0;
     }
 
+    @Override
     public synchronized boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         long now = System.nanoTime();
         long end = now + unit.toNanos(timeout);
@@ -47,6 +52,7 @@ class SynchronousExecutorService extends AbstractExecutorService {
         return true;
     }
 
+    @Override
     public void execute(Runnable command) {
         if (shutdown)
             throw new IllegalStateException("Already shut down");

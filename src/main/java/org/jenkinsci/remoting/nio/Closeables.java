@@ -18,6 +18,7 @@ class Closeables {
         if (ch instanceof SocketChannel) {
             final SocketChannel s = (SocketChannel) ch;
             return new Closeable() {
+                @Override
                 public void close() throws IOException {
                     try {
                         s.socket().shutdownInput();
@@ -38,6 +39,7 @@ class Closeables {
         if (ch instanceof SocketChannel) {
             final SocketChannel s = (SocketChannel) ch;
             return new Closeable() {
+                @Override
                 public void close() throws IOException {
                     try {
                         s.socket().shutdownOutput();

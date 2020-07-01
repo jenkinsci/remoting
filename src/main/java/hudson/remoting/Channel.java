@@ -593,6 +593,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.properties.putAll(settings.getProperties());
 
         transport.setup(this, new CommandReceiver() {
+            @Override
             public void handle(Command cmd) {
                 commandsReceived++;
                 long receivedAt = System.currentTimeMillis();
@@ -615,6 +616,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 }
             }
 
+            @Override
             public void terminate(IOException e) {
                 Channel.this.terminate(e);
             }
@@ -983,6 +985,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@inheritDoc}
      */
+    @Override
     public <V,T extends Throwable>
     V call(Callable<V,T> callable) throws IOException, T, InterruptedException {
         if (isClosingOrClosed()) {
@@ -1017,6 +1020,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@inheritDoc}
      */
+    @Override
     public <V,T extends Throwable>
     Future<V> callAsync(final Callable<V,T> callable) throws IOException {
         if (isClosingOrClosed()) {
@@ -1173,6 +1177,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @throws InterruptedException
      *      If the current thread is interrupted while waiting for the completion.
      */
+    @Override
     public synchronized void join() throws InterruptedException {
         while(inClosed==null || outClosed==null)
             // not that I really encountered any situation where this happens, but
@@ -1267,6 +1272,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         SetMaximumBytecodeLevel(short level) {
             this.level = level;
         }
+        @Override
         public Void call() throws RuntimeException {
             Channel.currentOrFail().maximumBytecodeLevel = level;
             return null;
@@ -1287,6 +1293,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      If the current thread is interrupted while waiting for the completion.
      * @since 1.299
      */
+    @Override
     public synchronized void join(long timeout) throws InterruptedException {
         long now = System.nanoTime();
         long end = now + TimeUnit.MILLISECONDS.toNanos(timeout);
@@ -1308,6 +1315,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             super(channel, cause);
         }
 
+        @Override
         protected void execute(Channel channel) {
             try {
                 channel.close();
@@ -1442,6 +1450,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void close() throws IOException {
         close(null);
     }
@@ -1535,6 +1544,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      to wait for the set by the other side of the channel (via {@link #waitForRemoteProperty(Object)}.
      *      If we don't abort after the channel shutdown, this method will block forever.
      */
+    @Override
     @Nonnull
     public Object waitForProperty(@Nonnull Object key) throws InterruptedException {
 
@@ -1743,6 +1753,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 //        callAsync(new IOSyncer());
 //    }
 
+    @Override
     public void syncLocalIO() throws InterruptedException {
         Thread t = Thread.currentThread();
         String old = t.getName();
@@ -1750,6 +1761,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         try {
             // no one waits for the completion of this Runnable, so not using I/O ID
             pipeWriter.submit(0,new Runnable() {
+                @Override
                 public void run() {
                     // noop
                 }

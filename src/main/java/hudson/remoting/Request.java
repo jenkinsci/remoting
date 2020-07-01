@@ -240,6 +240,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
 
             private volatile boolean cancelled;
 
+            @Override
             public boolean cancel(boolean mayInterruptIfRunning) {
                 if (cancelled || isDone()) {
                     return false;
@@ -255,14 +256,17 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                 return true;
             }
 
+            @Override
             public boolean isCancelled() {
                 return cancelled;
             }
 
+            @Override
             public boolean isDone() {
                 return isCancelled() || response!=null;
             }
 
+            @Override
             public RSP get() throws InterruptedException, ExecutionException {
                 synchronized(Request.this) {
                     String oldThreadName = Thread.currentThread().getName();
@@ -295,6 +299,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                 }
             }
 
+            @Override
             public RSP get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
                 synchronized (Request.this) {
                     // wait until the response arrives
@@ -342,6 +347,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
     /**
      * Schedules the execution of this request.
      */
+    @Override
     final void execute(final Channel channel) {
         channel.executingCalls.put(id,this);
         future = channel.executor.submit(new Runnable() {
@@ -354,6 +360,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                 return endIoId;
             }
 
+            @Override
             public void run() {
                 String oldThreadName = Thread.currentThread().getName();
                 Thread.currentThread().setName(oldThreadName+" for "+channel.getName()+" id="+id);
@@ -435,6 +442,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
             this.id = id;
         }
 
+        @Override
         protected void execute(Channel channel) {
             Request<?,?> r = channel.executingCalls.get(id);
             if(r==null)     return; // already completed

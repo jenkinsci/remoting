@@ -75,6 +75,7 @@ public final class BinarySafeStream {
             final byte[] qualtet = new byte[4];
             int input = 0;
 
+            @Override
             public int read() throws IOException {
                 if(remaining==0) {
                     remaining = _read(triplet,0,3);
@@ -87,6 +88,7 @@ public final class BinarySafeStream {
                 return ((int) triplet[3 - remaining--]) & 0xFF;
             }
 
+            @Override
             public int read(byte b[], int off, int len) throws IOException {
                 if(remaining==-1)   return -1; // EOF
 
@@ -209,6 +211,7 @@ public final class BinarySafeStream {
                 return totalRead;
             }
 
+            @Override
             public int available() throws IOException {
                 // roughly speaking we got 3/4 of the underlying available bytes
                 return super.available()*3/4;
@@ -228,6 +231,7 @@ public final class BinarySafeStream {
             private int remaining=0;
             private final byte[] out = new byte[4];
 
+            @Override
             public void write(int b) throws IOException {
                 if(remaining==2) {
                     _write(triplet[0],triplet[1],(byte)b);
@@ -237,6 +241,7 @@ public final class BinarySafeStream {
                 }
             }
 
+            @Override
             public void write(byte b[], int off, int len) throws IOException {
                 // if there's anything left in triplet from the last write, try to write them first
                 if(remaining>0) {
@@ -272,6 +277,7 @@ public final class BinarySafeStream {
                 super.out.write(out,0,4);
             }
 
+            @Override
             public void flush() throws IOException {
                 int a = triplet[0];
                 int b = triplet[1];

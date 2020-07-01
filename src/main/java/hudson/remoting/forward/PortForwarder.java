@@ -72,6 +72,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
         });
     }
 
+    @Override
     public int getPort() {
         return socket.getLocalPort();
     }
@@ -87,6 +88,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
                             setUncaughtExceptionHandler(
                                     (t, e) -> LOGGER.log(Level.SEVERE, "Unhandled exception in port forwarding session " + t, e));
                         }
+                        @Override
                         public void run() {
                             try (InputStream in = SocketChannelStream.in(s);
                                     OutputStream out = forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)))) {
@@ -119,6 +121,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
     /**
      * Shuts down this port forwarder.
      */
+    @Override
     public void close() throws IOException {
         interrupt();
         socket.close();
@@ -155,6 +158,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
             this.proxy = proxy;
         }
 
+        @Override
         public ListeningPort call() throws IOException {
             final Channel channel = getOpenChannelOrFail(); // We initialize it early, so the forwarder won's start its daemon if the channel is shutting down
             PortForwarder t = new PortForwarder(acceptingPort, proxy);

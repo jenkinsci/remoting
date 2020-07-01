@@ -44,6 +44,7 @@ public class ChannelTest extends RmiTestBase {
     }
 
     private static class CallableImpl extends CallableBase<Object,IOException> {
+        @Override
         public Object call() throws IOException {
             return null;
         }
@@ -121,6 +122,7 @@ public class ChannelTest extends RmiTestBase {
     }
 
     private static class WaitForRemotePropertyCallable extends CallableBase<Void, Exception> {
+        @Override
         public Void call() throws Exception {
             Thread.sleep(500);
             getChannelOrFail().setProperty("foo","bar");
@@ -135,6 +137,7 @@ public class ChannelTest extends RmiTestBase {
 
     private static class GreeterImpl implements Greeter, SerializableOnlyOverRemoting {
         String name;
+        @Override
         public void greet(String name) {
             this.name = name;
         }
@@ -151,6 +154,7 @@ public class ChannelTest extends RmiTestBase {
             this.g = g;
         }
 
+        @Override
         public Object call() throws IOException {
             g.greet("Kohsuke");
             return null;
@@ -172,6 +176,7 @@ public class ChannelTest extends RmiTestBase {
             this.t = t;
         }
 
+        @Override
         public T call() throws RuntimeException {
             return t;
         }

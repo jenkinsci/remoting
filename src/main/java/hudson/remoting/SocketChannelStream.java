@@ -31,10 +31,12 @@ public class SocketChannelStream {
         final Socket s = ch.socket();
 
         return Channels.newInputStream(new ReadableByteChannel() {
+            @Override
             public int read(ByteBuffer dst) throws IOException {
                 return ch.read(dst);
             }
 
+            @Override
             public void close() throws IOException {
                 if (!s.isInputShutdown()) {
                     try {
@@ -49,6 +51,7 @@ public class SocketChannelStream {
                 }
             }
 
+            @Override
             public boolean isOpen() {
                 return !s.isInputShutdown();
             }
@@ -66,10 +69,12 @@ public class SocketChannelStream {
         final Socket s = ch.socket();
 
         return Channels.newOutputStream(new WritableByteChannel() {
+            @Override
             public int write(ByteBuffer src) throws IOException {
                 return ch.write(src);
             }
 
+            @Override
             public void close() throws IOException {
                 if (!s.isOutputShutdown()) {
                     try {
@@ -84,6 +89,7 @@ public class SocketChannelStream {
                 }
             }
 
+            @Override
             public boolean isOpen() {
                 return !s.isOutputShutdown();
             }

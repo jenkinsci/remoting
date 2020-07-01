@@ -182,6 +182,7 @@ public class ClassRemotingTest extends RmiTestBase {
     }
 
     private static class RemotePropertyVerifier extends CallableBase<Object, IOException> {
+        @Override
         public Object call() throws IOException {
             Object o = getOpenChannelOrFail().getRemoteProperty("test");
             assertEquals(o.getClass().getName(), CLASSNAME);

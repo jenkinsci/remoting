@@ -141,6 +141,7 @@ public class FastPipedInputStream extends InputStream {
         return false;
     }
 
+    @Override
     public int read() throws IOException {
         byte[] b = new byte[1];
         return read(b, 0, b.length) == -1 ? -1 : (255 & b[0]);

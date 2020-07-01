@@ -419,14 +419,17 @@ public class Main {
             LOGGER.info("Jenkins agent is running in headless mode.");
         }
 
+        @Override
         public void status(String msg, Throwable t) {
             LOGGER.log(INFO,msg,t);
         }
 
+        @Override
         public void status(String msg) {
             status(msg,null);
         }
 
+        @Override
         @SuppressFBWarnings(value = "DM_EXIT",
                 justification = "Yes, we really want to exit in the case of severe error")
         public void error(Throwable t) {
@@ -434,9 +437,11 @@ public class Main {
             System.exit(-1);
         }
 
+        @Override
         public void onDisconnect() {
         }
 
+        @Override
         public void onReconnect() {
         }
     }

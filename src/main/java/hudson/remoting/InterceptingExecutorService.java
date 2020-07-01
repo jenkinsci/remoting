@@ -68,6 +68,7 @@ class InterceptingExecutorService extends DelegatingExecutorService {
 
     private <V> Callable<V> wrap(final Runnable r, final V value) {
         return wrap(new Callable<V>() {
+            @Override
             public V call() throws Exception {
                 r.run();
                 return value;

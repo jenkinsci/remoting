@@ -133,6 +133,7 @@ public class DefaultClassFilterTest {
     /** Simple hamcrest matcher that checks if the provided className is blacklisted. */
     static class BlackListMatcher extends org.hamcrest.BaseMatcher<String> {
 
+        @Override
         public void describeMismatch(Object item, Description description) {
             description.appendValue(item).appendText(" was not blacklisted");
         }
@@ -141,6 +142,7 @@ public class DefaultClassFilterTest {
             return new BlackListMatcher();
         }
 
+        @Override
         public boolean matches(Object item) {
             try {
                 ClassFilter.createDefaultInstance().check(item.toString());
@@ -152,6 +154,7 @@ public class DefaultClassFilterTest {
             }
         }
 
+        @Override
         public void describeTo(Description description) {
             description.appendText("blacklisted");
         }

@@ -132,18 +132,22 @@ abstract class PipeWindow {
             return Integer.MAX_VALUE;
         }
 
+        @Override
         void increase(int delta) {
         }
 
+        @Override
         int peek() {
             return Integer.MAX_VALUE;
         }
 
+        @Override
         int get(int min) throws InterruptedException, IOException {
             checkDeath();
             return Integer.MAX_VALUE;
         }
 
+        @Override
         void decrease(int delta) {
         }
     }
@@ -200,6 +204,7 @@ abstract class PipeWindow {
             return initial;
         }
 
+        @Override
         public synchronized void increase(int delta) {
             if (LOGGER.isLoggable(FINER))
                 LOGGER.finer(String.format("increase(%d,%d)->%d",oid,delta,delta+available));
@@ -208,6 +213,7 @@ abstract class PipeWindow {
             notifyAll();
         }
 
+        @Override
         public synchronized int peek() {
             return available;
         }
@@ -215,6 +221,7 @@ abstract class PipeWindow {
         /**
          * Blocks until some space becomes available.
          */
+        @Override
         public int get(int min) throws InterruptedException, IOException {
             checkDeath();
             synchronized (this) {
@@ -230,6 +237,7 @@ abstract class PipeWindow {
             }
         }
 
+        @Override
         public synchronized void decrease(int delta) {
             if (LOGGER.isLoggable(FINER))
                 LOGGER.finer(String.format("decrease(%d,%d)->%d",oid,delta,available-delta));

@@ -30,14 +30,17 @@ class DumbClassLoaderBridge implements IClassLoader {
         this.base = base;
     }
 
+    @Override
     public byte[] fetchJar(URL url) throws IOException {
         return base.fetchJar(url);
     }
 
+    @Override
     public byte[] fetch(String className) throws ClassNotFoundException {
         return base.fetch(className);
     }
 
+    @Override
     public ClassFile fetch2(String className) throws ClassNotFoundException {
         return base.fetch2(className);
     }
@@ -53,6 +56,7 @@ class DumbClassLoaderBridge implements IClassLoader {
         return base.getResources(name);
     }
 
+    @Override
     public Map<String,ClassFile2> fetch3(String className) throws ClassNotFoundException {
         ClassFile cf = fetch2(className);
         return Collections.singletonMap(className,

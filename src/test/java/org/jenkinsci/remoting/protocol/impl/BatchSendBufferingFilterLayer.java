@@ -38,6 +38,7 @@ public class BatchSendBufferingFilterLayer extends FilterLayer implements Clonea
         this.batch = ByteBuffer.allocate(length);
     }
 
+    @Override
     public BatchSendBufferingFilterLayer clone() {
         return new BatchSendBufferingFilterLayer(batch.capacity());
     }

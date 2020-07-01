@@ -58,18 +58,22 @@ public class AsyncFutureImpl<V> implements Future<V> {
         set(value);
     }
 
+    @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return false;
     }
 
+    @Override
     public synchronized boolean isCancelled() {
         return cancelled;
     }
 
+    @Override
     public synchronized boolean isDone() {
         return completed;
     }
 
+    @Override
     public synchronized V get() throws InterruptedException, ExecutionException {
         while(!completed)
             wait();
@@ -80,6 +84,7 @@ public class AsyncFutureImpl<V> implements Future<V> {
         return value;
     }
 
+    @Override
     @CheckForNull
     public synchronized V get(@Nonnegative long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         // The accuracy of wait(long) operation is milliseconds anyway, but ok.

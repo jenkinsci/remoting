@@ -96,22 +96,27 @@ public final class RemoteOutputStream extends OutputStream implements Serializab
 // delegation to core
 //
 //
+    @Override
     public void write(int b) throws IOException {
         core.write(b);
     }
 
+    @Override
     public void write(byte[] b) throws IOException {
         core.write(b);
     }
 
+    @Override
     public void write(byte[] b, int off, int len) throws IOException {
         core.write(b, off, len);
     }
 
+    @Override
     public void flush() throws IOException {
         core.flush();
     }
 
+    @Override
     public void close() throws IOException {
         core.close();
     }

@@ -298,6 +298,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
         exports.release(callSite);
     }
 
+    @Override
     public String toString() {
         return "UserRequest:"+toString;
     }
@@ -379,6 +380,7 @@ final class UserResponse<RSP,EXC extends Throwable> implements UserRequest.Respo
     /**
      * Deserializes the response byte stream into an object.
      */
+    @Override
     public RSP retrieve(Channel channel, ClassLoader cl) throws IOException, ClassNotFoundException, EXC {
         Channel old = Channel.setCurrent(channel);
         try {

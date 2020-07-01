@@ -59,6 +59,7 @@ public class NonSerializableExceptionTest extends RmiTestBase {
     }
 
     private static final class Failure extends CallableBase<Object, Throwable> {
+        @Override
         public Object call() throws Throwable {
             throw new NoneSerializableException("message1",new SocketException("message2"));
         }

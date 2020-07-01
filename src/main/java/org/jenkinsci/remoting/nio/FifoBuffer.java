@@ -417,6 +417,7 @@ public class FifoBuffer implements Closeable {
      * Once the remaining bytes are drained by the reader, the read method will start
      * returning EOF signals.
      */
+    @Override
     public void close() {
         // Async modification of the field in order to notify other threads that we are about closing this buffer
         closeRequested = true;

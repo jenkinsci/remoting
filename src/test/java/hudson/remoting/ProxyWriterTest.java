@@ -141,6 +141,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             this.w = w;
         }
 
+        @Override
         public Void call() throws IOException {
             writeBunchOfData(w);
             return null;
@@ -155,6 +156,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             this.w = w;
         }
 
+        @Override
         public Void call() throws IOException {
             w.write("hello");
             W = new WeakReference<>(w);
@@ -163,6 +165,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
     }
 
     private static class GcCallable extends CallableBase<Boolean, IOException> {
+        @Override
         public Boolean call() throws IOException {
             System.gc();
             return W.get() == null;
@@ -177,6 +180,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             this.w = w;
         }
 
+        @Override
         public Void call() throws IOException {
             w.write("1--", 0, 1);
             return null;

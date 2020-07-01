@@ -59,6 +59,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
     public final void setup(final Channel channel, final CommandReceiver receiver) {
         this.channel = channel;
         setup(new ByteArrayReceiver() {
+            @Override
             public void handle(byte[] payload) {
                 try {
                     Command cmd = Command.readFrom(channel, payload);
@@ -68,6 +69,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
                 }
             }
 
+            @Override
             public void terminate(IOException e) {
                 receiver.terminate(e);
             }

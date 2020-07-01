@@ -93,6 +93,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.pipe = pipe;
         }
 
+        @Override
         public Void call() throws Exception {
             while (true) {
                 pipe.getOut().write(0);
@@ -109,6 +110,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.pipe = pipe;
         }
 
+        @Override
         public Integer call() throws IOException {
             write(pipe);
             return 5;
@@ -198,17 +200,21 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.pipe = pipe;
         }
 
+        @Override
         public ISaturationTest call() throws IOException {
             return Channel.currentOrFail().export(ISaturationTest.class, new ISaturationTest() {
                 private InputStream in;
+                @Override
                 public void ensureConnected() {
                     in = pipe.getIn();
                 }
 
+                @Override
                 public int readFirst() throws IOException {
                     return in.read();
                 }
 
+                @Override
                 public void readRest() throws IOException {
                     new DataInputStream(in).readFully(new byte[Channel.PIPE_WINDOW_SIZE*2]);
                 }
@@ -224,6 +230,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.pipe = pipe;
         }
 
+        @Override
         public Integer call() throws IOException {
             try {
                 read(pipe);
@@ -281,6 +288,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
     }
 
     private static class DevNullSink extends CallableBase<OutputStream, IOException> {
+        @Override
         public OutputStream call() throws IOException {
             return new RemoteOutputStream(new NullOutputStream());
         }
@@ -302,6 +310,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.p = p;
         }
 
+        @Override
         public Integer call() throws IOException {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             IOUtils.copy(p.getIn(), baos);
