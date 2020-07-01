@@ -166,7 +166,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
 
     private static class GcCallable extends CallableBase<Boolean, IOException> {
         @Override
-        public Boolean call() throws IOException {
+        public Boolean call() {
             System.gc();
             return W.get() == null;
         }

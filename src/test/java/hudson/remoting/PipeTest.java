@@ -145,7 +145,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
     }
 
     public interface ISaturationTest {
-        void ensureConnected() throws IOException;
+        void ensureConnected();
         int readFirst() throws IOException;
         void readRest() throws IOException;
     }
@@ -201,7 +201,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
         }
 
         @Override
-        public ISaturationTest call() throws IOException {
+        public ISaturationTest call() {
             return Channel.currentOrFail().export(ISaturationTest.class, new ISaturationTest() {
                 private InputStream in;
                 @Override
@@ -289,7 +289,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
 
     private static class DevNullSink extends CallableBase<OutputStream, IOException> {
         @Override
-        public OutputStream call() throws IOException {
+        public OutputStream call() {
             return new RemoteOutputStream(new NullOutputStream());
         }
         private static final long serialVersionUID = 1L;

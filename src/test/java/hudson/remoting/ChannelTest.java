@@ -44,11 +44,11 @@ public class ChannelTest extends RmiTestBase {
 
     private static class CallableImpl extends CallableBase<Object,IOException> {
         @Override
-        public Object call() throws IOException {
+        public Object call() {
             return null;
         }
 
-        private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
+        private void readObject(ObjectInputStream ois) {
             throw new ClassCastException("foobar");
         }
         private static final long serialVersionUID = 1L;
@@ -154,7 +154,7 @@ public class ChannelTest extends RmiTestBase {
         }
 
         @Override
-        public Object call() throws IOException {
+        public Object call() {
             g.greet("Kohsuke");
             return null;
         }
@@ -289,7 +289,7 @@ public class ChannelTest extends RmiTestBase {
         }
 
         @Override
-        public TInterface call() throws Exception {
+        public TInterface call() {
             // UserProxy is used only for the user space, otherwise it will be wrapped into UserRequest
             return Channel.current().export(clazz, object, userSpace, userSpace, true);
         }
