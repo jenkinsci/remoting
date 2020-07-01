@@ -26,7 +26,7 @@ package hudson.remoting;
 import junit.framework.Test;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.For;
 
 import java.io.ByteArrayOutputStream;
@@ -62,7 +62,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
      * Have the reader close the read end of the pipe while the writer is still writing.
      * The writer should pick up a failure.
      */
-    @Bug(8592)
+    @Issue("JENKINS-8592")
     @For(Pipe.class)
     public void testReaderCloseWhileWriterIsStillWriting() throws Exception {
         final Pipe p = Pipe.createRemoteToLocal();

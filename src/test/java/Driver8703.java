@@ -1,5 +1,5 @@
 import hudson.remoting.PipeTest;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +13,7 @@ import java.util.concurrent.Future;
  * @author Kohsuke Kawaguchi
  */
 public class Driver8703 {
-    @Bug(8703)
+    @Issue("JENKINS-8703")
     public static void main(String[] args) throws Throwable {
 //        int i=0;
 //        while (true) {

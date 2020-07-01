@@ -50,7 +50,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.jenkinsci.remoting.engine.WorkDirManager.DirType;
 import org.junit.Assume;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 
 /**
  * Tests of {@link WorkDirManager}
@@ -178,7 +178,7 @@ public class WorkDirManagerTest {
     }
 
     @Test
-    @Bug(39130)
+    @Issue("JENKINS-39130")
     public void shouldFailToStartupIf_WorkDir_IsMissing_andRequired() throws Exception {
         final File tmpDirFile = tmpDir.newFolder("foo");
         final File workDir = new File(tmpDirFile, "just/a/long/non/existent/path");
@@ -188,7 +188,7 @@ public class WorkDirManagerTest {
     }
 
     @Test
-    @Bug(39130)
+    @Issue("JENKINS-39130")
     public void shouldFailToStartupIf_InternalDir_IsMissing_andRequired() throws Exception {
         // Create only the working directory, not the nested one
         final File tmpDirFile = tmpDir.newFolder("foo");

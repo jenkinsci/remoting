@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import hudson.remoting.util.GCTask;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-import org.jvnet.hudson.test.Bug;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -31,7 +30,7 @@ public class ChannelTest extends RmiTestBase {
         assertTrue(channel.remoteCapability.supportsMultiClassLoaderRPC());
     }
 
-    @Bug(9050)
+    @Issue("JENKINS-9050")
     public void testFailureInDeserialization() throws Exception {
         try {
             channel.call(new CallableImpl());
@@ -58,7 +57,7 @@ public class ChannelTest extends RmiTestBase {
     /**
      * Objects exported during the request arg capturing is subject to caller auto-deallocation.
      */
-    @Bug(10424)
+    @Issue("JENKINS-10424")
     public void testExportCallerDeallocation() throws Exception {
         for (int i=0; i<100; i++) {
             final GreeterImpl g = new GreeterImpl();
@@ -71,7 +70,7 @@ public class ChannelTest extends RmiTestBase {
     /**
      * Objects exported outside the request context should be deallocated by the callee.
      */
-    @Bug(10424)
+    @Issue("JENKINS-10424")
     public void testExportCalleeDeallocation() throws Exception {
         for (int j=0; j<10; j++) {
             final GreeterImpl g = new GreeterImpl();
@@ -183,7 +182,7 @@ public class ChannelTest extends RmiTestBase {
         private static final long serialVersionUID = 1L;
     }
 
-    @Bug(39150)
+    @Issue("JENKINS-39150")
     public void testDiagnostics() {
         StringWriter sw = new StringWriter();
         Channel.dumpDiagnosticsForAll(new PrintWriter(sw));
@@ -232,7 +231,7 @@ public class ChannelTest extends RmiTestBase {
      * Checks if {@link UserRequest}s can be executed during the pending close operation.
      * @throws Exception Test Error
      */
-    @Bug(45023)
+    @Issue("JENKINS-45023")
     public void testShouldNotAcceptUserRequestsWhenIsBeingClosed() throws Exception {
         
         // Create a sample request to the channel
