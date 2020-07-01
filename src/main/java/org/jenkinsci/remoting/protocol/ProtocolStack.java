@@ -637,7 +637,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @param nextSend    the previous {@link Ptr}.
          * @param application the {@link ApplicationLayer}
          */
-        private Ptr(Ptr nextSend, ApplicationLayer<? extends Object> application) {
+        private Ptr(Ptr nextSend, ApplicationLayer<?> application) {
             stackLock.writeLock().lock();
             try {
                 this.nextSend = nextSend;
