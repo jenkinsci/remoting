@@ -825,7 +825,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          */
         @Nonnull
         private ProtocolLayer.Send nextSend() {
-            return (ProtocolLayer.Send) (getNextSend().layer);
+            return (ProtocolLayer.Send) getNextSend().layer;
         }
 
         /**
@@ -878,7 +878,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          */
         @Nonnull
         private ProtocolLayer.Recv nextRecv() {
-            return (ProtocolLayer.Recv) (getNextRecv().layer);
+            return (ProtocolLayer.Recv) getNextRecv().layer;
         }
 
         /**
