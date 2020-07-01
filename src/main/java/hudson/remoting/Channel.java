@@ -1135,7 +1135,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * Adds a {@link CallableFilter} that gets a chance to decorate every {@link Callable}s that run locally
+     * Adds a {@link CallableDecorator} that gets a chance to decorate every {@link Callable}s that run locally
      * sent by the other peer.
      *
      * This is useful to tweak the environment those closures are run, such as setting up the thread context
@@ -1146,7 +1146,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * Removes the filter introduced by {@link #addLocalExecutionInterceptor(CallableFilter)}.
+     * Removes the filter introduced by {@link #addLocalExecutionInterceptor(CallableDecorator)}.
      */
     public void removeLocalExecutionInterceptor(CallableDecorator decorator) {
         decorators.remove(decorator);
