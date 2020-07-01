@@ -78,6 +78,6 @@ public abstract class JnlpClientDatabase {
         /**
          * The certificate is valid and proven to originate from the named client, skip secret validation.
          */
-        IDENTITY_PROVED;
+        IDENTITY_PROVED
     }
 }

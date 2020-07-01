@@ -541,7 +541,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
         /**
          * Secure credentials are removed from the session, application messages are not encrypted anymore.
          */
-        NO_CREDENTIALS;
+        NO_CREDENTIALS
 
     }
 }

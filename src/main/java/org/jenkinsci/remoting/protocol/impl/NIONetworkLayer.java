@@ -416,5 +416,4 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
         }
     }
 
-    ;
 }
