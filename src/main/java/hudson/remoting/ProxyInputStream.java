@@ -81,7 +81,7 @@ final class ProxyInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte b[], int off, int len) throws IOException {
+    public int read(byte[] b, int off, int len) throws IOException {
         try {
             Buffer buf = _read(len);
             if(buf.len==-1) return -1;
