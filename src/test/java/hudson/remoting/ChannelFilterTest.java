@@ -23,7 +23,7 @@ public class ChannelFilterTest extends RmiTestBase {
         });
 
         Callable<Object> t = STORE::get;
-        final Callable c = channel.export(Callable.class, t);
+        final Callable<Object> c = channel.export(Callable.class, t);
         
         assertEquals("x", channel.call(new CallableCallable(c)));
     }
@@ -31,9 +31,9 @@ public class ChannelFilterTest extends RmiTestBase {
     private final ThreadLocal<Object> STORE = new ThreadLocal<>();
 
     private static class CallableCallable extends CallableBase<Object, Exception> {
-        private final Callable c;
+        private final Callable<Object> c;
 
-        public CallableCallable(Callable c) {
+        public CallableCallable(Callable<Object> c) {
             this.c = c;
         }
 

@@ -937,7 +937,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          *              represents an exception that has triggered it.
          *              Otherwise {@code null}.
          */
-        void onClosed(ProtocolStack stack, IOException cause);
+        void onClosed(ProtocolStack<?> stack, IOException cause);
     }
 
 }

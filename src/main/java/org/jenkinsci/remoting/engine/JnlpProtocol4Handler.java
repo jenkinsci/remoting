@@ -373,7 +373,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@inheritDoc}
          */
         @Override
-        public void onClosed(ProtocolStack stack, IOException cause) {
+        public void onClosed(ProtocolStack<?> stack, IOException cause) {
             try {
                 event.fireAfterDisconnect();
             } finally {

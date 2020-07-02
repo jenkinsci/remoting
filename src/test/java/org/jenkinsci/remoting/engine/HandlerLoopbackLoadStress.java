@@ -205,8 +205,8 @@ public class HandlerLoopbackLoadStress {
         executorService.submit(legacyHub);
         serverSocketChannel = ServerSocketChannel.open();
 
-        JnlpProtocolHandler handler = null;
-        for (JnlpProtocolHandler h : new JnlpProtocolHandlerFactory(executorService)
+        JnlpProtocolHandler<? extends JnlpConnectionState> handler = null;
+        for (JnlpProtocolHandler<? extends JnlpConnectionState> h : new JnlpProtocolHandlerFactory(executorService)
                 .withNioChannelHub(legacyHub)
                 .withIOHub(mainHub)
                 .withSSLContext(context)

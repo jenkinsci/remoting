@@ -170,9 +170,9 @@ public class Util {
     static public String getVersion() {
         String version = "unknown";
         try {
-            Enumeration resEnum = Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
+            Enumeration<URL> resEnum = Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
             while (resEnum.hasMoreElements()) {
-                URL url = (URL) resEnum.nextElement();
+                URL url = resEnum.nextElement();
                 try(InputStream is = url.openStream()) {
                     if (is != null) {
                         Manifest manifest = new Manifest(is);

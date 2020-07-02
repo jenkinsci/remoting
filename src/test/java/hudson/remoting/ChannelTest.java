@@ -109,7 +109,7 @@ public class ChannelTest extends RmiTestBase {
         assertEquals("bar", channel.getProperty("foo"));
         assertEquals("bar",channel.waitForProperty("foo"));
 
-        ChannelProperty<Class> typedProp = new ChannelProperty<>(Class.class, "a type-safe property");
+        ChannelProperty<?> typedProp = new ChannelProperty<>(Class.class, "a type-safe property");
         channel.setProperty(typedProp, Void.class);
         assertEquals(Void.class, channel.getProperty(typedProp));
         assertEquals(Void.class, channel.waitForProperty(typedProp));
@@ -264,7 +264,7 @@ public class ChannelTest extends RmiTestBase {
 
         //TODO: System request will just hang. Once JENKINS-44785 is implemented, all system requests
         // in Remoting codebase must have a timeout.
-        final Collection remoteList = channel.call(new RMIObjectExportedCallable<>(src, Collection.class, true));
+        final Collection<String> remoteList = channel.call(new RMIObjectExportedCallable<>(src, Collection.class, true));
 
         try (ChannelCloseLock lock = new ChannelCloseLock(channel)) {
             // Call Async

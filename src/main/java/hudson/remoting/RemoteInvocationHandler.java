@@ -290,7 +290,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             }
             return null;
         } catch (Throwable e) {
-            for (Class exc : method.getExceptionTypes()) {
+            for (Class<?> exc : method.getExceptionTypes()) {
                 if (exc.isInstance(e))
                     throw e;    // signature explicitly lists this exception
             }
@@ -948,8 +948,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         /**
          * Chooses the method to invoke.
          */
-        private Method choose(Class[] interfaces) {
-            for(Class clazz: interfaces) {
+        private Method choose(Class<?>[] interfaces) {
+            for(Class<?> clazz: interfaces) {
                 OUTER:
                 for (Method m : clazz.getMethods()) {
                     if (!m.getName().equals(methodName))

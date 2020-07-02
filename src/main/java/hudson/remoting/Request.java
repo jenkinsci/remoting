@@ -79,7 +79,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      */
     private int lastIoId;
 
-    private volatile Response<RSP,EXC> response;
+    private volatile Response<RSP,? extends Throwable> response;
 
     transient long startTime;
 
@@ -192,10 +192,10 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                     // ignore the I/O error
                 }
 
-                Object exc = response.exception;
+                Throwable exc = response.exception;
 
                 if (exc!=null) {
-                    channel.attachCallSiteStackTrace((Throwable)exc);
+                    channel.attachCallSiteStackTrace(exc);
                     throw (EXC)exc; // some versions of JDK fails to compile this line. If so, upgrade your JDK.
                 }
 
@@ -332,7 +332,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
     /**
      * Called by the {@link Response} when we received it.
      */
-    /*package*/ synchronized void onCompleted(Response<RSP,EXC> response) {
+    /*package*/ synchronized void onCompleted(Response<RSP,? extends Throwable> response) {
         this.response = response;
         notifyAll();
     }
@@ -341,7 +341,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      * Aborts the processing. The calling thread will receive an exception.
      */
     /*package*/ void abort(IOException e) {
-        onCompleted(new Response(this, id, 0, new RequestAbortedException(e)));
+        onCompleted(new Response<>(this, id, 0, new RequestAbortedException(e)));
     }
 
     /**
@@ -425,10 +425,10 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
      */
     @Deprecated
-    /*package*/ static ThreadLocal<Request> CURRENT = new ThreadLocal<Request>();
+    /*package*/ static ThreadLocal<Request<?, ?>> CURRENT = new ThreadLocal<Request<?, ?>>();
 
     /*package*/ static int getCurrentRequestId() {
-        Request r = CURRENT.get();
+        Request<?, ?> r = CURRENT.get();
         return r!=null ? r.id : 0;
     }
 

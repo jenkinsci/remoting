@@ -54,7 +54,7 @@ class DummyClassLoader extends ClassLoader {
         final String logicalName;
         final String physicalPath;
         final String logicalPath;
-        final Class c;
+        final Class<?> c;
 
         Entry(Class<?> c) {
             this.c = c;
@@ -104,7 +104,7 @@ class DummyClassLoader extends ClassLoader {
      * Loads a class that looks like an exact clone of the named class under
      * a different class name.
      */
-    public Object load(Class c) {
+    public Object load(Class<?> c) {
         for (Entry e : entries) {
             if (e.c==c) {
                 try {

@@ -90,8 +90,8 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         channel.call(new ForceJarLoad(sum1));
         channel.call(new ForceJarLoad(sum2));
 
-        Callable<Void,IOException> sc = (Callable)cl.loadClass("test.ClassLoadingFromJarTester").newInstance();
-        ((Function)sc).apply(new Verifier());
+        Callable<Void,IOException> sc = (Callable<Void, IOException>)cl.loadClass("test.ClassLoadingFromJarTester").newInstance();
+        ((Function<Function<Object, Object>, Void>)sc).apply(new Verifier());
         assertNull(channel.call(sc));
     }
 
@@ -194,7 +194,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         e.value = cl.loadClass("test.Foo").newInstance();
         Object r = channel.call(e);
 
-        ((Predicate)r).apply(null); // this verifies that the object is still in a good state
+        ((Predicate<Void>)r).apply(null); // this verifies that the object is still in a good state
     }
 
     private static final class Echo<V> extends CallableBase<V,IOException> implements Serializable {
