@@ -131,6 +131,7 @@ final class ProxyInputStream extends InputStream {
             this.len = len;
         }
 
+        @Override
         protected Buffer perform(Channel channel) throws IOException {
             InputStream in;
             try {
@@ -163,6 +164,7 @@ final class ProxyInputStream extends InputStream {
             this.oid = oid;
         }
 
+        @Override
         protected void execute(Channel channel) {
             final InputStream in = (InputStream) channel.getExportedObjectOrNull(oid);
             // EOF may be late to the party if we interrupt request, hence we do not fail for this command         
@@ -180,6 +182,7 @@ final class ProxyInputStream extends InputStream {
             }
         }
 
+        @Override
         public String toString() {
             return "ProxyInputStream.EOF("+oid+")";
         }

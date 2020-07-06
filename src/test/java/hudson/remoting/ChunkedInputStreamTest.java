@@ -48,6 +48,7 @@ public class ChunkedInputStreamTest extends Assert {
         test(new Workload() {
             int size = 1024;
 
+            @Override
             public void write(OutputStream o) throws IOException {
                 Random boundary = new Random(0);
                 Random data = new Random(1);
@@ -62,6 +63,7 @@ public class ChunkedInputStreamTest extends Assert {
                 o.close();
             }
 
+            @Override
             public void read(InputStream i) throws IOException {
                 Random boundary = new Random(0);
                 Random data = new Random(1);

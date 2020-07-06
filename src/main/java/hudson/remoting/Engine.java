@@ -111,6 +111,7 @@ public class Engine extends Thread {
      */
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+        @Override
         public Thread newThread(final Runnable r) {
             Thread thread = defaultFactory.newThread(() -> {
                 CURRENT.set(Engine.this);
@@ -874,6 +875,7 @@ public class Engine extends Thread {
             NoSuchAlgorithmException, IOException {
         Map<String, String> properties = AccessController.doPrivileged(
                 new PrivilegedExceptionAction<Map<String, String>>() {
+                    @Override
                     public Map<String, String> run() throws Exception {
                         Map<String, String> result = new HashMap<String, String>();
                         result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
@@ -955,6 +957,7 @@ public class Engine extends Thread {
     @CheckForNull
     private static FileInputStream getFileInputStream(final File file) throws PrivilegedActionException {
         return AccessController.doPrivileged(new PrivilegedExceptionAction<FileInputStream>() {
+            @Override
             public FileInputStream run() throws Exception {
                 try {
                     return file.exists() ? new FileInputStream(file) : null;

@@ -36,6 +36,7 @@ public class DeadRemoteOutputStreamTest extends RmiTestBase implements Serializa
             this.os = os;
         }
 
+        @Override
         public Void call() throws Exception {
             os.write(0); // this write will go through because we won't notice that it's dead
             System.gc();

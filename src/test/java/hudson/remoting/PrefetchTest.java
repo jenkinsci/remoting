@@ -43,6 +43,7 @@ public class PrefetchTest extends RmiTestBase {
     }
 
     private static class VerifyTask extends CallableBase<String,IOException> {
+        @Override
         public String call() throws IOException {
             StackMapAttribute sma = new StackMapAttribute();
             return Which.jarFile(sma.getClass()).getPath();

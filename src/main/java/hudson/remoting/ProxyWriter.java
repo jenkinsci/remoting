@@ -108,10 +108,12 @@ final class ProxyWriter extends Writer {
         }
     }
 
+    @Override
     public void write(int c) throws IOException {
         write(new char[]{(char)c},0,1);
     }
 
+    @Override
     public void write(char[] cbuf, int off, int len) throws IOException {
         if (closeCause != null) {
             throw new IOException("stream is already closed");
@@ -178,11 +180,13 @@ final class ProxyWriter extends Writer {
         }
     }
 
+    @Override
     public synchronized void flush() throws IOException {
         if(channel!=null && channel.remoteCapability.supportsProxyWriter2_35())
             channel.send(new Flush(channel.newIoId(),oid));
     }
 
+    @Override
     public synchronized void close() throws IOException {
         error(null);
     }
@@ -285,6 +289,7 @@ final class ProxyWriter extends Writer {
         protected void execute(final Channel channel) throws ExecutionException {
             final Writer os = (Writer) channel.getExportedObject(oid);
             channel.pipeWriter.submit(ioId, new Runnable() {
+                @Override
                 public void run() {
                     try {
                         os.write(buf);
@@ -317,6 +322,7 @@ final class ProxyWriter extends Writer {
             });
         }
 
+        @Override
         public String toString() {
             return "ProxyWriter.Chunk("+oid+","+buf.length+")";
         }
@@ -338,9 +344,11 @@ final class ProxyWriter extends Writer {
             this.oid = oid;
         }
 
+        @Override
         protected void execute(Channel channel) throws ExecutionException {
             final Writer os = (Writer) channel.getExportedObject(oid);
             channel.pipeWriter.submit(ioId, new Runnable() {
+                @Override
                 public void run() {
                     try {
                         os.flush();
@@ -351,6 +359,7 @@ final class ProxyWriter extends Writer {
             });
         }
 
+        @Override
         public String toString() {
             return "ProxyWriter.Flush("+oid+")";
         }
@@ -374,14 +383,17 @@ final class ProxyWriter extends Writer {
             this.oid = oid;
         }
 
+        @Override
         protected void execute(final Channel channel) {
             channel.pipeWriter.submit(ioId,new Runnable() {
+                @Override
                 public void run() {
                     channel.unexport(oid,createdAt,false);
                 }
             });
         }
 
+        @Override
         public String toString() {
             return "ProxyWriter.Unexport("+oid+")";
         }
@@ -401,6 +413,7 @@ final class ProxyWriter extends Writer {
             this.oid = oid;
         }
 
+        @Override
         protected void execute(final Channel channel) {
             final Writer os = (Writer) channel.getExportedObjectOrNull(oid);
             // EOF may be late to the party if we interrupt request, hence we do not fail for this command
@@ -409,6 +422,7 @@ final class ProxyWriter extends Writer {
                 return;
             }
             channel.pipeWriter.submit(ioId, new Runnable() {
+                @Override
                 public void run() {
                     channel.unexport(oid,createdAt,false);
                     try {
@@ -420,6 +434,7 @@ final class ProxyWriter extends Writer {
             });
         }
 
+        @Override
         public String toString() {
             return "ProxyWriter.EOF("+oid+")";
         }
@@ -447,11 +462,13 @@ final class ProxyWriter extends Writer {
             this.size = size;
         }
 
+        @Override
         protected void execute(Channel channel) {
             PipeWindow w = channel.getPipeWindow(oid);
             w.increase(size);
         }
 
+        @Override
         public String toString() {
             return "ProxyWriter.Ack("+oid+','+size+")";
         }
@@ -477,6 +494,7 @@ final class ProxyWriter extends Writer {
             w.dead(createdAt != null ? createdAt.getCause() : null);
         }
 
+        @Override
         public String toString() {
             return "ProxyWriter.Dead("+oid+")";
         }

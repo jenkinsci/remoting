@@ -549,6 +549,7 @@ public class NioChannelHub implements Runnable, Closeable {
     /**
      * Shuts down the selector thread and aborts all
      */
+    @Override
     public void close() throws IOException {
         selector.close();
     }
@@ -558,6 +559,7 @@ public class NioChannelHub implements Runnable, Closeable {
      *
      * This method returns when {@link #close()} is called and the selector is shut down.
      */
+    @Override
     public void run() {
         synchronized (startedLock) {
             started = true;

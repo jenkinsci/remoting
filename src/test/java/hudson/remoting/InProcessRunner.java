@@ -20,6 +20,7 @@ public class InProcessRunner implements DualSideChannelRunner {
     private Exception failure;
     private Channel south;
 
+    @Override
     public Channel start() throws Exception {
         final FastPipedInputStream in1 = new FastPipedInputStream();
         final FastPipedOutputStream out1 = new FastPipedOutputStream(in1);
@@ -32,6 +33,7 @@ public class InProcessRunner implements DualSideChannelRunner {
         executor = Executors.newCachedThreadPool();
 
         Thread t = new Thread("south bridge runner") {
+            @Override
             public void run() {
                 try {
                     Channel south = configureSouth().build(in2,out1);
@@ -63,6 +65,7 @@ public class InProcessRunner implements DualSideChannelRunner {
                 .withCapability(createCapability());
     }
 
+    @Override
     public void stop(Channel channel) throws Exception {
         channel.close();
         channel.join();
@@ -75,6 +78,7 @@ public class InProcessRunner implements DualSideChannelRunner {
             throw failure;  // report a failure in the south side
     }
 
+    @Override
     public String getName() {
         return "local";
     }

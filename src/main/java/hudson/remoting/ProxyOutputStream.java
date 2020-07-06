@@ -90,10 +90,12 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         notifyAll(); // release blocking writes
     }
 
+    @Override
     public void write(int b) throws IOException {
         write(new byte[]{(byte)b},0,1);
     }
 
+    @Override
     public synchronized void write(byte[] b, int off, int len) throws IOException {
         try {
             // block until stream gets connected
@@ -150,16 +152,19 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
     }
 
+    @Override
     public synchronized void flush() throws IOException {
         if (channel != null && /* see #finalize */ oid != -1) {
             channel.send(new Flush(channel.newIoId(), oid));
         }
     }
 
+    @Override
     public synchronized void close() throws IOException {
         error(null);
     }
 
+    @Override
     public synchronized void error(Throwable e) throws IOException {
         if (!closed) {
             closed = true;
@@ -250,6 +255,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                                 channel.getName(), oid), ex);
             }
             markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
+                @Override
                 public void run() {
                     try {
                         os.write(buf);
@@ -281,6 +287,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             }));
         }
 
+        @Override
         public String toString() {
             return "Pipe.Chunk("+oid+","+buf.length+")";
         }
@@ -306,6 +313,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         protected void execute(Channel channel) throws ExecutionException {
             final OutputStream os = (OutputStream) channel.getExportedObject(oid);
             markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
+                @Override
                 public void run() {
                     try {
                         os.flush();
@@ -316,6 +324,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             }));
         }
 
+        @Override
         public String toString() {
             return "Pipe.Flush("+oid+")";
         }
@@ -338,14 +347,17 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             this.oid = oid;
         }
 
+        @Override
         protected void execute(final Channel channel) {
             channel.pipeWriter.submit(ioId,new Runnable() {
+                @Override
                 public void run() {
                     channel.unexport(oid,createdAt,false);
                 }
             });
         }
 
+        @Override
         public String toString() {
             return "ProxyOutputStream.Unexport("+oid+")";
         }
@@ -369,6 +381,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
 
 
+        @Override
         protected void execute(final Channel channel) {
             final OutputStream os = (OutputStream) channel.getExportedObjectOrNull(oid);
             // EOF may be late to the party if we interrupt request, hence we do not fail for this command
@@ -377,6 +390,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                 return;
             }
             markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
+                @Override
                 public void run() {
                     channel.unexport(oid,createdAt,false);
                     try {
@@ -390,6 +404,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             }));
         }
 
+        @Override
         public String toString() {
             return "ProxyOutputStream.EOF("+oid+")";
         }
@@ -416,11 +431,13 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             this.size = size;
         }
 
+        @Override
         protected void execute(Channel channel) {
             PipeWindow w = channel.getPipeWindow(oid);
             w.increase(size);
         }
 
+        @Override
         public String toString() {
             return "ProxyOutputStream.Ack("+oid+','+size+")";
         }
@@ -445,6 +462,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             w.dead(createdAt != null ? createdAt.getCause() : null);
         }
 
+        @Override
         public String toString() {
             return "ProxyOutputStream.Dead("+oid+")";
         }

@@ -19,6 +19,7 @@ import java.util.logging.Logger;
  * @author Kohsuke Kawaguchi
  */
 public class NioPipeRunner extends AbstractNioChannelRunner {
+    @Override
     public Channel start() throws Exception {
         final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<>();
 
@@ -56,6 +57,7 @@ public class NioPipeRunner extends AbstractNioChannelRunner {
         return north;
     }
 
+    @Override
     public String getName() {
         return "NIO+pipe";
     }

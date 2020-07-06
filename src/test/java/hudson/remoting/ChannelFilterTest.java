@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 public class ChannelFilterTest extends RmiTestBase {
     public void testFilter() throws Exception {
         channel.addLocalExecutionInterceptor(new CallableDecorator() {
+            @Override
             public <V> V call(Callable<V> callable) throws Exception {
                 Object old = STORE.get();
                 STORE.set("x");
@@ -36,6 +37,7 @@ public class ChannelFilterTest extends RmiTestBase {
             this.c = c;
         }
 
+        @Override
         public Object call() throws Exception {
            return c.call();
         }
@@ -85,6 +87,7 @@ public class ChannelFilterTest extends RmiTestBase {
     private interface ShadyBusiness {}
 
     static class GunImporter extends CallableBase<String,IOException> implements ShadyBusiness {
+        @Override
         public String call() {
             return "gun";
         }
@@ -92,6 +95,7 @@ public class ChannelFilterTest extends RmiTestBase {
     }
 
     static class ReverseGunImporter extends CallableBase<String, Exception> {
+        @Override
         public String call() throws Exception {
             return Channel.currentOrFail().call(new GunImporter());
         }

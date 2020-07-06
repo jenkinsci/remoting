@@ -51,14 +51,17 @@ public class SocketOutputStream extends FilterOutputStream {
         this.socket = socket;
     }
 
+    @Override
     public void write(int b) throws IOException {
         out.write(b);
     }
 
+    @Override
     public void write(byte[] b) throws IOException {
         out.write(b);
     }
 
+    @Override
     public void write(byte[] b, int off, int len) throws IOException {
         out.write(b, off, len);
     }

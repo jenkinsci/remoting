@@ -90,6 +90,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         error(null);
     }
 
+    @Override
     public void error(Throwable e) throws IOException {
         if(sink == null) {
             throw new IOException("Unconnected pipe");
@@ -129,6 +130,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         }
     }
 
+    @Override
     public void write(int b) throws IOException {
         write(new byte[] { (byte) b });
     }

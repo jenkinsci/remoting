@@ -126,6 +126,7 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
      *
      * @see ErrorPropagatingOutputStream#error(Throwable)
      */
+    @Override
     public void error(Throwable t) throws IOException {
         if (out instanceof ErrorPropagatingOutputStream) {
             ErrorPropagatingOutputStream eo = (ErrorPropagatingOutputStream) out;
@@ -219,6 +220,7 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
         protected void execute(final Channel channel) throws ExecutionException {
             // ordering barrier not needed for this I/O call, so not giving I/O ID.
             channel.pipeWriter.submit(0,new Runnable() {
+                @Override
                 public void run() {
                     try {
                         final ProxyOutputStream ros = (ProxyOutputStream) channel.getExportedObject(oidRos);

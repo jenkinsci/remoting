@@ -249,6 +249,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         return null;
     }
 
+    @Override
     @Nullable
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if(method.getDeclaringClass()==IReadResolve.class) {
@@ -328,6 +329,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Two proxies are the same iff they represent the same remote object.
      */
+    @Override
     public boolean equals(Object o) {
         if(o!=null && Proxy.isProxyClass(o.getClass()))
             o = Proxy.getInvocationHandler(o);
@@ -341,6 +343,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
     }
 
+    @Override
     public int hashCode() {
         return oid;
     }
@@ -901,6 +904,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             assert types.length == arguments.length;
         }
 
+        @Override
         public Serializable call() throws Throwable {
             return perform(getChannelOrFail());
         }
@@ -918,6 +922,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 return getClass().getClassLoader();
         }
 
+        @Override
         protected Serializable perform(@Nonnull Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
             Class<?>[] clazz = channel.getExportedTypes(oid);

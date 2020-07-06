@@ -46,12 +46,15 @@ public final class GuiListener implements EngineListener {
         frame.setVisible(true);
     }
 
+    @Override
     public void status(final String msg) {
         status(msg,null);
     }
 
+    @Override
     public void status(final String msg, final Throwable t) {
         SwingUtilities.invokeLater(new Runnable() {
+            @Override
             public void run() {
                 frame.status(msg);
                 if(t!=null)
@@ -77,8 +80,10 @@ public final class GuiListener implements EngineListener {
         });
     }
 
+    @Override
     public void onDisconnect() {
         SwingUtilities.invokeLater(new Runnable() {
+            @Override
             public void run() {
                 // discard all the menu items that might have been added by the master.
                 frame.resetMenuBar();
@@ -86,6 +91,7 @@ public final class GuiListener implements EngineListener {
         });
     }
 
+    @Override
     public void onReconnect() {
     }
 

@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 public class DaemonThreadFactory implements ThreadFactory {
     private static final Logger LOGGER = Logger.getLogger(DaemonThreadFactory.class.getName());
 
+    @Override
     public Thread newThread(Runnable r) {
         Thread thread = new Thread(r);
         thread.setDaemon(true);

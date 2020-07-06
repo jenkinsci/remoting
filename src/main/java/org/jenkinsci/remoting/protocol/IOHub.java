@@ -994,6 +994,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         /**
          * {@inheritDoc}
          */
+        @Override
         public synchronized boolean isCancelled() {
             return task == null;
         }

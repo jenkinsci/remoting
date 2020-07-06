@@ -22,6 +22,7 @@ import static org.junit.Assert.*;
  * Runs a channel over NIO+socket.
  */
 public class NioSocketRunner extends AbstractNioChannelRunner {
+    @Override
     public Channel start() throws Exception {
         final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<>();
 
@@ -83,6 +84,7 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
     }
 
 
+    @Override
     public String getName() {
         return "NIO+socket";
     }

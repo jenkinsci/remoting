@@ -58,6 +58,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
             this.expected = expected;
         }
 
+        @Override
         public Object call() throws IOException {
             assertArrayEquals(readFully(in, expected.length), expected);
             return null;
@@ -84,6 +85,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
             this.i = i;
         }
 
+        @Override
         public Void call() throws IOException {
             assertEquals(readFully(i, 4), toBytes("1234"));
             assertEquals(readFully(i, 4), toBytes("5678"));
@@ -118,6 +120,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
             this.i = i;
         }
 
+        @Override
         public Void call() throws IOException {
             assertEquals(readFully(i, 4), toBytes("1234"));
             try {

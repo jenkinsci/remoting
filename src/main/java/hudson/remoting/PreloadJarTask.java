@@ -57,6 +57,7 @@ final class PreloadJarTask implements DelegatingCallable<Boolean,IOException> {
         return target;
     }
 
+    @Override
     public Boolean call() throws IOException {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         if (!(cl instanceof RemoteClassLoader))

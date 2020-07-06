@@ -20,5 +20,6 @@ public interface ListeningPort extends Closeable {
      * Connections that are already established will not be affected
      * by this operation.
      */
+    @Override
     void close() throws IOException;
 }

@@ -150,6 +150,7 @@ class PipeWriter {
         assert old==null;
 
         return fh.set(base.submit(new Runnable() {
+            @Override
             public void run() {
                 final Thread t = Thread.currentThread();
                 final String oldName = t.getName();

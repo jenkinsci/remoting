@@ -118,6 +118,7 @@ class DummyClassLoader extends ClassLoader {
     }
 
 
+    @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         for (Entry e : entries) {
             if(name.equals(e.logicalName)) {
@@ -135,6 +136,7 @@ class DummyClassLoader extends ClassLoader {
     }
 
 
+    @Override
     protected URL findResource(String name) {
         for (Entry e : entries) {
             if (name.equals(e.logicalPath)) {

@@ -47,6 +47,7 @@ import java.io.StreamCorruptedException;
         return remoteCapability;
     }
 
+    @Override
     public final void write(Command cmd, boolean last) throws IOException {
         cmd.writeTo(channel,oos);
         // TODO notifyWrite using CountingOutputStream
@@ -62,10 +63,12 @@ import java.io.StreamCorruptedException;
             oos.reset();
     }
 
+    @Override
     public void closeWrite() throws IOException {
         oos.close();
     }
 
+    @Override
     public final Command read() throws IOException, ClassNotFoundException {
         try {
             Command cmd = Command.readFromObjectStream(channel, ois);
@@ -95,6 +98,7 @@ import java.io.StreamCorruptedException;
         return rawIn.analyzeCrash(e,(channel!=null ? channel : this).toString());
     }
 
+    @Override
     public void closeRead() throws IOException {
         ois.close();
     }
