@@ -71,8 +71,6 @@ THE SOFTWARE.
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.excludeFilterFile>${basedir}/src/spotbugs/excludeFilter.xml</spotbugs.excludeFilterFile>
     <spotbugs.threshold>Low</spotbugs.threshold>
-    <!-- TODO: Required to override by a version with certchain support (MJARSIGNER-53) on @oleg-nenashev's machine. Remove once it's in upstream -->
-    <maven-jarsigner-plugin.version>1.4</maven-jarsigner-plugin.version>
   </properties>
 
   <repositories>
@@ -288,7 +286,6 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-jarsigner-plugin</artifactId>
-        <version>${maven-jarsigner-plugin.version}</version>
         <configuration>
           <!--
             during the development, debug profile will cause
