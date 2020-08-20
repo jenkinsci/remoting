@@ -729,7 +729,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                                             + "pressure."
                                     : "The all time average rate is %.1f±%.1f/sec. "
                                                     + "The 15 minute average rate is %.1f±%.1f/sec. "
-                                                    + "At the 95% confidence level both are above 100.0/sec. ",
+                                                    + "At the 95%% confidence level both are above 100.0/sec. ",
                                     tAvg, tStd, m15Avg, m15Std));
                     return;
                 }
@@ -743,7 +743,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                                         + "'false' to trade debug diagnostics for reduced memory "
                                         + "pressure."
                                 : "The 15 minute average rate is %.1f±%.1f/sec. "
-                                        + "At the 95% confidence level this is above 100.0/sec. ",
+                                        + "At the 95%% confidence level this is above 100.0/sec. ",
                                 m15Avg, m15Std));
                 return;
             }
@@ -758,7 +758,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                                         + "'false' to trade debug diagnostics for reduced memory "
                                         + "pressure."
                                 : "The 5 minute average rate is %.1f±%.1f/sec. "
-                                        + "At the 95% confidence level this is above 100.0/sec. ",
+                                        + "At the 95%% confidence level this is above 100.0/sec. ",
                                 m5Avg, m5Std));
                 return;
             }
@@ -773,7 +773,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                                         + "'false' to trade debug diagnostics for reduced memory "
                                         + "pressure."
                                 : "The 1 minute average rate is %.1f±%.1f/sec. "
-                                        + "At the 95% confidence level this is above 100.0/sec. ",
+                                        + "At the 95%% confidence level this is above 100.0/sec. ",
                                 m1Avg, m1Std));
                 return;
             }
