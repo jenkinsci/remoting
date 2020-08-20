@@ -703,13 +703,12 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             double tStd = tCount <= 0 || tVarTimesCount < 0 ? 0 : Math.sqrt(tVarTimesCount / tCount);
             Level targetLevel = m15Avg > 100 ? Level.INFO : m15Avg > 50 ? Level.FINE : Level.FINER;
             if (logger.isLoggable(targetLevel)) {
-                logger.log(targetLevel, "rate(1min) = {0,number,0.0}±{1,number,0.0}/sec; "
-                                + "rate(5min) = {2,number,0.0}±{3,number,0.0}/sec; "
-                                + "rate(15min) = {4,number,0.0}±{5,number,0.0}/sec; "
-                                + "rate(total) = {6,number,0.0}±{7,number,0.0}/sec; N = {8,number}",
-                        new Object[]{
+                logger.log(targetLevel, () -> String.format("rate(1min) = %.1f±%.1f/sec; "
+                                + "rate(5min) = %.1f±%.1f/sec; "
+                                + "rate(15min) = %.1f±%.1f/sec; "
+                                + "rate(total) = %.1f±%.1f/sec; N = %d",
                                 m1Avg, m1Std, m5Avg, m5Std, m15Avg, m15Std, tAvg, tStd, tCount
-                        });
+                ));
             }
             if (tCount < 10L) {
                 // less than 10 reports is too soon to start alerting the user
@@ -719,63 +718,63 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             if (m15Std > 1 && 100 < m15Avg - 2 * m15Std) {
                 if (tStd > 1 && 100 < tAvg - 2 * tStd) {
                     logger.log(Level.SEVERE,
-                            retainOrigin ?
-                                    "The all time average rate is {0,number,0.0}±{1,number,0.0}/sec. "
-                                    + "The 15 minute average rate is {2,number,0.0}±{3,number,0.0}/sec. "
+                            String.format(retainOrigin ?
+                                    "The all time average rate is %.1f±%.1f/sec. "
+                                    + "The 15 minute average rate is %.1f±%.1f/sec. "
                                             + "At the 95% confidence level both are above 100.0/sec. "
                                             + "If this message is repeated often in the logs then PLEASE "
-                                            + "seriously consider setting system property ''hudson.remoting"
-                                            + ".RemoteInvocationHandler.Unexporter.retainOrigin'' to "
-                                            + "''false'' to trade debug diagnostics for reduced memory "
+                                            + "seriously consider setting system property 'hudson.remoting"
+                                            + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                            + "'false' to trade debug diagnostics for reduced memory "
                                             + "pressure."
-                                    : "The all time average rate is {0,number,0.0}±{1,number,0.0}/sec. "
-                                                    + "The 15 minute average rate is {2,number,0.0}±{3,number,0.0}/sec. "
+                                    : "The all time average rate is %.1f±%.1f/sec. "
+                                                    + "The 15 minute average rate is %.1f±%.1f/sec. "
                                                     + "At the 95% confidence level both are above 100.0/sec. ",
-                    new Object[]{tAvg, tStd, m15Avg, m15Std});
+                                    tAvg, tStd, m15Avg, m15Std));
                     return;
                 }
                 logger.log(Level.WARNING,
-                        retainOrigin ?
-                                "The 15 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                        String.format(retainOrigin ?
+                                "The 15 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95% confidence level this is above 100.0/sec. "
                                         + "If this message is repeated often in the logs then very "
-                                        + "seriously consider setting system property ''hudson.remoting"
-                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin'' to "
-                                        + "''false'' to trade debug diagnostics for reduced memory "
+                                        + "seriously consider setting system property 'hudson.remoting"
+                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                        + "'false' to trade debug diagnostics for reduced memory "
                                         + "pressure."
-                                : "The 15 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                                : "The 15 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95% confidence level this is above 100.0/sec. ",
-                        new Object[]{m15Avg, m15Std});
+                                m15Avg, m15Std));
                 return;
             }
             if (m5Std > 1 && 100 < m5Avg - 2 * m5Std) {
                 logger.log(Level.WARNING,
-                        retainOrigin ?
-                                "The 5 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                        String.format(retainOrigin ?
+                                "The 5 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95% confidence level this is above 100.0/sec. "
                                         + "If this message is repeated often in the logs then "
-                                        + "seriously consider setting system property ''hudson.remoting"
-                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin'' to "
-                                        + "''false'' to trade debug diagnostics for reduced memory "
+                                        + "seriously consider setting system property 'hudson.remoting"
+                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                        + "'false' to trade debug diagnostics for reduced memory "
                                         + "pressure."
-                                : "The 5 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                                : "The 5 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95% confidence level this is above 100.0/sec. ",
-                        new Object[]{m5Avg, m5Std});
+                                m5Avg, m5Std));
                 return;
             }
             if (m1Std > 1 && 100 < m1Avg - 2 * m1Std) {
                 logger.log(Level.INFO,
-                        retainOrigin ?
-                                "The 1 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                        String.format(retainOrigin ?
+                                "The 1 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95% confidence level this is above 100.0/sec. "
                                         + "If this message is repeated often in the logs then "
-                                        + "consider setting system property ''hudson.remoting"
-                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin'' to "
-                                        + "''false'' to trade debug diagnostics for reduced memory "
+                                        + "consider setting system property 'hudson.remoting"
+                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                        + "'false' to trade debug diagnostics for reduced memory "
                                         + "pressure."
-                                : "The 1 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                                : "The 1 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95% confidence level this is above 100.0/sec. ",
-                        new Object[]{m1Avg, m1Std});
+                                m1Avg, m1Std));
                 return;
             }
         }
