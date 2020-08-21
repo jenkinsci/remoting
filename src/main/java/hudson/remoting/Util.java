@@ -73,7 +73,7 @@ public class Util {
             fos.write(image);
         }
 
-        deleteDirectoryOnExit(resource);
+        deleteDirectoryOnExit(tmpDir.toFile());
         return resource;
     }
 
