@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.56</version>
+    <version>1.59</version>
     <relativePath />
   </parent>
 
@@ -71,6 +71,7 @@ THE SOFTWARE.
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.excludeFilterFile>${basedir}/src/spotbugs/excludeFilter.xml</spotbugs.excludeFilterFile>
     <spotbugs.threshold>Low</spotbugs.threshold>
+    <argLine></argLine>
   </properties>
 
   <repositories>
@@ -101,7 +102,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.12</version>
       <scope>test</scope>
     </dependency>
     <dependency>
