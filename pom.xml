@@ -71,7 +71,7 @@ THE SOFTWARE.
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.excludeFilterFile>${basedir}/src/spotbugs/excludeFilter.xml</spotbugs.excludeFilterFile>
     <spotbugs.threshold>Low</spotbugs.threshold>
-    <argLine></argLine>
+    <argLine/> <!-- TODO pending upstream fix -->
   </properties>
 
   <repositories>
