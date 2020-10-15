@@ -42,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -276,7 +277,7 @@ public class JnlpAgentEndpoint {
         if (!KeyUtils.equals(publicKey, that.publicKey)) {
             return false;
         }
-        if (protocols == null ? that.protocols != null : !protocols.equals(that.protocols)) {
+        if (!Objects.equals(protocols, that.protocols)) {
             return false;
         }
         if (host.equals(that.host)) {

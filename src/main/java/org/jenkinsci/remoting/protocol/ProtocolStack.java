@@ -30,6 +30,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -243,7 +244,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * @param name the new name of this stack to use in logging.
      */
     public void name(String name) {
-        if (!(this.name == null ? name == null : this.name.equals(name))) {
+        if (!(Objects.equals(this.name, name))) {
             if (LOGGER.isLoggable(Level.FINER)) {
                 LOGGER.log(Level.FINER, "[{0}] is now known as [{1}]", new Object[]{this.name, name});
             }
