@@ -625,8 +625,10 @@ public class Engine extends Thread {
                         }
                     }
                 }
+                String wsUrl = candidateUrls.get(0).toString().replaceFirst("^http", "ws");
+                if(!wsUrl.endsWith("/")) wsUrl += "/";
                 ContainerProvider.getWebSocketContainer().connectToServer(new AgentEndpoint(),
-                    ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
+                    ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(wsUrl + "wsagents/"));
                 while (ch.get() == null) {
                     Thread.sleep(100);
                 }
