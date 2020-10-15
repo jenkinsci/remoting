@@ -216,7 +216,7 @@ public class NioChannelHub implements Runnable, Closeable {
             if (receiver == null) {
                 throw new IllegalStateException("Aborting connection before it has been actually set up");
             }
-            receiver.terminate((IOException) new IOException("Connection aborted: "+this, e));
+            receiver.terminate(new IOException("Connection aborted: "+this, e));
         }
 
         @Override
