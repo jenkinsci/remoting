@@ -472,8 +472,7 @@ public class Engine extends Thread {
         }
         // Create the engine
         try {
-            IOHub hub = IOHub.create(executor);
-            try {
+            try (IOHub hub = IOHub.create(executor)) {
                 SSLContext context;
                 // prepare our SSLContext
                 try {
@@ -517,8 +516,6 @@ public class Engine extends Thread {
                     return;
                 }
                 innerRun(hub, context, executor);
-            } finally {
-                hub.close();
             }
         } catch (IOException e) {
             events.error(e);

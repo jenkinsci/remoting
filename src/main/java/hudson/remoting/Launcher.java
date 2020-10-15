@@ -627,11 +627,8 @@ public class Launcher {
         ss.setSoTimeout(30*1000);
 
         // write a port file to report the port number
-        FileWriter w = new FileWriter(tcpPortFile);
-        try {
+        try (FileWriter w = new FileWriter(tcpPortFile)) {
             w.write(String.valueOf(ss.getLocalPort()));
-        } finally {
-            w.close();
         }
 
         // accept just one connection and that's it.
