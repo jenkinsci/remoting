@@ -32,7 +32,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class BlindTrustX509ExtendedTrustManagerTest {
 
