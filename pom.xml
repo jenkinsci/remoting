@@ -165,13 +165,13 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk15on</artifactId>
-      <version>1.54</version>
+      <version>1.66</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
-      <version>1.54</version>
+      <version>1.66</version>
       <scope>test</scope>
     </dependency>
     <dependency>
