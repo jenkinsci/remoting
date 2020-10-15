@@ -445,12 +445,12 @@ public class Engine extends Thread {
     public void setCandidateCertificates(List<X509Certificate> candidateCertificates) {
         this.candidateCertificates = candidateCertificates == null
                 ? null
-                : new ArrayList<X509Certificate>(candidateCertificates);
+                : new ArrayList<>(candidateCertificates);
     }
 
     public void addCandidateCertificate(X509Certificate certificate) {
         if (candidateCertificates == null) {
-            candidateCertificates = new ArrayList<X509Certificate>();
+            candidateCertificates = new ArrayList<>();
         }
         candidateCertificates.add(certificate);
     }
@@ -867,7 +867,7 @@ public class Engine extends Thread {
         return CURRENT.get();
     }
 
-    private static final ThreadLocal<Engine> CURRENT = new ThreadLocal<Engine>();
+    private static final ThreadLocal<Engine> CURRENT = new ThreadLocal<>();
 
     private static final Logger LOGGER = Logger.getLogger(Engine.class.getName());
 
@@ -879,7 +879,7 @@ public class Engine extends Thread {
                 new PrivilegedExceptionAction<Map<String, String>>() {
                     @Override
                     public Map<String, String> run() throws Exception {
-                        Map<String, String> result = new HashMap<String, String>();
+                        Map<String, String> result = new HashMap<>();
                         result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
                         result.put("javaHome", System.getProperty("java.home"));
                         result.put("trustStoreType",

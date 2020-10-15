@@ -37,7 +37,7 @@ import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionEx
 public class SingleLaneExecutorService extends AbstractExecutorService {
     private final ExecutorService base;
 
-    private final Queue<Runnable> tasks = new LinkedBlockingQueue<Runnable>();
+    private final Queue<Runnable> tasks = new LinkedBlockingQueue<>();
     private boolean scheduled;
     /**
      * We are being shut down. No further submissions are allowed but existing tasks can continue.
@@ -80,7 +80,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
     @Override
     public synchronized List<Runnable> shutdownNow() {
         shuttingDown = shutDown = true;
-        List<Runnable> all = new LinkedList<Runnable>(tasks);
+        List<Runnable> all = new LinkedList<>(tasks);
         tasks.clear();
         return all;
     }

@@ -161,7 +161,7 @@ public class JnlpProtocolHandlerFactory {
      */
     @Nonnull
     public List<JnlpProtocolHandler<? extends JnlpConnectionState>> handlers() {
-        List<JnlpProtocolHandler<? extends JnlpConnectionState>> result = new ArrayList<JnlpProtocolHandler<? extends JnlpConnectionState>>();
+        List<JnlpProtocolHandler<? extends JnlpConnectionState>> result = new ArrayList<>();
         if (ioHub != null && context != null) {
             result.add(new JnlpProtocol4Handler(clientDatabase, threadPool, ioHub, context, needClientAuth, preferNio));
         }

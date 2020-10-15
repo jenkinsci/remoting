@@ -555,7 +555,7 @@ public class Launcher {
 
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
                 NodeList argElements = dom.getElementsByTagName("argument");
-                List<String> jnlpArgs = new ArrayList<String>();
+                List<String> jnlpArgs = new ArrayList<>();
                 for( int i=0; i<argElements.getLength(); i++ )
                         jnlpArgs.add(argElements.item(i).getTextContent());
                 if (agentJnlpCredentials != null) {

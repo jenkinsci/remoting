@@ -52,10 +52,10 @@ public class ChannelBuilder {
     private OutputStream header;
     @CheckForNull
     private JarCache jarCache;
-    private List<CallableDecorator> decorators = new ArrayList<CallableDecorator>();
+    private List<CallableDecorator> decorators = new ArrayList<>();
     private boolean arbitraryCallableAllowed = true;
     private boolean remoteClassLoadingAllowed = true;
-    private final Hashtable<Object,Object> properties = new Hashtable<Object,Object>();
+    private final Hashtable<Object,Object> properties = new Hashtable<>();
     private ClassFilter filter = ClassFilter.DEFAULT;
 
     /**
@@ -273,7 +273,7 @@ public class ChannelBuilder {
             @Override
             public void check(RoleSensitive subject, @Nonnull Collection<Role> expected) {
                 if (!actual.containsAll(expected)) {
-                    Collection<Role> c = new ArrayList<Role>(expected);
+                    Collection<Role> c = new ArrayList<>(expected);
                     c.removeAll(actual);
                     throw new SecurityException("Unexpected role: " + c);
                 }

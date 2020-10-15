@@ -36,7 +36,7 @@ class MultiClassLoaderSerializer {
         /**
          * Encountered Classloaders, to their indices.
          */
-        private final Map<ClassLoader,Integer> classLoaders = new HashMap<ClassLoader, Integer>();
+        private final Map<ClassLoader,Integer> classLoaders = new HashMap<>();
 
         Output(Channel channel, OutputStream out) throws IOException {
             super(out);
@@ -82,7 +82,7 @@ class MultiClassLoaderSerializer {
 
     static final class Input extends ObjectInputStream {
         private final Channel channel;
-        private final List<ClassLoader> classLoaders = new ArrayList<ClassLoader>();
+        private final List<ClassLoader> classLoaders = new ArrayList<>();
 
         Input(Channel channel, InputStream in) throws IOException {
             super(in);

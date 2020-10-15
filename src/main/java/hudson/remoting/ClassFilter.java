@@ -216,7 +216,7 @@ public abstract class ClassFilter {
         BufferedReader br = null;
         try {
             br = new BufferedReader(new InputStreamReader(new FileInputStream(prop), Charset.defaultCharset()));
-            ArrayList<String> patterns = new ArrayList<String>();
+            ArrayList<String> patterns = new ArrayList<>();
             for (String line = br.readLine(); line != null; line = br.readLine()) {
                 try {
                     Pattern.compile(line);

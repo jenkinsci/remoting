@@ -67,7 +67,7 @@ public class NioChannelHub implements Runnable, Closeable {
      * Used to schedule work that can be only done synchronously with the {@link Selector#select()} call.
      */
     private final Queue<Callable<Void,IOException>> selectorTasks
-            = new ConcurrentLinkedQueue<Callable<Void, IOException>>();
+            = new ConcurrentLinkedQueue<>();
 
     /**
      * {@link ExecutorService} that processes command parsing and executions.
@@ -731,7 +731,7 @@ public class NioChannelHub implements Runnable, Closeable {
 
     @SelectorThreadOnly
     private void abortAll(Throwable e) {
-        Set<NioTransport> pairs = new HashSet<NioTransport>();
+        Set<NioTransport> pairs = new HashSet<>();
         for (SelectionKey k : selector.keys())
             pairs.add((NioTransport)k.attachment());
         for (NioTransport p : pairs)

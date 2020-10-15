@@ -53,7 +53,7 @@ public class JnlpConnectionState {
      * The current iterator being used to process the listener notifications.
      */
     private static final ThreadLocal<Iterator<JnlpConnectionStateListener>> fireIterator
-            = new ThreadLocal<Iterator<JnlpConnectionStateListener>>();
+            = new ThreadLocal<>();
 
     /**
      * The property name for the secret key.
@@ -128,7 +128,7 @@ public class JnlpConnectionState {
      */
     public JnlpConnectionState(@Nullable Socket socket, List<? extends JnlpConnectionStateListener> listeners) {
         this.socket = socket;
-        this.listeners = new ArrayList<JnlpConnectionStateListener>(listeners);
+        this.listeners = new ArrayList<>(listeners);
     }
 
     /**
@@ -385,7 +385,7 @@ public class JnlpConnectionState {
         if (lifecycle != State.BEFORE_PROPERTIES) {
             throw new IllegalStateException("fireAfterProperties cannot be invoked at lifecycle " + lifecycle);
         }
-        this.properties = new HashMap<String, String>(properties);
+        this.properties = new HashMap<>(properties);
         lifecycle = State.AFTER_PROPERTIES;
         // TODO fire(JnlpConnectionStateListener::afterProperties);
         fire(new EventHandler() {

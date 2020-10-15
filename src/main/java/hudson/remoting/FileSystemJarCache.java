@@ -33,7 +33,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     /**
      * We've reported these checksums as present on this side.
      */
-    private final Set<Checksum> notified = Collections.synchronizedSet(new HashSet<Checksum>());
+    private final Set<Checksum> notified = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * Cache of computer checksums for cached jars.

@@ -159,7 +159,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Requests that are sent to the remote side for execution, yet we are waiting locally until
      * we hear back their responses.
      */
-    /*package*/ final Map<Integer,Request<? extends Serializable,? extends Throwable>> pendingCalls = new Hashtable<Integer,Request<? extends Serializable,? extends Throwable>>();
+    /*package*/ final Map<Integer,Request<? extends Serializable,? extends Throwable>> pendingCalls = new Hashtable<>();
 
     /**
      * Remembers last I/O ID issued from locally to the other side, per thread.
@@ -171,7 +171,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Records the {@link Request}s being executed on this channel, sent by the remote peer.
      */
     /*package*/ final Map<Integer,Request<?,?>> executingCalls =
-        Collections.synchronizedMap(new Hashtable<Integer,Request<?,?>>());
+        Collections.synchronizedMap(new Hashtable<>());
 
     /**
      * {@link ClassLoader}s that are proxies of the remote classloaders.
@@ -200,7 +200,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * per OID, it will only result in a temporary spike in the effective window size,
      * and therefore should be OK.
      */
-    private final WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>> pipeWindows = new WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>>();
+    private final WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>> pipeWindows = new WeakHashMap<>();
     /**
      * There are cases where complex object cycles can cause a closed channel to fail to be garbage collected,
      * these typically arrise when an {@link #export(Class, Object)} is {@link #setProperty(Object, Object)}
@@ -977,7 +977,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 w = new Real(k, PIPE_WINDOW_SIZE);
             else
                 w = new PipeWindow.Fake();
-            pipeWindows.put(k,new WeakReference<PipeWindow>(w));
+            pipeWindows.put(k, new WeakReference<>(w));
             return w;
         }
     }
@@ -997,7 +997,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         UserRequest<V,T> request=null;
         try {
-            request = new UserRequest<V, T>(this, callable);
+            request = new UserRequest<>(this, callable);
             UserRequest.ResponseToUserRequest<V, T> r = request.call(this);
             return r.retrieve(this, UserRequest.getClassLoader(callable));
 
@@ -1993,7 +1993,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Remembers the current "channel" associated for this thread.
      */
-    private static final ThreadLocal<Channel> CURRENT = new ThreadLocal<Channel>();
+    private static final ThreadLocal<Channel> CURRENT = new ThreadLocal<>();
 
     private static final Logger logger = Logger.getLogger(Channel.class.getName());
 
@@ -2017,7 +2017,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Keep track of active channels in the system for diagnostics purposes.
      */
-    private static final Map<Channel,Ref> ACTIVE_CHANNELS = Collections.synchronizedMap(new WeakHashMap<Channel, Ref>());
+    private static final Map<Channel,Ref> ACTIVE_CHANNELS = Collections.synchronizedMap(new WeakHashMap<>());
 
     static final Class<?> jarLoaderProxy;
 

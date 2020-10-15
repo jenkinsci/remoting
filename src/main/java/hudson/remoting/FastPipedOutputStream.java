@@ -111,8 +111,8 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         if(this.sink != null) {
             throw new IOException("Pipe already connected");
         }
-        this.sink = new WeakReference<FastPipedInputStream>(sink);
-        sink.source = new WeakReference<FastPipedOutputStream>(this);
+        this.sink = new WeakReference<>(sink);
+        sink.source = new WeakReference<>(this);
     }
 
     @Override

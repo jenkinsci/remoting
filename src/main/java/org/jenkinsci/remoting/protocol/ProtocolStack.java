@@ -141,7 +141,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * Our listeners.
      */
     @GuardedBy("stackLock")
-    private final List<Listener> listeners = new ArrayList<Listener>();
+    private final List<Listener> listeners = new ArrayList<>();
 
     private final long handshakingTimeout = 10L;
 
@@ -362,7 +362,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * @param cause the cause or {@code null} if the close was "normal".
      */
     /*package*/ void onClosed(IOException cause) {
-        final List<Listener> listeners = new ArrayList<Listener>();
+        final List<Listener> listeners = new ArrayList<>();
         stackLock.readLock().lock();
         try {
             listeners.addAll(this.listeners);
@@ -463,7 +463,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         /**
          * The initial listeners to register.
          */
-        private final List<Listener> listeners = new ArrayList<Listener>();
+        private final List<Listener> listeners = new ArrayList<>();
 
         /**
          * The name to give the protocol stack.
@@ -486,7 +486,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
                 throw new IllegalArgumentException();
             }
             this.network = network;
-            this.filters = new ArrayList<FilterLayer>();
+            this.filters = new ArrayList<>();
         }
 
         /**
@@ -546,7 +546,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
             checkNotBuilt();
             built = true;
             ProtocolStack<T> stack =
-                    new ProtocolStack<T>(
+                    new ProtocolStack<>(
                             name == null || name.isEmpty() ? String.format("Stack-%d", id.incrementAndGet()) : name,
                             network,
                             filters,

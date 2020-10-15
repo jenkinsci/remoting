@@ -107,7 +107,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
 
     public JnlpAgentEndpointResolver(String... jenkinsUrls) {
-        this.jenkinsUrls = new ArrayList<String>(Arrays.asList(jenkinsUrls));
+        this.jenkinsUrls = new ArrayList<>(Arrays.asList(jenkinsUrls));
     }
 
     public JnlpAgentEndpointResolver(@Nonnull List<String> jenkinsUrls) {
@@ -245,7 +245,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 List<String> protocols = header(con, "X-Jenkins-Agent-Protocols");
                 if (protocols != null) {
                     // Take the list of protocols to try from the headers
-                    agentProtocolNames = new HashSet<String>();
+                    agentProtocolNames = new HashSet<>();
                     for (String names : protocols) {
                         for (String name : names.split(",")) {
                             name = name.trim();
@@ -268,7 +268,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
                 if (PROTOCOL_NAMES_TO_TRY != null) {
                     // Take a list of protocols to try from the system property
-                    agentProtocolNames = new HashSet<String>();
+                    agentProtocolNames = new HashSet<>();
                     LOGGER.log(Level.INFO, "Ignoring the list of supported remoting protocols provided by the server, because the " +
                         "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' property is defined. Will try {0}", PROTOCOL_NAMES_TO_TRY);
                     for (String name : PROTOCOL_NAMES_TO_TRY.split(",")) {

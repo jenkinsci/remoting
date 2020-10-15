@@ -102,23 +102,23 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     /**
      * The scheduled tasks to run later.
      */
-    private final DelayQueue<DelayedRunnable> scheduledTasks = new DelayQueue<DelayedRunnable>();
+    private final DelayQueue<DelayedRunnable> scheduledTasks = new DelayQueue<>();
     /**
      * Tasks to run on the selector thread.
      */
-    private final Queue<Runnable> selectorTasks = new ConcurrentLinkedQueue<Runnable>();
+    private final Queue<Runnable> selectorTasks = new ConcurrentLinkedQueue<>();
     /**
      * Registrations to process (these must take place on the selector thread). We could process these using
      * a {@link Runnable} on {@link #selectorTasks} but we want to optimize detecting when to call
      * {@link Selector#selectNow()}.
      */
-    private final Queue<Registration> registrations = new ConcurrentLinkedQueue<Registration>();
+    private final Queue<Registration> registrations = new ConcurrentLinkedQueue<>();
     /**
      * {@link SelectionKey#interestOps()} modifications to process (these are safer taking place on the selector
      * thread).We could process these using a {@link Runnable} on {@link #selectorTasks} but we want to optimize
      * detecting when to call {@link Selector#selectNow()}.
      */
-    private final Queue<InterestOps> interestOps = new ConcurrentLinkedQueue<InterestOps>();
+    private final Queue<InterestOps> interestOps = new ConcurrentLinkedQueue<>();
     /**
      * Counts the # of select loops. Ocassionally useful for diagnosing whether the selector
      * thread is spending too much CPU time.
@@ -577,7 +577,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         if (tasksWaiting > 4) {
             // DelayQueue.drainTo is more efficient than repeated polling
             // but we don't want to create the ArrayList every time the selector loops
-            List<DelayedRunnable> scheduledWork = new ArrayList<DelayedRunnable>();
+            List<DelayedRunnable> scheduledWork = new ArrayList<>();
             scheduledTasks.drainTo(scheduledWork);
             for (DelayedRunnable task : scheduledWork) {
                 if (!task.isCancelled()) {

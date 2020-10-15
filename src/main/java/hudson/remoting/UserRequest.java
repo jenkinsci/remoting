@@ -242,7 +242,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                     // perhaps the thrown runtime exception is of type we can't handle
                     response = serialize(new ProxyException(e), channel);
                 }
-                return new UserResponse<RSP,EXC>(response,true);
+                return new UserResponse<>(response, true);
             } catch (IOException x) {
                 // throw it as a lower-level exception
                 throw (EXC)x;

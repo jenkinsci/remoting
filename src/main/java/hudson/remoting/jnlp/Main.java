@@ -224,7 +224,7 @@ public class Main {
      * Two mandatory parameters: secret key, and agent name.
      */
     @Argument
-    public List<String> args = new ArrayList<String>();
+    public List<String> args = new ArrayList<>();
 
     public static void main(String[] args) throws IOException, InterruptedException {
         try {
@@ -341,7 +341,7 @@ public class Main {
             } catch (CertificateException e) {
                 throw new IllegalStateException("Java platform specification mandates support for X.509", e);
             }
-            List<X509Certificate> certificates = new ArrayList<X509Certificate>(candidateCertificates.size());
+            List<X509Certificate> certificates = new ArrayList<>(candidateCertificates.size());
             for (String certOrAtFilename : candidateCertificates) {
                 certOrAtFilename = certOrAtFilename.trim();
                 byte[] cert;
