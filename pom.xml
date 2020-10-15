@@ -95,7 +95,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.glassfish.tyrus.bundles</groupId>
       <artifactId>tyrus-standalone-client-jdk</artifactId>
-      <version>1.12</version>
+      <version>1.17</version>
       <optional>true</optional>
     </dependency>
     <dependency>
