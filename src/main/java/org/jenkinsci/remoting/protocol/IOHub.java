@@ -921,7 +921,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             // we want to compare based on the delay
             long x = getDelay(TimeUnit.NANOSECONDS);
             long y = o.getDelay(TimeUnit.NANOSECONDS);
-            return (x < y) ? -1 : ((x == y) ? 0 : 1);
+            return Long.compare(x, y);
         }
 
         /**

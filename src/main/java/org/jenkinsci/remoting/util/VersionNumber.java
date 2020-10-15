@@ -518,7 +518,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
         }
         int i1 = Integer.parseInt(snapshot.substring(17));
         int i2 = Integer.parseInt(o.snapshot.substring(17));
-        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+        return Integer.compare(i1, i2);
     }
 
     @Override
