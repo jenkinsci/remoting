@@ -51,8 +51,8 @@ import org.junit.runners.model.Statement;
 
 public class X509CertificateRule implements TestRule {
     private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
-    private final KeyPairRule subjectKey;
-    private final KeyPairRule signerKey;
+    private final KeyPairRule<? extends PublicKey, ? extends PrivateKey> subjectKey;
+    private final KeyPairRule<? extends PublicKey, ? extends PrivateKey> signerKey;
     private final long startDateOffsetMillis;
     private final long endDateOffsetMillis;
     private final String id;
@@ -85,8 +85,8 @@ public class X509CertificateRule implements TestRule {
         return new X509CertificateRule("", subject, signer, startDateOffset, endDateOffset, units);
     }
 
-    public X509CertificateRule(String id, KeyPairRule subjectKey,
-                               KeyPairRule signerKey, long startDateOffset, long endDateOffset, TimeUnit units) {
+    public X509CertificateRule(String id, KeyPairRule<? extends PublicKey, ? extends PrivateKey> subjectKey,
+                               KeyPairRule<? extends PublicKey, ? extends PrivateKey> signerKey, long startDateOffset, long endDateOffset, TimeUnit units) {
         this.id = id;
         this.subjectKey = subjectKey;
         this.signerKey = signerKey;

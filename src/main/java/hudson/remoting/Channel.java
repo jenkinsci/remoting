@@ -47,6 +47,7 @@ import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -158,7 +159,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Requests that are sent to the remote side for execution, yet we are waiting locally until
      * we hear back their responses.
      */
-    /*package*/ final Map<Integer,Request<?,?>> pendingCalls = new Hashtable<Integer,Request<?,?>>();
+    /*package*/ final Map<Integer,Request<? extends Serializable,? extends Throwable>> pendingCalls = new Hashtable<Integer,Request<? extends Serializable,? extends Throwable>>();
 
     /**
      * Remembers last I/O ID issued from locally to the other side, per thread.

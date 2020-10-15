@@ -360,7 +360,7 @@ final class ExportTable {
     synchronized <T> int export(@Nonnull Class<T> clazz, @CheckForNull T t, boolean notifyListener) {
         if(t==null)    return 0;   // bootstrap classloader
 
-        Entry e = reverse.get(t);
+        Entry<T> e = (Entry<T>) reverse.get(t);
         if (e == null) {
             e = new Entry<T>(t, clazz);
         } else {

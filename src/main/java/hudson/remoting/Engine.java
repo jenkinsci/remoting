@@ -664,7 +664,7 @@ public class Engine extends Thread {
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
         // Create the protocols that will be attempted to connect to the master.
-        List<JnlpProtocolHandler> protocols = new JnlpProtocolHandlerFactory(service)
+        List<JnlpProtocolHandler<? extends JnlpConnectionState>> protocols = new JnlpProtocolHandlerFactory(service)
                 .withIOHub(hub)
                 .withSSLContext(context)
                 .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
@@ -726,7 +726,7 @@ public class Engine extends Thread {
                 try {
                     // Try available protocols.
                     boolean triedAtLeastOneProtocol = false;
-                    for (JnlpProtocolHandler<?> protocol : protocols) {
+                    for (JnlpProtocolHandler<? extends JnlpConnectionState> protocol : protocols) {
                         if (!protocol.isEnabled()) {
                             events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
                             continue;

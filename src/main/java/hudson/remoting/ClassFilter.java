@@ -53,7 +53,7 @@ public abstract class ClassFilter {
      * @param c a loaded class
      * @return false by default; override to return true to blacklist this class
      */
-    public boolean isBlacklisted(@Nonnull Class c) {
+    public boolean isBlacklisted(@Nonnull Class<?> c) {
         return false;
     }
 
@@ -74,7 +74,7 @@ public abstract class ClassFilter {
      * @return the same {@code c}
      * @throws SecurityException if it is blacklisted
      */
-    public final Class check(Class c) {
+    public final Class<?> check(Class<?> c) {
         if (isBlacklisted(c)) {
             throw new SecurityException("Rejected: " + c.getName() + "; see https://jenkins.io/redirect/class-filter/");
         }
@@ -119,7 +119,7 @@ public abstract class ClassFilter {
      */
     public static final ClassFilter DEFAULT = new ClassFilter() {
         @Override
-        public boolean isBlacklisted(Class c) {
+        public boolean isBlacklisted(Class<?> c) {
             return CURRENT_DEFAULT.isBlacklisted(c);
         }
         @Override
@@ -300,7 +300,7 @@ public abstract class ClassFilter {
         }
 
         @Override
-        public boolean isBlacklisted(Class c) {
+        public boolean isBlacklisted(Class<?> c) {
             AnonymousClassWarnings.check(c);
             return false;
         }
