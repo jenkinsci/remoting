@@ -537,7 +537,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @param restricted
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
-     * @param jarCache
      *
      * @since 2.24
      * @deprecated as of 2.38

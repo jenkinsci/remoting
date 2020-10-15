@@ -178,7 +178,6 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      * Sets if the HTTPs certificate check should be disabled.
      *
      * This behavior is not recommended.
-     * @param disableHttpsCertValidation
      */
     public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
         this.disableHttpsCertValidation = disableHttpsCertValidation;
