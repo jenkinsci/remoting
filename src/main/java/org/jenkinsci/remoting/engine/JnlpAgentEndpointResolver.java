@@ -60,7 +60,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -323,7 +322,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 }
                 // sort the URLs so that the winner is the one we try first next time
                 final String winningJenkinsUrl = jenkinsUrl;
-                Collections.sort(jenkinsUrls, new Comparator<String>() {
+                jenkinsUrls.sort(new Comparator<String>() {
                     @Override
                     public int compare(String o1, String o2) {
                         if (winningJenkinsUrl.equals(o1)) {
