@@ -70,13 +70,13 @@ public class SSLEngineFilterLayer extends FilterLayer {
      * The queue of messages to send, populated while waiting on handshaking to complete.
      */
     @Nonnull
-    private ConcurrentLinkedQueue<ByteBuffer> messages = new ConcurrentLinkedQueue<ByteBuffer>();
+    private ConcurrentLinkedQueue<ByteBuffer> messages = new ConcurrentLinkedQueue<>();
     /**
      * Buffer to hold any partial reads until we have a complete SSL record.
      */
     @CheckForNull
     private ByteBuffer previous;
-    private final AtomicReference<ByteBuffer> directBufferRef = new AtomicReference<ByteBuffer>();
+    private final AtomicReference<ByteBuffer> directBufferRef = new AtomicReference<>();
 
     /**
      * Constructs a new instance.
@@ -541,7 +541,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
         /**
          * Secure credentials are removed from the session, application messages are not encrypted anymore.
          */
-        NO_CREDENTIALS;
+        NO_CREDENTIALS
 
     }
 }

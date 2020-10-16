@@ -45,7 +45,7 @@ public class ChannelTestSuite extends TestSuite {
 
         Enumeration<Test> en = tests();
         while (en.hasMoreElements()) {
-            Test test = (Test) en.nextElement();
+            Test test = en.nextElement();
 
             if(test instanceof RmiTestBase && channelRunner!=null) {
                 ((RmiTestBase)test).setChannelRunner(channelRunner);

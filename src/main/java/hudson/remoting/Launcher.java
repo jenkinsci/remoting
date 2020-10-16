@@ -48,7 +48,6 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -555,7 +554,7 @@ public class Launcher {
 
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
                 NodeList argElements = dom.getElementsByTagName("argument");
-                List<String> jnlpArgs = new ArrayList<String>();
+                List<String> jnlpArgs = new ArrayList<>();
                 for( int i=0; i<argElements.getLength(); i++ )
                         jnlpArgs.add(argElements.item(i).getTextContent());
                 if (agentJnlpCredentials != null) {
@@ -627,11 +626,8 @@ public class Launcher {
         ss.setSoTimeout(30*1000);
 
         // write a port file to report the port number
-        FileWriter w = new FileWriter(tcpPortFile);
-        try {
+        try (FileWriter w = new FileWriter(tcpPortFile)) {
             w.write(String.valueOf(ss.getLocalPort()));
-        } finally {
-            w.close();
         }
 
         // accept just one connection and that's it.

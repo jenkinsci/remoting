@@ -237,7 +237,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
     private class JarCacherCallable extends CallableBase<Void, IOException> {
         @Override
-        public Void call() throws IOException {
+        public Void call() {
             Channel.currentOrFail().setJarCache(new FileSystemJarCache(dir, true));
             return null;
         }

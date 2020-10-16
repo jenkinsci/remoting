@@ -1,7 +1,7 @@
 package hudson.remoting;
 
 import junit.framework.Test;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -76,7 +76,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
     /**
      * If {@link ProxyWriter} gets garbage collected, it should unexport the entry but shouldn't try to close the stream.
      */
-    @Bug(20769)
+    @Issue("JENKINS-20769")
     public void testRemoteGC() throws InterruptedException, IOException {
         // in the legacy mode ProxyWriter will try to close the stream, so can't run this test
         if (channelRunner.getName().equals("local-compatibility"))
@@ -166,7 +166,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
 
     private static class GcCallable extends CallableBase<Boolean, IOException> {
         @Override
-        public Boolean call() throws IOException {
+        public Boolean call() {
             System.gc();
             return W.get() == null;
         }

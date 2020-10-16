@@ -256,9 +256,6 @@ public class VersionNumber implements Comparable<VersionNumber> {
          * just returning an Integer with the index here is faster, but requires a lot of if/then/else to check for -1
          * or QUALIFIERS.size and then resort to lexical ordering. Most comparisons are decided by the first character,
          * so this is still fast. If more characters are needed then it requires a lexical sort anyway.
-         *
-         * @param qualifier
-         * @return
          */
         public static String comparableQualifier(String qualifier) {
             int i = _QUALIFIERS.indexOf(qualifier);
@@ -413,7 +410,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
 
         ListItem list = items;
 
-        Stack<Item> stack = new Stack<Item>();
+        Stack<Item> stack = new Stack<>();
         stack.push(list);
 
         boolean isDigit = false;
@@ -518,7 +515,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
         }
         int i1 = Integer.parseInt(snapshot.substring(17));
         int i2 = Integer.parseInt(o.snapshot.substring(17));
-        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+        return Integer.compare(i1, i2);
     }
 
     @Override

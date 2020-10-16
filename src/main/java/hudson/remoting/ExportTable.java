@@ -51,13 +51,13 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @author Kohsuke Kawaguchi
  */
 final class ExportTable {
-    private final Map<Integer,Entry<?>> table = new HashMap<Integer,Entry<?>>();
-    private final Map<Object,Entry<?>> reverse = new HashMap<Object,Entry<?>>();
+    private final Map<Integer,Entry<?>> table = new HashMap<>();
+    private final Map<Object,Entry<?>> reverse = new HashMap<>();
     /**
      * {@link ExportList}s which are actively recording the current
      * export operation.
      */
-    private final ThreadLocal<ExportList> lists = new ThreadLocal<ExportList>();
+    private final ThreadLocal<ExportList> lists = new ThreadLocal<>();
 
     /**
      * For diagnosing problems like JENKINS-20707 where we seem to be unexporting too eagerly,
@@ -65,7 +65,7 @@ final class ExportTable {
      *
      * New entries are added to the end, and older ones are removed from the beginning.
      */
-    private final List<Entry<?>> unexportLog = new LinkedList<Entry<?>>();
+    private final List<Entry<?>> unexportLog = new LinkedList<>();
 
     /**
      * Information about one exported object.
@@ -362,7 +362,7 @@ final class ExportTable {
 
         Entry<T> e = (Entry<T>) reverse.get(t);
         if (e == null) {
-            e = new Entry<T>(t, clazz);
+            e = new Entry<>(t, clazz);
         } else {
             e.addInterface(clazz);
         }
@@ -432,7 +432,7 @@ final class ExportTable {
     void abort(@CheckForNull Throwable e) {
         List<Entry<?>> values;
         synchronized (this) {
-            values = new ArrayList<Entry<?>>(table.values());
+            values = new ArrayList<>(table.values());
         }
         for (Entry<?> v : values) {
             if (v.object instanceof ErrorPropagatingOutputStream) {

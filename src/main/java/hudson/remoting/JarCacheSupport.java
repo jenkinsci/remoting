@@ -19,7 +19,7 @@ public abstract class JarCacheSupport extends JarCache {
     /**
      * Remember in-progress jar file resolution to avoid retrieving the same jar file twice.
      */
-    private final ConcurrentMap<Checksum,Future<URL>> inprogress = new ConcurrentHashMap<Checksum, Future<URL>>();
+    private final ConcurrentMap<Checksum,Future<URL>> inprogress = new ConcurrentHashMap<>();
 
     /**
      * Look up the local cache and return URL if found.
@@ -46,7 +46,7 @@ public abstract class JarCacheSupport extends JarCache {
         URL jar = lookInCache(channel,sum1, sum2);
         if (jar!=null) {
             // already in the cache
-            return new AsyncFutureImpl<URL>(jar);
+            return new AsyncFutureImpl<>(jar);
         }
 
         while (true) {// might have to try a few times before we get successfully resolve
@@ -59,7 +59,7 @@ public abstract class JarCacheSupport extends JarCache {
             } else {
                 // we are going to resolve this ourselves and publish the result in 'promise' for others
                 try {
-                    final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<URL>();
+                    final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<>();
                     ExecutorServiceUtils.submitAsync(downloader, new  DownloadRunnable(channel, sum1, sum2, key, promise));
                     // Now we are sure that the task has been accepted to the queue, hence we cache the promise
                     // if nobody else caches it before.

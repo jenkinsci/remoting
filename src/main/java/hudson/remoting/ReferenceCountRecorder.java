@@ -25,7 +25,7 @@ class ReferenceCountRecorder {
      */
     private int total;
 
-    private LinkedList<Event> events = new LinkedList<Event>();
+    private LinkedList<Event> events = new LinkedList<>();
 
     ReferenceCountRecorder(int cap) {
         this.cap = cap;

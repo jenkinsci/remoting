@@ -122,8 +122,8 @@ public class FastPipedInputStream extends InputStream {
         if(this.source != null) {
             throw new IOException("Pipe already connected");
         }
-        this.source = new WeakReference<FastPipedOutputStream>(source);
-        source.sink = new WeakReference<FastPipedInputStream>(this);
+        this.source = new WeakReference<>(source);
+        source.sink = new WeakReference<>(this);
     }
 
     @Override

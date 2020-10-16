@@ -8,7 +8,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.stubbing.Answer;
@@ -104,7 +104,7 @@ public class FileSystemJarCacheTest {
     }
 
     @Test
-    @Bug(39547)
+    @Issue("JENKINS-39547")
     public void retrieveInvalidChecksum() throws Exception {
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
 

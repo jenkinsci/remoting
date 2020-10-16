@@ -488,12 +488,12 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * Our {@link ReferenceQueue} for picking up references that have been collected by the garbage collector
          * and need the corresponding {@link UnexportCommand} sent.
          */
-        private final ReferenceQueue<? super RemoteInvocationHandler> queue = new ReferenceQueue<RemoteInvocationHandler>();
+        private final ReferenceQueue<? super RemoteInvocationHandler> queue = new ReferenceQueue<>();
         /**
          * The "live" {@link PhantomReferenceImpl} instances for each active {@link Channel}.
          */
         private final ConcurrentMap<Channel.Ref,List<PhantomReferenceImpl>> referenceLists
-                = new ConcurrentHashMap<Channel.Ref, List<PhantomReferenceImpl>>();
+                = new ConcurrentHashMap<>();
         /**
          * The 1 minute rolling average.
          */
@@ -811,7 +811,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             }
             List<PhantomReferenceImpl> referenceList;
             while (null == (referenceList = referenceLists.get(ref))) {
-                referenceLists.putIfAbsent(ref, Collections.synchronizedList(new ArrayList<PhantomReferenceImpl>()));
+                referenceLists.putIfAbsent(ref, Collections.synchronizedList(new ArrayList<>()));
             }
             referenceList.add(new PhantomReferenceImpl(handler, queue));
             if (isAlive.get()) {

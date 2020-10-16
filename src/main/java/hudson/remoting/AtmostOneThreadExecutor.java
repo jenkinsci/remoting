@@ -25,7 +25,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
      */
     private Thread worker;
 
-    private final LinkedList<Runnable> q = new LinkedList<Runnable>();
+    private final LinkedList<Runnable> q = new LinkedList<>();
 
     private boolean shutdown;
 
@@ -59,7 +59,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
     public List<Runnable> shutdownNow() {
         synchronized (q) {
             shutdown = true;
-            List<Runnable> r = new ArrayList<Runnable>(q);
+            List<Runnable> r = new ArrayList<>(q);
             q.clear();
             return r;
         }

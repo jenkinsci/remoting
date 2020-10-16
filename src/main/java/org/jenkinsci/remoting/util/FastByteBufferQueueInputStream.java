@@ -76,7 +76,7 @@ public class FastByteBufferQueueInputStream extends InputStream {
         if (rem <= 0) {
             return -1;
         }
-        int read = queue.get(b, off, len > rem ? rem : len);
+        int read = queue.get(b, off, Math.min(len, rem));
         if (read <= 0) {
             return -1;
         }

@@ -32,7 +32,7 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
     private final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<>();
 
-    private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<Checksum>());
+    private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<>());
 
     @Override
     @SuppressFBWarnings(value = {"URLCONNECTION_SSRF_FD", "PATH_TRAVERSAL_IN"}, justification = "This is only used for managing the jar cache as files, not URLs.")

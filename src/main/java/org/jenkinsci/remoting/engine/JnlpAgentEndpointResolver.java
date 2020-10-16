@@ -60,7 +60,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -107,7 +106,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
 
     public JnlpAgentEndpointResolver(String... jenkinsUrls) {
-        this.jenkinsUrls = new ArrayList<String>(Arrays.asList(jenkinsUrls));
+        this.jenkinsUrls = new ArrayList<>(Arrays.asList(jenkinsUrls));
     }
 
     public JnlpAgentEndpointResolver(@Nonnull List<String> jenkinsUrls) {
@@ -179,7 +178,6 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      * Sets if the HTTPs certificate check should be disabled.
      *
      * This behavior is not recommended.
-     * @param disableHttpsCertValidation
      */
     public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
         this.disableHttpsCertValidation = disableHttpsCertValidation;
@@ -245,7 +243,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 List<String> protocols = header(con, "X-Jenkins-Agent-Protocols");
                 if (protocols != null) {
                     // Take the list of protocols to try from the headers
-                    agentProtocolNames = new HashSet<String>();
+                    agentProtocolNames = new HashSet<>();
                     for (String names : protocols) {
                         for (String name : names.split(",")) {
                             name = name.trim();
@@ -268,7 +266,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
                 if (PROTOCOL_NAMES_TO_TRY != null) {
                     // Take a list of protocols to try from the system property
-                    agentProtocolNames = new HashSet<String>();
+                    agentProtocolNames = new HashSet<>();
                     LOGGER.log(Level.INFO, "Ignoring the list of supported remoting protocols provided by the server, because the " +
                         "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' property is defined. Will try {0}", PROTOCOL_NAMES_TO_TRY);
                     for (String name : PROTOCOL_NAMES_TO_TRY.split(",")) {
@@ -323,7 +321,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 }
                 // sort the URLs so that the winner is the one we try first next time
                 final String winningJenkinsUrl = jenkinsUrl;
-                Collections.sort(jenkinsUrls, new Comparator<String>() {
+                jenkinsUrls.sort(new Comparator<String>() {
                     @Override
                     public int compare(String o1, String o2) {
                         if (winningJenkinsUrl.equals(o1)) {

@@ -377,7 +377,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                         rsp = new Response<RSP, EXC>(Request.this, id, calcLastIoId(), r);
                     } catch (Throwable t) {
                         // error return
-                        rsp = new Response<RSP, Throwable>(Request.this, id, calcLastIoId(), t);
+                        rsp = new Response<>(Request.this, id, calcLastIoId(), t);
                     } finally {
                         CURRENT.set(null);
                     }
@@ -425,7 +425,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
      */
     @Deprecated
-    /*package*/ static ThreadLocal<Request<?, ?>> CURRENT = new ThreadLocal<Request<?, ?>>();
+    /*package*/ static ThreadLocal<Request<?, ?>> CURRENT = new ThreadLocal<>();
 
     /*package*/ static int getCurrentRequestId() {
         Request<?, ?> r = CURRENT.get();

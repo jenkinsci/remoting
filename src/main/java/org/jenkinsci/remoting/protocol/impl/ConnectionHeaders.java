@@ -108,7 +108,7 @@ public final class ConnectionHeaders {
      */
     @Nonnull
     public static Map<String, String> fromString(@Nonnull String data) throws ParseException {
-        Map<String, String> result = new TreeMap<String, String>();
+        Map<String, String> result = new TreeMap<>();
         int state = 0;
         StringBuilder key = new StringBuilder();
         StringBuilder val = new StringBuilder();

@@ -27,7 +27,7 @@ import static hudson.remoting.DefaultClassFilterTest.BlackListMatcher.blackliste
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.core.Every.everyItem;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -146,11 +146,11 @@ public class DefaultClassFilterTest {
         public boolean matches(Object item) {
             try {
                 ClassFilter.createDefaultInstance().check(item.toString());
-                return Boolean.FALSE;
+                return false;
             } catch (ClassFilter.ClassFilterException ex) {
                 throw new IllegalStateException("Failed to initialize the default class filter", ex);
             } catch (SecurityException sex) {
-                return Boolean.TRUE;
+                return true;
             }
         }
 

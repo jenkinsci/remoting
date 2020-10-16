@@ -282,11 +282,8 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     @Override
     public final void write(Command cmd, boolean last) throws IOException {
         ByteBufferQueueOutputStream bqos = new ByteBufferQueueOutputStream(sendStaging);
-        ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(bqos);
-        try {
+        try (ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(bqos)) {
             cmd.writeTo(channel, oos);
-        } finally {
-            oos.close();
         }
         long remaining = sendStaging.remaining();
         channel.notifyWrite(cmd, remaining);

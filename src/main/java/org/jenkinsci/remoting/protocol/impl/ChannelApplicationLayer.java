@@ -220,11 +220,8 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
     public void start() throws IOException {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos));
-            try {
+            try (ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos))) {
                 oos.writeObject(new Capability());
-            } finally {
-                oos.close();
             }
             ByteBuffer buffer = ByteBufferUtils.wrapUTF8(bos.toString("US-ASCII"));
             write(buffer);
