@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.util;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -71,7 +72,7 @@ public class FastByteBufferQueueInputStream extends InputStream {
      * {@inheritDoc}
      */
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
         int rem = length - pos;
         if (rem <= 0) {
             return -1;
