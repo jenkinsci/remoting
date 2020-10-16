@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -11,7 +12,7 @@ public class DaemonThreadFactory implements ThreadFactory {
     private static final Logger LOGGER = Logger.getLogger(DaemonThreadFactory.class.getName());
 
     @Override
-    public Thread newThread(Runnable r) {
+    public Thread newThread(@Nonnull Runnable r) {
         Thread thread = new Thread(r);
         thread.setDaemon(true);
         thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, "Unhandled exception in thread " + t, e));

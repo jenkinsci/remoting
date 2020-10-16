@@ -219,19 +219,16 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
         @Override
         protected void execute(final Channel channel) throws ExecutionException {
             // ordering barrier not needed for this I/O call, so not giving I/O ID.
-            channel.pipeWriter.submit(0,new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        final ProxyOutputStream ros = (ProxyOutputStream) channel.getExportedObject(oidRos);
-                        channel.unexport(oidRos,createdAt);
-                        // the above unexport cancels out the export in writeObject above
-                        ros.connect(channel, oidPos);
-                    } catch (IOException e) {
-                        logger.log(Level.SEVERE,"Failed to connect to pipe",e);
-                    } catch (ExecutionException ex) {
-                        throw new IllegalStateException(ex);
-                    }
+            channel.pipeWriter.submit(0, () -> {
+                try {
+                    final ProxyOutputStream ros = (ProxyOutputStream) channel.getExportedObject(oidRos);
+                    channel.unexport(oidRos,createdAt);
+                    // the above unexport cancels out the export in writeObject above
+                    ros.connect(channel, oidPos);
+                } catch (IOException e) {
+                    logger.log(Level.SEVERE,"Failed to connect to pipe",e);
+                } catch (ExecutionException ex) {
+                    throw new IllegalStateException(ex);
                 }
             });
         }

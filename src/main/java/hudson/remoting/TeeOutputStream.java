@@ -19,6 +19,7 @@ package hudson.remoting;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+import javax.annotation.Nonnull;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -52,7 +53,7 @@ public class TeeOutputStream extends FilterOutputStream {
      * @throws IOException if an I/O error occurs
      */
     @Override
-    public synchronized void write(byte[] b) throws IOException {
+    public synchronized void write(@Nonnull byte[] b) throws IOException {
         super.write(b);
         this.branch.write(b);
     }
@@ -65,7 +66,7 @@ public class TeeOutputStream extends FilterOutputStream {
      * @throws IOException if an I/O error occurs
      */
     @Override
-    public synchronized void write(byte[] b, int off, int len) throws IOException {
+    public synchronized void write(@Nonnull byte[] b, int off, int len) throws IOException {
         super.write(b, off, len);
         this.branch.write(b, off, len);
     }

@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.*;
@@ -24,6 +25,7 @@ class DelegatingExecutorService implements ExecutorService {
     }
 
     @Override
+    @Nonnull
     public List<Runnable> shutdownNow() {
         return base.shutdownNow();
     }
@@ -39,36 +41,42 @@ class DelegatingExecutorService implements ExecutorService {
     }
 
     @Override
-    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean awaitTermination(long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
         return base.awaitTermination(timeout, unit);
     }
 
     @Override
+    @Nonnull
     public <T> Future<T> submit(Callable<T> task) {
         return base.submit(task);
     }
 
     @Override
+    @Nonnull
     public <T> Future<T> submit(Runnable task, T result) {
         return base.submit(task, result);
     }
 
     @Override
+    @Nonnull
     public Future<?> submit(Runnable task) {
         return base.submit(task);
     }
 
     @Override
+    @Nonnull
     public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
         return base.invokeAll(tasks);
     }
 
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
+    @Nonnull
+    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
         return base.invokeAll(tasks, timeout, unit);
     }
 
     @Override
+    @Nonnull
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
         return base.invokeAny(tasks);
     }

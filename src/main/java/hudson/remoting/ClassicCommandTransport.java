@@ -76,9 +76,7 @@ import java.io.StreamCorruptedException;
             if (rawIn!=null)
                 rawIn.clear();
             return cmd;
-        } catch (RuntimeException e) {// see JENKINS-19046
-            throw diagnoseStreamCorruption(e);
-        } catch (StreamCorruptedException e) {
+        } catch (RuntimeException | StreamCorruptedException e) {// see JENKINS-19046
             throw diagnoseStreamCorruption(e);
         }
     }
@@ -87,7 +85,7 @@ import java.io.StreamCorruptedException;
      * To diagnose stream corruption, we'll try to read ahead the data.
      * This operation can block, so we'll use another thread to do this.
      */
-    private StreamCorruptedException diagnoseStreamCorruption(Exception e) throws StreamCorruptedException {
+    private StreamCorruptedException diagnoseStreamCorruption(Exception e) {
         if (rawIn==null) {// no source of diagnostics information. can't diagnose.
             if (e instanceof StreamCorruptedException)
                 return (StreamCorruptedException)e;

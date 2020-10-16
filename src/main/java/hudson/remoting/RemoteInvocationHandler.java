@@ -775,7 +775,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                                 : "The 1 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95%% confidence level this is above 100.0/sec. ",
                                 m1Avg, m1Std));
-                return;
             }
         }
 
@@ -899,7 +898,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             Class<?>[] params = m.getParameterTypes();
             for( int i=0; i<arguments.length; i++ )
                 types[i] = params[i].getName();
-            assert types.length == arguments.length;
         }
 
         @Override
@@ -1006,7 +1004,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         // Same implementation as UserRequest
         @Override
-        public void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
+        public void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
             // Default check for all requests
             super.checkIfCanBeExecutedOnChannel(channel);
 

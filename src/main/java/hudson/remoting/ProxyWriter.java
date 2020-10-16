@@ -114,7 +114,7 @@ final class ProxyWriter extends Writer {
     }
 
     @Override
-    public void write(char[] cbuf, int off, int len) throws IOException {
+    public void write(@Nonnull char[] cbuf, int off, int len) throws IOException {
         if (closeCause != null) {
             throw new IOException("stream is already closed");
         }
@@ -288,34 +288,31 @@ final class ProxyWriter extends Writer {
         @Override
         protected void execute(final Channel channel) throws ExecutionException {
             final Writer os = (Writer) channel.getExportedObject(oid);
-            channel.pipeWriter.submit(ioId, new Runnable() {
-                @Override
-                public void run() {
+            channel.pipeWriter.submit(ioId, () -> {
+                try {
+                    os.write(buf);
+                } catch (IOException e) {
                     try {
-                        os.write(buf);
-                    } catch (IOException e) {
+                        if (channel.remoteCapability.supportsProxyWriter2_35())
+                            channel.send(new NotifyDeadWriter(channel, e, oid));
+                    } catch (ChannelClosedException x) {
+                        // the other direction can be already closed if the connection
+                        // shut down is initiated from this side. In that case, remain silent.
+                    } catch (IOException x) {
+                        // ignore errors
+                        LOGGER.log(Level.WARNING, "Failed to notify the sender that the write end is dead", x);
+                        LOGGER.log(Level.WARNING, "... the failed write was:", e);
+                    }
+                } finally {
+                    if (channel.remoteCapability.supportsProxyWriter2_35()) {
                         try {
-                            if (channel.remoteCapability.supportsProxyWriter2_35())
-                                channel.send(new NotifyDeadWriter(channel, e, oid));
+                            channel.send(new Ack(oid, buf.length));
                         } catch (ChannelClosedException x) {
                             // the other direction can be already closed if the connection
                             // shut down is initiated from this side. In that case, remain silent.
-                        } catch (IOException x) {
+                        } catch (IOException e) {
                             // ignore errors
-                            LOGGER.log(Level.WARNING, "Failed to notify the sender that the write end is dead", x);
-                            LOGGER.log(Level.WARNING, "... the failed write was:", e);
-                        }
-                    } finally {
-                        if (channel.remoteCapability.supportsProxyWriter2_35()) {
-                            try {
-                                channel.send(new Ack(oid, buf.length));
-                            } catch (ChannelClosedException x) {
-                                // the other direction can be already closed if the connection
-                                // shut down is initiated from this side. In that case, remain silent.
-                            } catch (IOException e) {
-                                // ignore errors
-                                LOGGER.log(Level.WARNING, "Failed to ack the stream", e);
-                            }
+                            LOGGER.log(Level.WARNING, "Failed to ack the stream", e);
                         }
                     }
                 }
@@ -347,14 +344,11 @@ final class ProxyWriter extends Writer {
         @Override
         protected void execute(Channel channel) throws ExecutionException {
             final Writer os = (Writer) channel.getExportedObject(oid);
-            channel.pipeWriter.submit(ioId, new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        os.flush();
-                    } catch (IOException e) {
-                        // ignore errors
-                    }
+            channel.pipeWriter.submit(ioId, () -> {
+                try {
+                    os.flush();
+                } catch (IOException e) {
+                    // ignore errors
                 }
             });
         }
@@ -385,12 +379,7 @@ final class ProxyWriter extends Writer {
 
         @Override
         protected void execute(final Channel channel) {
-            channel.pipeWriter.submit(ioId,new Runnable() {
-                @Override
-                public void run() {
-                    channel.unexport(oid,createdAt,false);
-                }
-            });
+            channel.pipeWriter.submit(ioId, () -> channel.unexport(oid,createdAt,false));
         }
 
         @Override
@@ -421,15 +410,12 @@ final class ProxyWriter extends Writer {
                 LOGGER.log(Level.FINE, "ProxyWriter with oid=%s has been already unexported", oid);
                 return;
             }
-            channel.pipeWriter.submit(ioId, new Runnable() {
-                @Override
-                public void run() {
-                    channel.unexport(oid,createdAt,false);
-                    try {
-                        os.close();
-                    } catch (IOException e) {
-                        // ignore errors
-                    }
+            channel.pipeWriter.submit(ioId, () -> {
+                channel.unexport(oid,createdAt,false);
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    // ignore errors
                 }
             });
         }

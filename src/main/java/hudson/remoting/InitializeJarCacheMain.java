@@ -19,12 +19,7 @@ import java.io.IOException;
  */
 public class InitializeJarCacheMain {
 
-    private static final FilenameFilter JAR_FILE_FILTER = new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            return name.endsWith(".jar");
-        }
-    };
+    private static final FilenameFilter JAR_FILE_FILTER = (dir, name) -> name.endsWith(".jar");
 
     /**
      * Requires 2 parameters:

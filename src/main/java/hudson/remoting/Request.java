@@ -24,6 +24,9 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.CancellationException;
@@ -33,8 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Request/response pattern over {@link Channel}, the layer-1 service.
@@ -62,7 +63,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      *      If no checked exception is supposed to be thrown, use {@link RuntimeException}.
      */
     @Nullable
-    abstract RSP perform(@Nonnull Channel channel) throws EXC;
+    abstract RSP perform(Channel channel) throws EXC;
 
     /**
      * Uniquely identifies this request.
@@ -122,7 +123,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      * @throws IOException Error with explanation if the request cannot be executed.
      * @since 3.11
      */
-    void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
+    void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
         final Throwable senderCloseCause = channel.getSenderCloseCause();
         if (senderCloseCause != null) {
             // Sender is closed, we won't be able to send anything
@@ -300,7 +301,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
             }
 
             @Override
-            public RSP get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            public RSP get(long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
                 synchronized (Request.this) {
                     // wait until the response arrives
                     // Note that the wait method can wake up for no reasons at all (AKA spurious wakeup),

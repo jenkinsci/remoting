@@ -13,6 +13,8 @@ import java.util.logging.Logger;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
 
+import javax.annotation.Nonnull;
+
 /**
  * Creates an {@link ExecutorService} that executes submitted tasks sequentially
  * on top of another generic arbitrary {@link ExecutorService}.
@@ -78,6 +80,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
      * Note that this does not shutdown the wrapped {@link ExecutorService}.
      */
     @Override
+    @Nonnull
     public synchronized List<Runnable> shutdownNow() {
         shuttingDown = shutDown = true;
         List<Runnable> all = new LinkedList<>(tasks);
@@ -108,7 +111,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
 
     // TODO: create a new method with non-Runtime exceptions and timeout support
     @Override
-    public synchronized void execute(Runnable command) {
+    public synchronized void execute(@Nonnull Runnable command) {
         if (shuttingDown) {
             throw new FatalRejectedExecutionException("Cannot execute the command " + command +
                     ". The executor service is shutting down");

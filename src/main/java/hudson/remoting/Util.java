@@ -113,7 +113,7 @@ public class Util {
         if (System.getProperty("http.proxyHost") == null) {
             httpProxy = System.getenv("http_proxy");
         }
-        URLConnection con = null;
+        URLConnection con;
         if (httpProxy != null && "http".equals(url.getProtocol()) && NoProxyEvaluator.shouldProxy(url.getHost())) {
             try {
                 URL proxyUrl = new URL(httpProxy);

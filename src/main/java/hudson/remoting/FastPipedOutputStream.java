@@ -20,6 +20,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
@@ -39,12 +40,6 @@ import java.lang.ref.WeakReference;
 public class FastPipedOutputStream extends OutputStream implements ErrorPropagatingOutputStream {
 
     WeakReference<FastPipedInputStream> sink;
-
-    /**
-     * Keeps track of the total # of bytes written via this output stream.
-     * Helps with debugging, and serves no other purpose.
-     */
-    private long written=0;
 
     private final Throwable allocatedAt = new Throwable();
 
@@ -136,7 +131,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     }
 
     @Override
-    public void write(byte[] b) throws IOException {
+    public void write(@Nonnull byte[] b) throws IOException {
         write(b, 0, b.length);
     }
 
@@ -144,7 +139,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
      * @exception IOException The pipe is not connected or a reader has closed it.
      */
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(@Nonnull byte[] b, int off, int len) throws IOException {
         if(sink == null) {
             throw new IOException("Unconnected pipe");
         }
@@ -164,7 +159,6 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
                     // release a reference to 's' during the wait so that if the reader has abandoned the pipe
                     // we can tell.
                     byte[] buf = s.buffer;
-                    s = null;
 
                     Thread t = Thread.currentThread();
                     String oldName = t.getName();
@@ -195,7 +189,6 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
                 off += amount;
                 len -= amount;
-                written += amount;
 
                 s.buffer.notifyAll();
             }

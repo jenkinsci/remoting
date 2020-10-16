@@ -24,6 +24,7 @@
 
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -48,7 +49,7 @@ public class NamingThreadFactory implements ThreadFactory {
     }
 
     @Override
-    public Thread newThread(Runnable r) {
+    public Thread newThread(@Nonnull Runnable r) {
         Thread result = delegate.newThread(r);
         result.setName(String.format("%s [#%d]", name, threadNum.incrementAndGet()));
         return result;
