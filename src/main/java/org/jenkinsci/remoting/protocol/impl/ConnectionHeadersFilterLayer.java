@@ -130,7 +130,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void start() throws IOException {
+    public synchronized void start() {
         try {
             doSend(EMPTY_BUFFER);
         } catch (IOException e) {
@@ -268,7 +268,6 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 onAbortCompleted();
                 throw abortCause;
             }
-            assert responseInputLength != null;
             if (responseInputLength.hasRemaining()) {
                 ByteBufferUtils.put(data, responseInputLength);
                 if (responseInputLength.hasRemaining()) {

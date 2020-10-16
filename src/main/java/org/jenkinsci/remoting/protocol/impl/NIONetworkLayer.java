@@ -332,7 +332,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
      * {@inheritDoc}
      */
     @Override
-    public void doCloseSend() throws IOException {
+    public void doCloseSend() {
         if (out.isOpen()) {
             if (LOGGER.isLoggable(Level.FINEST)) {
                 LOGGER.log(Level.FINEST, "[{0}] Closing SEND", stack().name());

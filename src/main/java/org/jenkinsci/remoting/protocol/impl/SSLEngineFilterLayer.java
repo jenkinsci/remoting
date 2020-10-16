@@ -117,7 +117,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
             processRead(readBuffer);
         } catch (RuntimeException e) {
             Throwable cause = e.getCause();
-            while (cause != null && cause instanceof RuntimeException) {
+            while (cause instanceof RuntimeException) {
                 cause = cause.getCause();
             }
             if (cause instanceof GeneralSecurityException) {
@@ -140,12 +140,10 @@ public class SSLEngineFilterLayer extends FilterLayer {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "[" + stack().name() + "] ", e);
             }
-            return;
         } catch (ConnectionRefusalException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "[" + stack().name() + "] ", e);
             }
-            return;
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.log(Level.WARNING, "[" + stack().name() + "] ", e);
