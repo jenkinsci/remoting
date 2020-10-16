@@ -17,19 +17,16 @@ class Closeables {
     public static Closeable input(SelectableChannel ch) {
         if (ch instanceof SocketChannel) {
             final SocketChannel s = (SocketChannel) ch;
-            return new Closeable() {
-                @Override
-                public void close() throws IOException {
-                    try {
-                        s.socket().shutdownInput();
-                    } catch (IOException e) {
-                        // at least as of Java7u55, shutdownInput fails if the socket
-                        // is already closed or half-closed, as opposed to be a no-op.
-                        // so let's just ignore close error altogether
-                        LOGGER.log(Level.FINE, "Failed to close "+s,e);
-                    }
-                    maybeClose(s);
+            return () -> {
+                try {
+                    s.socket().shutdownInput();
+                } catch (IOException e) {
+                    // at least as of Java7u55, shutdownInput fails if the socket
+                    // is already closed or half-closed, as opposed to be a no-op.
+                    // so let's just ignore close error altogether
+                    LOGGER.log(Level.FINE, "Failed to close "+s,e);
                 }
+                maybeClose(s);
             };
         } else
             return ch;
@@ -38,17 +35,14 @@ class Closeables {
     public static Closeable output(SelectableChannel ch) {
         if (ch instanceof SocketChannel) {
             final SocketChannel s = (SocketChannel) ch;
-            return new Closeable() {
-                @Override
-                public void close() throws IOException {
-                    try {
-                        s.socket().shutdownOutput();
-                    } catch (IOException e) {
-                        // see the discussion in try/catch block around shutdownInput above
-                        LOGGER.log(Level.FINE, "Failed to close "+s,e);
-                    }
-                    maybeClose(s);
+            return () -> {
+                try {
+                    s.socket().shutdownOutput();
+                } catch (IOException e) {
+                    // see the discussion in try/catch block around shutdownInput above
+                    LOGGER.log(Level.FINE, "Failed to close "+s,e);
                 }
+                maybeClose(s);
             };
         } else
             return ch;
