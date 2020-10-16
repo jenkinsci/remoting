@@ -46,10 +46,8 @@ public class GUI {
     public static void setUILookAndFeel() {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (InstantiationException e) {
-        } catch (ClassNotFoundException e) {
-        } catch (UnsupportedLookAndFeelException e) {
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | ClassNotFoundException | UnsupportedLookAndFeelException | IllegalAccessException e) {
+            // Ignore error if we can't set look and feel.
         }
     }
 

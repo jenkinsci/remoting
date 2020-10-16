@@ -24,13 +24,14 @@
 package hudson.remoting.jnlp;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
 import hudson.remoting.EngineListener;
 
-import java.io.StringWriter;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.logging.Logger;
+
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.SEVERE;
 
@@ -53,13 +54,10 @@ public final class GuiListener implements EngineListener {
 
     @Override
     public void status(final String msg, final Throwable t) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                frame.status(msg);
-                if(t!=null)
-                    LOGGER.log(INFO, msg, t);
-            }
+        SwingUtilities.invokeLater(() -> {
+            frame.status(msg);
+            if(t!=null)
+                LOGGER.log(INFO, msg, t);
         });
     }
 
@@ -82,13 +80,8 @@ public final class GuiListener implements EngineListener {
 
     @Override
     public void onDisconnect() {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                // discard all the menu items that might have been added by the master.
-                frame.resetMenuBar();
-            }
-        });
+        // discard all the menu items that might have been added by the master.
+        SwingUtilities.invokeLater(frame::resetMenuBar);
     }
 
     @Override
