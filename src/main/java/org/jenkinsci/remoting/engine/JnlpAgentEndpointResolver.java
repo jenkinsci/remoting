@@ -60,7 +60,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -296,7 +295,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     firstError = chain(firstError, new IOException(jenkinsUrl + " is not Jenkins"));
                     continue;
                 }
-                int port = 0;
+                int port;
                 try {
                     port = Integer.parseInt(portStr);
                 } catch (NumberFormatException e) {
@@ -308,7 +307,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     continue;
                 }
                 if (tunnel == null) {
-                    if (!isPortVisible(host, port, 5000)) {
+                    if (!isPortVisible(host, port)) {
                         firstError = chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
                                 + " is not reachable"));
                         continue;
@@ -321,17 +320,14 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 }
                 // sort the URLs so that the winner is the one we try first next time
                 final String winningJenkinsUrl = jenkinsUrl;
-                jenkinsUrls.sort(new Comparator<String>() {
-                    @Override
-                    public int compare(String o1, String o2) {
-                        if (winningJenkinsUrl.equals(o1)) {
-                            return -1;
-                        }
-                        if (winningJenkinsUrl.equals(o2)) {
-                            return 1;
-                        }
-                        return 0;
+                jenkinsUrls.sort((o1, o2) -> {
+                    if (winningJenkinsUrl.equals(o1)) {
+                        return -1;
                     }
+                    if (winningJenkinsUrl.equals(o2)) {
+                        return 1;
+                    }
+                    return 0;
                 });
                 if (tunnel != null) {
                     HostPort hostPort = new HostPort(tunnel, host, port);
@@ -352,7 +348,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     }
 
     @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This just verifies connection to the port. No data is transmitted.")
-    private boolean isPortVisible(String hostname, int port, int timeout) {
+    private boolean isPortVisible(String hostname, int port) {
         boolean exitStatus = false;
         Socket s = null;
 
@@ -360,7 +356,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             s = new Socket();
             s.setReuseAddress(true);
             SocketAddress sa = new InetSocketAddress(hostname, port);
-            s.connect(sa, timeout);
+            s.connect(sa, 5000);
         } catch (IOException e) {
             LOGGER.warning(e.getMessage());
         } finally {
@@ -518,7 +514,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         if (System.getProperty("http.proxyHost") == null) {
             httpProxy = System.getenv("http_proxy");
         }
-        URLConnection con = null;
+        URLConnection con;
         if (httpProxy != null && "http".equals(url.getProtocol()) && !inNoProxyEnvVar(url.getHost())) {
             try {
                 URL proxyUrl = new URL(httpProxy);

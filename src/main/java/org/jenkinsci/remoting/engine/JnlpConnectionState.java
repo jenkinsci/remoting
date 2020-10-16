@@ -358,12 +358,7 @@ public class JnlpConnectionState {
         }
         lifecycle = State.BEFORE_PROPERTIES;
         // TODO fire(JnlpConnectionStateListener::beforeProperties); // Java 8
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.beforeProperties(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::beforeProperties);
         // check for early rejection
         if (lifecycle == State.REJECTED || listeners.isEmpty()) {
             lifecycle = State.REJECTED;
@@ -388,12 +383,7 @@ public class JnlpConnectionState {
         this.properties = new HashMap<>(properties);
         lifecycle = State.AFTER_PROPERTIES;
         // TODO fire(JnlpConnectionStateListener::afterProperties);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.afterProperties(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::afterProperties);
         // must have approval or else connection is rejected
         if (lifecycle != State.APPROVED || listeners.isEmpty()) {
             lifecycle = State.REJECTED;
@@ -418,12 +408,7 @@ public class JnlpConnectionState {
         lifecycle = State.BEFORE_CHANNEL;
         this.channelBuilder = builder;
         // TODO fire(JnlpConnectionStateListener::beforeChannel);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.beforeChannel(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::beforeChannel);
     }
 
     /**
@@ -440,12 +425,7 @@ public class JnlpConnectionState {
         this.channelBuilder = null;
         this.channel = channel;
         // TODO fire(JnlpConnectionStateListener::afterChannel);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.afterChannel(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::afterChannel);
     }
 
     /**
@@ -460,12 +440,7 @@ public class JnlpConnectionState {
         closeCause = cause;
         lifecycle = State.CHANNEL_CLOSED;
         // TODO fire(JnlpConnectionStateListener::channelClosed);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.channelClosed(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::channelClosed);
     }
 
     /**
@@ -477,12 +452,7 @@ public class JnlpConnectionState {
         }
         lifecycle = State.DISCONNECTED;
         // TODO fire(JnlpConnectionStateListener::afterDisconnect);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.afterDisconnect(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::afterDisconnect);
     }
 
     /**
