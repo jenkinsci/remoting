@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.59</version>
+    <version>1.60</version>
     <relativePath />
   </parent>
 
@@ -71,7 +71,6 @@ THE SOFTWARE.
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.excludeFilterFile>${basedir}/src/spotbugs/excludeFilter.xml</spotbugs.excludeFilterFile>
     <spotbugs.threshold>Low</spotbugs.threshold>
-    <argLine/> <!-- TODO pending https://github.com/jenkinsci/pom/pull/142 -->
     <bc-version>1.66</bc-version>
   </properties>
 
