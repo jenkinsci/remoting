@@ -117,7 +117,7 @@ public class Launcher {
      * If specified, this option overrides the default destination within {@link #workDir}.
      * If both this options and {@link #workDir} is not set, the log will not be generated.
      */
-    @Option(name="-agentLog", aliases = {"-slaveLog"}, usage="Local agent error log destination (overrides workDir)")
+    @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
     @CheckForNull
     public File agentLog = null;
 
