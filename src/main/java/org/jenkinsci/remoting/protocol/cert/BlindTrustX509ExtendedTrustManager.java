@@ -23,14 +23,13 @@
  */
 package org.jenkinsci.remoting.protocol.cert;
 
-import java.net.Socket;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.X509ExtendedTrustManager;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
+
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.X509ExtendedTrustManager;
+import java.net.Socket;
+import java.security.cert.X509Certificate;
 
 /**
  * An {@link X509ExtendedTrustManager} that trusts everything always.
@@ -74,8 +73,7 @@ public class BlindTrustX509ExtendedTrustManager extends X509ExtendedTrustManager
      * {@inheritDoc}
      */
     @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket)
-            throws CertificateException {
+    public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) {
         validateAuthType(authType);
         validateChain(chain);
     }
@@ -84,8 +82,7 @@ public class BlindTrustX509ExtendedTrustManager extends X509ExtendedTrustManager
      * {@inheritDoc}
      */
     @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
-            throws CertificateException {
+    public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket) {
         validateAuthType(authType);
         validateChain(chain);
     }
@@ -94,8 +91,7 @@ public class BlindTrustX509ExtendedTrustManager extends X509ExtendedTrustManager
      * {@inheritDoc}
      */
     @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
-            throws CertificateException {
+    public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine) {
         validateAuthType(authType);
         validateChain(chain);
     }
@@ -104,8 +100,7 @@ public class BlindTrustX509ExtendedTrustManager extends X509ExtendedTrustManager
      * {@inheritDoc}
      */
     @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
-            throws CertificateException {
+    public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine) {
         validateAuthType(authType);
         validateChain(chain);
     }
@@ -114,7 +109,7 @@ public class BlindTrustX509ExtendedTrustManager extends X509ExtendedTrustManager
      * {@inheritDoc}
      */
     @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+    public void checkClientTrusted(X509Certificate[] chain, String authType) {
         validateAuthType(authType);
         validateChain(chain);
     }
@@ -123,7 +118,7 @@ public class BlindTrustX509ExtendedTrustManager extends X509ExtendedTrustManager
      * {@inheritDoc}
      */
     @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+    public void checkServerTrusted(X509Certificate[] chain, String authType) {
         validateAuthType(authType);
         validateChain(chain);
     }

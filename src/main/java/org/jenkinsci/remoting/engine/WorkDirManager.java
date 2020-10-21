@@ -308,9 +308,6 @@ public class WorkDirManager {
             }
 
             this.loggingInitialized = true;
-        } else {
-            // TODO: This message is suspected to break the CI
-            // System.err.println("WARNING: Log location is not specified (neither -workDir nor -agentLog set)");
         }
     }
 

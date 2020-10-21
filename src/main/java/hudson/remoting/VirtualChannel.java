@@ -24,7 +24,6 @@
 package hudson.remoting;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
@@ -51,7 +50,7 @@ public interface VirtualChannel {
      * @throws T User exception defined by the callable
      */
     <V,T extends Throwable>
-    V call(@Nonnull Callable<V,T> callable) throws IOException, T, InterruptedException;
+    V call(Callable<V,T> callable) throws IOException, T, InterruptedException;
 
     /**
      * Makes an asynchronous remote procedure call.
@@ -69,7 +68,7 @@ public interface VirtualChannel {
      *      If there's an error during the communication.
      */
     <V,T extends Throwable>
-    Future<V> callAsync(@Nonnull final Callable<V,T> callable) throws IOException;
+    Future<V> callAsync(final Callable<V,T> callable) throws IOException;
 
     /**
      * Performs an orderly shut down of this channel (and the remote peer.)
@@ -123,7 +122,7 @@ public interface VirtualChannel {
      *      {@code null} if the input instance is {@code null}.  
      */
     @Nullable
-    <T> T export(@Nonnull Class<T> type, @CheckForNull T instance);
+    <T> T export(Class<T> type, @CheckForNull T instance);
 
     /**
      * Blocks until all the I/O packets sent from remote is fully locally executed, then return.

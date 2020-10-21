@@ -188,7 +188,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      */
     @Override
     @OverridingMethodsMustInvokeSuper
-    public void execute(Runnable task) {
+    public void execute(@Nonnull Runnable task) {
         executor.execute(task);
     }
 
@@ -558,7 +558,6 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "{0}: Interrupted", ex);
                 }
-                return;
             } finally {
                 watcherThread.setName(oldName);
                 LOGGER.log(Level.FINEST, "{0}: Finished", watcherName);
@@ -907,7 +906,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
          * {@inheritDoc}
          */
         @Override
-        public synchronized long getDelay(TimeUnit unit) {
+        public synchronized long getDelay(@Nonnull TimeUnit unit) {
             return task == null
                     ? Long.MIN_VALUE
                     : unit.convert(delayTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);

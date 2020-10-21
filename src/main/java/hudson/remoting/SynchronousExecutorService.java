@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
@@ -21,6 +22,7 @@ class SynchronousExecutorService extends AbstractExecutorService {
     }
 
     @Override
+    @Nonnull
     public List<Runnable> shutdownNow() {
         shutdown = true;
         return Collections.emptyList();
@@ -53,7 +55,7 @@ class SynchronousExecutorService extends AbstractExecutorService {
     }
 
     @Override
-    public void execute(Runnable command) {
+    public void execute(@Nonnull Runnable command) {
         if (shutdown)
             throw new IllegalStateException("Already shut down");
         touchCount(1);

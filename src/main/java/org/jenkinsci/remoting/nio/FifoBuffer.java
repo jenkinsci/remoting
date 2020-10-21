@@ -11,6 +11,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnegative;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -570,7 +571,7 @@ public class FifoBuffer implements Closeable {
             }
 
             @Override
-            public void write(byte[] b, int off, int len) throws IOException {
+            public void write(@Nonnull byte[] b, int off, int len) throws IOException {
                 try {
                     FifoBuffer.this.write(b,off,len);
                 } catch (InterruptedException e) {
@@ -604,7 +605,7 @@ public class FifoBuffer implements Closeable {
             }
 
             @Override
-            public int read(byte[] b, int off, int len) throws IOException {
+            public int read(@Nonnull byte[] b, int off, int len) throws IOException {
                 try {
                     return FifoBuffer.this.read(b, off, len);
                 } catch (InterruptedException e) {

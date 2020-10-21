@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
-import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -37,7 +36,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
      *
      * In this subtype, we pass in {@link ByteArrayReceiver} that uses byte[] instead of {@link Command}
      */
-    public abstract void setup(@Nonnull ByteArrayReceiver receiver);
+    public abstract void setup(ByteArrayReceiver receiver);
 
     public interface ByteArrayReceiver {
         /**

@@ -96,7 +96,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
     }
 
     @Override
-    public synchronized void write(byte[] b, int off, int len) throws IOException {
+    public synchronized void write(@Nonnull byte[] b, int off, int len) throws IOException {
         try {
             // block until stream gets connected
             while (channel==null) {
@@ -254,33 +254,30 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                 throw new ExecutionException(String.format("Channel %s: Output stream object has been released before sending last chunk for oid=%s", 
                                 channel.getName(), oid), ex);
             }
-            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
-                @Override
-                public void run() {
+            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId, () -> {
+                try {
+                    os.write(buf);
+                } catch (IOException e) {
                     try {
-                        os.write(buf);
-                    } catch (IOException e) {
+                        channel.send(new NotifyDeadWriter(channel,e,oid));
+                    } catch (ChannelClosedException x) {
+                        // the other direction can be already closed if the connection
+                        // shut down is initiated from this side. In that case, remain silent.
+                    } catch (IOException x) {
+                        // ignore errors
+                        LOGGER.log(Level.WARNING, "Failed to notify the sender that the write end is dead",x);
+                        LOGGER.log(Level.WARNING, "... the failed write was:",e);
+                    }
+                } finally {
+                    if (channel.remoteCapability.supportsPipeThrottling()) {
                         try {
-                            channel.send(new NotifyDeadWriter(channel,e,oid));
+                            channel.send(new Ack(oid,buf.length));
                         } catch (ChannelClosedException x) {
                             // the other direction can be already closed if the connection
                             // shut down is initiated from this side. In that case, remain silent.
-                        } catch (IOException x) {
+                        } catch (IOException e) {
                             // ignore errors
-                            LOGGER.log(Level.WARNING, "Failed to notify the sender that the write end is dead",x);
-                            LOGGER.log(Level.WARNING, "... the failed write was:",e);
-                        }
-                    } finally {
-                        if (channel.remoteCapability.supportsPipeThrottling()) {
-                            try {
-                                channel.send(new Ack(oid,buf.length));
-                            } catch (ChannelClosedException x) {
-                                // the other direction can be already closed if the connection
-                                // shut down is initiated from this side. In that case, remain silent.
-                            } catch (IOException e) {
-                                // ignore errors
-                                LOGGER.log(Level.WARNING, "Failed to ack the stream",e);
-                            }
+                            LOGGER.log(Level.WARNING, "Failed to ack the stream",e);
                         }
                     }
                 }
@@ -312,14 +309,11 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         @Override
         protected void execute(Channel channel) throws ExecutionException {
             final OutputStream os = (OutputStream) channel.getExportedObject(oid);
-            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        os.flush();
-                    } catch (IOException e) {
-                        // ignore errors
-                    }
+            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId, () -> {
+                try {
+                    os.flush();
+                } catch (IOException e) {
+                    // ignore errors
                 }
             }));
         }
@@ -349,12 +343,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
         @Override
         protected void execute(final Channel channel) {
-            channel.pipeWriter.submit(ioId,new Runnable() {
-                @Override
-                public void run() {
-                    channel.unexport(oid,createdAt,false);
-                }
-            });
+            channel.pipeWriter.submit(ioId, () -> channel.unexport(oid,createdAt,false));
         }
 
         @Override
@@ -389,17 +378,14 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                 LOGGER.log(Level.FINE, "InputStream with oid=%s has been already unexported", oid);
                 return;
             }
-            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
-                @Override
-                public void run() {
-                    channel.unexport(oid,createdAt,false);
-                    try {
-                        if (error!=null && os instanceof ErrorPropagatingOutputStream)
-                            ((ErrorPropagatingOutputStream) os).error(error);
-                        os.close();
-                    } catch (IOException e) {
-                        // ignore errors
-                    }
+            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId, () -> {
+                channel.unexport(oid,createdAt,false);
+                try {
+                    if (error!=null && os instanceof ErrorPropagatingOutputStream)
+                        ((ErrorPropagatingOutputStream) os).error(error);
+                    os.close();
+                } catch (IOException e) {
+                    // ignore errors
                 }
             }));
         }

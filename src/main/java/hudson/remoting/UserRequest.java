@@ -181,7 +181,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                 }
             }
 
-            RSP r = null;
+            RSP r;
             Channel oldc = Channel.setCurrent(channel);
             try {
                 Object o;
@@ -271,8 +271,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
         try {
             return _serialize(o,localChannel);
         } catch( NotSerializableException e ) {
-            IOException x = new IOException("Unable to serialize " + o, e);
-            throw x;
+            throw new IOException("Unable to serialize " + o, e);
         }
     }
 
@@ -320,7 +319,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
         }
         @SuppressWarnings("unchecked")
         @Override
-        public RSP retrieve(Channel channel, ClassLoader cl) throws IOException, ClassNotFoundException, EXC {
+        public RSP retrieve(Channel channel, ClassLoader cl) throws IOException, ClassNotFoundException {
             Channel old = Channel.setCurrent(channel);
             try {
                 return (RSP) deserialize(channel, response, cl);

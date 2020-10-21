@@ -26,6 +26,7 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
+import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -272,12 +273,12 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
+    public int read(@Nonnull byte[] b) throws IOException {
         return core.read(b);
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
         return core.read(b, off, len);
     }
 

@@ -203,7 +203,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * {@inheritDoc}
      */
     @Override
-    public void onReadClosed(IOException cause) throws IOException {
+    public void onReadClosed(IOException cause) {
         if (futureChannel.isDone()) {
             if (channel != null) {
                 channel.terminate(cause == null ? new ClosedChannelException() : cause);
@@ -217,7 +217,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * {@inheritDoc}
      */
     @Override
-    public void start() throws IOException {
+    public void start() {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             try (ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos))) {
@@ -323,7 +323,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          * {@inheritDoc}
          */
         @Override
-        public Capability getRemoteCapability() throws IOException {
+        public Capability getRemoteCapability() {
             return remoteCapability;
         }
     }

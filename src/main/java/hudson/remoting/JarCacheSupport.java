@@ -9,6 +9,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 
+import javax.annotation.Nonnull;
+
 /**
  * Default partial implementation of {@link JarCache}.
  *
@@ -42,7 +44,8 @@ public abstract class JarCacheSupport extends JarCache {
     );
 
     @Override
-    public Future<URL> resolve(final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
+    @Nonnull
+    public Future<URL> resolve(@Nonnull final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
         URL jar = lookInCache(channel,sum1, sum2);
         if (jar!=null) {
             // already in the cache
@@ -110,10 +113,7 @@ public abstract class JarCacheSupport extends JarCache {
                 URL url = retrieve(channel, sum1, sum2);
                 inprogress.remove(key);
                 promise.set(url);
-            } catch (ChannelClosedException e) {
-                // the connection was killed while we were still resolving the file
-                bailout(e);
-            } catch (RequestAbortedException e) {
+            } catch (ChannelClosedException | RequestAbortedException e) {
                 // the connection was killed while we were still resolving the file
                 bailout(e);
             } catch (InterruptedException e) {

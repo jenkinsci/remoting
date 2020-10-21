@@ -203,7 +203,7 @@ public class ChannelBuilder {
      * @since 3.12 {@code null} parameter value is deprecated.
      *        {@link #withoutJarCache()} or {@link #withJarCacheOrDefault(JarCache)} should be used instead.
      */
-    public ChannelBuilder withJarCache(@Nonnull JarCache jarCache) {
+    public ChannelBuilder withJarCache(JarCache jarCache) {
         this.jarCache = jarCache;
         return this;
     }
@@ -271,7 +271,7 @@ public class ChannelBuilder {
     public ChannelBuilder withRoles(final Collection<? extends Role> actual) {
         return withRoleChecker(new RoleChecker() {
             @Override
-            public void check(RoleSensitive subject, @Nonnull Collection<Role> expected) {
+            public void check(@Nonnull RoleSensitive subject, @Nonnull Collection<Role> expected) {
                 if (!actual.containsAll(expected)) {
                     Collection<Role> c = new ArrayList<>(expected);
                     c.removeAll(actual);

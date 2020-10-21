@@ -633,15 +633,12 @@ public class NioChannelHub implements Runnable, Closeable {
                                         } while (!last);
                                         assert packetSize==0;
                                         if (packet.length > 0) {
-                                            ExecutorServiceUtils.submitAsync(t.swimLane, new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    final ByteArrayReceiver receiver = t.receiver;
-                                                    if (receiver == null) {
-                                                        throw new IllegalStateException("NIO transport layer has not been set up yet");
-                                                    }
-                                                    receiver.handle(packet);
+                                            ExecutorServiceUtils.submitAsync(t.swimLane, () -> {
+                                                final ByteArrayReceiver receiver = t.receiver;
+                                                if (receiver == null) {
+                                                    throw new IllegalStateException("NIO transport layer has not been set up yet");
                                                 }
+                                                receiver.handle(packet);
                                             });
                                         }
                                         pos=0;
@@ -656,14 +653,11 @@ public class NioChannelHub implements Runnable, Closeable {
                                 }
                                 if (t.rb.isClosed()) {
                                     // EOF. process this synchronously with respect to packets waiting for handling in the queue
-                                    ExecutorServiceUtils.submitAsync(t.swimLane, new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            // if this EOF is unexpected, report an error.
-                                            if (!t.getChannel().isInClosed()) {
-                                                t.getChannel().terminate(new IOException("Unexpected EOF while receiving the data from the channel. "
-                                                        + "FIFO buffer has been already closed", t.rb.getCloseCause()));
-                                            }
+                                    ExecutorServiceUtils.submitAsync(t.swimLane, () -> {
+                                        // if this EOF is unexpected, report an error.
+                                        if (!t.getChannel().isInClosed()) {
+                                            t.getChannel().terminate(new IOException("Unexpected EOF while receiving the data from the channel. "
+                                                    + "FIFO buffer has been already closed", t.rb.getCloseCause()));
                                         }
                                     });
                                 }
@@ -704,12 +698,7 @@ public class NioChannelHub implements Runnable, Closeable {
             // end normally
             // TODO: what happens to all the registered ChannelPairs? don't we need to shut them down?
             whatKilledSelectorThread = e;
-        } catch (RuntimeException e) {
-            whatKilledSelectorThread = e;
-            LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
-            abortAll(e);
-            throw e;
-        } catch (Error e) {
+        } catch (RuntimeException | Error e) {
             whatKilledSelectorThread = e;
             LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
             abortAll(e);

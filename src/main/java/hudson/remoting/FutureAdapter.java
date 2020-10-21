@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,7 +61,7 @@ abstract class FutureAdapter<X,Y> implements Future<X> {
     }
 
     @Override
-    public X get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public X get(long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return adapt(core.get(timeout, unit));
     }
 

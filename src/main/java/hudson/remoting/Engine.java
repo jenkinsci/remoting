@@ -48,6 +48,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -112,7 +113,7 @@ public class Engine extends Thread {
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
         @Override
-        public Thread newThread(final Runnable r) {
+        public Thread newThread(@Nonnull final Runnable r) {
             Thread thread = defaultFactory.newThread(() -> {
                 CURRENT.set(Engine.this);
                 r.run();
@@ -223,7 +224,6 @@ public class Engine extends Thread {
      * (e.g. if a filesystem mount gets disconnected).
      * @since 3.8
      */
-    @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
@@ -502,11 +502,7 @@ public class Engine extends Thread {
                 }
                 try {
                     kmf.init(store, password);
-                } catch (KeyStoreException e) {
-                    throw new IllegalStateException(e);
-                } catch (NoSuchAlgorithmException e) {
-                    throw new IllegalStateException(e);
-                } catch (UnrecoverableKeyException e) {
+                } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
                     throw new IllegalStateException(e);
                 }
                 try {
@@ -873,18 +869,15 @@ public class Engine extends Thread {
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException {
         Map<String, String> properties = AccessController.doPrivileged(
-                new PrivilegedExceptionAction<Map<String, String>>() {
-                    @Override
-                    public Map<String, String> run() throws Exception {
-                        Map<String, String> result = new HashMap<>();
-                        result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
-                        result.put("javaHome", System.getProperty("java.home"));
-                        result.put("trustStoreType",
-                                System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
-                        result.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
-                        result.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
-                        return result;
-                    }
+                (PrivilegedExceptionAction<Map<String, String>>) () -> {
+                    Map<String, String> result = new HashMap<>();
+                    result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
+                    result.put("javaHome", System.getProperty("java.home"));
+                    result.put("trustStoreType",
+                            System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
+                    result.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
+                    result.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
+                    return result;
                 });
         KeyStore keystore = null;
 
@@ -939,9 +932,7 @@ public class Engine extends Thread {
 
                 keystore.load(trustStoreStream, trustStorePasswdChars);
                 if (trustStorePasswdChars != null) {
-                    for (int i = 0; i < trustStorePasswdChars.length; ++i) {
-                        trustStorePasswdChars[i] = 0;
-                    }
+                    Arrays.fill(trustStorePasswdChars, (char) 0);
                 }
             }
         } finally {
@@ -955,14 +946,11 @@ public class Engine extends Thread {
 
     @CheckForNull
     private static FileInputStream getFileInputStream(final File file) throws PrivilegedActionException {
-        return AccessController.doPrivileged(new PrivilegedExceptionAction<FileInputStream>() {
-            @Override
-            public FileInputStream run() throws Exception {
-                try {
-                    return file.exists() ? new FileInputStream(file) : null;
-                } catch (FileNotFoundException e) {
-                    return null;
-                }
+        return AccessController.doPrivileged((PrivilegedExceptionAction<FileInputStream>) () -> {
+            try {
+                return file.exists() ? new FileInputStream(file) : null;
+            } catch (FileNotFoundException e) {
+                return null;
             }
         });
     }
