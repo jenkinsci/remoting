@@ -122,10 +122,10 @@ public abstract class PingThread extends Thread {
         LOGGER.log(Level.FINE, "pinging {0}", channel.getName());
 
         int timeouts = 0;
+        long start = System.currentTimeMillis();
 
         while (true) {
             Future<?> f = channel.callAsync(new Ping());
-            long start = System.currentTimeMillis();
 
             long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
             long remaining = end - System.nanoTime();
@@ -153,7 +153,7 @@ public abstract class PingThread extends Thread {
                 break;
             }
 
-            Logger.log(Level.WARNING, "ping timeout {0}/{1} on {2}",
+            LOGGER.log(Level.WARNING, "ping timeout {0}/{1} on {2}",
                        new Object[] {timeouts, maxTimeouts, channel.getName()} );
         }
 
