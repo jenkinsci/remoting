@@ -95,7 +95,6 @@ public final class KeyUtils {
      */
     @Nonnull
     @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_MD5", justification = "Used for fingerprinting, not security.")
-    @Deprecated
     public static String fingerprint(@CheckForNull Key key) {
         if (key == null) {
             return "null";
