@@ -40,12 +40,15 @@ import java.security.cert.X509Certificate;
 @Restricted(NoExternalUse.class)
 @SuppressFBWarnings(value = "WEAK_TRUST_MANAGER", justification = "User set parameter to skip verifier.")
 public class NoCheckTrustManager implements X509TrustManager {
-    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+    @Override
+    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) {
     }
 
-    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+    @Override
+    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) {
     }
 
+    @Override
     public X509Certificate[] getAcceptedIssuers() {
         return new X509Certificate[0];
     }

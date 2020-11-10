@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -79,12 +80,12 @@ public class StandardOutputStream extends OutputStream {
     }
 
     @Override
-    public synchronized void write(byte[] b) throws IOException {
+    public synchronized void write(@Nonnull byte[] b) throws IOException {
         out.write(b);
     }
 
     @Override
-    public synchronized void write(byte[] b, int off, int len) throws IOException {
+    public synchronized void write(@Nonnull byte[] b, int off, int len) throws IOException {
         out.write(b, off, len);
     }
 

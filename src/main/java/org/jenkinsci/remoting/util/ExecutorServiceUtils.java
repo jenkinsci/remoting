@@ -50,8 +50,7 @@ public class ExecutorServiceUtils {
      * @param runnable Operation to be executed
      * @throws ExecutionRejectedException Execution is rejected by the executor service
      */
-    @Nonnull
-    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", 
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
             justification = "User of this API explicitly submits the task in the async mode on his own risk")
     public static void submitAsync(@Nonnull ExecutorService es, @Nonnull Runnable runnable) 
             throws ExecutionRejectedException {

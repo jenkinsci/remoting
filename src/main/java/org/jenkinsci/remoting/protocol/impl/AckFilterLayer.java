@@ -172,17 +172,14 @@ public class AckFilterLayer extends FilterLayer {
     @Override
     public void start() throws IOException {
         synchronized (sendLock) {
-            timeout = stack().executeLater(new Runnable() {
-                @Override
-                public void run() {
-                    IOException cause = new IOException("Timeout waiting for ACK");
-                    abort(cause);
-                    try {
-                        doCloseSend();
-                        onRecvClosed(cause);
-                    } catch (IOException e) {
-                        // ignore
-                    }
+            timeout = stack().executeLater(() -> {
+                IOException cause = new IOException("Timeout waiting for ACK");
+                abort(cause);
+                try {
+                    doCloseSend();
+                    onRecvClosed(cause);
+                } catch (IOException e) {
+                    // ignore
                 }
             }, stack().getHandshakingTimeout(), stack().getHandshakingUnits());
         }

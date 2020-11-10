@@ -26,7 +26,8 @@ package hudson.remoting;
 import junit.framework.Test;
 import org.jvnet.hudson.test.Issue;
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.commons.EmptyVisitor;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -165,11 +166,18 @@ public class ClassRemotingTest extends RmiTestBase {
 
         // make sure the bytes are what we are expecting
         ClassReader cr = new ClassReader((byte[])result[1]);
-        cr.accept(new EmptyVisitor(),false);
+        cr.accept(new EmptyVisitor(),ClassReader.SKIP_DEBUG);
 
         // make sure cache is taking effect
         assertEquals(result[2],result[3]);
         assertTrue(result[2].toString().contains(TESTCALLABLE_TRANSFORMED_CLASSNAME.replace(".", "/") + ".class"));
+    }
+
+    private static class EmptyVisitor extends ClassVisitor {
+
+        public EmptyVisitor() {
+            super(Opcodes.ASM7);
+        }
     }
 
     public static Test suite() {

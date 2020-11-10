@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -41,12 +42,15 @@ public class LocalChannel implements VirtualChannel {
         this.executor = executor;
     }
 
+    @Override
     public <V, T extends Throwable> V call(Callable<V,T> callable) throws T {
         return callable.call();
     }
 
-    public <V, T extends Throwable> Future<V> callAsync(final Callable<V,T> callable) throws IOException {
+    @Override
+    public <V, T extends Throwable> Future<V> callAsync(@Nonnull final Callable<V,T> callable) {
         final java.util.concurrent.Future<V> f = executor.submit(new java.util.concurrent.Callable<V>() {
+            @Override
             public V call() throws Exception {
                 try {
                     return callable.call();
@@ -61,32 +65,39 @@ public class LocalChannel implements VirtualChannel {
         });
 
         return new Future<V>() {
+            @Override
             public boolean cancel(boolean mayInterruptIfRunning) {
                 return f.cancel(mayInterruptIfRunning);
             }
 
+            @Override
             public boolean isCancelled() {
                 return f.isCancelled();
             }
 
+            @Override
             public boolean isDone() {
                 return f.isDone();
             }
 
+            @Override
             public V get() throws InterruptedException, ExecutionException {
                 return f.get();
             }
 
-            public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            @Override
+            public V get(long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
                 return f.get(timeout,unit);
             }
         };
     }
 
+    @Override
     public void close() {
         // noop
     }
 
+    @Override
     public void join() throws InterruptedException {
         // noop
     }
@@ -96,10 +107,12 @@ public class LocalChannel implements VirtualChannel {
         // noop
     }
 
-    public <T> T export(Class<T> intf, T instance) {
+    @Override
+    public <T> T export(@Nonnull Class<T> intf, T instance) {
         return instance;
     }
 
+    @Override
     public void syncLocalIO() throws InterruptedException {
         // noop
     }

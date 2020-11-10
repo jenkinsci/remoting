@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(Theories.class)
 public class AckFilterLayerTest {
@@ -82,7 +82,7 @@ public class AckFilterLayerTest {
     }
 
     @After
-    public void tearDownPipe() throws Exception {
+    public void tearDownPipe() {
         IOUtils.closeQuietly(clientToServer.sink());
         IOUtils.closeQuietly(clientToServer.source());
         IOUtils.closeQuietly(serverToClient.sink());

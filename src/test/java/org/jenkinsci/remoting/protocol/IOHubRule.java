@@ -23,6 +23,11 @@
  */
 package org.jenkinsci.remoting.protocol;
 
+import org.apache.commons.io.IOUtils;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -30,12 +35,7 @@ import java.lang.annotation.Target;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.commons.io.IOUtils;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
 
 /**
  * Creates an destroys {@link IOHub} instances for tests.
@@ -91,19 +91,14 @@ public class IOHubRule implements TestRule {
             @Override
             public void evaluate() throws Throwable {
                 executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 - 1,
-                        new ThreadFactory() {
-                            @Override
-                            public Thread newThread(Runnable r) {
-                                return new Thread(
-                                        r,
-                                        String.format(
-                                                "%s%s-%d",
-                                                description.getDisplayName(),
-                                                id == null || id.isEmpty() ? "" : "-" + id,
-                                                counter.incrementAndGet())
-                                );
-                            }
-                        });
+                        r -> new Thread(
+                                r,
+                                String.format(
+                                        "%s%s-%d",
+                                        description.getDisplayName(),
+                                        id == null || id.isEmpty() ? "" : "-" + id,
+                                        counter.incrementAndGet())
+                        ));
                 selector = IOHub.create(executorService);
                 try {
                     base.evaluate();

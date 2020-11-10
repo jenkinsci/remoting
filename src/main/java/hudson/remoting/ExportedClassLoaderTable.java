@@ -35,8 +35,8 @@ import javax.annotation.CheckForNull;
  * @author Kohsuke Kawaguchi
  */
 final class ExportedClassLoaderTable {
-    private final Map<Integer, WeakReference<ClassLoader>> table = new HashMap<Integer, WeakReference<ClassLoader>>();
-    private final WeakHashMap<ClassLoader,Integer> reverse = new WeakHashMap<ClassLoader,Integer>();
+    private final Map<Integer, WeakReference<ClassLoader>> table = new HashMap<>();
+    private final WeakHashMap<ClassLoader,Integer> reverse = new WeakHashMap<>();
 
     // id==0 is reserved for bootstrap classloader
     private int iota = 1;
@@ -48,7 +48,7 @@ final class ExportedClassLoaderTable {
         Integer id = reverse.get(cl);
         if(id==null) {
             id = iota++;
-            table.put(id,new WeakReference<ClassLoader>(cl));
+            table.put(id, new WeakReference<>(cl));
             reverse.put(cl,id);
         }
 

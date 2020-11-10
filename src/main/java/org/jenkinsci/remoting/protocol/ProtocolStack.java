@@ -30,6 +30,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -140,7 +141,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * Our listeners.
      */
     @GuardedBy("stackLock")
-    private final List<Listener> listeners = new ArrayList<Listener>();
+    private final List<Listener> listeners = new ArrayList<>();
 
     private final long handshakingTimeout = 10L;
 
@@ -243,7 +244,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * @param name the new name of this stack to use in logging.
      */
     public void name(String name) {
-        if (!(this.name == null ? name == null : this.name.equals(name))) {
+        if (!(Objects.equals(this.name, name))) {
             if (LOGGER.isLoggable(Level.FINER)) {
                 LOGGER.log(Level.FINER, "[{0}] is now known as [{1}]", new Object[]{this.name, name});
             }
@@ -361,7 +362,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * @param cause the cause or {@code null} if the close was "normal".
      */
     /*package*/ void onClosed(IOException cause) {
-        final List<Listener> listeners = new ArrayList<Listener>();
+        final List<Listener> listeners = new ArrayList<>();
         stackLock.readLock().lock();
         try {
             listeners.addAll(this.listeners);
@@ -462,7 +463,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         /**
          * The initial listeners to register.
          */
-        private final List<Listener> listeners = new ArrayList<Listener>();
+        private final List<Listener> listeners = new ArrayList<>();
 
         /**
          * The name to give the protocol stack.
@@ -485,7 +486,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
                 throw new IllegalArgumentException();
             }
             this.network = network;
-            this.filters = new ArrayList<FilterLayer>();
+            this.filters = new ArrayList<>();
         }
 
         /**
@@ -545,7 +546,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
             checkNotBuilt();
             built = true;
             ProtocolStack<T> stack =
-                    new ProtocolStack<T>(
+                    new ProtocolStack<>(
                             name == null || name.isEmpty() ? String.format("Stack-%d", id.incrementAndGet()) : name,
                             network,
                             filters,
@@ -637,7 +638,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @param nextSend    the previous {@link Ptr}.
          * @param application the {@link ApplicationLayer}
          */
-        private Ptr(Ptr nextSend, ApplicationLayer<? extends Object> application) {
+        private Ptr(Ptr nextSend, ApplicationLayer<?> application) {
             stackLock.writeLock().lock();
             try {
                 this.nextSend = nextSend;
@@ -825,7 +826,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          */
         @Nonnull
         private ProtocolLayer.Send nextSend() {
-            return (ProtocolLayer.Send) (getNextSend().layer);
+            return (ProtocolLayer.Send) getNextSend().layer;
         }
 
         /**
@@ -878,7 +879,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          */
         @Nonnull
         private ProtocolLayer.Recv nextRecv() {
-            return (ProtocolLayer.Recv) (getNextRecv().layer);
+            return (ProtocolLayer.Recv) getNextRecv().layer;
         }
 
         /**
@@ -937,7 +938,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          *              represents an exception that has triggered it.
          *              Otherwise {@code null}.
          */
-        void onClosed(ProtocolStack stack, IOException cause);
+        void onClosed(ProtocolStack<?> stack, IOException cause);
     }
 
 }

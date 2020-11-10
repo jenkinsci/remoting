@@ -37,7 +37,7 @@ import javax.annotation.Nonnull;
  */
 final class ImportedClassLoaderTable {
     final Channel channel;
-    final Map<IClassLoader,ClassLoader> classLoaders = new Hashtable<IClassLoader,ClassLoader>();
+    final Map<IClassLoader,ClassLoader> classLoaders = new Hashtable<>();
 
     ImportedClassLoaderTable(Channel channel) {
         this.channel = channel;

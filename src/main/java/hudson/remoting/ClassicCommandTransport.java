@@ -47,6 +47,7 @@ import java.io.StreamCorruptedException;
         return remoteCapability;
     }
 
+    @Override
     public final void write(Command cmd, boolean last) throws IOException {
         cmd.writeTo(channel,oos);
         // TODO notifyWrite using CountingOutputStream
@@ -62,10 +63,12 @@ import java.io.StreamCorruptedException;
             oos.reset();
     }
 
+    @Override
     public void closeWrite() throws IOException {
         oos.close();
     }
 
+    @Override
     public final Command read() throws IOException, ClassNotFoundException {
         try {
             Command cmd = Command.readFromObjectStream(channel, ois);
@@ -73,9 +76,7 @@ import java.io.StreamCorruptedException;
             if (rawIn!=null)
                 rawIn.clear();
             return cmd;
-        } catch (RuntimeException e) {// see JENKINS-19046
-            throw diagnoseStreamCorruption(e);
-        } catch (StreamCorruptedException e) {
+        } catch (RuntimeException | StreamCorruptedException e) {// see JENKINS-19046
             throw diagnoseStreamCorruption(e);
         }
     }
@@ -84,7 +85,7 @@ import java.io.StreamCorruptedException;
      * To diagnose stream corruption, we'll try to read ahead the data.
      * This operation can block, so we'll use another thread to do this.
      */
-    private StreamCorruptedException diagnoseStreamCorruption(Exception e) throws StreamCorruptedException {
+    private StreamCorruptedException diagnoseStreamCorruption(Exception e) {
         if (rawIn==null) {// no source of diagnostics information. can't diagnose.
             if (e instanceof StreamCorruptedException)
                 return (StreamCorruptedException)e;
@@ -95,6 +96,7 @@ import java.io.StreamCorruptedException;
         return rawIn.analyzeCrash(e,(channel!=null ? channel : this).toString());
     }
 
+    @Override
     public void closeRead() throws IOException {
         ois.close();
     }

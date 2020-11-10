@@ -285,7 +285,7 @@ public class ClassFilterTest implements Serializable {
         }
 
         @Override
-        public Void call() throws IOException {
+        public Void call() {
             a.toString();   // this will ensure 'a' gets sent over
             return null;
         }

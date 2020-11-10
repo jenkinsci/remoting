@@ -160,8 +160,8 @@ public class JnlpProtocolHandlerFactory {
      * @return the {@link JnlpProtocolHandler} instances, may be empty, never {@code null}
      */
     @Nonnull
-    public List<JnlpProtocolHandler> handlers() {
-        List<JnlpProtocolHandler> result = new ArrayList<JnlpProtocolHandler>();
+    public List<JnlpProtocolHandler<? extends JnlpConnectionState>> handlers() {
+        List<JnlpProtocolHandler<? extends JnlpConnectionState>> result = new ArrayList<>();
         if (ioHub != null && context != null) {
             result.add(new JnlpProtocol4Handler(clientDatabase, threadPool, ioHub, context, needClientAuth, preferNio));
         }

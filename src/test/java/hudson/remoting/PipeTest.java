@@ -26,7 +26,7 @@ package hudson.remoting;
 import junit.framework.Test;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.For;
 
 import java.io.ByteArrayOutputStream;
@@ -62,7 +62,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
      * Have the reader close the read end of the pipe while the writer is still writing.
      * The writer should pick up a failure.
      */
-    @Bug(8592)
+    @Issue("JENKINS-8592")
     @For(Pipe.class)
     public void testReaderCloseWhileWriterIsStillWriting() throws Exception {
         final Pipe p = Pipe.createRemoteToLocal();
@@ -93,6 +93,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.pipe = pipe;
         }
 
+        @Override
         public Void call() throws Exception {
             while (true) {
                 pipe.getOut().write(0);
@@ -109,6 +110,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.pipe = pipe;
         }
 
+        @Override
         public Integer call() throws IOException {
             write(pipe);
             return 5;
@@ -143,7 +145,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
     }
 
     public interface ISaturationTest {
-        void ensureConnected() throws IOException;
+        void ensureConnected();
         int readFirst() throws IOException;
         void readRest() throws IOException;
     }
@@ -198,17 +200,21 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.pipe = pipe;
         }
 
-        public ISaturationTest call() throws IOException {
+        @Override
+        public ISaturationTest call() {
             return Channel.currentOrFail().export(ISaturationTest.class, new ISaturationTest() {
                 private InputStream in;
-                public void ensureConnected() throws IOException {
+                @Override
+                public void ensureConnected() {
                     in = pipe.getIn();
                 }
 
+                @Override
                 public int readFirst() throws IOException {
                     return in.read();
                 }
 
+                @Override
                 public void readRest() throws IOException {
                     new DataInputStream(in).readFully(new byte[Channel.PIPE_WINDOW_SIZE*2]);
                 }
@@ -224,6 +230,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.pipe = pipe;
         }
 
+        @Override
         public Integer call() throws IOException {
             try {
                 read(pipe);
@@ -281,13 +288,14 @@ public class PipeTest extends RmiTestBase implements Serializable {
     }
 
     private static class DevNullSink extends CallableBase<OutputStream, IOException> {
-        public OutputStream call() throws IOException {
+        @Override
+        public OutputStream call() {
             return new RemoteOutputStream(new NullOutputStream());
         }
         private static final long serialVersionUID = 1L;
     }
 
-    public static Test suite() throws Exception {
+    public static Test suite() {
         return buildSuite(PipeTest.class);
     }
 
@@ -302,6 +310,7 @@ public class PipeTest extends RmiTestBase implements Serializable {
             this.p = p;
         }
 
+        @Override
         public Integer call() throws IOException {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             IOUtils.copy(p.getIn(), baos);

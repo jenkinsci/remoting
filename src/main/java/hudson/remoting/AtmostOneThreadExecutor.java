@@ -25,7 +25,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
      */
     private Thread worker;
 
-    private final LinkedList<Runnable> q = new LinkedList<Runnable>();
+    private final LinkedList<Runnable> q = new LinkedList<>();
 
     private boolean shutdown;
 
@@ -39,6 +39,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
         this(new DaemonThreadFactory());
     }
 
+    @Override
     public void shutdown() {
         synchronized (q) {
             shutdown = true;
@@ -54,23 +55,27 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
         return worker!=null && worker.isAlive();
     }
 
+    @Override
     public List<Runnable> shutdownNow() {
         synchronized (q) {
             shutdown = true;
-            List<Runnable> r = new ArrayList<Runnable>(q);
+            List<Runnable> r = new ArrayList<>(q);
             q.clear();
             return r;
         }
     }
 
+    @Override
     public boolean isShutdown() {
         return shutdown;
     }
 
+    @Override
     public boolean isTerminated() {
         return shutdown && !isAlive();
     }
 
+    @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         synchronized (q) {
             long now = System.nanoTime();
@@ -83,6 +88,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
         return isTerminated();
     }
 
+    @Override
     public void execute(Runnable command) {
         synchronized (q) {
             if (isShutdown()) {
@@ -98,6 +104,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
     }
 
     private class Worker implements Runnable {
+        @Override
         public void run() {
             while (true) {
                 Runnable task;

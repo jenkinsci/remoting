@@ -19,7 +19,10 @@ parallel linux: {
         }
         stage('Archive') {
             junit '**/target/surefire-reports/TEST-*.xml'
-            findbugs pattern: '**/target/findbugsXml.xml'
+            recordIssues(
+                    enabledForFailure: true, aggregatingResults: true,
+                    tools: [java(), spotBugs(pattern: '**/target/spotbugsXml.xml')]
+            )
             infra.prepareToPublishIncrementals()
         }
     }

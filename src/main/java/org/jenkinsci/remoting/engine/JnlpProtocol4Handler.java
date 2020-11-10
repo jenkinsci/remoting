@@ -329,12 +329,9 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         @Override
         public void onChannel(@Nonnull final Channel channel) {
             channel.addListener(this);
-            threadPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    if (!channel.isClosingOrClosed()) {
-                        event.fireAfterChannel(channel);
-                    }
+            threadPool.execute(() -> {
+                if (!channel.isClosingOrClosed()) {
+                    event.fireAfterChannel(channel);
                 }
             });
         }
@@ -373,7 +370,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@inheritDoc}
          */
         @Override
-        public void onClosed(ProtocolStack stack, IOException cause) {
+        public void onClosed(ProtocolStack<?> stack, IOException cause) {
             try {
                 event.fireAfterDisconnect();
             } finally {

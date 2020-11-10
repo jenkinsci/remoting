@@ -26,7 +26,8 @@ package hudson.remoting;
 
 public class TestLinkage extends CallableBase<Object, Throwable> {
 
-    public Object call() throws Throwable {
+    @Override
+    public Object call() {
         // force classloading of several classes
         // when we run this test, we insert an artificial delay to each  classloading
         // so that we can intercept the classloading.

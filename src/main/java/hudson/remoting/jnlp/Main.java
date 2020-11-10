@@ -59,7 +59,7 @@ import static java.util.logging.Level.WARNING;
  * Entry point to JNLP agent.
  *
  * <p>
- * See also <tt>slave-agent.jnlp.jelly</tt> in the core.
+ * See also <tt>jenkins-agent.jnlp.jelly</tt> in the core.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -170,7 +170,6 @@ public class Main {
     @Option(name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
             depends = "-workDir")
-    @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     /**
@@ -224,7 +223,7 @@ public class Main {
      * Two mandatory parameters: secret key, and agent name.
      */
     @Argument
-    public List<String> args = new ArrayList<String>();
+    public List<String> args = new ArrayList<>();
 
     public static void main(String[] args) throws IOException, InterruptedException {
         try {
@@ -341,7 +340,7 @@ public class Main {
             } catch (CertificateException e) {
                 throw new IllegalStateException("Java platform specification mandates support for X.509", e);
             }
-            List<X509Certificate> certificates = new ArrayList<X509Certificate>(candidateCertificates.size());
+            List<X509Certificate> certificates = new ArrayList<>(candidateCertificates.size());
             for (String certOrAtFilename : candidateCertificates) {
                 certOrAtFilename = certOrAtFilename.trim();
                 byte[] cert;
@@ -419,14 +418,17 @@ public class Main {
             LOGGER.info("Jenkins agent is running in headless mode.");
         }
 
+        @Override
         public void status(String msg, Throwable t) {
             LOGGER.log(INFO,msg,t);
         }
 
+        @Override
         public void status(String msg) {
             status(msg,null);
         }
 
+        @Override
         @SuppressFBWarnings(value = "DM_EXIT",
                 justification = "Yes, we really want to exit in the case of severe error")
         public void error(Throwable t) {
@@ -434,9 +436,11 @@ public class Main {
             System.exit(-1);
         }
 
+        @Override
         public void onDisconnect() {
         }
 
+        @Override
         public void onReconnect() {
         }
     }

@@ -111,7 +111,7 @@ class PipeWriter {
         }
     }
 
-    private final Map<Integer,FutureHolder> pendingIO = Collections.synchronizedMap(new HashMap<Integer, FutureHolder>());
+    private final Map<Integer,FutureHolder> pendingIO = Collections.synchronizedMap(new HashMap<>());
 
     /**
      * Actually carries out the {@link Runnable}s.
@@ -150,6 +150,7 @@ class PipeWriter {
         assert old==null;
 
         return fh.set(base.submit(new Runnable() {
+            @Override
             public void run() {
                 final Thread t = Thread.currentThread();
                 final String oldName = t.getName();
@@ -183,5 +184,5 @@ class PipeWriter {
         return f.get();
     }
 
-    private static final Future<?> SIGNALED = new AsyncFutureImpl<Object>(new Object());
+    private static final Future<?> SIGNALED = new AsyncFutureImpl<>(new Object());
 }

@@ -70,13 +70,13 @@ public class SSLEngineFilterLayer extends FilterLayer {
      * The queue of messages to send, populated while waiting on handshaking to complete.
      */
     @Nonnull
-    private ConcurrentLinkedQueue<ByteBuffer> messages = new ConcurrentLinkedQueue<ByteBuffer>();
+    private ConcurrentLinkedQueue<ByteBuffer> messages = new ConcurrentLinkedQueue<>();
     /**
      * Buffer to hold any partial reads until we have a complete SSL record.
      */
     @CheckForNull
     private ByteBuffer previous;
-    private final AtomicReference<ByteBuffer> directBufferRef = new AtomicReference<ByteBuffer>();
+    private final AtomicReference<ByteBuffer> directBufferRef = new AtomicReference<>();
 
     /**
      * Constructs a new instance.
@@ -117,7 +117,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
             processRead(readBuffer);
         } catch (RuntimeException e) {
             Throwable cause = e.getCause();
-            while (cause != null && cause instanceof RuntimeException) {
+            while (cause instanceof RuntimeException) {
                 cause = cause.getCause();
             }
             if (cause instanceof GeneralSecurityException) {
@@ -140,12 +140,10 @@ public class SSLEngineFilterLayer extends FilterLayer {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "[" + stack().name() + "] ", e);
             }
-            return;
         } catch (ConnectionRefusalException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "[" + stack().name() + "] ", e);
             }
-            return;
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.WARNING)) {
                 LOGGER.log(Level.WARNING, "[" + stack().name() + "] ", e);
@@ -541,7 +539,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
         /**
          * Secure credentials are removed from the session, application messages are not encrypted anymore.
          */
-        NO_CREDENTIALS;
+        NO_CREDENTIALS
 
     }
 }

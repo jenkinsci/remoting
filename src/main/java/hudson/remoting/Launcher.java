@@ -48,7 +48,6 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -118,7 +117,7 @@ public class Launcher {
      * If specified, this option overrides the default destination within {@link #workDir}.
      * If both this options and {@link #workDir} is not set, the log will not be generated.
      */
-    @Option(name="-agentLog", aliases = {"-slaveLog"}, usage="Local agent error log destination (overrides workDir)")
+    @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
     @CheckForNull
     public File agentLog = null;
 
@@ -268,7 +267,6 @@ public class Launcher {
     @Option(name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
             depends = "-workDir")
-    @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
     
     /**
@@ -384,7 +382,7 @@ public class Launcher {
                 jnlpArgs.add("-disableHttpsCertValidation");
             }
             try {
-                hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
+                hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[0]));
             } catch (CmdLineException e) {
                 System.err.println("JNLP file "+ agentJnlpURL +" has invalid arguments: "+jnlpArgs);
                 System.err.println("Most likely a configuration error in the master");
@@ -544,9 +542,7 @@ public class Launcher {
                     // load DOM anyway, but if it fails to parse, that's probably because this is not an XML file to begin with.
                     try {
                         dom = loadDom(input);
-                    } catch (SAXException e) {
-                        throw new IOException(agentJnlpURL +" doesn't look like a JNLP file; content type was "+contentType);
-                    } catch (IOException e) {
+                    } catch (SAXException | IOException e) {
                         throw new IOException(agentJnlpURL +" doesn't look like a JNLP file; content type was "+contentType);
                     }
                 } else {
@@ -555,7 +551,7 @@ public class Launcher {
 
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
                 NodeList argElements = dom.getElementsByTagName("argument");
-                List<String> jnlpArgs = new ArrayList<String>();
+                List<String> jnlpArgs = new ArrayList<>();
                 for( int i=0; i<argElements.getLength(); i++ )
                         jnlpArgs.add(argElements.item(i).getTextContent());
                 if (agentJnlpCredentials != null) {
@@ -568,8 +564,7 @@ public class Launcher {
             } catch (SSLHandshakeException e) {
                 if(e.getMessage().contains("PKIX path building failed")) {
                     // invalid SSL certificate. One reason this happens is when the certificate is self-signed
-                    IOException x = new IOException("Failed to validate a server certificate. If you are using a self-signed certificate, you can use the -noCertificateCheck option to bypass this check.", e);
-                    throw x;
+                    throw new IOException("Failed to validate a server certificate. If you are using a self-signed certificate, you can use the -noCertificateCheck option to bypass this check.", e);
                 } else
                     throw e;
             } catch (IOException e) {
@@ -627,11 +622,8 @@ public class Launcher {
         ss.setSoTimeout(30*1000);
 
         // write a port file to report the port number
-        FileWriter w = new FileWriter(tcpPortFile);
-        try {
+        try (FileWriter w = new FileWriter(tcpPortFile)) {
             w.write(String.valueOf(ss.getLocalPort()));
-        } finally {
-            w.close();
         }
 
         // accept just one connection and that's it.

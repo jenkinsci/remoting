@@ -73,7 +73,7 @@ public class Util {
             fos.write(image);
         }
 
-        deleteDirectoryOnExit(resource);
+        deleteDirectoryOnExit(tmpDir.toFile());
         return resource;
     }
 
@@ -113,7 +113,7 @@ public class Util {
         if (System.getProperty("http.proxyHost") == null) {
             httpProxy = System.getenv("http_proxy");
         }
-        URLConnection con = null;
+        URLConnection con;
         if (httpProxy != null && "http".equals(url.getProtocol()) && NoProxyEvaluator.shouldProxy(url.getHost())) {
             try {
                 URL proxyUrl = new URL(httpProxy);
@@ -170,9 +170,9 @@ public class Util {
     static public String getVersion() {
         String version = "unknown";
         try {
-            Enumeration resEnum = Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
+            Enumeration<URL> resEnum = Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
             while (resEnum.hasMoreElements()) {
-                URL url = (URL) resEnum.nextElement();
+                URL url = resEnum.nextElement();
                 try(InputStream is = url.openStream()) {
                     if (is != null) {
                         Manifest manifest = new Manifest(is);

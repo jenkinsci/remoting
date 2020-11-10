@@ -249,6 +249,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         return null;
     }
 
+    @Override
     @Nullable
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if(method.getDeclaringClass()==IReadResolve.class) {
@@ -289,7 +290,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             }
             return null;
         } catch (Throwable e) {
-            for (Class exc : method.getExceptionTypes()) {
+            for (Class<?> exc : method.getExceptionTypes()) {
                 if (exc.isInstance(e))
                     throw e;    // signature explicitly lists this exception
             }
@@ -328,6 +329,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Two proxies are the same iff they represent the same remote object.
      */
+    @Override
     public boolean equals(Object o) {
         if(o!=null && Proxy.isProxyClass(o.getClass()))
             o = Proxy.getInvocationHandler(o);
@@ -341,6 +343,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
     }
 
+    @Override
     public int hashCode() {
         return oid;
     }
@@ -485,12 +488,12 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * Our {@link ReferenceQueue} for picking up references that have been collected by the garbage collector
          * and need the corresponding {@link UnexportCommand} sent.
          */
-        private final ReferenceQueue<? super RemoteInvocationHandler> queue = new ReferenceQueue<RemoteInvocationHandler>();
+        private final ReferenceQueue<? super RemoteInvocationHandler> queue = new ReferenceQueue<>();
         /**
          * The "live" {@link PhantomReferenceImpl} instances for each active {@link Channel}.
          */
         private final ConcurrentMap<Channel.Ref,List<PhantomReferenceImpl>> referenceLists
-                = new ConcurrentHashMap<Channel.Ref, List<PhantomReferenceImpl>>();
+                = new ConcurrentHashMap<>();
         /**
          * The 1 minute rolling average.
          */
@@ -700,13 +703,12 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             double tStd = tCount <= 0 || tVarTimesCount < 0 ? 0 : Math.sqrt(tVarTimesCount / tCount);
             Level targetLevel = m15Avg > 100 ? Level.INFO : m15Avg > 50 ? Level.FINE : Level.FINER;
             if (logger.isLoggable(targetLevel)) {
-                logger.log(targetLevel, "rate(1min) = {0,number,0.0}±{1,number,0.0}/sec; "
-                                + "rate(5min) = {2,number,0.0}±{3,number,0.0}/sec; "
-                                + "rate(15min) = {4,number,0.0}±{5,number,0.0}/sec; "
-                                + "rate(total) = {6,number,0.0}±{7,number,0.0}/sec; N = {8,number}",
-                        new Object[]{
+                logger.log(targetLevel, () -> String.format("rate(1min) = %.1f±%.1f/sec; "
+                                + "rate(5min) = %.1f±%.1f/sec; "
+                                + "rate(15min) = %.1f±%.1f/sec; "
+                                + "rate(total) = %.1f±%.1f/sec; N = %d",
                                 m1Avg, m1Std, m5Avg, m5Std, m15Avg, m15Std, tAvg, tStd, tCount
-                        });
+                ));
             }
             if (tCount < 10L) {
                 // less than 10 reports is too soon to start alerting the user
@@ -716,64 +718,63 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             if (m15Std > 1 && 100 < m15Avg - 2 * m15Std) {
                 if (tStd > 1 && 100 < tAvg - 2 * tStd) {
                     logger.log(Level.SEVERE,
-                            retainOrigin ?
-                                    "The all time average rate is {0,number,0.0}±{1,number,0.0}/sec. "
-                                    + "The 15 minute average rate is {2,number,0.0}±{3,number,0.0}/sec. "
+                            String.format(retainOrigin ?
+                                    "The all time average rate is %.1f±%.1f/sec. "
+                                    + "The 15 minute average rate is %.1f±%.1f/sec. "
                                             + "At the 95% confidence level both are above 100.0/sec. "
                                             + "If this message is repeated often in the logs then PLEASE "
-                                            + "seriously consider setting system property ''hudson.remoting"
-                                            + ".RemoteInvocationHandler.Unexporter.retainOrigin'' to "
-                                            + "''false'' to trade debug diagnostics for reduced memory "
+                                            + "seriously consider setting system property 'hudson.remoting"
+                                            + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                            + "'false' to trade debug diagnostics for reduced memory "
                                             + "pressure."
-                                    : "The all time average rate is {0,number,0.0}±{1,number,0.0}/sec. "
-                                                    + "The 15 minute average rate is {2,number,0.0}±{3,number,0.0}/sec. "
-                                                    + "At the 95% confidence level both are above 100.0/sec. ",
-                    new Object[]{tAvg, tStd, m15Avg, m15Std});
+                                    : "The all time average rate is %.1f±%.1f/sec. "
+                                                    + "The 15 minute average rate is %.1f±%.1f/sec. "
+                                                    + "At the 95%% confidence level both are above 100.0/sec. ",
+                                    tAvg, tStd, m15Avg, m15Std));
                     return;
                 }
                 logger.log(Level.WARNING,
-                        retainOrigin ?
-                                "The 15 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                        String.format(retainOrigin ?
+                                "The 15 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95% confidence level this is above 100.0/sec. "
                                         + "If this message is repeated often in the logs then very "
-                                        + "seriously consider setting system property ''hudson.remoting"
-                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin'' to "
-                                        + "''false'' to trade debug diagnostics for reduced memory "
+                                        + "seriously consider setting system property 'hudson.remoting"
+                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                        + "'false' to trade debug diagnostics for reduced memory "
                                         + "pressure."
-                                : "The 15 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
-                                        + "At the 95% confidence level this is above 100.0/sec. ",
-                        new Object[]{m15Avg, m15Std});
+                                : "The 15 minute average rate is %.1f±%.1f/sec. "
+                                        + "At the 95%% confidence level this is above 100.0/sec. ",
+                                m15Avg, m15Std));
                 return;
             }
             if (m5Std > 1 && 100 < m5Avg - 2 * m5Std) {
                 logger.log(Level.WARNING,
-                        retainOrigin ?
-                                "The 5 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                        String.format(retainOrigin ?
+                                "The 5 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95% confidence level this is above 100.0/sec. "
                                         + "If this message is repeated often in the logs then "
-                                        + "seriously consider setting system property ''hudson.remoting"
-                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin'' to "
-                                        + "''false'' to trade debug diagnostics for reduced memory "
+                                        + "seriously consider setting system property 'hudson.remoting"
+                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                        + "'false' to trade debug diagnostics for reduced memory "
                                         + "pressure."
-                                : "The 5 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
-                                        + "At the 95% confidence level this is above 100.0/sec. ",
-                        new Object[]{m5Avg, m5Std});
+                                : "The 5 minute average rate is %.1f±%.1f/sec. "
+                                        + "At the 95%% confidence level this is above 100.0/sec. ",
+                                m5Avg, m5Std));
                 return;
             }
             if (m1Std > 1 && 100 < m1Avg - 2 * m1Std) {
                 logger.log(Level.INFO,
-                        retainOrigin ?
-                                "The 1 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
+                        String.format(retainOrigin ?
+                                "The 1 minute average rate is %.1f±%.1f/sec. "
                                         + "At the 95% confidence level this is above 100.0/sec. "
                                         + "If this message is repeated often in the logs then "
-                                        + "consider setting system property ''hudson.remoting"
-                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin'' to "
-                                        + "''false'' to trade debug diagnostics for reduced memory "
+                                        + "consider setting system property 'hudson.remoting"
+                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                        + "'false' to trade debug diagnostics for reduced memory "
                                         + "pressure."
-                                : "The 1 minute average rate is {0,number,0.0}±{1,number,0.0}/sec. "
-                                        + "At the 95% confidence level this is above 100.0/sec. ",
-                        new Object[]{m1Avg, m1Std});
-                return;
+                                : "The 1 minute average rate is %.1f±%.1f/sec. "
+                                        + "At the 95%% confidence level this is above 100.0/sec. ",
+                                m1Avg, m1Std));
             }
         }
 
@@ -786,8 +787,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             if (referenceList == null) {
                 return;
             }
-            for (int i = 0; i < referenceList.size(); i++) {
-                PhantomReferenceImpl phantom = referenceList.get(i);
+            for (PhantomReferenceImpl phantom : referenceList) {
                 if (phantom != null) {
                     phantom.clear();
                 }
@@ -810,7 +810,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             }
             List<PhantomReferenceImpl> referenceList;
             while (null == (referenceList = referenceLists.get(ref))) {
-                referenceLists.putIfAbsent(ref, Collections.synchronizedList(new ArrayList<PhantomReferenceImpl>()));
+                referenceLists.putIfAbsent(ref, Collections.synchronizedList(new ArrayList<>()));
             }
             referenceList.add(new PhantomReferenceImpl(handler, queue));
             if (isAlive.get()) {
@@ -898,9 +898,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             Class<?>[] params = m.getParameterTypes();
             for( int i=0; i<arguments.length; i++ )
                 types[i] = params[i].getName();
-            assert types.length == arguments.length;
         }
 
+        @Override
         public Serializable call() throws Throwable {
             return perform(getChannelOrFail());
         }
@@ -918,6 +918,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 return getClass().getClassLoader();
         }
 
+        @Override
         protected Serializable perform(@Nonnull Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
             Class<?>[] clazz = channel.getExportedTypes(oid);
@@ -944,8 +945,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         /**
          * Chooses the method to invoke.
          */
-        private Method choose(Class[] interfaces) {
-            for(Class clazz: interfaces) {
+        private Method choose(Class<?>[] interfaces) {
+            for(Class<?> clazz: interfaces) {
                 OUTER:
                 for (Method m : clazz.getMethods()) {
                     if (!m.getName().equals(methodName))
@@ -1003,7 +1004,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         // Same implementation as UserRequest
         @Override
-        public void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
+        public void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
             // Default check for all requests
             super.checkIfCanBeExecutedOnChannel(channel);
 

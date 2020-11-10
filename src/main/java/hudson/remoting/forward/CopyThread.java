@@ -38,6 +38,7 @@ final class CopyThread extends Thread {
         });
     }
 
+    @Override
     public void run() {
         try {
             byte[] buf = new byte[8192];

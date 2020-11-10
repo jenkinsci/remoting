@@ -479,6 +479,7 @@ final class RemoteClassLoader extends URLClassLoader {
         definePackage(packageName, null, null, null, null, null, null, null);
     }
 
+    @Override
     @CheckForNull
     public URL findResource(String name) {
         // first attempt to load from locally fetched jars
@@ -569,6 +570,7 @@ final class RemoteClassLoader extends URLClassLoader {
         return r;
     }
 
+    @Override
     public Enumeration<URL> findResources(String name) throws IOException {
         final Channel channel = channel();
         if (channel == null || !channel.isRemoteClassLoadingAllowed()) {
@@ -932,11 +934,13 @@ final class RemoteClassLoader extends URLClassLoader {
             this.channel = channel;
         }
 
+        @Override
         @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files.")
         public byte[] fetchJar(URL url) throws IOException {
             return readFully(url.openStream());
         }
 
+        @Override
         public byte[] fetch(String className) throws ClassNotFoundException {
             if (!USE_BOOTSTRAP_CLASSLOADER && cl == PSEUDO_BOOTSTRAP) {
                 throw new ClassNotFoundException("Classloading from bootstrap classloader disabled");
@@ -954,6 +958,7 @@ final class RemoteClassLoader extends URLClassLoader {
             }
         }
 
+        @Override
         public ClassFile fetch2(String className) throws ClassNotFoundException {
             ClassLoader ecl = cl.loadClass(className).getClassLoader();
             if (ecl == null) {
@@ -1026,6 +1031,7 @@ final class RemoteClassLoader extends URLClassLoader {
             }
         }
 
+        @Override
         @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files.")
         public Map<String, ClassFile2> fetch3(String className) throws ClassNotFoundException {
             ClassFile2 cf = fetch4(className, null);
@@ -1075,6 +1081,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return resource;
         }
 
+        @Override
         @CheckForNull
         public ResourceFile getResource2(String name) throws IOException {
             URL resource = getResourceURL(name);
@@ -1161,6 +1168,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return r;
         }
 
+        @Override
         public boolean equals(Object that) {
             if (this == that) {
                 return true;
@@ -1172,6 +1180,7 @@ final class RemoteClassLoader extends URLClassLoader {
             return cl.equals(((ClassLoaderProxy) that).cl);
         }
 
+        @Override
         public int hashCode() {
             return cl.hashCode();
         }
@@ -1215,18 +1224,22 @@ final class RemoteClassLoader extends URLClassLoader {
             this.oid = oid;
         }
 
+        @Override
         public byte[] fetchJar(URL url) throws IOException {
             return proxy.fetchJar(url);
         }
 
+        @Override
         public byte[] fetch(String className) throws ClassNotFoundException {
             return proxy.fetch(className);
         }
 
+        @Override
         public ClassFile fetch2(String className) throws ClassNotFoundException {
             return proxy.fetch2(className);
         }
 
+        @Override
         public Map<String, ClassFile2> fetch3(String className) throws ClassNotFoundException {
             return proxy.fetch3(className);
         }

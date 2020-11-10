@@ -22,8 +22,9 @@ import static org.junit.Assert.*;
  * Runs a channel over NIO+socket.
  */
 public class NioSocketRunner extends AbstractNioChannelRunner {
+    @Override
     public Channel start() throws Exception {
-        final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<Channel>();
+        final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<>();
 
         ServerSocketChannel ss = ServerSocketChannel.open();
         ss.configureBlocking(false);
@@ -36,18 +37,16 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
                     ServerSocketChannel ss = (ServerSocketChannel) key.channel();
                     LOGGER.info("Acccepted");
                     final SocketChannel con = ss.accept();
-                    executor.submit(new Runnable() {
-                        public void run() {
-                            try {
-                                Socket socket = con.socket();
-                                assertNull(south);
-                                Channel south = configureSouth().build(socket);
-                                LOGGER.info("Connected to " + south);
-                                southHandoff.put(south);
-                            } catch (Exception e) {
-                                LOGGER.log(Level.WARNING, "Handshake failed", e);
-                                failure = e;
-                            }
+                    executor.submit(() -> {
+                        try {
+                            Socket socket = con.socket();
+                            assertNull(south);
+                            Channel south = configureSouth().build(socket);
+                            LOGGER.info("Connected to " + south);
+                            southHandoff.put(south);
+                        } catch (Exception e) {
+                            LOGGER.log(Level.WARNING, "Handshake failed", e);
+                            failure = e;
                         }
                     });
                 } catch (IOException e) {
@@ -60,14 +59,12 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
 
         ss.register(nio.getSelector(), OP_ACCEPT);
         LOGGER.info("Waiting for connection");
-        executor.submit(new Runnable() {
-            public void run() {
-                try {
-                    nio.run();
-                } catch (Throwable e) {
-                    LOGGER.log(Level.WARNING, "Faield to keep the NIO selector thread going",e);
-                    failure = e;
-                }
+        executor.submit(() -> {
+            try {
+                nio.run();
+            } catch (Throwable e) {
+                LOGGER.log(Level.WARNING, "Failed to keep the NIO selector thread going",e);
+                failure = e;
             }
         });
 
@@ -87,6 +84,7 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
     }
 
 
+    @Override
     public String getName() {
         return "NIO+socket";
     }

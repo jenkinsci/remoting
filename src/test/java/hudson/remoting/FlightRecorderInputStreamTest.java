@@ -7,9 +7,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StreamCorruptedException;
-import java.util.Arrays;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -38,8 +40,8 @@ public class FlightRecorderInputStreamTest {
             t.printStackTrace();
             assertNull(t.getDiagnoseFailure());
             // back buffer shouldn't contain 'abc' since the stream was reset
-            assertTrue(Arrays.equals(new byte[]{TC_STRING,0,3,'d','e','f',-1}, t.getReadBack()));
-            assertTrue(Arrays.equals(new byte[]{TC_STRING,0,3,'g','h','i'},t.getReadAhead()));
+            assertArrayEquals(new byte[]{TC_STRING, 0, 3, 'd', 'e', 'f', -1}, t.getReadBack());
+            assertArrayEquals(new byte[]{TC_STRING, 0, 3, 'g', 'h', 'i'}, t.getReadAhead());
         }
     }
 
@@ -60,12 +62,12 @@ public class FlightRecorderInputStreamTest {
             chunk *= 1.9; // just try various chunk sizes
         }
         assertEquals(sz, pos);
-        assertTrue(Arrays.equals(stuff, stuff2));
+        assertArrayEquals(stuff, stuff2);
         byte[] rec = fris.getRecord();
         assertEquals(FlightRecorderInputStream.BUFFER_SIZE, rec.length);
         byte[] expected = new byte[FlightRecorderInputStream.BUFFER_SIZE];
         System.arraycopy(stuff, stuff.length - expected.length, expected, 0, expected.length);
-        assertTrue(Arrays.equals(expected, rec));
+        assertArrayEquals(expected, rec);
     }
 
     private static final byte TC_STRING = 0x74;

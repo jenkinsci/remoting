@@ -31,6 +31,7 @@ public abstract class NioChannelBuilder extends ChannelBuilder {
         super(name, executors);
     }
 
+    @Override
     public Channel build(SocketChannel socket) throws IOException {
         this.r = socket;
         this.w = socket;

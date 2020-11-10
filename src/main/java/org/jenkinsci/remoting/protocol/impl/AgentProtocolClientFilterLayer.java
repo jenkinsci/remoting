@@ -39,10 +39,6 @@ import org.jenkinsci.remoting.util.ByteBufferUtils;
  */
 public class AgentProtocolClientFilterLayer extends FilterLayer {
     /**
-     * Our logger.
-     */
-    private static final Logger LOGGER = Logger.getLogger(AgentProtocolClientFilterLayer.class.getName());
-    /**
      * The read-only send buffer.
      */
     private ByteBuffer sendProtocol;

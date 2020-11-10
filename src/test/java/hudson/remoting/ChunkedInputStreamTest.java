@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -48,6 +47,7 @@ public class ChunkedInputStreamTest extends Assert {
         test(new Workload() {
             int size = 1024;
 
+            @Override
             public void write(OutputStream o) throws IOException {
                 Random boundary = new Random(0);
                 Random data = new Random(1);
@@ -62,6 +62,7 @@ public class ChunkedInputStreamTest extends Assert {
                 o.close();
             }
 
+            @Override
             public void read(InputStream i) throws IOException {
                 Random boundary = new Random(0);
                 Random data = new Random(1);
@@ -86,24 +87,20 @@ public class ChunkedInputStreamTest extends Assert {
 
 
     private void test(final Workload w, final InputStream i, final OutputStream o) throws Exception {
-        Future<Object> fw = es.submit(new Callable<Object>() {
-            public Object call() throws Exception {
-                w.write(o);
-                return null;
-            }
+        Future<Object> fw = es.submit(() -> {
+            w.write(o);
+            return null;
         });
-        Future<Object> fr = es.submit(new Callable<Object>() {
-            public Object call() throws Exception {
-                w.read(i);
-                return null;
-            }
+        Future<Object> fr = es.submit(() -> {
+            w.read(i);
+            return null;
         });
 
         fr.get();
         fw.get();
     }
 
-    class AutoChunkedOutputStream extends FilterOutputStream {
+    static class AutoChunkedOutputStream extends FilterOutputStream {
         AutoChunkedOutputStream(ChunkedOutputStream out) {
             super(out);
         }

@@ -10,7 +10,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @since 2.36
  */
 public class EngineListenerSplitter implements EngineListener {
-    protected final List<EngineListener> listeners = new CopyOnWriteArrayList<EngineListener>();
+    protected final List<EngineListener> listeners = new CopyOnWriteArrayList<>();
 
     public void add(EngineListener el) {
         listeners.add(el);
@@ -20,30 +20,35 @@ public class EngineListenerSplitter implements EngineListener {
         listeners.remove(el);
     }
 
+    @Override
     public void status(String msg) {
         for (EngineListener l : listeners) {
             l.status(msg);
         }
     }
 
+    @Override
     public void status(String msg, Throwable t) {
         for (EngineListener l : listeners) {
             l.status(msg,t);
         }
     }
 
+    @Override
     public void error(Throwable t) {
         for (EngineListener l : listeners) {
             l.error(t);
         }
     }
 
+    @Override
     public void onDisconnect() {
         for (EngineListener l : listeners) {
             l.onDisconnect();
         }
     }
 
+    @Override
     public void onReconnect() {
         for (EngineListener l : listeners) {
             l.onReconnect();

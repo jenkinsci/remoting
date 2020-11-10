@@ -38,6 +38,7 @@ import java.io.InputStream;
  * @see DummyClassLoader
  */
 public class TestCallable extends Exception implements Callable<Object, Throwable> {
+    @Override
     public Object call() throws Throwable {
         Object[] r = new Object[4];
 

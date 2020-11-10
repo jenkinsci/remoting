@@ -24,6 +24,7 @@ public class RandomWorkload extends Assert implements Workload {
         this.size = size;
     }
 
+    @Override
     public void write(OutputStream o) throws IOException {
         Random data = new Random(0);
         Random boundary = new Random(1);
@@ -43,6 +44,7 @@ public class RandomWorkload extends Assert implements Workload {
         o.close();
     }
 
+    @Override
     public void read(InputStream i) throws IOException {
         Random data = new Random(0);
         Random boundary = new Random(2);

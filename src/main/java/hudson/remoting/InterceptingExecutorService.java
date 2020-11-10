@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import org.jenkinsci.remoting.CallableDecorator;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -32,31 +33,37 @@ class InterceptingExecutorService extends DelegatingExecutorService {
     }
 
     @Override
+    @Nonnull
     public <T> Future<T> submit(Callable<T> task) {
         return super.submit(wrap(task));
     }
 
     @Override
+    @Nonnull
     public Future<?> submit(Runnable task) {
         return submit(task, null);
     }
 
     @Override
+    @Nonnull
     public <T> Future<T> submit(Runnable task, T result) {
         return super.submit(wrap(task,result));
     }
 
     @Override
+    @Nonnull
     public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
         return super.invokeAll(wrap(tasks));
     }
 
     @Override
+    @Nonnull
     public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
         return super.invokeAll(wrap(tasks), timeout, unit);
     }
 
     @Override
+    @Nonnull
     public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
         return super.invokeAny(wrap(tasks));
     }
@@ -67,16 +74,14 @@ class InterceptingExecutorService extends DelegatingExecutorService {
     }
 
     private <V> Callable<V> wrap(final Runnable r, final V value) {
-        return wrap(new Callable<V>() {
-            public V call() throws Exception {
-                r.run();
-                return value;
-            }
+        return wrap(() -> {
+            r.run();
+            return value;
         });
     }
 
     private <T> Collection<Callable<T>> wrap(Collection<? extends Callable<T>> callables) {
-        List<Callable<T>> r = new ArrayList<Callable<T>>();
+        List<Callable<T>> r = new ArrayList<>();
         for (Callable<T> c : callables) {
             r.add(wrap(c));
         }

@@ -1,7 +1,7 @@
 package hudson.remoting;
 
 import junit.framework.Test;
-import org.jvnet.hudson.test.Bug;
+import org.jvnet.hudson.test.Issue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -76,7 +76,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
     /**
      * If {@link ProxyWriter} gets garbage collected, it should unexport the entry but shouldn't try to close the stream.
      */
-    @Bug(20769)
+    @Issue("JENKINS-20769")
     public void testRemoteGC() throws InterruptedException, IOException {
         // in the legacy mode ProxyWriter will try to close the stream, so can't run this test
         if (channelRunner.getName().equals("local-compatibility"))
@@ -84,7 +84,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
 
         StringWriter sw = new StringWriter() {
             @Override
-            public void close() throws IOException {
+            public void close() {
                 streamClosed = true;
             }
         };
@@ -96,7 +96,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
         // and if GC doesn't happen within this loop, the test can pass
         // even when the underlying problem exists.
         for (int i=0; i<30; i++) {
-            assertTrue("There shouldn't be any errors: " + log.toString(), log.size() == 0);
+            assertEquals("There shouldn't be any errors: " + log.toString(), 0, log.size());
 
             Thread.sleep(100);
             if (channel.call(new GcCallable()))
@@ -130,7 +130,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
         return null;
     }
 
-    public static Test suite() throws Exception {
+    public static Test suite() {
         return buildSuite(ProxyWriterTest.class);
     }
 
@@ -141,6 +141,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             this.w = w;
         }
 
+        @Override
         public Void call() throws IOException {
             writeBunchOfData(w);
             return null;
@@ -155,15 +156,17 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             this.w = w;
         }
 
+        @Override
         public Void call() throws IOException {
             w.write("hello");
-            W = new WeakReference<RemoteWriter>(w);
+            W = new WeakReference<>(w);
             return null;
         }
     }
 
     private static class GcCallable extends CallableBase<Boolean, IOException> {
-        public Boolean call() throws IOException {
+        @Override
+        public Boolean call() {
             System.gc();
             return W.get() == null;
         }
@@ -177,6 +180,7 @@ public class ProxyWriterTest extends RmiTestBase implements Serializable {
             this.w = w;
         }
 
+        @Override
         public Void call() throws IOException {
             w.write("1--", 0, 1);
             return null;

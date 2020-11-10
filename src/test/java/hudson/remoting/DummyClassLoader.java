@@ -54,7 +54,7 @@ class DummyClassLoader extends ClassLoader {
         final String logicalName;
         final String physicalPath;
         final String logicalPath;
-        final Class c;
+        final Class<?> c;
 
         Entry(Class<?> c) {
             this.c = c;
@@ -79,7 +79,7 @@ class DummyClassLoader extends ClassLoader {
         }
     }
 
-    private final List<Entry> entries = new ArrayList<Entry>();
+    private final List<Entry> entries = new ArrayList<>();
 
     public DummyClassLoader(Class<?>... classes) {
         this(DummyClassLoader.class.getClassLoader(), classes);
@@ -104,16 +104,12 @@ class DummyClassLoader extends ClassLoader {
      * Loads a class that looks like an exact clone of the named class under
      * a different class name.
      */
-    public Object load(Class c) {
+    public Object load(Class<?> c) {
         for (Entry e : entries) {
             if (e.c==c) {
                 try {
                     return loadClass(e.logicalName).newInstance();
-                } catch (InstantiationException x) {
-                    throw new Error(x);
-                } catch (IllegalAccessException x) {
-                    throw new Error(x);
-                } catch (ClassNotFoundException x) {
+                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException x) {
                     throw new Error(x);
                 }
             }
@@ -122,6 +118,7 @@ class DummyClassLoader extends ClassLoader {
     }
 
 
+    @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         for (Entry e : entries) {
             if(name.equals(e.logicalName)) {
@@ -139,6 +136,7 @@ class DummyClassLoader extends ClassLoader {
     }
 
 
+    @Override
     protected URL findResource(String name) {
         for (Entry e : entries) {
             if (name.equals(e.logicalPath)) {

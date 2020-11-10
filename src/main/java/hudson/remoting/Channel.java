@@ -47,6 +47,7 @@ import java.io.InputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -158,7 +159,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Requests that are sent to the remote side for execution, yet we are waiting locally until
      * we hear back their responses.
      */
-    /*package*/ final Map<Integer,Request<?,?>> pendingCalls = new Hashtable<Integer,Request<?,?>>();
+    /*package*/ final Map<Integer,Request<? extends Serializable,? extends Throwable>> pendingCalls = new Hashtable<>();
 
     /**
      * Remembers last I/O ID issued from locally to the other side, per thread.
@@ -170,7 +171,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Records the {@link Request}s being executed on this channel, sent by the remote peer.
      */
     /*package*/ final Map<Integer,Request<?,?>> executingCalls =
-        Collections.synchronizedMap(new Hashtable<Integer,Request<?,?>>());
+        Collections.synchronizedMap(new Hashtable<>());
 
     /**
      * {@link ClassLoader}s that are proxies of the remote classloaders.
@@ -199,7 +200,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * per OID, it will only result in a temporary spike in the effective window size,
      * and therefore should be OK.
      */
-    private final WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>> pipeWindows = new WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>>();
+    private final WeakHashMap<PipeWindow.Key, WeakReference<PipeWindow>> pipeWindows = new WeakHashMap<>();
     /**
      * There are cases where complex object cycles can cause a closed channel to fail to be garbage collected,
      * these typically arrise when an {@link #export(Class, Object)} is {@link #setProperty(Object, Object)}
@@ -536,7 +537,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
      * @param restricted
      *      See {@link #Channel(String, ExecutorService, Mode, InputStream, OutputStream, OutputStream, boolean, ClassLoader)}
-     * @param jarCache
      *
      * @since 2.24
      * @deprecated as of 2.38
@@ -593,6 +593,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.properties.putAll(settings.getProperties());
 
         transport.setup(this, new CommandReceiver() {
+            @Override
             public void handle(Command cmd) {
                 commandsReceived++;
                 long receivedAt = System.currentTimeMillis();
@@ -615,6 +616,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 }
             }
 
+            @Override
             public void terminate(IOException e) {
                 Channel.this.terminate(e);
             }
@@ -974,7 +976,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 w = new Real(k, PIPE_WINDOW_SIZE);
             else
                 w = new PipeWindow.Fake();
-            pipeWindows.put(k,new WeakReference<PipeWindow>(w));
+            pipeWindows.put(k, new WeakReference<>(w));
             return w;
         }
     }
@@ -983,6 +985,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@inheritDoc}
      */
+    @Override
     public <V,T extends Throwable>
     V call(Callable<V,T> callable) throws IOException, T, InterruptedException {
         if (isClosingOrClosed()) {
@@ -993,7 +996,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
         UserRequest<V,T> request=null;
         try {
-            request = new UserRequest<V, T>(this, callable);
+            request = new UserRequest<>(this, callable);
             UserRequest.ResponseToUserRequest<V, T> r = request.call(this);
             return r.retrieve(this, UserRequest.getClassLoader(callable));
 
@@ -1017,6 +1020,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@inheritDoc}
      */
+    @Override
     public <V,T extends Throwable>
     Future<V> callAsync(final Callable<V,T> callable) throws IOException {
         if (isClosingOrClosed()) {
@@ -1130,7 +1134,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * Adds a {@link CallableFilter} that gets a chance to decorate every {@link Callable}s that run locally
+     * Adds a {@link CallableDecorator} that gets a chance to decorate every {@link Callable}s that run locally
      * sent by the other peer.
      *
      * This is useful to tweak the environment those closures are run, such as setting up the thread context
@@ -1141,7 +1145,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     }
 
     /**
-     * Removes the filter introduced by {@link #addLocalExecutionInterceptor(CallableFilter)}.
+     * Removes the filter introduced by {@link #addLocalExecutionInterceptor(CallableDecorator)}.
      */
     public void removeLocalExecutionInterceptor(CallableDecorator decorator) {
         decorators.remove(decorator);
@@ -1173,6 +1177,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @throws InterruptedException
      *      If the current thread is interrupted while waiting for the completion.
      */
+    @Override
     public synchronized void join() throws InterruptedException {
         while(inClosed==null || outClosed==null)
             // not that I really encountered any situation where this happens, but
@@ -1267,6 +1272,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         SetMaximumBytecodeLevel(short level) {
             this.level = level;
         }
+        @Override
         public Void call() throws RuntimeException {
             Channel.currentOrFail().maximumBytecodeLevel = level;
             return null;
@@ -1287,6 +1293,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      If the current thread is interrupted while waiting for the completion.
      * @since 1.299
      */
+    @Override
     public synchronized void join(long timeout) throws InterruptedException {
         long now = System.nanoTime();
         long end = now + TimeUnit.MILLISECONDS.toNanos(timeout);
@@ -1308,6 +1315,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             super(channel, cause);
         }
 
+        @Override
         protected void execute(Channel channel) {
             try {
                 channel.close();
@@ -1442,6 +1450,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void close() throws IOException {
         close(null);
     }
@@ -1535,6 +1544,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      to wait for the set by the other side of the channel (via {@link #waitForRemoteProperty(Object)}.
      *      If we don't abort after the channel shutdown, this method will block forever.
      */
+    @Override
     @Nonnull
     public Object waitForProperty(@Nonnull Object key) throws InterruptedException {
 
@@ -1743,6 +1753,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 //        callAsync(new IOSyncer());
 //    }
 
+    @Override
     public void syncLocalIO() throws InterruptedException {
         Thread t = Thread.currentThread();
         String old = t.getName();
@@ -1750,6 +1761,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         try {
             // no one waits for the completion of this Runnable, so not using I/O ID
             pipeWriter.submit(0,new Runnable() {
+                @Override
                 public void run() {
                     // noop
                 }
@@ -1980,7 +1992,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Remembers the current "channel" associated for this thread.
      */
-    private static final ThreadLocal<Channel> CURRENT = new ThreadLocal<Channel>();
+    private static final ThreadLocal<Channel> CURRENT = new ThreadLocal<>();
 
     private static final Logger logger = Logger.getLogger(Channel.class.getName());
 
@@ -2004,7 +2016,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Keep track of active channels in the system for diagnostics purposes.
      */
-    private static final Map<Channel,Ref> ACTIVE_CHANNELS = Collections.synchronizedMap(new WeakHashMap<Channel, Ref>());
+    private static final Map<Channel,Ref> ACTIVE_CHANNELS = Collections.synchronizedMap(new WeakHashMap<>());
 
     static final Class<?> jarLoaderProxy;
 

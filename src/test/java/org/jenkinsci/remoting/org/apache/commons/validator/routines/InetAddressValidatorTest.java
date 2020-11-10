@@ -28,10 +28,6 @@ public class InetAddressValidatorTest extends TestCase {
 
     private InetAddressValidator validator;
 
-    /**
-     * Constructor.
-     * @param name
-     */
     public InetAddressValidatorTest(String name) {
         super(name);
     }

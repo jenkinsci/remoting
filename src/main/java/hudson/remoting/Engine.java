@@ -48,6 +48,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -111,7 +112,8 @@ public class Engine extends Thread {
      */
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
-        public Thread newThread(final Runnable r) {
+        @Override
+        public Thread newThread(@Nonnull final Runnable r) {
             Thread thread = defaultFactory.newThread(() -> {
                 CURRENT.set(Engine.this);
                 r.run();
@@ -222,7 +224,6 @@ public class Engine extends Thread {
      * (e.g. if a filesystem mount gets disconnected).
      * @since 3.8
      */
-    @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
@@ -444,12 +445,12 @@ public class Engine extends Thread {
     public void setCandidateCertificates(List<X509Certificate> candidateCertificates) {
         this.candidateCertificates = candidateCertificates == null
                 ? null
-                : new ArrayList<X509Certificate>(candidateCertificates);
+                : new ArrayList<>(candidateCertificates);
     }
 
     public void addCandidateCertificate(X509Certificate certificate) {
         if (candidateCertificates == null) {
-            candidateCertificates = new ArrayList<X509Certificate>();
+            candidateCertificates = new ArrayList<>();
         }
         candidateCertificates.add(certificate);
     }
@@ -471,8 +472,7 @@ public class Engine extends Thread {
         }
         // Create the engine
         try {
-            IOHub hub = IOHub.create(executor);
-            try {
+            try (IOHub hub = IOHub.create(executor)) {
                 SSLContext context;
                 // prepare our SSLContext
                 try {
@@ -502,11 +502,7 @@ public class Engine extends Thread {
                 }
                 try {
                     kmf.init(store, password);
-                } catch (KeyStoreException e) {
-                    throw new IllegalStateException(e);
-                } catch (NoSuchAlgorithmException e) {
-                    throw new IllegalStateException(e);
-                } catch (UnrecoverableKeyException e) {
+                } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
                     throw new IllegalStateException(e);
                 }
                 try {
@@ -516,8 +512,6 @@ public class Engine extends Thread {
                     return;
                 }
                 innerRun(hub, context, executor);
-            } finally {
-                hub.close();
             }
         } catch (IOException e) {
             events.error(e);
@@ -624,8 +618,10 @@ public class Engine extends Thread {
                         }
                     }
                 }
+                String wsUrl = candidateUrls.get(0).toString().replaceFirst("^http", "ws");
+                if(!wsUrl.endsWith("/")) wsUrl += "/";
                 ContainerProvider.getWebSocketContainer().connectToServer(new AgentEndpoint(),
-                    ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(candidateUrls.get(0).toString().replaceFirst("^http", "ws") + "wsagents/"));
+                    ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(wsUrl + "wsagents/"));
                 while (ch.get() == null) {
                     Thread.sleep(100);
                 }
@@ -663,7 +659,7 @@ public class Engine extends Thread {
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
         // Create the protocols that will be attempted to connect to the master.
-        List<JnlpProtocolHandler> protocols = new JnlpProtocolHandlerFactory(service)
+        List<JnlpProtocolHandler<? extends JnlpConnectionState>> protocols = new JnlpProtocolHandlerFactory(service)
                 .withIOHub(hub)
                 .withSSLContext(context)
                 .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
@@ -725,7 +721,7 @@ public class Engine extends Thread {
                 try {
                     // Try available protocols.
                     boolean triedAtLeastOneProtocol = false;
-                    for (JnlpProtocolHandler<?> protocol : protocols) {
+                    for (JnlpProtocolHandler<? extends JnlpConnectionState> protocol : protocols) {
                         if (!protocol.isEnabled()) {
                             events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
                             continue;
@@ -864,7 +860,7 @@ public class Engine extends Thread {
         return CURRENT.get();
     }
 
-    private static final ThreadLocal<Engine> CURRENT = new ThreadLocal<Engine>();
+    private static final ThreadLocal<Engine> CURRENT = new ThreadLocal<>();
 
     private static final Logger LOGGER = Logger.getLogger(Engine.class.getName());
 
@@ -873,17 +869,15 @@ public class Engine extends Thread {
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException {
         Map<String, String> properties = AccessController.doPrivileged(
-                new PrivilegedExceptionAction<Map<String, String>>() {
-                    public Map<String, String> run() throws Exception {
-                        Map<String, String> result = new HashMap<String, String>();
-                        result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
-                        result.put("javaHome", System.getProperty("java.home"));
-                        result.put("trustStoreType",
-                                System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
-                        result.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
-                        result.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
-                        return result;
-                    }
+                (PrivilegedExceptionAction<Map<String, String>>) () -> {
+                    Map<String, String> result = new HashMap<>();
+                    result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
+                    result.put("javaHome", System.getProperty("java.home"));
+                    result.put("trustStoreType",
+                            System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
+                    result.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
+                    result.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
+                    return result;
                 });
         KeyStore keystore = null;
 
@@ -938,9 +932,7 @@ public class Engine extends Thread {
 
                 keystore.load(trustStoreStream, trustStorePasswdChars);
                 if (trustStorePasswdChars != null) {
-                    for (int i = 0; i < trustStorePasswdChars.length; ++i) {
-                        trustStorePasswdChars[i] = 0;
-                    }
+                    Arrays.fill(trustStorePasswdChars, (char) 0);
                 }
             }
         } finally {
@@ -954,13 +946,11 @@ public class Engine extends Thread {
 
     @CheckForNull
     private static FileInputStream getFileInputStream(final File file) throws PrivilegedActionException {
-        return AccessController.doPrivileged(new PrivilegedExceptionAction<FileInputStream>() {
-            public FileInputStream run() throws Exception {
-                try {
-                    return file.exists() ? new FileInputStream(file) : null;
-                } catch (FileNotFoundException e) {
-                    return null;
-                }
+        return AccessController.doPrivileged((PrivilegedExceptionAction<FileInputStream>) () -> {
+            try {
+                return file.exists() ? new FileInputStream(file) : null;
+            } catch (FileNotFoundException e) {
+                return null;
             }
         });
     }

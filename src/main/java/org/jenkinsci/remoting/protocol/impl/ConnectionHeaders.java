@@ -108,15 +108,16 @@ public final class ConnectionHeaders {
      */
     @Nonnull
     public static Map<String, String> fromString(@Nonnull String data) throws ParseException {
-        Map<String, String> result = new TreeMap<String, String>();
+        Map<String, String> result = new TreeMap<>();
         int state = 0;
         StringBuilder key = new StringBuilder();
         StringBuilder val = new StringBuilder();
         for (int i = 0, n = data.length(); i < n; i++) {
             char c = data.charAt(i);
+            boolean isWhitespace = c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\b';
             switch (state) {
                 case 0:
-                    if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\b') {
+                    if (isWhitespace) {
                         continue;
                     }
                     if (c != '{') {
@@ -125,7 +126,7 @@ public final class ConnectionHeaders {
                     state = 1;
                     break;
                 case 1:
-                    if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\b') {
+                    if (isWhitespace) {
                         continue;
                     }
                     if (c == '}') {
@@ -150,7 +151,7 @@ public final class ConnectionHeaders {
                     state = 2;
                     break;
                 case 4:
-                    if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\b') {
+                    if (isWhitespace) {
                         continue;
                     }
                     if (c != ':') {
@@ -159,7 +160,7 @@ public final class ConnectionHeaders {
                     state = 5;
                     break;
                 case 5:
-                    if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\b') {
+                    if (isWhitespace) {
                         continue;
                     }
                     if (c == 'n' && i + 3 < n && data.charAt(i + 1) == 'u' && data.charAt(i + 2) == 'l'
@@ -192,7 +193,7 @@ public final class ConnectionHeaders {
                     state = 6;
                     break;
                 case 8:
-                    if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\b') {
+                    if (isWhitespace) {
                         continue;
                     }
                     if (c == '}') {
@@ -204,12 +205,12 @@ public final class ConnectionHeaders {
                     }
                     break;
                 case 9:
-                    if (!(c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\b')) {
+                    if (!(isWhitespace)) {
                         throw new ParseException("Non-whitespace after '}'");
                     }
                     break;
                 case 10:
-                    if (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\b') {
+                    if (isWhitespace) {
                         continue;
                     }
                     if (c != '\"') {

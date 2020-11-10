@@ -121,14 +121,14 @@ public class BinarySafeStreamTest extends TestCase {
     /**
      * Decodes by the JDK base64 code and make sure the encoded string looks correct.
      */
-    private void decodeByMaster(String s, byte[] dataSet) throws IOException {
+    private void decodeByMaster(String s, byte[] dataSet) {
         int ptr=0;
 
         for( int i=0; i<s.length(); i+=4 ) {
             byte[] buf = Base64.getDecoder().decode(s.substring(i,i+4));
-            for (int j = 0; j < buf.length; j++) {
-                if(buf[j]!=dataSet[ptr])
-                    fail("encoding error at offset "+ptr);
+            for (byte b : buf) {
+                if (b != dataSet[ptr])
+                    fail("encoding error at offset " + ptr);
                 ptr++;
             }
         }

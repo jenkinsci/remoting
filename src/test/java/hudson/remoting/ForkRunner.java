@@ -33,6 +33,7 @@ public class ForkRunner implements ChannelRunner {
         return r;
     }
 
+    @Override
     public Channel start() throws Exception {
         List<String> cmds = buildCommandLine();
         cmds.add(0,"java");
@@ -46,6 +47,7 @@ public class ForkRunner implements ChannelRunner {
         return new ChannelBuilder("north", executor).build(proc.getInputStream(), out);
     }
 
+    @Override
     public void stop(Channel channel) throws Exception {
         channel.close();
         channel.join(10*1000);
@@ -58,6 +60,7 @@ public class ForkRunner implements ChannelRunner {
         assertEquals("exit code should have been 0", 0, r);
     }
 
+    @Override
     public String getName() {
         return "fork";
     }

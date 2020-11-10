@@ -52,10 +52,7 @@ public class SelectableFileChannelFactory {
                 Field $in = FilterInputStream.class.getDeclaredField("in");
                 $in.setAccessible(true);
                 return unwrap((InputStream)$in.get(i));
-            } catch (NoSuchFieldException e) {
-                warn(e);
-                return null;
-            } catch (IllegalAccessException e) {
+            } catch (NoSuchFieldException | IllegalAccessException e) {
                 warn(e);
                 return null;
             }
@@ -73,10 +70,7 @@ public class SelectableFileChannelFactory {
                 Field $in = FilterOutputStream.class.getDeclaredField("out");
                 $in.setAccessible(true);
                 return unwrap((OutputStream)$in.get(i));
-            } catch (NoSuchFieldException e) {
-                warn(e);
-                return null;
-            } catch (IllegalAccessException e) {
+            } catch (NoSuchFieldException | IllegalAccessException e) {
                 warn(e);
                 return null;
             }
@@ -135,22 +129,7 @@ public class SelectableFileChannelFactory {
             $m.invoke(fd);
 
             return (SocketChannel)$c.newInstance(SelectorProvider.provider(), fd, null);
-        } catch (NoSuchMethodException e) {
-            warn(e);
-            return null;
-        } catch (SecurityException e) {
-            warn(e);
-            return null;
-        } catch (ClassNotFoundException e) {
-            warn(e);
-            return null;
-        } catch (IllegalAccessException e) {
-            warn(e);
-            return null;
-        } catch (InvocationTargetException e) {
-            warn(e);
-            return null;
-        } catch (InstantiationException e) {
+        } catch (NoSuchMethodException | SecurityException | ClassNotFoundException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
             warn(e);
             return null;
         }

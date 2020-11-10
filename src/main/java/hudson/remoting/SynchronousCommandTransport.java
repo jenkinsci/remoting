@@ -40,8 +40,6 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
     }
 
     private final class ReaderThread extends Thread {
-        private int commandsReceived = 0;
-        private int commandsExecuted = 0;
         private final CommandReceiver receiver;
 
         public ReaderThread(CommandReceiver receiver) {
@@ -58,7 +56,7 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
             final String name =channel.getName();
             try {
                 while (!channel.isInClosed()) {
-                    Command cmd = null;
+                    Command cmd;
                     try {
                         cmd = read();
                     } catch (SocketTimeoutException ex) {
@@ -78,12 +76,9 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
                     } catch (ClassNotFoundException e) {
                         LOGGER.log(Level.SEVERE, "Unable to read a command (channel " + name + ")", e);
                         continue;
-                    } finally {
-                        commandsReceived++;
                     }
 
                     receiver.handle(cmd);
-                    commandsExecuted++;
                 }
                 closeRead();
             } catch (InterruptedException e) {
@@ -92,11 +87,7 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
             } catch (IOException e) {
                 LOGGER.log(Level.INFO, "I/O error in channel "+name,e);
                 channel.terminate(e);
-            } catch (RuntimeException e) {
-                LOGGER.log(Level.SEVERE, "Unexpected error in channel "+name,e);
-                channel.terminate(new IOException("Unexpected reader termination", e));
-                throw e;
-            } catch (Error e) {
+            } catch (RuntimeException | Error e) {
                 LOGGER.log(Level.SEVERE, "Unexpected error in channel "+name,e);
                 channel.terminate(new IOException("Unexpected reader termination", e));
                 throw e;

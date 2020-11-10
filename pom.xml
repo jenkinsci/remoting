@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.53</version>
+    <version>1.60</version>
     <relativePath />
   </parent>
 
@@ -61,7 +61,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <revision>4.4</revision>
+    <revision>4.7</revision>
     <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
     <build.type>private</build.type>
@@ -71,8 +71,7 @@ THE SOFTWARE.
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.excludeFilterFile>${basedir}/src/spotbugs/excludeFilter.xml</spotbugs.excludeFilterFile>
     <spotbugs.threshold>Low</spotbugs.threshold>
-    <!-- TODO: Required to override by a version with certchain support (MJARSIGNER-53) on @oleg-nenashev's machine. Remove once it's in upstream -->
-    <maven-jarsigner-plugin.version>1.4</maven-jarsigner-plugin.version>
+    <bc-version>1.67</bc-version>
   </properties>
 
   <repositories>
@@ -97,13 +96,12 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.glassfish.tyrus.bundles</groupId>
       <artifactId>tyrus-standalone-client-jdk</artifactId>
-      <version>1.12</version>
+      <version>1.17</version>
       <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.12</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -115,7 +113,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.apache.ant</groupId>
       <artifactId>ant</artifactId>
-      <version>1.8.3</version>
+      <version>1.10.9</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -125,9 +123,9 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>asm</groupId>
-      <artifactId>asm-all</artifactId>
-      <version>2.2.3</version>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>9.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -139,7 +137,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.2</version>
+      <version>2.8.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -167,19 +165,19 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk15on</artifactId>
-      <version>1.54</version>
+      <version>${bc-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
-      <version>1.54</version>
+      <version>${bc-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.kohsuke</groupId>
       <artifactId>access-modifier-annotation</artifactId>
-      <version>1.12</version>
+      <version>1.16</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -221,7 +219,7 @@ THE SOFTWARE.
       <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-shade-plugin</artifactId>
-          <version>3.2.1</version>
+          <version>3.2.4</version>
           <executions>
               <execution>
                   <phase>package</phase>
@@ -288,7 +286,6 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-jarsigner-plugin</artifactId>
-        <version>${maven-jarsigner-plugin.version}</version>
         <configuration>
           <!--
             during the development, debug profile will cause
@@ -352,7 +349,7 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.6</version>
+        <version>3.3.0</version>
         <configuration>
           <descriptors>
             <descriptor>src/assembly/agent-load-test.xml</descriptor>
@@ -368,6 +365,13 @@ THE SOFTWARE.
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <pushChanges>false</pushChanges>
+          <localCheckout>true</localCheckout>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -414,7 +418,7 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M1</version>
+        <version>3.0.0-M5</version>
         <configuration>
           <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
@@ -423,15 +427,6 @@ THE SOFTWARE.
       <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
-        <configuration>
-          <plugins>
-            <plugin>
-              <groupId>com.h3xstream.findsecbugs</groupId>
-              <artifactId>findsecbugs-plugin</artifactId>
-              <version>1.10.1</version>
-            </plugin>
-          </plugins>
-        </configuration>
       </plugin>
     </plugins>
   </build>
@@ -529,7 +524,7 @@ THE SOFTWARE.
           <plugin>
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
-            <version>0.7.9</version>
+            <version>0.8.6</version>
             <executions>
               <execution>
                 <goals>

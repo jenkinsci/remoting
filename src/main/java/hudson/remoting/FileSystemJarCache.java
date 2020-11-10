@@ -33,7 +33,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     /**
      * We've reported these checksums as present on this side.
      */
-    private final Set<Checksum> notified = Collections.synchronizedSet(new HashSet<Checksum>());
+    private final Set<Checksum> notified = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * Cache of computer checksums for cached jars.
@@ -111,12 +111,9 @@ public class FileSystemJarCache extends JarCacheSupport {
         try {
             File tmp = createTempJar(target);
             try {
-                RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
-                try {
-                    LOGGER.log(Level.FINE, String.format("Retrieving jar file %16X%16X",sum1,sum2));
+                try (RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp))) {
+                    LOGGER.log(Level.FINE, String.format("Retrieving jar file %16X%16X", sum1, sum2));
                     getJarLoader(channel).writeJarTo(sum1, sum2, o);
-                } finally {
-                    o.close();
                 }
 
                 // Verify the checksum of the download.

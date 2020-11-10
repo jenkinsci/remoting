@@ -42,9 +42,11 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         public void meth(String arg1, String arg2) {
             assert false : "should be ignored";
         }
+        @Override
         public void meth(String arg1) {
             this.arg = arg1;
         }
+        @Override
         public void meth2(String arg) {
             this.arg = arg;
         }
@@ -59,6 +61,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         Task(Contract c) {
             this.c = c;
         }
+        @Override
         public Void call() throws Error {
             c.meth("value");
             return null;
@@ -71,6 +74,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         Task2(Contract2 c) {
             this.c = c;
         }
+        @Override
         public Void call() throws Error {
             c.meth2("value");
             return null;
@@ -85,7 +89,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
 
         synchronized (i) {
             channel.call(new AsyncTask(c));
-            assertEquals(null, i.arg);  // async call should be blocking
+            assertNull(i.arg);  // async call should be blocking
 
             while (i.arg==null)
                 i.wait();
@@ -100,6 +104,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
 
     private static class AsyncImpl implements AsyncContract, Serializable {
         String arg;
+        @Override
         public void meth(String arg1) {
             synchronized (this) {
                 this.arg = arg1;
@@ -114,6 +119,7 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         AsyncTask(AsyncContract c) {
             this.c = c;
         }
+        @Override
         public Void call() throws Error {
             c.meth("value");
             return null;

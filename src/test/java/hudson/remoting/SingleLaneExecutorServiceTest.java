@@ -34,22 +34,16 @@ public class SingleLaneExecutorServiceTest extends Assert {
         final Object lock = new Object();
         final StringBuilder record = new StringBuilder();
         synchronized (lock) {
-            lane1.submit(new Runnable() {
-                public void run() {
-                    synchronized (lock) {}
-                    sleep(1000);
-                    record.append("x");
-                }
+            lane1.submit(() -> {
+                synchronized (lock) {}
+                sleep(1000);
+                record.append("x");
             });
-            lane1.submit(new Runnable() {
-                public void run() {
-                    record.append("y");
-                }
+            lane1.submit(() -> {
+                record.append("y");
             });
-            lane2.submit(new Runnable() {
-                public void run() {
-                    record.append("z");
-                }
+            lane2.submit(() -> {
+                record.append("z");
             });
         }
         waitForCompletion(lane1);
@@ -66,29 +60,27 @@ public class SingleLaneExecutorServiceTest extends Assert {
         final Random r = new Random(0);
 
         class Workload {
-            List<Runnable> tasks = new LinkedList<Runnable>();
+            List<Runnable> tasks = new LinkedList<>();
             StringBuilder record = new StringBuilder();
             ExecutorService lane = new SingleLaneExecutorService(base);
 
             Workload() {
                 for (char t='a'; t<='z'; t++) {
                     final char ch = t;
-                    tasks.add(new Runnable() {
-                        public void run() {
-                            sleep(50+r.nextInt(100));
-                            record.append(ch);
-                        }
+                    tasks.add(() -> {
+                        sleep(50+r.nextInt(100));
+                        record.append(ch);
                     });
                 }
             }
         }
 
-        List<Workload> works = new ArrayList<Workload>();
+        List<Workload> works = new ArrayList<>();
         for (int i=0; i<5; i++)
             works.add(new Workload());
 
         // submit them all in the queue
-        List<Workload> remaining = new ArrayList<Workload>(works);
+        List<Workload> remaining = new ArrayList<>(works);
         int total = (('z' - 'a') + 1) * works.size();
         for (int i=0; i<total; i++) {
             while (true) {

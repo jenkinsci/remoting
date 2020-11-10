@@ -13,7 +13,17 @@ It includes: TCP-based communication protocols, data serialization, Java classlo
 
 The library is reusable outside Jenkins.
 
+### Downloads
 
+Jenkins Remoting libraries are supplied as a part of the Jenkins distributions,
+and it is recommended to use versions from there to ensure compatibility with your Jenkins instance.
+You can download the `${JENKINS_URL}/jnlpJars/agent.jar` from your Jenkins server.
+If you need a specific Remoting version, it can be downloaded from the Jenkins artifact repository.
+Recent artifacts are available [here](https://repo.jenkins-ci.org/webapp/#/artifacts/browse/tree/General/releases/org/jenkins-ci/main/remoting).
+
+For usage in Docker, the Jenkins project also provides official agent images which bundle Remoting:
+[jenkins/agent](https://hub.docker.com/r/jenkins/agent) and [jenkins/inbound-agent](https://hub.docker.com/r/jenkins/inbound-agent).
+We recommend using and extending these images if you need to run agents in Docker.
 
 ### Documentation
 

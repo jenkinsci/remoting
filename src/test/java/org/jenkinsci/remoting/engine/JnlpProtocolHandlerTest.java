@@ -44,7 +44,7 @@ import org.junit.runner.RunWith;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 @RunWith(Theories.class)
@@ -333,7 +333,7 @@ public class JnlpProtocolHandlerTest {
         };
     }
 
-    private class StateListener extends JnlpConnectionStateListener {
+    private static class StateListener extends JnlpConnectionStateListener {
         private Channel.Mode mode;
         private Consumer<JnlpConnectionState> afterPropertiesConsumer;
 

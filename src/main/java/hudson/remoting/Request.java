@@ -24,6 +24,9 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.CancellationException;
@@ -33,8 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Request/response pattern over {@link Channel}, the layer-1 service.
@@ -62,7 +63,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      *      If no checked exception is supposed to be thrown, use {@link RuntimeException}.
      */
     @Nullable
-    abstract RSP perform(@Nonnull Channel channel) throws EXC;
+    abstract RSP perform(Channel channel) throws EXC;
 
     /**
      * Uniquely identifies this request.
@@ -79,7 +80,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      */
     private int lastIoId;
 
-    private volatile Response<RSP,EXC> response;
+    private volatile Response<RSP,? extends Throwable> response;
 
     transient long startTime;
 
@@ -122,7 +123,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      * @throws IOException Error with explanation if the request cannot be executed.
      * @since 3.11
      */
-    void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
+    void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
         final Throwable senderCloseCause = channel.getSenderCloseCause();
         if (senderCloseCause != null) {
             // Sender is closed, we won't be able to send anything
@@ -192,10 +193,10 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                     // ignore the I/O error
                 }
 
-                Object exc = response.exception;
+                Throwable exc = response.exception;
 
                 if (exc!=null) {
-                    channel.attachCallSiteStackTrace((Throwable)exc);
+                    channel.attachCallSiteStackTrace(exc);
                     throw (EXC)exc; // some versions of JDK fails to compile this line. If so, upgrade your JDK.
                 }
 
@@ -240,6 +241,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
 
             private volatile boolean cancelled;
 
+            @Override
             public boolean cancel(boolean mayInterruptIfRunning) {
                 if (cancelled || isDone()) {
                     return false;
@@ -255,14 +257,17 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                 return true;
             }
 
+            @Override
             public boolean isCancelled() {
                 return cancelled;
             }
 
+            @Override
             public boolean isDone() {
                 return isCancelled() || response!=null;
             }
 
+            @Override
             public RSP get() throws InterruptedException, ExecutionException {
                 synchronized(Request.this) {
                     String oldThreadName = Thread.currentThread().getName();
@@ -295,7 +300,8 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                 }
             }
 
-            public RSP get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            @Override
+            public RSP get(long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
                 synchronized (Request.this) {
                     // wait until the response arrives
                     // Note that the wait method can wake up for no reasons at all (AKA spurious wakeup),
@@ -327,7 +333,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
     /**
      * Called by the {@link Response} when we received it.
      */
-    /*package*/ synchronized void onCompleted(Response<RSP,EXC> response) {
+    /*package*/ synchronized void onCompleted(Response<RSP,? extends Throwable> response) {
         this.response = response;
         notifyAll();
     }
@@ -336,12 +342,13 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      * Aborts the processing. The calling thread will receive an exception.
      */
     /*package*/ void abort(IOException e) {
-        onCompleted(new Response(this, id, 0, new RequestAbortedException(e)));
+        onCompleted(new Response<>(this, id, 0, new RequestAbortedException(e)));
     }
 
     /**
      * Schedules the execution of this request.
      */
+    @Override
     final void execute(final Channel channel) {
         channel.executingCalls.put(id,this);
         future = channel.executor.submit(new Runnable() {
@@ -354,6 +361,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                 return endIoId;
             }
 
+            @Override
             public void run() {
                 String oldThreadName = Thread.currentThread().getName();
                 Thread.currentThread().setName(oldThreadName+" for "+channel.getName()+" id="+id);
@@ -370,7 +378,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                         rsp = new Response<RSP, EXC>(Request.this, id, calcLastIoId(), r);
                     } catch (Throwable t) {
                         // error return
-                        rsp = new Response<RSP, Throwable>(Request.this, id, calcLastIoId(), t);
+                        rsp = new Response<>(Request.this, id, calcLastIoId(), t);
                     } finally {
                         CURRENT.set(null);
                     }
@@ -418,10 +426,10 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
      */
     @Deprecated
-    /*package*/ static ThreadLocal<Request> CURRENT = new ThreadLocal<Request>();
+    /*package*/ static ThreadLocal<Request<?, ?>> CURRENT = new ThreadLocal<>();
 
     /*package*/ static int getCurrentRequestId() {
-        Request r = CURRENT.get();
+        Request<?, ?> r = CURRENT.get();
         return r!=null ? r.id : 0;
     }
 
@@ -435,6 +443,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
             this.id = id;
         }
 
+        @Override
         protected void execute(Channel channel) {
             Request<?,?> r = channel.executingCalls.get(id);
             if(r==null)     return; // already completed
