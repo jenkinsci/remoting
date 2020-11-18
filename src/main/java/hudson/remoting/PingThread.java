@@ -127,8 +127,8 @@ public abstract class PingThread extends Thread {
             Future<?> f = channel.callAsync(new Ping());
 
             try {
-                LOGGER.log( Level.FINE, "waiting {0}s on {1}",
-                            new Object[] {TimeUnit.MILLISECONDS.toSeconds(timeout), channel.getName()} );
+                LOGGER.log(Level.FINE, "waiting {0}s on {1}",
+                           new Object[] {TimeUnit.MILLISECONDS.toSeconds(timeout), channel.getName()});
                 f.get(timeout, TimeUnit.MILLISECONDS);
                 LOGGER.log(Level.FINE, "ping succeeded on {0}", channel.getName());
                 return;
@@ -141,12 +141,13 @@ public abstract class PingThread extends Thread {
 
             } catch (TimeoutException e) {
                 LOGGER.log(Level.WARNING, "ping timeout {0}/{1} on {2}",
-                           new Object[] {timeouts, maxTimeouts, channel.getName()} );
+                           new Object[] {timeouts, maxTimeouts, channel.getName()});
             }
         }
 
-        onDead(new TimeoutException( String.format("Ping started at %d hasn't completed by %d",
-                                                   start, System.currentTimeMillis()) ));
+        onDead(new TimeoutException
+               ( String.format("Ping started at %d hasn't completed by %d",
+                               start, System.currentTimeMillis()) ));
     }
 
     /**
