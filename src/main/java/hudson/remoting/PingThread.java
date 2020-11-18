@@ -121,40 +121,28 @@ public abstract class PingThread extends Thread {
     private void ping() throws IOException, InterruptedException {
         LOGGER.log(Level.FINE, "pinging {0}", channel.getName());
 
-        int timeouts = 0;
-        long start = System.currentTimeMillis();
+        final long start = System.currentTimeMillis();
 
-        while (true) {
+        for (int timeouts = 0; timeouts < maxTimeouts; ++timeouts) {
             Future<?> f = channel.callAsync(new Ping());
 
-            long end = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeout);
-            long remaining = end - System.nanoTime();
-
-            do {
+            try {
                 LOGGER.log( Level.FINE, "waiting {0}s on {1}",
-                            new Object[] {TimeUnit.NANOSECONDS.toSeconds(remaining), channel.getName()} );
-                try {
-                    f.get(Math.max(1,remaining),TimeUnit.NANOSECONDS);
-                    LOGGER.log(Level.FINE, "ping succeeded on {0}", channel.getName());
-                    return;
-                } catch (ExecutionException e) {
-                    if (e.getCause() instanceof RequestAbortedException)
-                        return; // connection has shut down orderly.
-                    onDead(e);
-                    return;
-                } catch (TimeoutException e) {
-                    // get method waits "at most the amount specified in the timeout",
-                    // so let's make sure that it really waited enough
-                }
-                remaining = end - System.nanoTime();
-            } while(remaining>0);
+                            new Object[] {TimeUnit.MILLISECONDS.toSeconds(timeout), channel.getName()} );
+                f.get(timeout, TimeUnit.MILLISECONDS);
+                LOGGER.log(Level.FINE, "ping succeeded on {0}", channel.getName());
+                return;
 
-            if (++timeouts >= maxTimeouts) {
-                break;
+            } catch (ExecutionException e) {
+                if (e.getCause() instanceof RequestAbortedException)
+                    return; // connection has shut down orderly.
+                onDead(e);
+                return;
+
+            } catch (TimeoutException e) {
+                LOGGER.log(Level.WARNING, "ping timeout {0}/{1} on {2}",
+                           new Object[] {timeouts, maxTimeouts, channel.getName()} );
             }
-
-            LOGGER.log(Level.WARNING, "ping timeout {0}/{1} on {2}",
-                       new Object[] {timeouts, maxTimeouts, channel.getName()} );
         }
 
         onDead(new TimeoutException( String.format("Ping started at %d hasn't completed by %d",
