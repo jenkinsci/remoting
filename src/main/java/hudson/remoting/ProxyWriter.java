@@ -66,15 +66,6 @@ final class ProxyWriter extends Writer {
     private volatile boolean channelReleased;
 
     /**
-     * Creates unconnected {@link ProxyWriter}.
-     * The returned stream accepts data right away, and
-     * when it's {@link #connect(Channel,int) connected} later,
-     * the data will be sent at once to the remote stream.
-     */
-    public ProxyWriter() {
-    }
-
-    /**
      * Creates an already connected {@link ProxyWriter}.
      *
      * @param oid
@@ -235,7 +226,7 @@ final class ProxyWriter extends Writer {
         synchronized (this) {
             //TODO: Bug. If the channel cannot send the command, the channel object will be never released and garbage collected
             if (channel != null) {
-                // Close the writer on the remote side. This call may be invoked multiple times intil the channel is released
+                // Close the writer on the remote side. This call may be invoked multiple times until the channel is released
                 //TODO: send cause over the channel
                 channel.send(new EOF(channel.newIoId(), oid/*,error*/));
                 channel = null;

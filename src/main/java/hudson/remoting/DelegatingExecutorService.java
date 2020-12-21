@@ -47,47 +47,47 @@ class DelegatingExecutorService implements ExecutorService {
 
     @Override
     @Nonnull
-    public <T> Future<T> submit(Callable<T> task) {
+    public <T> Future<T> submit(@Nonnull Callable<T> task) {
         return base.submit(task);
     }
 
     @Override
     @Nonnull
-    public <T> Future<T> submit(Runnable task, T result) {
+    public <T> Future<T> submit(@Nonnull Runnable task, T result) {
         return base.submit(task, result);
     }
 
     @Override
     @Nonnull
-    public Future<?> submit(Runnable task) {
+    public Future<?> submit(@Nonnull Runnable task) {
         return base.submit(task);
     }
 
     @Override
     @Nonnull
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
+    public <T> List<Future<T>> invokeAll(@Nonnull Collection<? extends Callable<T>> tasks) throws InterruptedException {
         return base.invokeAll(tasks);
     }
 
     @Override
     @Nonnull
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
+    public <T> List<Future<T>> invokeAll(@Nonnull Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
         return base.invokeAll(tasks, timeout, unit);
     }
 
     @Override
     @Nonnull
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+    public <T> T invokeAny(@Nonnull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
         return base.invokeAny(tasks);
     }
 
     @Override
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public <T> T invokeAny(@Nonnull Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return base.invokeAny(tasks, timeout, unit);
     }
 
     @Override
-    public void execute(Runnable command) {
+    public void execute(@Nonnull Runnable command) {
         base.execute(command);
     }
 }

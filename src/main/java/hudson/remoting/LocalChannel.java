@@ -24,7 +24,6 @@
 package hudson.remoting;
 
 import javax.annotation.Nonnull;
-import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -49,18 +48,13 @@ public class LocalChannel implements VirtualChannel {
 
     @Override
     public <V, T extends Throwable> Future<V> callAsync(@Nonnull final Callable<V,T> callable) {
-        final java.util.concurrent.Future<V> f = executor.submit(new java.util.concurrent.Callable<V>() {
-            @Override
-            public V call() throws Exception {
-                try {
-                    return callable.call();
-                } catch (Exception t) {
-                    throw t;
-                } catch (Error t) {
-                    throw t;
-                } catch (Throwable t) {
-                    throw new ExecutionException(t);
-                }
+        final java.util.concurrent.Future<V> f = executor.submit(() -> {
+            try {
+                return callable.call();
+            } catch (Exception | Error t) {
+                throw t;
+            } catch (Throwable t) {
+                throw new ExecutionException(t);
             }
         });
 

@@ -52,7 +52,7 @@ public final class Response<RSP extends Serializable,EXC extends Throwable> exte
      *
      * @see PipeWriter
      */
-    private int lastIoId;
+    private final int lastIoId;
 
     final RSP returnValue;
     final EXC exception;

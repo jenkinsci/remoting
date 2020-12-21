@@ -41,12 +41,12 @@ public class AgentProtocolClientFilterLayer extends FilterLayer {
     /**
      * The read-only send buffer.
      */
-    private ByteBuffer sendProtocol;
+    private final ByteBuffer sendProtocol;
     /**
      * The queue of messages to send once the acknowledgement has been completed.
      */
     @GuardedBy("sendLock")
-    private ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
+    private final ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
 
     /**
      * Constructor

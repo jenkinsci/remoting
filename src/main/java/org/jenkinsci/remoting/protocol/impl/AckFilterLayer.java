@@ -58,21 +58,21 @@ public class AckFilterLayer extends FilterLayer {
     /**
      * The read-only send buffer.
      */
-    private ByteBuffer sendAck;
+    private final ByteBuffer sendAck;
     /**
      * Buffer to hold the received acknowledgement.
      */
-    private ByteBuffer recvAck;
+    private final ByteBuffer recvAck;
     /**
      * The queue of messages to send once the acknowledgement has been completed.
      */
     @GuardedBy("sendLock")
-    private ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
+    private final ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
     /**
      * The queue of messages to receive once the acknowledgement has been completed.
      */
     @GuardedBy("recvLock")
-    private ByteBufferQueue recvQueue = new ByteBufferQueue(8192);
+    private final ByteBufferQueue recvQueue = new ByteBufferQueue(8192);
     /**
      * Write once field to optimize calls to {@link #receivedAck()}.
      */

@@ -7,6 +7,7 @@ import org.jenkinsci.remoting.nio.NioChannelBuilder;
 import org.junit.After;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,7 +49,7 @@ public class ClassFilterTest implements Serializable {
 
     private static class TestFilter extends ClassFilter {
         @Override
-        public boolean isBlacklisted(String name) {
+        public boolean isBlacklisted(@Nonnull String name) {
             return name.contains("Security218");
         }
     }

@@ -45,11 +45,6 @@ public class JnlpProtocolHandlerFactory {
      */
     private boolean needClientAuth;
     /**
-     * The {@link NioChannelHub} to use or {@code null}
-     */
-    @CheckForNull
-    private NioChannelHub nioChannelHub;
-    /**
      * The {@link IOHub}.
      */
     @CheckForNull
@@ -92,7 +87,9 @@ public class JnlpProtocolHandlerFactory {
      * @return {@code this} for method chaining.
      */
     public JnlpProtocolHandlerFactory withNioChannelHub(@CheckForNull NioChannelHub nioChannelHub) {
-        this.nioChannelHub = nioChannelHub;
+        /**
+         * The {@link NioChannelHub} to use or {@code null}
+         */
         return this;
     }
 

@@ -26,7 +26,7 @@ package hudson.remoting;
 import javax.annotation.CheckForNull;
 
 /**
- * {@link Callable} that nominates another claassloader for serialization.
+ * {@link Callable} that nominates another classloader for serialization.
  *
  * <p>
  * For various reasons, one {@link Callable} object (and all the objects reachable from it) is

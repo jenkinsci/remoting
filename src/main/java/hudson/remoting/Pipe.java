@@ -157,7 +157,7 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
         // TODO: there's a discrepancy in the pipe window size and FastPipedInputStream buffer size.
         // The former uses 1M, while the latter uses 64K, so if the sender is too fast, it'll cause
         // the pipe IO thread to block other IO activities. Fix this by first using adaptive growing buffer
-        // in FastPipedInputStream, then make sure the maximum size is biger than the pipe window size.
+        // in FastPipedInputStream, then make sure the maximum size is bigger than the pipe window size.
         if(in!=null && out==null) {
             // remote will write to local
             FastPipedOutputStream pos = new FastPipedOutputStream((FastPipedInputStream)in);
