@@ -286,6 +286,7 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-jarsigner-plugin</artifactId>
+        <version>3.0.0</version>
         <configuration>
           <!--
             during the development, debug profile will cause
