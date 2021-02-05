@@ -53,6 +53,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -62,6 +63,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.Authenticator;
@@ -285,6 +287,17 @@ public class Launcher {
 
 
     public static void main(String... args) throws Exception {
+        if (args == null || args.length < 1){
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            try {
+                final String line = br.readLine();
+                if (line != null && !line.isEmpty()) {
+                    args = line.split("[\"' \t]+");
+                }
+            } finally {
+                br.close();
+            }
+        }
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
         try {
