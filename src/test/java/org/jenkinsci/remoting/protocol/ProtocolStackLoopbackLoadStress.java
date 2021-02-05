@@ -154,7 +154,7 @@ public class ProtocolStackLoopbackLoadStress {
 
         char[] password = "password".toCharArray();
 
-        KeyStore store = KeyStore.getInstance("jks");
+        KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
         store.load(null, password);
         store.setKeyEntry("alias", keyPair.getPrivate(), password, new Certificate[]{certificate});
 
