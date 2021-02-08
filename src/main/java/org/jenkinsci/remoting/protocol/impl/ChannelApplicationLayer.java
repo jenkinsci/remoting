@@ -84,7 +84,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
     /**
      * Listener to notify when the {@link Channel} is connected.
      */
-    private Listener listener;
+    private final Listener listener;
 
     /**
      * Creates a new {@link ChannelApplicationLayer}
@@ -173,11 +173,8 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
             assert futureChannel.isDone();
             try {
                 channel = futureChannel.get();
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 // should never get here as futureChannel.isDone(), but just in case we do throw away
-                data.position(data.limit()); // dump any remaining data as nobody will ever receive it
-                throw new IOException(e);
-            } catch (ExecutionException e) {
                 data.position(data.limit()); // dump any remaining data as nobody will ever receive it
                 throw new IOException(e);
             }

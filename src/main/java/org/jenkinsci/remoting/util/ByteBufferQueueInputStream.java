@@ -42,7 +42,7 @@ public class ByteBufferQueueInputStream extends InputStream {
      * The backing queue.
      */
     private final ByteBufferQueue queue;
-    private int length;
+    private final int length;
     private int pos;
     /**
      * Any mark if a mark has been defined.

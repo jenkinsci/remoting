@@ -70,7 +70,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
      * The queue of messages to send, populated while waiting on handshaking to complete.
      */
     @Nonnull
-    private ConcurrentLinkedQueue<ByteBuffer> messages = new ConcurrentLinkedQueue<>();
+    private final ConcurrentLinkedQueue<ByteBuffer> messages = new ConcurrentLinkedQueue<>();
     /**
      * Buffer to hold any partial reads until we have a complete SSL record.
      */

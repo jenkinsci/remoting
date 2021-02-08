@@ -116,7 +116,7 @@ public interface VirtualChannel {
      * @param type
      *      Interface to be remoted.
      * @return
-     *      the proxy object that implements <tt>T</tt>. This object can be transfered
+     *      the proxy object that implements <tt>T</tt>. This object can be transferred
      *      to the other {@link Channel}, and calling methods on it from the remote side
      *      will invoke the same method on the given local <tt>instance</tt> object.
      *      {@code null} if the input instance is {@code null}.  

@@ -127,7 +127,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     /**
      * Our {@link ByteBufferPool}.
      */
-    private ByteBufferPool bufferPool;
+    private final ByteBufferPool bufferPool;
 
     /**
      * Creates a new {@link IOHub} instance.
@@ -735,13 +735,11 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
          */
         @Override
         public String toString() {
-            final StringBuilder sb = new StringBuilder("Registration{");
-            sb.append("ops=").append(ops);
-            sb.append(", channel=").append(channel);
-            sb.append(", listener=").append(listener);
-            sb.append(", callback=").append(callback);
-            sb.append('}');
-            return sb.toString();
+            return "Registration{" + "ops=" + ops +
+                    ", channel=" + channel +
+                    ", listener=" + listener +
+                    ", callback=" + callback +
+                    '}';
         }
 
     }

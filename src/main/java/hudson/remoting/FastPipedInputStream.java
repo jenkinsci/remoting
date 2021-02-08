@@ -79,10 +79,9 @@ public class FastPipedInputStream extends InputStream {
         this.buffer = new byte[bufferSize];
     }
 
-    private FastPipedOutputStream source() throws IOException {
+    private void checkSource() throws IOException {
         FastPipedOutputStream s = source.get();
         if (s==null)    throw new IOException("Writer side has already been abandoned", allocatedAt);
-        return s;
     }
 
     @Override
@@ -170,7 +169,7 @@ public class FastPipedInputStream extends InputStream {
                         if (c==null)        return -1;  // EOF
                         throw new IOException(c);
                     }
-                    source(); // make sure the sink is still trying to read, or else fail the write.
+                    checkSource(); // make sure the sink is still trying to read, or else fail the write.
 
                     // Wait for any writer to put something in the circular buffer.
                     try {

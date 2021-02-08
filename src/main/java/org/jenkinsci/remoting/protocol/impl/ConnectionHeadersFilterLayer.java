@@ -55,7 +55,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
     /**
      * The headers to send.
      */
-    private ByteBuffer headerOutput;
+    private final ByteBuffer headerOutput;
     /**
      * The response to send.
      */
@@ -63,7 +63,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
     /**
      * The length of the headers to receive.
      */
-    private ByteBuffer headerInputLength;
+    private final ByteBuffer headerInputLength;
     /**
      * The content of the headers to receive.
      */
@@ -93,16 +93,16 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * The queue of data to {@link ProtocolStack.Ptr#doSend(ByteBuffer)} on {@link #next()}, populated while we await
      * the complete response cycle.
      */
-    private ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
+    private final ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
     /**
      * The queue of data to {@link ProtocolStack.Ptr#onRecv(ByteBuffer)} on {@link #next()}, populated while we await
      * the complete response cycle.
      */
-    private ByteBufferQueue recvQueue = new ByteBufferQueue(8192);
+    private final ByteBufferQueue recvQueue = new ByteBufferQueue(8192);
     /**
      * The {@link Listener} to decide the response to the received headers.
      */
-    private Listener listener;
+    private final Listener listener;
     /**
      * Flag to signify that we have completed.
      */

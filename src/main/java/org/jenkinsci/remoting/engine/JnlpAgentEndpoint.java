@@ -304,12 +304,10 @@ public class JnlpAgentEndpoint {
      */
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("JnlpAgentEndpoint{");
-        sb.append("host=").append(host);
-        sb.append(", port=").append(port);
-        sb.append(", publicKey=").append(KeyUtils.fingerprint(publicKey));
-        sb.append(", protocols=").append(protocols);
-        sb.append('}');
-        return sb.toString();
+        return "JnlpAgentEndpoint{" + "host=" + host +
+                ", port=" + port +
+                ", publicKey=" + KeyUtils.fingerprint(publicKey) +
+                ", protocols=" + protocols +
+                '}';
     }
 }

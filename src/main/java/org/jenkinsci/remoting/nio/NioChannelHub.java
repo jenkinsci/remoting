@@ -72,7 +72,7 @@ public class NioChannelHub implements Runnable, Closeable {
     /**
      * {@link ExecutorService} that processes command parsing and executions.
      */
-    private ExecutorService commandProcessor;
+    private final ExecutorService commandProcessor;
 
     /**
      * Counts the # of select loops. Ocassionally useful for diagnosing whether the selector

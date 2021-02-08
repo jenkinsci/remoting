@@ -119,11 +119,11 @@ public abstract class ClassFilter {
      */
     public static final ClassFilter DEFAULT = new ClassFilter() {
         @Override
-        public boolean isBlacklisted(Class<?> c) {
+        public boolean isBlacklisted(@Nonnull Class<?> c) {
             return CURRENT_DEFAULT.isBlacklisted(c);
         }
         @Override
-        public boolean isBlacklisted(String name) {
+        public boolean isBlacklisted(@Nonnull String name) {
             return CURRENT_DEFAULT.isBlacklisted(name);
         }
     };
@@ -187,7 +187,7 @@ public abstract class ClassFilter {
             List<String> patternOverride = loadPatternOverride();
             if (patternOverride != null) {
                 LOGGER.log(Level.FINE, "Using user specified overrides for class blacklisting");
-                return new RegExpClassFilter(patternOverride.toArray(new String[patternOverride.size()]));
+                return new RegExpClassFilter(patternOverride.toArray(new String[0]));
             } else {
                 LOGGER.log(Level.FINE, "Using default in built class blacklisting");
                 return new RegExpClassFilter(DEFAULT_PATTERNS);
@@ -288,7 +288,7 @@ public abstract class ClassFilter {
         }
 
         @Override
-        public boolean isBlacklisted(String name) {
+        public boolean isBlacklisted(@Nonnull String name) {
             for (Object p : blacklistPatterns) {
                 if (p instanceof Pattern && ((Pattern)p).matcher(name).matches()) {
                     return true;
@@ -300,7 +300,7 @@ public abstract class ClassFilter {
         }
 
         @Override
-        public boolean isBlacklisted(Class<?> c) {
+        public boolean isBlacklisted(@Nonnull Class<?> c) {
             AnonymousClassWarnings.check(c);
             return false;
         }

@@ -41,7 +41,7 @@ public class DirectByteBufferPool implements ByteBufferPool {
      * The pool of {@link ByteBuffer}. Only the first {@link #poolCount} elements will contain buffers.
      */
     @GuardedBy("this")
-    private ByteBuffer[] pool;
+    private final ByteBuffer[] pool;
     /**
      * The minimum size to allocate buffers.
      */

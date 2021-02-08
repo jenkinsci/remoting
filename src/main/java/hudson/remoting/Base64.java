@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
  *
  * This implementation does not encode/decode streaming
  * data. You need the data that you will encode/decode
- * already on a byte arrray.
+ * already on a byte array.
  *
  * @author Jeffrey Rodriguez
  * @author Sandy Gao
@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
 public final class  Base64 {
 
     /**
-     * Encodes hex octects into Base64
+     * Encodes hex octets into Base64
      *
      * @param binaryData Array containing binaryData
      * @return Encoded Base64 array. {@code null} if the input is null
@@ -56,7 +56,7 @@ public final class  Base64 {
     }
 
     /**
-     * Decodes Base64 data into octects
+     * Decodes Base64 data into octets
      *
      * @param encoded string containing Base64 data
      * @return Array containing decoded data. {@code null} if the data cannot be decoded.
