@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils;
 import org.jenkinsci.remoting.org.apache.commons.validator.routines.InetAddressValidator;
 import org.kohsuke.accmod.Restricted;
@@ -57,7 +58,7 @@ public class NoProxyEvaluator {
     }
 
     boolean shouldProxyHost(String host) {
-        if (host.toLowerCase(Locale.ROOT).equals("localhost")) {
+        if (isLocalhost(host)) {
             return false;
         }
         if (isIpAddress(host)) {
@@ -76,6 +77,11 @@ public class NoProxyEvaluator {
             }
         }
         return !matchesDomainHost(host);
+    }
+
+    @SuppressFBWarnings(value = "IMPROPER_UNICODE", justification = "host value is provided by administrator at launch")
+    private boolean isLocalhost(String host) {
+        return host.toLowerCase(Locale.ROOT).equals("localhost");
     }
 
     private static String getEnvironmentValue() {
