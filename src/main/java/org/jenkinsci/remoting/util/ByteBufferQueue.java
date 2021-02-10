@@ -525,20 +525,18 @@ public class ByteBufferQueue {
      */
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder();
-        sb.append(getClass().getName());
-        sb.append("[hasRemaining=");
-        sb.append(hasRemaining());
-        sb.append(",readIndex=");
-        sb.append(readIndex);
-        sb.append(",writeIndex=");
-        sb.append(writeIndex);
-        sb.append(",capacity=");
-        sb.append(buffers.length);
-        sb.append(",bufSize=");
-        sb.append(bufferSize);
-        sb.append(']');
-        return sb.toString();
+        return getClass().getName() +
+                "[hasRemaining=" +
+                hasRemaining() +
+                ",readIndex=" +
+                readIndex +
+                ",writeIndex=" +
+                writeIndex +
+                ",capacity=" +
+                buffers.length +
+                ",bufSize=" +
+                bufferSize +
+                ']';
     }
 
     /**

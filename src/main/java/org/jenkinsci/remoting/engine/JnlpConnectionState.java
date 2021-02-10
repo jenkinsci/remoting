@@ -64,7 +64,7 @@ public class JnlpConnectionState {
      */
     public static final String CLIENT_NAME_KEY = "Node-Name";
     /**
-     * The proprty name for the cookie name key.
+     * The property name for the cookie name key.
      */
     public static final String COOKIE_KEY = "JnlpAgentProtocol.cookie";
 
@@ -239,7 +239,7 @@ public class JnlpConnectionState {
 
     /**
      * Signals that the current {@link JnlpConnectionStateListener} is not interested in this event any more. If all
-     * {@link JnlpConnectionStateListener} implementations {@link #ignore()} the event then the connection will be
+     * {@link JnlpConnectionStateListener} implementations ignore the event then the connection will be
      * rejected.
      *
      * @throws IllegalStateException if invoked outside of

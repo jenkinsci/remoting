@@ -58,7 +58,7 @@ public class ExecutorServiceUtils {
             es.submit(runnable);
         } catch (RejectedExecutionException ex) {
             // Rethrow and make API users handle this.
-            throw new ExecutionRejectedException(runnable, es, ex);
+            throw new ExecutionRejectedException(es, ex);
         }
     }
     
@@ -98,9 +98,6 @@ public class ExecutorServiceUtils {
             super(message, cause);
         }
         
-        public FatalRejectedExecutionException(Throwable cause) {
-            super(cause);
-        }
     }
     
     /**
@@ -117,27 +114,10 @@ public class ExecutorServiceUtils {
         
         /**
          * Constructor of the new exception.
-         * @param runnable Runnable, which has been rejected
-         * @param es Executor service, which rejected the exception
-         * @param message Message
-         * @param fatal Indicates if the issue is fatal.
-         *              Fatal issue means that the {@link ExecutorService} will never accept any other task,
-         *              e.g. due to the pending shutdown.
-         */
-        public ExecutionRejectedException(Runnable runnable, ExecutorService es, String message, boolean fatal) {
-            super(message);
-            this.executorServiceDisplayName = es.toString();
-            this.runnableDisplayName = es.toString();
-            this.fatal = fatal;
-        }
-        
-        /**
-         * Constructor of the new exception.
-         * @param runnable Runnable, which has been rejected
          * @param es Executor service, which rejected the exception
          * @param cause Cause passed as a runtime exception
          */
-        public ExecutionRejectedException(Runnable runnable, ExecutorService es, RejectedExecutionException cause) {
+        public ExecutionRejectedException(ExecutorService es, RejectedExecutionException cause) {
             super(cause);
             this.executorServiceDisplayName = es.toString();
             this.runnableDisplayName = es.toString();

@@ -60,7 +60,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      * The send queue of any data requested to send before a call to {@link #start()}.
      * In theory this should not be needed as the network layer will be the first layer to be
      * {@link ProtocolLayer#start()}
-     * but it can simplify the othre layer implementations if they can queue up data to output in their call to
+     * but it can simplify the other layer implementations if they can queue up data to output in their call to
      * {@link ProtocolLayer#init(ProtocolStack.Ptr)} which is what this queue facilitates.
      */
     private ByteBufferQueue sendQueue;
@@ -107,7 +107,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
 
     /**
      * SPI: Perform the actual write to the recipient. This method should be non-blocking. The data should be enqueued
-     * and written in the order of calls to {@link #write(ByteBuffer)}.
+     * and written in the order of calls to write()}.
      *
      * @param data the data received. Any data consumed from the {@link ByteBuffer} can be assumed as processed.
      *             Any data not consumed from the {@link ByteBuffer} will be the responsibility of the caller
@@ -265,6 +265,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      *
      * @return the {@link IOHub} that we are using.
      */
+    @Nonnull
     public IOHub getIoHub() {
         return ioHub;
     }
@@ -297,9 +298,9 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
     }
 
     /**
-     * Returns the {@link ProtocolStack} instace that we belong to.
+     * Returns the {@link ProtocolStack} instance that we belong to.
      *
-     * @return the {@link ProtocolStack} instace that we belong to.
+     * @return the {@link ProtocolStack} instance that we belong to.
      */
     protected ProtocolStack<?> stack() {
         return ptr == null ? null : ptr.stack();

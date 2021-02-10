@@ -9,6 +9,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
 
+import javax.annotation.Nonnull;
+
 /**
  * {@link ExecutorService} that uses at most one executor.
  *
@@ -55,6 +57,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
         return worker!=null && worker.isAlive();
     }
 
+    @Nonnull
     @Override
     public List<Runnable> shutdownNow() {
         synchronized (q) {
@@ -89,7 +92,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
     }
 
     @Override
-    public void execute(Runnable command) {
+    public void execute(@Nonnull Runnable command) {
         synchronized (q) {
             if (isShutdown()) {
                 // No way this executor service can be recovered

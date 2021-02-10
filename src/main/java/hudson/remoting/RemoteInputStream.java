@@ -53,9 +53,9 @@ import static hudson.remoting.RemoteInputStream.Flag.*;
 public class RemoteInputStream extends InputStream implements SerializableOnlyOverRemoting {
     private static final Logger LOGGER = Logger.getLogger(RemoteInputStream.class.getName());
     private transient InputStream core;
-    private boolean autoUnexport;
+    private final boolean autoUnexport;
     private transient Greedy greedyAt;
-    private boolean greedy;
+    private final boolean greedy;
 
     /**
      * Short for {@code RemoteInputStream(core,true)}.

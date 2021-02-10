@@ -116,7 +116,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     /**
      * The queue used to stage output.
      */
-    private ByteBufferQueue sendStaging = new ByteBufferQueue(transportFrameSize);
+    private final ByteBufferQueue sendStaging = new ByteBufferQueue(transportFrameSize);
 
     /**
      * Write the packet.

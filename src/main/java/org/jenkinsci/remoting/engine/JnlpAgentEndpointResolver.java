@@ -574,12 +574,17 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         for (String headerName : headerNames) {
             for (Map.Entry<String, List<String>> entry: headerFields.entrySet()) {
                 final String headerField = entry.getKey();
-                if (headerField != null && headerField.equalsIgnoreCase(headerName)) {
+                if (isMatchingHeader(headerName, headerField)) {
                     return entry.getValue();
                 }
             }
         }
         return null;
+    }
+
+    @SuppressFBWarnings(value = "IMPROPER_UNICODE", justification = "Header fields are provided by controller and header names are hardcoded.")
+    private static boolean isMatchingHeader(String headerName, String headerField) {
+        return headerField != null && headerField.equalsIgnoreCase(headerName);
     }
 
     @CheckForNull

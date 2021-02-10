@@ -34,9 +34,9 @@ public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
 
     private static final Logger LOGGER = Logger.getLogger(JnlpAgentEndpointConfigurator.class.getName());
 
-    private String instanceIdentity;
-    private Set<String> protocols;
-    private String directionConnection;
+    private final String instanceIdentity;
+    private final Set<String> protocols;
+    private final String directionConnection;
 
     public JnlpAgentEndpointConfigurator(String directConnection, String instanceIdentity, Set<String> protocols) {
         this.directionConnection = directConnection;

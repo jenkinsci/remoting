@@ -238,14 +238,14 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@code true} when invoked from {@link JnlpProtocol4Handler#connect(Socket, Map, List)}, {@code false} when
          * invoked from {@link JnlpProtocol4Handler#handle(Socket, Map, List)}.
          */
-        private boolean client;
+        private final boolean client;
 
         /**
          * Internal constructor for {@link JnlpProtocol4Handler#connect(Socket, Map, List)}.
          *
          * @param event the event.
          */
-        Handler(Jnlp4ConnectionState event) {
+        Handler(@Nonnull Jnlp4ConnectionState event) {
             this.event = event;
             this.client = true;
         }

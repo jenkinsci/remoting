@@ -615,9 +615,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                                     batch[index].cleanup();
                                 } catch (ChannelClosedException e) {
                                     // ignore, the cleanup is a no-op
-                                } catch (IOException e) {
-                                    logger.log(Level.WARNING, String.format("Couldn't clean up oid=%d from %s",
-                                            batch[index].oid, batch[index].origin), e);
                                 } catch (Error e) {
                                     logger.log(Level.SEVERE, String.format("Couldn't clean up oid=%d from %s",
                                             batch[index].oid, batch[index].origin), e);
@@ -884,9 +881,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          */
         @CheckForNull
         @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
-        private transient ClassLoader classLoader;
+        private final transient ClassLoader classLoader;
 
-        private RPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl, boolean recordCreatedAt) {
+        private RPCRequest(int oid, Method m, Object[] arguments, @CheckForNull ClassLoader cl, boolean recordCreatedAt) {
             super(recordCreatedAt);
             this.oid = oid;
             this.arguments = arguments;

@@ -138,7 +138,7 @@ public class Engine extends Thread {
      * This field specifies those candidate URLs, such as
      * "http://foo.bar/jenkins/".
      */
-    private List<URL> candidateUrls;
+    private final List<URL> candidateUrls;
     /**
      * The list of {@link X509Certificate} instances to trust when connecting to any of the {@link #candidateUrls}
      * or {@code null} to use the JVM default trust store.
@@ -226,10 +226,10 @@ public class Engine extends Thread {
      */
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
-    private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
+    private final DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
 
-    private String directConnection;
-    private String instanceIdentity;
+    private final String directConnection;
+    private final String instanceIdentity;
     private final Set<String> protocols;
 
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String agentName) {
@@ -603,7 +603,7 @@ public class Engine extends Thread {
                         }
 
                         @Override
-                        public Capability getRemoteCapability() throws IOException {
+                        public Capability getRemoteCapability() {
                             return headerHandler.remoteCapability;
                         }
                         @Override
