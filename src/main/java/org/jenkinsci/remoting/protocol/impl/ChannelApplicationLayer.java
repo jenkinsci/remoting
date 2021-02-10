@@ -41,11 +41,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import javax.annotation.Nullable;
+
+import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.protocol.ApplicationLayer;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
 import org.jenkinsci.remoting.util.SettableFuture;
 import org.jenkinsci.remoting.util.ThrowableUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * An {@link ApplicationLayer} that produces a {@link Channel}.
@@ -85,6 +89,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * Listener to notify when the {@link Channel} is connected.
      */
     private final Listener listener;
+    private String cookie;
 
     /**
      * Creates a new {@link ChannelApplicationLayer}
@@ -96,6 +101,21 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
                                    @CheckForNull Listener listener) {
         this.executorService = executorService;
         this.listener = listener;
+    }
+
+    /**
+     * Creates a new {@link ChannelApplicationLayer}
+     *
+     * @param executorService the {@link ExecutorService} to use for the {@link Channel}.
+     * @param listener the {@link Listener} to notify when the {@link Channel} is available.
+     * @param cookie a cookie to pass through the channel.
+     */
+    @Restricted(NoExternalUse.class)
+    public ChannelApplicationLayer(@Nonnull ExecutorService executorService,
+                                   @CheckForNull Listener listener, String cookie) {
+        this.executorService = executorService;
+        this.listener = listener;
+        this.cookie = cookie;
     }
 
     /**
@@ -160,6 +180,9 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
                     transport = null;
                     futureChannel.setException(e);
                     throw e;
+                }
+                if (cookie != null) {
+                    channel.setProperty(JnlpConnectionState.COOKIE_KEY, cookie);
                 }
                 futureChannel.set(channel);
                 capabilityContent = null;

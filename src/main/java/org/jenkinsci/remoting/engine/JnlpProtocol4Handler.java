@@ -152,7 +152,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                 .filter(new ConnectionHeadersFilterLayer(headers, handler))
                 .named(String.format("%s connection from %s", getName(), socket.getRemoteSocketAddress()))
                 .listener(handler)
-                .build(new ChannelApplicationLayer(threadPool, handler))
+                .build(new ChannelApplicationLayer(threadPool, handler, headers.get(JnlpConnectionState.COOKIE_KEY)))
                 .get();
     }
 
