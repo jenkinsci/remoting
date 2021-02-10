@@ -78,7 +78,7 @@ public class SSLContextRule implements TestRule {
                                            @CheckForNull List<KeyWithChain> keys,
                                            @NonNull char[] password)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-        KeyStore store = KeyStore.getInstance("jks");
+        KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
         int id = 1;
         store.load(null, password);
         if (certificates != null) {

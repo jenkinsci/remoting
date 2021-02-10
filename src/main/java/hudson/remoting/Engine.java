@@ -483,7 +483,7 @@ public class Engine extends Thread {
                 char[] password = "password".toCharArray();
                 KeyStore store;
                 try {
-                    store = KeyStore.getInstance("JKS");
+                    store = KeyStore.getInstance(KeyStore.getDefaultType());
                 } catch (KeyStoreException e) {
                     throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
                 }
