@@ -11,6 +11,7 @@ import java.util.concurrent.ExecutionException;
  */
 public class ExportTableTest extends TestCase {
     public void testDiagnosis() throws Exception {
+        ExportTable.EXPORT_TRACES = true;
         ExportTable e = new ExportTable();
 
         int i = e.export(Object.class, "foo");

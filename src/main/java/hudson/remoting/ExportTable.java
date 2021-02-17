@@ -81,7 +81,7 @@ final class ExportTable {
         /**
          * Where was this object first exported?
          */
-        @Nonnull
+        @CheckForNull
         final CreatedAt allocationTrace;
         /**
          * Where was this object unexported?
@@ -100,7 +100,7 @@ final class ExportTable {
             this.interfaces = interfaces.clone();
             this.object = object;
             this.objectType = object.getClass().getName();
-            this.allocationTrace = new CreatedAt();
+            this.allocationTrace = EXPORT_TRACES ? new CreatedAt() : null;
 
             table.put(id,this);
             reverse.put(object,this);
@@ -144,10 +144,11 @@ final class ExportTable {
                 reverse.remove(object);
 
                 object = null;
-                releaseTrace = new ReleasedAt(callSite);
-
+                if (EXPORT_TRACES) {
+                    releaseTrace = new ReleasedAt(callSite);
+                }
                 unexportLog.add(this);
-                while (unexportLog.size()>UNEXPORT_LOG_SIZE)
+                while (unexportLog.size() > UNEXPORT_LOG_SIZE)
                     unexportLog.remove(0);
             }
         }
@@ -168,8 +169,10 @@ final class ExportTable {
          */
         void dump(PrintWriter w) throws IOException {
             w.printf("#%d (ref.%d) : object=%s type=%s interfaces=%s%n", id, referenceCount, object, objectType, interfaceNames());
-            allocationTrace.printStackTrace(w);
-            if (releaseTrace!=null) {
+            if (allocationTrace != null) {
+                allocationTrace.printStackTrace(w);
+            }
+            if (releaseTrace != null) {
                 releaseTrace.printStackTrace(w);
             }
         }
@@ -424,8 +427,10 @@ final class ExportTable {
 
         if (!unexportLog.isEmpty()) {
             for (Entry<?> e : unexportLog) {
-                if (e.id==id)
-                    cause = new Exception("Object was recently deallocated\n"+Util.indent(e.dump()), e.releaseTrace);
+                if (e.id==id) {
+                    cause = new Exception("Object was recently deallocated\n" + Util.indent(e.dump()), e.releaseTrace);
+                    break;
+                }
             }
             if (cause==null) {
                 // If there is no cause available, create an artificial cause and use the last unexport entry as an estimated release time if possible
@@ -485,6 +490,8 @@ final class ExportTable {
      * @since 2.40
      */
     public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName()+".unexportLogSize",1024);
+
+    static boolean EXPORT_TRACES = Boolean.getBoolean(ExportTable.class.getName() + "exportTraces");
 
     private static final Logger LOGGER = Logger.getLogger(ExportTable.class.getName());
 }
