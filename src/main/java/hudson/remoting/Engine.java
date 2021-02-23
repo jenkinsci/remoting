@@ -57,6 +57,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -119,7 +120,7 @@ public class Engine extends Thread {
                 r.run();
             });
             thread.setDaemon(true);
-            thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in thread " + t, e));
+            thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in thread " + t));
             return thread;
         }
     });
@@ -250,7 +251,7 @@ public class Engine extends Thread {
             throw new IllegalArgumentException("No URLs given");
         }
         setUncaughtExceptionHandler((t, e) -> {
-            LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
+            LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in Engine thread " + t);
             interrupt();
         });
     }
@@ -574,8 +575,11 @@ public class Engine extends Thread {
                     private void onMessage(ByteBuffer message) {
                         try {
                             transport.receive(message);
-                        } catch (IOException|InterruptedException x) {
+                        } catch (IOException x) {
                             events.error(x);
+                        } catch (InterruptedException x) {
+                            events.error(x);
+                            Thread.currentThread().interrupt();
                         }
                     }
                     @Override
@@ -647,7 +651,7 @@ public class Engine extends Thread {
                     } catch (IOException x) {
                         events.status(ping + " is not ready", x);
                     }
-                    Thread.sleep(10_000);
+                    TimeUnit.SECONDS.sleep(10);
                 }
                 events.onReconnect();
             }
@@ -822,7 +826,7 @@ public class Engine extends Thread {
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
         events.error(new Exception("The server rejected the connection: " + greeting));
-        Thread.sleep(10*1000);
+        TimeUnit.SECONDS.sleep(10);
     }
 
     /**
@@ -844,7 +848,7 @@ public class Engine extends Thread {
                 if(retry++>10) {
                     throw e;
                 }
-                Thread.sleep(1000*10);
+                TimeUnit.SECONDS.sleep(10);
                 events.status(msg+" (retrying:"+retry+")",e);
             }
         }

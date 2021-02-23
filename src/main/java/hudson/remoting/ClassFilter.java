@@ -213,9 +213,7 @@ public abstract class ClassFilter {
             throw new Error("Could not load user provided overrides for ClassFiltering from as " + prop + " does not exist or is not readable.");
         }
 
-        BufferedReader br = null;
-        try {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(prop), Charset.defaultCharset()));
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(prop), Charset.defaultCharset()))) {
             ArrayList<String> patterns = new ArrayList<>();
             for (String line = br.readLine(); line != null; line = br.readLine()) {
                 try {
@@ -228,14 +226,6 @@ public abstract class ClassFilter {
             return patterns;
         } catch (IOException ex) {
             throw new Error("Could not load user provided overrides for ClassFiltering from as "+prop+" does not exist or is not readable.",ex);
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (IOException ioEx) {
-                    LOGGER.log(Level.WARNING, "Failed to cleanly close input stream", ioEx);
-                }
-            }
         }
     }
 

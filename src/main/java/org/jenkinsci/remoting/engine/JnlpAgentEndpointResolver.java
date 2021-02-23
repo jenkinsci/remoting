@@ -67,6 +67,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -349,29 +350,15 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
     @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This just verifies connection to the port. No data is transmitted.")
     private boolean isPortVisible(String hostname, int port) {
-        boolean exitStatus = false;
-        Socket s = null;
-
-        try {
-            s = new Socket();
+        try (Socket s = new Socket()) {
             s.setReuseAddress(true);
             SocketAddress sa = new InetSocketAddress(hostname, port);
             s.connect(sa, 5000);
+            return s.isConnected();
         } catch (IOException e) {
             LOGGER.warning(e.getMessage());
-        } finally {
-            if (s != null) {
-                if (s.isConnected()) {
-                    exitStatus = true;
-                }
-                try {
-                    s.close();
-                } catch (IOException e) {
-                    LOGGER.warning(e.getMessage());
-                }
-            }
         }
-        return exitStatus;
+        return false;
     }
 
     @Nonnull
@@ -388,7 +375,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         try {
             int retries = 0;
             while (true) {
-                Thread.sleep(1000 * 10);
+                TimeUnit.SECONDS.sleep(10);
                 try {
                     // Jenkins top page might be read-protected. see http://www.nabble
                     // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html

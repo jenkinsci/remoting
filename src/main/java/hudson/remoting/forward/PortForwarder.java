@@ -63,7 +63,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
         // the caller can explicitly cancel this by doing "setDaemon(false)"
         setDaemon(true);
         setUncaughtExceptionHandler((t, e) -> {
-            LOGGER.log(SEVERE, "Uncaught exception in PortForwarder thread " + t, e);
+            LOGGER.log(SEVERE, e, () -> "Uncaught exception in PortForwarder thread " + t);
             try {
                 socket.close();
             } catch (IOException e1) {
@@ -86,7 +86,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
                     new Thread("Port forwarding session from "+s.getRemoteSocketAddress()) {
                         {
                             setUncaughtExceptionHandler(
-                                    (t, e) -> LOGGER.log(Level.SEVERE, "Unhandled exception in port forwarding session " + t, e));
+                                    (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Unhandled exception in port forwarding session " + t));
                         }
                         @Override
                         public void run() {
