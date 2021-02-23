@@ -166,6 +166,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
                     try {
                         buf.wait(TIMEOUT);
                     } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                         throw (InterruptedIOException)new InterruptedIOException(e.getMessage()).initCause(e);
                     } finally {
                         t.setName(oldName);

@@ -605,7 +605,10 @@ final class RemoteClassLoader extends URLClassLoader {
                         // getResources2 always give us ResourceImageBoth so
                         // .get() shouldn't block
                         v.add(image.image.resolveURL(channel, name).get());
-                    } catch (InterruptedException | ExecutionException e) {
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        throw new Error("Failed to load resources " + name, e);
+                    } catch (ExecutionException e) {
                         throw new Error("Failed to load resources " + name, e);
                     }
                 }
@@ -641,6 +644,7 @@ final class RemoteClassLoader extends URLClassLoader {
             }
         } catch (InterruptedException e) {
             // Not much to do if we can't sleep. Run through the tries more quickly.
+            Thread.currentThread().interrupt();
         }
     }
 

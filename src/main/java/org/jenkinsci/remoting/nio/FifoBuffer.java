@@ -566,6 +566,7 @@ public class FifoBuffer implements Closeable {
                     byte[] buf = new byte[]{(byte)b};
                     FifoBuffer.this.write(buf);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                 }
             }
@@ -575,6 +576,7 @@ public class FifoBuffer implements Closeable {
                 try {
                     FifoBuffer.this.write(b,off,len);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                 }
             }
@@ -600,6 +602,7 @@ public class FifoBuffer implements Closeable {
                     if (n==0)   throw new AssertionError();
                     return ((int)b[0])&0xFF;
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                 }
             }
@@ -609,6 +612,7 @@ public class FifoBuffer implements Closeable {
                 try {
                     return FifoBuffer.this.read(b, off, len);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                 }
             }

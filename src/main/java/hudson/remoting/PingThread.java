@@ -92,7 +92,7 @@ public abstract class PingThread extends Thread {
                 // wait until the next check
                 long diff;
                 while((diff = nextCheck - System.nanoTime()) > 0) {
-                    Thread.sleep(TimeUnit.NANOSECONDS.toMillis(diff));
+                    TimeUnit.NANOSECONDS.sleep(diff);
                 }
             }
         } catch (ChannelClosedException e) {
@@ -102,6 +102,7 @@ public abstract class PingThread extends Thread {
         } catch (InterruptedException e) {
             // use interruption as a way to terminate the ping thread.
             LOGGER.fine(getName()+" is interrupted. Terminating");
+            Thread.currentThread().interrupt();
         }
     }
 

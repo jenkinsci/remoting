@@ -121,6 +121,7 @@ public abstract class JarCacheSupport extends JarCache {
                 bailout(e);
 
                 LOGGER.log(Level.WARNING, String.format("Interrupted while resolving a jar %016x%016x", sum1, sum2), e);
+                Thread.currentThread().interrupt();
             } catch (Throwable e) {
                 // in other general failures, we aren't retrying
                 // TODO: or should we?

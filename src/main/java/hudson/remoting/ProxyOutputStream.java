@@ -148,6 +148,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                 len-=sendable;
             }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw (IOException)new InterruptedIOException().initCause(e);
         }
     }

@@ -233,6 +233,7 @@ public class NioChannelHub implements Runnable, Closeable {
                     pos+=frame;
                 } while(hasMore);
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw (InterruptedIOException)new InterruptedIOException().initCause(e);
             }
         }
@@ -480,6 +481,7 @@ public class NioChannelHub implements Runnable, Closeable {
                                 startedLock.wait();
                         }
                     } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                         throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                     }
 

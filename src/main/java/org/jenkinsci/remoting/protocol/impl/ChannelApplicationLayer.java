@@ -34,6 +34,7 @@ import hudson.remoting.ChannelClosedException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -196,7 +197,13 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
             assert futureChannel.isDone();
             try {
                 channel = futureChannel.get();
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (InterruptedException e) {
+                InterruptedIOException ie = new InterruptedIOException();
+                ie.bytesTransferred = data.remaining();
+                data.position(data.limit());
+                Thread.currentThread().interrupt();
+                throw ie;
+            } catch (ExecutionException e) {
                 // should never get here as futureChannel.isDone(), but just in case we do throw away
                 data.position(data.limit()); // dump any remaining data as nobody will ever receive it
                 throw new IOException(e);
@@ -212,9 +219,11 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
         } catch (InterruptedException e) {
             // if the channel receive was interrupted we cannot guarantee that the partial state has been correctly
             // stored, thus we cannot trust the channel instance any more and it needs to be closed.
-            IOException reason = new IOException(e);
+            InterruptedIOException reason = new InterruptedIOException();
+            reason.bytesTransferred = data.remaining();
             channel.terminate(reason);
             data.position(data.limit()); // dump any remaining data as nobody will ever receive it
+            Thread.currentThread().interrupt();
             throw reason;
         }
     }

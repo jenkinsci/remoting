@@ -175,6 +175,7 @@ public class FastPipedInputStream extends InputStream {
                     try {
                         buffer.wait(FastPipedOutputStream.TIMEOUT);
                     } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                         throw new IOException(e);
                     }
                     // Try again.
@@ -203,14 +204,6 @@ public class FastPipedInputStream extends InputStream {
     static final class ClosedBy extends Throwable {
         ClosedBy(Throwable error) {
             super("The pipe was closed at...", error);
-        }
-
-        /**
-         * If the pipe was closed by inducing an error, return that error object.
-         */
-        @Override
-        public Throwable getCause() {
-            return super.getCause();
         }
     }
 }
