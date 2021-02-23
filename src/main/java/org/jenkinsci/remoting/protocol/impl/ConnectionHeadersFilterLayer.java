@@ -30,6 +30,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.protocol.FilterLayer;
@@ -110,7 +111,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
     /**
      * Marker for the abort reason
      */
-    private volatile ConnectionRefusalException aborted;
+    private final AtomicReference<ConnectionRefusalException> aborted = new AtomicReference<>();
 
     /**
      * Constructor.
@@ -143,7 +144,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      */
     @Override
     public void onRecv(@Nonnull ByteBuffer data) throws IOException {
-        final ConnectionRefusalException aborted = this.aborted;
+        final ConnectionRefusalException aborted = this.aborted.get();
         if (aborted != null) {
             throw newAbortCause(aborted);
         }
@@ -395,7 +396,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * Finalizes the abort of the connection.
      */
     private synchronized void onAbortCompleted() {
-        ConnectionHeadersFilterLayer.this.aborted = abortCause;
+        ConnectionHeadersFilterLayer.this.aborted.set(abortCause);
         abort(abortCause);
         try {
             next().doCloseSend();
@@ -420,7 +421,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
             super.onRecvClosed(cause);
             return;
         }
-        ConnectionRefusalException aborted = this.aborted;
+        ConnectionRefusalException aborted = this.aborted.get();
         if (aborted != null && !(cause instanceof ConnectionRefusalException)) {
             // handle the case where we have refuseded the incoming headers and actually aborted
             ConnectionRefusalException newCause = newAbortCause(aborted);
@@ -449,7 +450,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      */
     @Override
     public boolean isRecvOpen() {
-        return aborted == null && super.isRecvOpen();
+        return aborted.get() == null && super.isRecvOpen();
     }
 
     /**
@@ -457,7 +458,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      */
     @Override
     public void doSend(@Nonnull ByteBuffer data) throws IOException {
-        ConnectionRefusalException aborted = this.aborted;
+        ConnectionRefusalException aborted = this.aborted.get();
         if (aborted != null) {
             throw newAbortCause(aborted);
         }
@@ -510,7 +511,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      */
     @Override
     public boolean isSendOpen() {
-        return aborted == null && super.isSendOpen();
+        return aborted.get() == null && super.isSendOpen();
     }
 
     /**

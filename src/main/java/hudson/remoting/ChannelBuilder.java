@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -55,7 +55,7 @@ public class ChannelBuilder {
     private final List<CallableDecorator> decorators = new ArrayList<>();
     private boolean arbitraryCallableAllowed = true;
     private boolean remoteClassLoadingAllowed = true;
-    private final Hashtable<Object,Object> properties = new Hashtable<>();
+    private final Map<Object,Object> properties = new HashMap<>();
     private ClassFilter filter = ClassFilter.DEFAULT;
 
     /**

@@ -53,7 +53,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -159,7 +159,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Requests that are sent to the remote side for execution, yet we are waiting locally until
      * we hear back their responses.
      */
-    /*package*/ final Map<Integer,Request<? extends Serializable,? extends Throwable>> pendingCalls = new Hashtable<>();
+    /*package*/ final Map<Integer,Request<? extends Serializable,? extends Throwable>> pendingCalls =
+            Collections.synchronizedMap(new HashMap<>());
 
     /**
      * Remembers last I/O ID issued from locally to the other side, per thread.
@@ -171,7 +172,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Records the {@link Request}s being executed on this channel, sent by the remote peer.
      */
     /*package*/ final Map<Integer,Request<?,?>> executingCalls =
-        Collections.synchronizedMap(new Hashtable<>());
+        Collections.synchronizedMap(new HashMap<>());
 
     /**
      * {@link ClassLoader}s that are proxies of the remote classloaders.
@@ -219,7 +220,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Number of {@link Command} objects sent to the other side.
      */
-    private volatile long commandsSent;
+    private final AtomicLong commandsSent = new AtomicLong();
 
     /**
      * Number of {@link Command} objects received from the other side.
@@ -227,7 +228,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * When a transport is functioning correctly, {@link #commandsSent} of one side
      * and {@link #commandsReceived} of the other side should closely match.
      */
-    private volatile long commandsReceived;
+    private final AtomicLong commandsReceived = new AtomicLong();
 
     /**
      * Timestamp of the last {@link Command} object sent/received, in
@@ -241,7 +242,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * without telling us anything, the {@link SocketOutputStream#write(int)} will
      * return right away, and the socket only really times out after 10s of minutes.
      */
-    private volatile long lastCommandSentAt, lastCommandReceivedAt;
+    private final AtomicLong lastCommandSentAt = new AtomicLong();
+    private final AtomicLong lastCommandReceivedAt = new AtomicLong();
 
     /**
      * Timestamp of when this channel was connected/created, in
@@ -595,9 +597,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         transport.setup(this, new CommandReceiver() {
             @Override
             public void handle(Command cmd) {
-                commandsReceived++;
+                commandsReceived.incrementAndGet();
                 long receivedAt = System.currentTimeMillis();
-                lastCommandReceivedAt = receivedAt;
+                lastCommandReceivedAt.set(receivedAt);
                 if (logger.isLoggable(Level.FINE)) {
                     logger.fine("Received " + cmd);
                 } else if (logger.isLoggable(Level.FINER)) {
@@ -764,8 +766,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             logger.fine("Send "+cmd);
 
         transport.write(cmd, cmd instanceof CloseCommand);
-        commandsSent++;
-        lastCommandSentAt = System.currentTimeMillis();
+        commandsSent.incrementAndGet();
+        lastCommandSentAt.set(System.currentTimeMillis());
     }
 
     /**
@@ -1001,9 +1003,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             return r.retrieve(this, UserRequest.getClassLoader(callable));
 
         // re-wrap the exception so that we can capture the stack trace of the caller.
-        } catch (ClassNotFoundException e) {
-            throw new IOException("Remote call on " + name + " failed", e);
-        } catch (Error e) {
+        } catch (ClassNotFoundException | Error e) {
             throw new IOException("Remote call on " + name + " failed", e);
         } catch (SecurityException e) {
             throw new IOException("Failed to deserialize response to " + request + ": " + e, e);
@@ -1184,7 +1184,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             // given tickets like JENKINS-20709 that talks about hangs, it seems
             // like a good defensive measure to periodically wake up to make sure
             // that the wait condition is still not met in case we don't call notifyAll correctly
-            wait(30*1000);
+            wait(TimeUnit.SECONDS.toMillis(30));
     }
 
     /**
@@ -1438,13 +1438,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     public void dumpDiagnostics(@Nonnull PrintWriter w) throws IOException {
         w.printf("Channel %s%n",name);
         w.printf("  Created=%s%n", new Date(createdAt));
-        w.printf("  Commands sent=%d%n", commandsSent);
-        w.printf("  Commands received=%d%n", commandsReceived);
-        w.printf("  Last command sent=%s%n", new Date(lastCommandSentAt));
-        w.printf("  Last command received=%s%n", new Date(lastCommandReceivedAt));
+        w.printf("  Commands sent=%d%n", commandsSent.get());
+        w.printf("  Commands received=%d%n", commandsReceived.get());
+        w.printf("  Last command sent=%s%n", new Date(lastCommandSentAt.get()));
+        w.printf("  Last command received=%s%n", new Date(lastCommandReceivedAt.get()));
 
-        // TODO: Synchronize when Hashtable gets replaced by a modern collection.
-        w.printf("  Pending calls=%d%n", pendingCalls.size());
+        synchronized (pendingCalls) {
+            w.printf("  Pending calls=%d%n", pendingCalls.size());
+        }
     }
 
     /**
@@ -1760,11 +1761,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         t.setName("I/O sync: "+old);
         try {
             // no one waits for the completion of this Runnable, so not using I/O ID
-            pipeWriter.submit(0,new Runnable() {
-                @Override
-                public void run() {
-                    // noop
-                }
+            pipeWriter.submit(0, () -> {
+                // noop
             }).get();
         } catch (ExecutionException e) {
             throw new AssertionError(e); // impossible
@@ -1835,7 +1833,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     public long getLastHeard() {
         // TODO - this is not safe against clock skew and is called from jenkins core (and potentially plugins)
-        return lastCommandReceivedAt;
+        return lastCommandReceivedAt.get();
     }
 
     /*package*/ static Channel setCurrent(Channel channel) {
