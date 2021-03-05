@@ -159,8 +159,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Requests that are sent to the remote side for execution, yet we are waiting locally until
      * we hear back their responses.
      */
-    /*package*/ final Map<Integer,Request<? extends Serializable,? extends Throwable>> pendingCalls =
-            Collections.synchronizedMap(new HashMap<>());
+    /*package*/ final Map<Integer,Request<? extends Serializable,? extends Throwable>> pendingCalls = new ConcurrentHashMap<>();
 
     /**
      * Remembers last I/O ID issued from locally to the other side, per thread.
@@ -171,8 +170,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Records the {@link Request}s being executed on this channel, sent by the remote peer.
      */
-    /*package*/ final Map<Integer,Request<?,?>> executingCalls =
-        Collections.synchronizedMap(new HashMap<>());
+    /*package*/ final Map<Integer,Request<?,?>> executingCalls = new ConcurrentHashMap<>();
 
     /**
      * {@link ClassLoader}s that are proxies of the remote classloaders.
@@ -1080,18 +1078,17 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                     logger.log(Level.WARNING, "Failed to close down the reader side of the transport", x);
                 }
                 try {
-                    synchronized (pendingCalls) {
-                        for (Request<?, ?> req : pendingCalls.values())
-                            req.abort(e);
-                        pendingCalls.clear();
+                    for (Request<?, ?> req : pendingCalls.values()) {
+                        req.abort(e);
                     }
-                    synchronized (executingCalls) {
-                        for (Request<?, ?> r : executingCalls.values()) {
-                            java.util.concurrent.Future<?> f = r.future;
-                            if (f != null) f.cancel(true);
+                    pendingCalls.clear();
+                    for (Request<?, ?> r : executingCalls.values()) {
+                        java.util.concurrent.Future<?> f = r.future;
+                        if (f != null) {
+                            f.cancel(true);
                         }
-                        executingCalls.clear();
                     }
+                    executingCalls.clear();
                     exportedObjects.abort(e);
                     // break any object cycles into simple chains to simplify work for the garbage collector
                     reference.clear(e);
