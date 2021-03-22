@@ -150,7 +150,10 @@ public class Launcher {
         $addURL.setAccessible(true);
 
         for(String token : pathList.split(File.pathSeparator))
-            $addURL.invoke(ClassLoader.getSystemClassLoader(),new File(token).toURI().toURL());
+        { 
+        	URL[] urls= {new File(token).toURI().toURL()};
+        	$addURL.invoke(URLClassLoader.newInstance(urls),urls[0]);
+        }
 
         // fix up the system.class.path to pretend that those jar files
         // are given through CLASSPATH or something.
