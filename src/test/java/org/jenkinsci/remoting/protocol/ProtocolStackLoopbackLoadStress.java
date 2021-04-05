@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import com.google.common.util.concurrent.SettableFuture;
+import java.util.concurrent.CompletableFuture;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import org.apache.commons.io.IOUtils;
@@ -105,7 +105,7 @@ public class ProtocolStackLoopbackLoadStress {
 
     private final Acceptor acceptor;
 
-    private final SettableFuture<SocketAddress> addr = SettableFuture.create();
+    private final CompletableFuture<SocketAddress> addr = new CompletableFuture<>();
     private final Random entropy = new Random();
 
     public ProtocolStackLoopbackLoadStress(boolean nio, boolean ssl)
@@ -244,9 +244,9 @@ public class ProtocolStackLoopbackLoadStress {
             SocketAddress localAddress;
             try {
                 localAddress = serverSocketChannel.getLocalAddress();
-                addr.set(localAddress);
+                addr.complete(localAddress);
             } catch (IOException e) {
-                addr.setException(e);
+                addr.completeExceptionally(e);
                 return;
             }
             try {
