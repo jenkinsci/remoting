@@ -491,7 +491,7 @@ final class ExportTable {
      */
     public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName()+".unexportLogSize",1024);
 
-    static boolean EXPORT_TRACES = Boolean.getBoolean(ExportTable.class.getName() + "exportTraces");
+    static boolean EXPORT_TRACES = Boolean.getBoolean(ExportTable.class.getName() + ".exportTraces");
 
     private static final Logger LOGGER = Logger.getLogger(ExportTable.class.getName());
 }
