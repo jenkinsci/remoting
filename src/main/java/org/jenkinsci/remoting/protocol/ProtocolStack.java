@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -147,6 +148,8 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
 
     private final TimeUnit handshakingUnits = TimeUnit.SECONDS;
 
+    private static final AtomicBoolean started = new AtomicBoolean(false);
+
     /**
      * Private constructor used by {@link Builder#build(ApplicationLayer)}
      *
@@ -179,6 +182,10 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      */
     public static ProtocolStack.Builder on(NetworkLayer network) {
         return new Builder(network);
+    }
+
+    public static AtomicBoolean isStarted() {
+        return started;
     }
 
     /**
@@ -217,6 +224,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] Started", name());
         }
+        started.set(true);
     }
 
     /**
