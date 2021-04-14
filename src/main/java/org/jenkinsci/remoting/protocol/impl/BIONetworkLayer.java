@@ -231,14 +231,12 @@ public class BIONetworkLayer extends NetworkLayer {
          */
         @Override
         public void run() {
-            while (!ProtocolStack.isStarted().get()) {
-                LOGGER.info("Waiting for ProtocolStack to start.");
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    LOGGER.warning("Interrupted while waiting for ProtocolStack to start.");
-                    return;
-                }
+            LOGGER.info("Waiting for ProtocolStack to start.");
+            try {
+                ProtocolStack.waitForStart();
+            } catch (InterruptedException e) {
+                LOGGER.warning("Interrupted while waiting for ProtocolStack to start.");
+                return;
             }
             synchronized (BIONetworkLayer.this) {
                 starting = false;
