@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import com.google.common.util.concurrent.SettableFuture;
+import java.util.concurrent.CompletableFuture;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
@@ -289,7 +289,7 @@ public class ConnectionHeadersFilterLayerTest {
     @Theory
     public void headerExchange(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
         Random entropy = new Random();
-        final SettableFuture<Map<String, String>> serverActualHeaders = SettableFuture.create();
+        final CompletableFuture<Map<String, String>> serverActualHeaders = new CompletableFuture<>();
         Map<String, String> clientExpectedHeaders = new HashMap<>();
         for (int i = 1 + entropy.nextInt(50); i > 0; i--) {
             clientExpectedHeaders.put(Long.toHexString(entropy.nextLong()), Long.toHexString(entropy.nextLong()));
@@ -298,10 +298,10 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders,
-                                serverActualHeaders::set))
+                                serverActualHeaders::complete))
                         .build(new IOBufferMatcherLayer());
 
-        final SettableFuture<Map<String, String>> clientActualHeaders = SettableFuture.create();
+        final CompletableFuture<Map<String, String>> clientActualHeaders = new CompletableFuture<>();
         Map<String, String> serverExpectedHeaders = new HashMap<>();
         for (int i = 1 + entropy.nextInt(50); i > 0; i--) {
             serverExpectedHeaders.put(Long.toHexString(entropy.nextLong()), Long.toHexString(entropy.nextLong()));
@@ -310,7 +310,7 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new ConnectionHeadersFilterLayer(serverExpectedHeaders,
-                                clientActualHeaders::set))
+                                clientActualHeaders::complete))
                         .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
@@ -327,7 +327,7 @@ public class ConnectionHeadersFilterLayerTest {
 
     @Theory
     public void tooBigHeader(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        final SettableFuture<Map<String, String>> serverActualHeaders = SettableFuture.create();
+        final CompletableFuture<Map<String, String>> serverActualHeaders = new CompletableFuture<>();
         Map<String, String> clientExpectedHeaders = new HashMap<>(64);
         StringBuilder bigString = new StringBuilder(8*128);
         for (int i = 0; i < 128; i++) {
@@ -340,7 +340,7 @@ public class ConnectionHeadersFilterLayerTest {
             ProtocolStack
                     .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                     .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders,
-                            serverActualHeaders::set))
+                            serverActualHeaders::complete))
                     .build(new IOBufferMatcherLayer());
             fail("IllegalArgumentException expected");
         } catch (IllegalArgumentException e) {

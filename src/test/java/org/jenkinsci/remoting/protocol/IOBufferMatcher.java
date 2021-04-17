@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import com.google.common.util.concurrent.SettableFuture;
+import java.util.concurrent.CompletableFuture;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matcher;
@@ -72,7 +72,7 @@ public abstract class IOBufferMatcher {
     private final String name;
     private final ByteArrayOutputStream recv = new ByteArrayOutputStream();
     private final WritableByteChannel channel = Channels.newChannel(recv);
-    private final SettableFuture<IOException> closed = SettableFuture.create();
+    private final CompletableFuture<IOException> closed = new CompletableFuture<>();
     private final CountDownLatch anything = new CountDownLatch(1);
     private final Lock state = new ReentrantLock();
     private final Condition changed = state.newCondition();
@@ -108,7 +108,7 @@ public abstract class IOBufferMatcher {
 
     private void innerClose(@Nonnull IOException cause) {
         if (!closed.isDone()) {
-            closed.set(cause);
+            closed.complete(cause);
             anything.countDown();
             state.lock();
             try {

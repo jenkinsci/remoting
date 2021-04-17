@@ -46,7 +46,7 @@ import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.IOHubReadyListener;
 import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
 import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
-import org.jenkinsci.remoting.util.SettableFuture;
+import java.util.concurrent.CompletableFuture;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -130,7 +130,7 @@ public class HandlerLoopbackLoadStress {
 
     private final JnlpProtocolHandler<? extends JnlpConnectionState> handler;
 
-    private final SettableFuture<SocketAddress> addr = SettableFuture.create();
+    private final CompletableFuture<SocketAddress> addr = new CompletableFuture<>();
     private final Random entropy = new Random();
 
     private final RuntimeMXBean runtimeMXBean;
@@ -844,7 +844,7 @@ public class HandlerLoopbackLoadStress {
     private class Acceptor implements IOHubReadyListener, IOHubRegistrationCallback {
         private final ServerSocketChannel channel;
         private final AtomicInteger clientCount = new AtomicInteger();
-        public SettableFuture<Void> registered = SettableFuture.create();
+        public CompletableFuture<Void> registered = new CompletableFuture<>();
         private SelectionKey selectionKey;
 
         private Acceptor(ServerSocketChannel channel) {
@@ -891,9 +891,9 @@ public class HandlerLoopbackLoadStress {
             SocketAddress localAddress;
             try {
                 localAddress = serverSocketChannel.getLocalAddress();
-                addr.set(localAddress);
+                addr.complete(localAddress);
             } catch (IOException e) {
-                addr.setException(e);
+                addr.completeExceptionally(e);
                 return;
             }
             try {
@@ -901,7 +901,7 @@ public class HandlerLoopbackLoadStress {
             } catch (Exception e) {
                 // ignore
             }
-            registered.set(null);
+            registered.complete(null);
         }
 
         @Override
