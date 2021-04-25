@@ -31,6 +31,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -147,6 +148,8 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
 
     private final TimeUnit handshakingUnits = TimeUnit.SECONDS;
 
+    private static final CountDownLatch awaitStart = new CountDownLatch(1);
+
     /**
      * Private constructor used by {@link Builder#build(ApplicationLayer)}
      *
@@ -179,6 +182,10 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      */
     public static ProtocolStack.Builder on(NetworkLayer network) {
         return new Builder(network);
+    }
+
+    public static void waitForStart() throws InterruptedException {
+        awaitStart.await();
     }
 
     /**
@@ -217,6 +224,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] Started", name());
         }
+        awaitStart.countDown();
     }
 
     /**
