@@ -160,7 +160,6 @@ final class ProxyWriter extends Writer {
                      */
                     sendable = Math.min(sendable, max /2);
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
                     throw (IOException)new InterruptedIOException().initCause(e);
                 }
 

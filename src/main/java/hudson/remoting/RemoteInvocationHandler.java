@@ -639,7 +639,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                         }
                     } catch (InterruptedException e) {
                         logger.log(Level.FINE, "Interrupted", e);
-                        Thread.currentThread().interrupt();
                     }
                     if (System.nanoTime() - nextSweep > 0) {
                         nextSweep = System.nanoTime() + sweepInterval;

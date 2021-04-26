@@ -102,7 +102,6 @@ public abstract class PingThread extends Thread {
         } catch (InterruptedException e) {
             // use interruption as a way to terminate the ping thread.
             LOGGER.fine(getName()+" is interrupted. Terminating");
-            Thread.currentThread().interrupt();
         }
     }
 

@@ -642,9 +642,8 @@ final class RemoteClassLoader extends URLClassLoader {
             if (RETRY_SLEEP_DURATION_MILLISECONDS > 0) {
                 Thread.sleep(RETRY_SLEEP_DURATION_MILLISECONDS);
             }
-        } catch (InterruptedException e) {
+        } catch (InterruptedException ignored) {
             // Not much to do if we can't sleep. Run through the tries more quickly.
-            Thread.currentThread().interrupt();
         }
     }
 

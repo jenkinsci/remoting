@@ -497,8 +497,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                         }
                         try {
                             TimeUnit.NANOSECONDS.sleep(sleepNanos);
-                        } catch (InterruptedException e1) {
-                            Thread.currentThread().interrupt();
+                        } catch (InterruptedException ignored) {
                             // ignore
                         }
                     } else {
@@ -557,7 +556,6 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             } catch (InterruptedException ex) {
                 // interrupted
                 LOGGER.log(Level.FINE, "Interrupted", ex);
-                Thread.currentThread().interrupt();
             } finally {
                 watcherThread.setName(oldName);
                 LOGGER.log(Level.FINEST, "{0}: Finished", watcherName);
