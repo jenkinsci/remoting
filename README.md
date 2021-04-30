@@ -62,7 +62,7 @@ See [How to report an issue](https://wiki.jenkins-ci.org/display/JENKINS/How+to+
 
 ### More info
 
-* [Remoting Architecture Overview](http://hudson-ci.org/docs/HudsonArch-Remoting.pdf) 
+* [Remoting Architecture Overview](https://github.com/hudson/www/blob/master/docs/HudsonArch-Remoting.pdf) 
 by Winston Prakash, Oracle (the information is outdated)
 * [Making your plugin behave in distributed Jenkins](https://wiki.jenkins-ci.org/display/JENKINS/Making+your+plugin+behave+in+distributed+Jenkins)
 * [Writing an SCM plugin. Remoting examples](https://wiki.jenkins-ci.org/display/JENKINS/Remoting)
