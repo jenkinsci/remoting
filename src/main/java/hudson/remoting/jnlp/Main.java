@@ -28,6 +28,7 @@ import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
 import hudson.remoting.FileSystemJarCache;
 import hudson.remoting.Util;
+import java.io.UncheckedIOException;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.args4j.Argument;
@@ -433,7 +434,17 @@ public class Main {
                 justification = "Yes, we really want to exit in the case of severe error")
         public void error(Throwable t) {
             LOGGER.log(Level.SEVERE, t.getMessage(), t);
-            System.exit(-1);
+            if (Boolean.getBoolean(CuiListener.class.getName() + ".propagateExceptions")) {
+                if (t instanceof RuntimeException) {
+                    throw (RuntimeException) t;
+                } else if (t instanceof IOException) {
+                    throw new UncheckedIOException((IOException) t);
+                } else {
+                    throw new RuntimeException(t);
+                }
+            } else {
+                System.exit(-1);
+            }
         }
 
         @Override
