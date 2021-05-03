@@ -158,6 +158,7 @@ public class Engine extends Thread {
     private final String agentName;
     private boolean webSocket;
     private String credentials;
+    private String protocolName;
     private String proxyCredentials = System.getProperty("proxyCredentials");
 
     /**
@@ -625,6 +626,7 @@ public class Engine extends Thread {
                 while (ch.get() == null) {
                     Thread.sleep(100);
                 }
+                this.protocolName = "WebSocket";
                 events.status("Connected");
                 ch.get().join();
                 events.status("Terminated");
@@ -750,6 +752,7 @@ public class Engine extends Thread {
 
                         // On success do not try other protocols.
                         if (channel != null) {
+                            this.protocolName = protocol.getName();
                             break;
                         }
 
@@ -996,6 +999,10 @@ public class Engine extends Thread {
     public String getAgentName() {
         // This is used by various external components that need to get the name from the engine.
         return agentName;
+    }
+
+    public String getProtocolName() {
+        return this.protocolName;
     }
 
     private class EngineJnlpConnectionStateListener extends JnlpConnectionStateListener {
