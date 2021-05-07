@@ -690,7 +690,11 @@ public class Engine extends Thread {
                 try {
                     endpoint = resolver.resolve();
                 } catch (Exception e) {
-                    events.error(e);
+                    if (Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
+                        events.status("Could not resolve JNLP agent endpoint", e);
+                    } else {
+                        events.error(e);
+                    }
                     return;
                 }
                 if (endpoint == null) {
