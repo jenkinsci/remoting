@@ -273,8 +273,8 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
             try {
                 executor.execute(listener);
             } catch (RuntimeException e) {
-                LOGGER.log(Level.SEVERE,
-                        "RuntimeException while executing runnable " + listener + " with executor " + executor, e);
+                LOGGER.log(Level.SEVERE, e, () ->
+                        "RuntimeException while executing runnable " + listener + " with executor " + executor);
             }
         }
     }
@@ -294,9 +294,9 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
             try {
                 entry.getValue().execute(entry.getKey());
             } catch (RuntimeException e) {
-                LOGGER.log(Level.SEVERE,
+                LOGGER.log(Level.SEVERE, e, () ->
                         "RuntimeException while executing runnable " + entry.getKey() + " with executor "
-                                + entry.getValue(), e);
+                                + entry.getValue());
             }
 
         }

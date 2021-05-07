@@ -68,7 +68,7 @@ class FlightRecorderInputStream extends InputStream {
             }
         };
         diagnosisThread.setUncaughtExceptionHandler(
-                (t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in diagnosis thread " + t, e));
+                (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in diagnosis thread " + t));
 
         // wait up to 1 sec to grab as much data as possible
         diagnosisThread.start();

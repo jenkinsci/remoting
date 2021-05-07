@@ -92,6 +92,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -424,13 +425,11 @@ public class Launcher {
                     if (file.isFile()
                             && (length = file.length()) < 65536
                             && length > "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----".length()) {
-                        FileInputStream fis = null;
-                        try {
+                        try (FileInputStream fis = new FileInputStream(file)) {
                             // we do basic size validation, if there are x509 certificates that have a PEM encoding
                             // larger
                             // than 64kb we can revisit the upper bound.
                             cert = new byte[(int) length];
-                            fis = new FileInputStream(file);
                                 int read = fis.read(cert);
                                 if (cert.length != read) {
                                     LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
@@ -439,10 +438,8 @@ public class Launcher {
                                     continue;
                                 }
                         } catch (IOException e) {
-                            LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
+                            LOGGER.log(Level.WARNING, e, () -> "Could not read certificate from " + file);
                             continue;
-                        } finally {
-                            IOUtils.closeQuietly(fis);
                         }
                     } else {
                         if (file.isFile()) {
@@ -574,7 +571,7 @@ public class Launcher {
                 System.err.println("Failed to obtain "+ agentJnlpURL);
                 e.printStackTrace(System.err);
                 System.err.println("Waiting 10 seconds before retry");
-                Thread.sleep(10*1000);
+                TimeUnit.SECONDS.sleep(10);
                 // retry
             } finally {
                 if (con instanceof HttpURLConnection) {
@@ -616,22 +613,19 @@ public class Launcher {
     @Deprecated
     @SuppressFBWarnings(value = {"UNENCRYPTED_SERVER_SOCKET", "DM_DEFAULT_ENCODING"}, justification = "This is an old, insecure mechanism that should be removed. port number file should be in platform default encoding.")
     private void runAsTcpServer() throws IOException, InterruptedException {
-        // if no one connects for too long, assume something went wrong
-        // and avoid hanging forever
-        ServerSocket ss = new ServerSocket(0,1);
-        ss.setSoTimeout(30*1000);
-
-        // write a port file to report the port number
-        try (FileWriter w = new FileWriter(tcpPortFile)) {
-            w.write(String.valueOf(ss.getLocalPort()));
-        }
-
         // accept just one connection and that's it.
         // when we are done, remove the port file to avoid stale port file
         Socket s;
-        try {
+        try (ServerSocket ss = new ServerSocket(0,1)) {
+            // if no one connects for too long, assume something went wrong
+            // and avoid hanging forever
+            ss.setSoTimeout(30*1000);
+
+            // write a port file to report the port number
+            try (FileWriter w = new FileWriter(tcpPortFile)) {
+                w.write(String.valueOf(ss.getLocalPort()));
+            }
             s = ss.accept();
-            ss.close();
         } finally {
             boolean deleted = tcpPortFile.delete();
             if (!deleted) {

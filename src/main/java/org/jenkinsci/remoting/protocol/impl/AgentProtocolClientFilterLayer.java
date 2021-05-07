@@ -26,7 +26,6 @@ package org.jenkinsci.remoting.protocol.impl;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.logging.Logger;
 import javax.annotation.concurrent.GuardedBy;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
@@ -92,11 +91,7 @@ public class AgentProtocolClientFilterLayer extends FilterLayer {
                 sendQueue.put(data);
                 flushSend(sendQueue);
             } else {
-                try {
-                    next().doSend(data);
-                } catch (IOException e) {
-                    throw e;
-                }
+                next().doSend(data);
             }
             completed();
         }

@@ -311,7 +311,7 @@ public class HandlerLoopbackLoadStress {
         final SocketAddress serverAddress;
         if (config.client == null) {
             serverAddress = stress.startServer(config.listen);
-            Thread.sleep(1000);
+            TimeUnit.SECONDS.sleep(1);
         } else {
             serverAddress = toSocketAddress(config.client);
         }

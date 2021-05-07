@@ -24,7 +24,9 @@ class ChunkedOutputStream extends OutputStream {
     private final OutputStream base;
 
     public ChunkedOutputStream(int frameSize, OutputStream base) {
-        assert 0<frameSize && frameSize<=Short.MAX_VALUE;
+        if (frameSize < 0 || frameSize > Short.MAX_VALUE) {
+            throw new IllegalArgumentException("Illegal frame size: " + frameSize);
+        }
 
         this.buf = new byte[frameSize];
         size = 0;

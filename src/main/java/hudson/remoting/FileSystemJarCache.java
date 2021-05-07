@@ -73,7 +73,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     protected URL lookInCache(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         File jar = map(sum1, sum2);
         if (jar.exists()) {
-            LOGGER.log(Level.FINER, String.format("Jar file cache hit %16X%16X",sum1,sum2));
+            LOGGER.log(Level.FINER, () -> String.format("Jar file cache hit %16X%16X",sum1,sum2));
             if (touch)  {
                 Files.setLastModifiedTime(PathUtils.fileToPath(jar), FileTime.fromMillis(System.currentTimeMillis()));
             }
@@ -112,7 +112,7 @@ public class FileSystemJarCache extends JarCacheSupport {
             File tmp = createTempJar(target);
             try {
                 try (RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp))) {
-                    LOGGER.log(Level.FINE, String.format("Retrieving jar file %16X%16X", sum1, sum2));
+                    LOGGER.log(Level.FINE, () -> String.format("Retrieving jar file %16X%16X", sum1, sum2));
                     getJarLoader(channel).writeJarTo(sum1, sum2, o);
                 }
 

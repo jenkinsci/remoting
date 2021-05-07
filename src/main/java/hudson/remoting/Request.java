@@ -380,7 +380,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                         // error return
                         rsp = new Response<>(Request.this, id, calcLastIoId(), t);
                     } finally {
-                        CURRENT.set(null);
+                        CURRENT.remove();
                     }
                     if(chainCause) {
                         rsp.chainCause(createdAt);
@@ -393,7 +393,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                     if (e instanceof ChannelClosedException && !logger.isLoggable(Level.FINE)) {
                         logger.log(Level.INFO, "Failed to send back a reply to the request {0}: {1}", new Object[] {this, e});
                     } else {
-                        logger.log(Level.WARNING, "Failed to send back a reply to the request " + this, e);
+                        logger.log(Level.WARNING, e, () -> "Failed to send back a reply to the request " + this);
                     }
                 } finally {
                     channel.executingCalls.remove(id);

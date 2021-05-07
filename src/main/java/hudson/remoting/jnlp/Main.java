@@ -355,12 +355,9 @@ public class Main {
                             // larger
                             // than 64kb we can revisit the upper bound.
                             cert = new byte[(int) length];
-                            FileInputStream fis = new FileInputStream(file);
                             final int read;
-                            try {
+                            try (FileInputStream fis = new FileInputStream(file)) {
                                 read = fis.read(cert);
-                            } finally {
-                                fis.close();
                             }
                             if (cert.length != read) {
                                 LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
@@ -369,7 +366,7 @@ public class Main {
                                 continue;
                             }
                         } catch (IOException e) {
-                            LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
+                            LOGGER.log(Level.WARNING, e, () -> "Could not read certificate from " + file);
                             continue;
                         }
                     } else {
