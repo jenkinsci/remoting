@@ -49,7 +49,6 @@ import org.junit.runner.RunWith;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLSession;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.Pipe;
@@ -58,13 +57,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(Theories.class)
 public class SSLEngineFilterLayerTest {
@@ -147,7 +145,7 @@ public class SSLEngineFilterLayerTest {
 
     @DataPoints
     public static BatchSendBufferingFilterLayer[] batchSizes() {
-        List<BatchSendBufferingFilterLayer> result = new ArrayList<BatchSendBufferingFilterLayer>();
+        List<BatchSendBufferingFilterLayer> result = new ArrayList<>();
         if (fullTests) {
             int length = 16;
             while (length < 65536) {
@@ -163,7 +161,7 @@ public class SSLEngineFilterLayerTest {
             result.add(new BatchSendBufferingFilterLayer(4096));
             result.add(new BatchSendBufferingFilterLayer(65536));
         }
-        return result.toArray(new BatchSendBufferingFilterLayer[result.size()]);
+        return result.toArray(new BatchSendBufferingFilterLayer[0]);
     }
 
     @Before
@@ -173,7 +171,7 @@ public class SSLEngineFilterLayerTest {
     }
 
     @After
-    public void tearDownPipe() throws Exception {
+    public void tearDownPipe() {
         IOUtils.closeQuietly(clientToServer.sink());
         IOUtils.closeQuietly(clientToServer.source());
         IOUtils.closeQuietly(serverToClient.sink());
@@ -208,7 +206,7 @@ public class SSLEngineFilterLayerTest {
         server.get().send(data);
         client.get().awaitByteContent(is(expected));
         assertThat(client.get().asByteArray(), is(expected));
-        server.get().close();
+        server.get().close(null);
         client.get().awaitClose();
     }
 
@@ -223,11 +221,8 @@ public class SSLEngineFilterLayerTest {
         ProtocolStack<IOBufferMatcher> client =
                 ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new SSLEngineFilterLayer(clientEngine, new SSLEngineFilterLayer.Listener() {
-                            @Override
-                            public void onHandshakeCompleted(SSLSession session) throws ConnectionRefusalException {
-                                throw new ConnectionRefusalException("Bad server");
-                            }
+                        .filter(new SSLEngineFilterLayer(clientEngine, session -> {
+                            throw new ConnectionRefusalException("Bad server");
                         }))
                         .build(new IOBufferMatcherLayer());
 
@@ -271,11 +266,8 @@ public class SSLEngineFilterLayerTest {
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack.on(
                         serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new SSLEngineFilterLayer(serverEngine, new SSLEngineFilterLayer.Listener() {
-                            @Override
-                            public void onHandshakeCompleted(SSLSession session) throws ConnectionRefusalException {
-                                throw new ConnectionRefusalException("Bad client");
-                            }
+                        .filter(new SSLEngineFilterLayer(serverEngine, session -> {
+                            throw new ConnectionRefusalException("Bad client");
                         }))
                         .build(new IOBufferMatcherLayer());
 
@@ -470,8 +462,7 @@ public class SSLEngineFilterLayerTest {
 
     private void concurrentStress(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory, int serverLimit,
                                   int clientLimit)
-            throws java.io.IOException, InterruptedException, java.util.concurrent.ExecutionException,
-            TimeoutException {
+            throws java.io.IOException, InterruptedException, java.util.concurrent.ExecutionException {
         Logger.getLogger(name.getMethodName()).log(
                 Level.INFO, "Starting test with server {0} client {1} serverLimit {2} clientLimit {3}", new Object[]{
                         serverFactory.getClass().getSimpleName(),
@@ -508,8 +499,8 @@ public class SSLEngineFilterLayerTest {
         client.awaitByteContent(SequentialSender.matcher(serverLimit));
         server.awaitByteContent(SequentialSender.matcher(clientLimit));
 
-        client.close();
-        server.close();
+        client.close(null);
+        server.close(null);
 
         client.awaitClose();
         server.awaitClose();
@@ -558,8 +549,8 @@ public class SSLEngineFilterLayerTest {
 
         client.awaitByteContent(SequentialSender.matcher(amount));
 
-        client.close();
-        server.close();
+        client.close(null);
+        server.close(null);
 
         client.awaitClose();
         server.awaitClose();

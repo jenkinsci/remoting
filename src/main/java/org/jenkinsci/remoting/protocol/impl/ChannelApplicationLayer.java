@@ -34,6 +34,7 @@ import hudson.remoting.ChannelClosedException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -41,11 +42,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import javax.annotation.Nullable;
+
+import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.protocol.ApplicationLayer;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
 import org.jenkinsci.remoting.util.SettableFuture;
 import org.jenkinsci.remoting.util.ThrowableUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * An {@link ApplicationLayer} that produces a {@link Channel}.
@@ -84,7 +89,8 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
     /**
      * Listener to notify when the {@link Channel} is connected.
      */
-    private Listener listener;
+    private final Listener listener;
+    private String cookie;
 
     /**
      * Creates a new {@link ChannelApplicationLayer}
@@ -96,6 +102,21 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
                                    @CheckForNull Listener listener) {
         this.executorService = executorService;
         this.listener = listener;
+    }
+
+    /**
+     * Creates a new {@link ChannelApplicationLayer}
+     *
+     * @param executorService the {@link ExecutorService} to use for the {@link Channel}.
+     * @param listener the {@link Listener} to notify when the {@link Channel} is available.
+     * @param cookie a cookie to pass through the channel.
+     */
+    @Restricted(NoExternalUse.class)
+    public ChannelApplicationLayer(@Nonnull ExecutorService executorService,
+                                   @CheckForNull Listener listener, String cookie) {
+        this.executorService = executorService;
+        this.listener = listener;
+        this.cookie = cookie;
     }
 
     /**
@@ -161,6 +182,9 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
                     futureChannel.setException(e);
                     throw e;
                 }
+                if (cookie != null) {
+                    channel.setProperty(JnlpConnectionState.COOKIE_KEY, cookie);
+                }
                 futureChannel.set(channel);
                 capabilityContent = null;
                 capabilityLength = null;
@@ -174,10 +198,13 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
             try {
                 channel = futureChannel.get();
             } catch (InterruptedException e) {
-                // should never get here as futureChannel.isDone(), but just in case we do throw away
-                data.position(data.limit()); // dump any remaining data as nobody will ever receive it
-                throw new IOException(e);
+                InterruptedIOException ie = new InterruptedIOException();
+                ie.bytesTransferred = data.remaining();
+                data.position(data.limit());
+                Thread.currentThread().interrupt();
+                throw ie;
             } catch (ExecutionException e) {
+                // should never get here as futureChannel.isDone(), but just in case we do throw away
                 data.position(data.limit()); // dump any remaining data as nobody will ever receive it
                 throw new IOException(e);
             }
@@ -192,9 +219,11 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
         } catch (InterruptedException e) {
             // if the channel receive was interrupted we cannot guarantee that the partial state has been correctly
             // stored, thus we cannot trust the channel instance any more and it needs to be closed.
-            IOException reason = new IOException(e);
+            InterruptedIOException reason = new InterruptedIOException();
+            reason.bytesTransferred = data.remaining();
             channel.terminate(reason);
             data.position(data.limit()); // dump any remaining data as nobody will ever receive it
+            Thread.currentThread().interrupt();
             throw reason;
         }
     }
@@ -203,7 +232,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * {@inheritDoc}
      */
     @Override
-    public void onReadClosed(IOException cause) throws IOException {
+    public void onReadClosed(IOException cause) {
         if (futureChannel.isDone()) {
             if (channel != null) {
                 channel.terminate(cause == null ? new ClosedChannelException() : cause);
@@ -217,14 +246,11 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * {@inheritDoc}
      */
     @Override
-    public void start() throws IOException {
+    public void start() {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos));
-            try {
+            try (ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos))) {
                 oos.writeObject(new Capability());
-            } finally {
-                oos.close();
             }
             ByteBuffer buffer = ByteBufferUtils.wrapUTF8(bos.toString("US-ASCII"));
             write(buffer);
@@ -326,7 +352,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          * {@inheritDoc}
          */
         @Override
-        public Capability getRemoteCapability() throws IOException {
+        public Capability getRemoteCapability() {
             return remoteCapability;
         }
     }

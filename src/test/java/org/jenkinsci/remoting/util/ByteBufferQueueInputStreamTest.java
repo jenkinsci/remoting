@@ -32,7 +32,7 @@ import java.nio.charset.StandardCharsets;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assume.assumeThat;
 
 public class ByteBufferQueueInputStreamTest {
@@ -117,7 +117,7 @@ public class ByteBufferQueueInputStreamTest {
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue);
 
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         int b;
         do {
             if (instance.skip(1) != 1) {

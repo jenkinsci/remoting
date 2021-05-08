@@ -7,6 +7,7 @@ import org.jenkinsci.remoting.nio.NioChannelBuilder;
 import org.junit.After;
 import org.junit.Test;
 
+import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,7 +49,7 @@ public class ClassFilterTest implements Serializable {
 
     private static class TestFilter extends ClassFilter {
         @Override
-        public boolean isBlacklisted(String name) {
+        public boolean isBlacklisted(@Nonnull String name) {
             return name.contains("Security218");
         }
     }
@@ -266,6 +267,7 @@ public class ClassFilterTest implements Serializable {
         public String toString() {
             return "Security218";
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private String getAttack() {
@@ -284,9 +286,11 @@ public class ClassFilterTest implements Serializable {
         }
 
         @Override
-        public Void call() throws IOException {
+        public Void call() {
             a.toString();   // this will ensure 'a' gets sent over
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
+    private static final long serialVersionUID = 1L;
 }

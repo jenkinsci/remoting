@@ -43,9 +43,9 @@ public class ChannelTestSuite extends TestSuite {
 
         // I can't do this in addTest because it happens in the above constructor!
 
-        Enumeration en = tests();
+        Enumeration<Test> en = tests();
         while (en.hasMoreElements()) {
-            Test test = (Test) en.nextElement();
+            Test test = en.nextElement();
 
             if(test instanceof RmiTestBase && channelRunner!=null) {
                 ((RmiTestBase)test).setChannelRunner(channelRunner);

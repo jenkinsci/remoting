@@ -16,11 +16,7 @@ class CallableDecoratorList extends CopyOnWriteArrayList<CallableDecorator> {
     }
 
     private <V> java.util.concurrent.Callable<V> applyDecorator(final java.util.concurrent.Callable<V> inner, final CallableDecorator filter) {
-        return new java.util.concurrent.Callable<V>() {
-            public V call() throws Exception {
-                return filter.call(inner);
-            }
-        };
+        return () -> filter.call(inner);
     }
 
     <V,T extends Throwable> Callable<V,T> wrapUserRequest(final Callable<V,T> c) {

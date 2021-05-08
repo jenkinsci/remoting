@@ -16,6 +16,7 @@
  */
 package org.jenkinsci.remoting.org.apache.commons.validator.routines;
 
+import java.util.Arrays;
 import java.util.regex.PatternSyntaxException;
 
 import junit.framework.TestCase;
@@ -72,16 +73,16 @@ public class RegexValidatorTest extends TestCase {
         RegexValidator insensitive = new RegexValidator(REGEX, false);
 
         // isValid()
-        assertEquals("Sensitive isValid() valid",     true,   sensitive.isValid("ac-DE-1"));
-        assertEquals("Sensitive isValid() invalid",   false,  sensitive.isValid("AB-de-1"));
-        assertEquals("Insensitive isValid() valid",   true,   insensitive.isValid("AB-de-1"));
-        assertEquals("Insensitive isValid() invalid", false,  insensitive.isValid("ABd-de-1"));
+        assertTrue("Sensitive isValid() valid", sensitive.isValid("ac-DE-1"));
+        assertFalse("Sensitive isValid() invalid", sensitive.isValid("AB-de-1"));
+        assertTrue("Insensitive isValid() valid", insensitive.isValid("AB-de-1"));
+        assertFalse("Insensitive isValid() invalid", insensitive.isValid("ABd-de-1"));
 
         // validate()
         assertEquals("Sensitive validate() valid",     "acDE1", sensitive.validate("ac-DE-1"));
-        assertEquals("Sensitive validate() invalid",   null,    sensitive.validate("AB-de-1"));
+        assertNull("Sensitive validate() invalid", sensitive.validate("AB-de-1"));
         assertEquals("Insensitive validate() valid",   "ABde1", insensitive.validate("AB-de-1"));
-        assertEquals("Insensitive validate() invalid", null,    insensitive.validate("ABd-de-1"));
+        assertNull("Insensitive validate() invalid", insensitive.validate("ABd-de-1"));
 
         // match()
         checkArray("Sensitive match() valid",     new String[] {"ac", "DE", "1"}, sensitive.match("ac-DE-1"));
@@ -109,16 +110,16 @@ public class RegexValidatorTest extends TestCase {
         String[] array = new String[] {"aac", "FDE", "321"};
 
         // isValid()
-        assertEquals("Sensitive isValid() Multiple", true,  multiple.isValid(value));
-        assertEquals("Sensitive isValid() 1st",      false, single1.isValid(value));
-        assertEquals("Sensitive isValid() 2nd",      true,  single2.isValid(value));
-        assertEquals("Sensitive isValid() 3rd",      false, single3.isValid(value));
+        assertTrue("Sensitive isValid() Multiple", multiple.isValid(value));
+        assertFalse("Sensitive isValid() 1st", single1.isValid(value));
+        assertTrue("Sensitive isValid() 2nd", single2.isValid(value));
+        assertFalse("Sensitive isValid() 3rd", single3.isValid(value));
 
         // validate()
         assertEquals("Sensitive validate() Multiple", expect, multiple.validate(value));
-        assertEquals("Sensitive validate() 1st",      null,   single1.validate(value));
+        assertNull("Sensitive validate() 1st", single1.validate(value));
         assertEquals("Sensitive validate() 2nd",      expect, single2.validate(value));
-        assertEquals("Sensitive validate() 3rd",      null,   single3.validate(value));
+        assertNull("Sensitive validate() 3rd", single3.validate(value));
 
         // match()
         checkArray("Sensitive match() Multiple", array, multiple.match(value));
@@ -128,9 +129,9 @@ public class RegexValidatorTest extends TestCase {
 
         // All invalid
         value = "AAC*FDE*321";
-        assertEquals("isValid() Invalid",  false, multiple.isValid(value));
-        assertEquals("validate() Invalid", null,  multiple.validate(value));
-        assertEquals("match() Multiple",   null,  multiple.match(value));
+        assertFalse("isValid() Invalid", multiple.isValid(value));
+        assertNull("validate() Invalid", multiple.validate(value));
+        assertNull("match() Multiple", multiple.match(value));
     }
 
     /**
@@ -150,16 +151,16 @@ public class RegexValidatorTest extends TestCase {
         String[] array = new String[] {"AAC", "FDE", "321"};
 
         // isValid()
-        assertEquals("isValid() Multiple", true,  multiple.isValid(value));
-        assertEquals("isValid() 1st",      false, single1.isValid(value));
-        assertEquals("isValid() 2nd",      true,  single2.isValid(value));
-        assertEquals("isValid() 3rd",      false, single3.isValid(value));
+        assertTrue("isValid() Multiple", multiple.isValid(value));
+        assertFalse("isValid() 1st", single1.isValid(value));
+        assertTrue("isValid() 2nd", single2.isValid(value));
+        assertFalse("isValid() 3rd", single3.isValid(value));
 
         // validate()
         assertEquals("validate() Multiple", expect, multiple.validate(value));
-        assertEquals("validate() 1st",      null,   single1.validate(value));
+        assertNull("validate() 1st", single1.validate(value));
         assertEquals("validate() 2nd",      expect, single2.validate(value));
-        assertEquals("validate() 3rd",      null,   single3.validate(value));
+        assertNull("validate() 3rd", single3.validate(value));
 
         // match()
         checkArray("match() Multiple", array, multiple.match(value));
@@ -169,9 +170,9 @@ public class RegexValidatorTest extends TestCase {
 
         // All invalid
         value = "AAC*FDE*321";
-        assertEquals("isValid() Invalid",  false, multiple.isValid(value));
-        assertEquals("validate() Invalid", null,  multiple.validate(value));
-        assertEquals("match() Multiple",   null,  multiple.match(value));
+        assertFalse("isValid() Invalid", multiple.isValid(value));
+        assertNull("validate() Invalid", multiple.validate(value));
+        assertNull("match() Multiple", multiple.match(value));
     }
 
     /**
@@ -180,9 +181,9 @@ public class RegexValidatorTest extends TestCase {
     public void testNullValue() {
 
         RegexValidator validator = new RegexValidator(REGEX);
-        assertEquals("Instance isValid()",  false, validator.isValid(null));
-        assertEquals("Instance validate()", null,  validator.validate(null));
-        assertEquals("Instance match()",    null,  validator.match(null));
+        assertFalse("Instance isValid()", validator.isValid(null));
+        assertNull("Instance validate()", validator.validate(null));
+        assertNull("Instance match()", validator.match(null));
     }
 
     /**
@@ -277,7 +278,7 @@ public class RegexValidatorTest extends TestCase {
             if (expect == null && result == null) {
                 return; // valid, both null
             } else {
-                fail(label + " Null expect=" + expect + " result=" + result);
+                fail(label + " Null expect=" + Arrays.toString(expect) + " result=" + result);
             }
             return; // not strictly necessary, but prevents possible NPE below
         }

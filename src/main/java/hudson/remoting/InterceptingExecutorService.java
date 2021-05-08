@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import org.jenkinsci.remoting.CallableDecorator;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -27,56 +28,60 @@ class InterceptingExecutorService extends DelegatingExecutorService {
     }
 
     @Override
-    public void execute(Runnable command) {
+    public void execute(@Nonnull Runnable command) {
         submit(command);
     }
 
     @Override
-    public <T> Future<T> submit(Callable<T> task) {
+    @Nonnull
+    public <T> Future<T> submit(@Nonnull Callable<T> task) {
         return super.submit(wrap(task));
     }
 
     @Override
-    public Future<?> submit(Runnable task) {
+    @Nonnull
+    public Future<?> submit(@Nonnull Runnable task) {
         return submit(task, null);
     }
 
     @Override
-    public <T> Future<T> submit(Runnable task, T result) {
+    @Nonnull
+    public <T> Future<T> submit(@Nonnull Runnable task, T result) {
         return super.submit(wrap(task,result));
     }
 
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
+    @Nonnull
+    public <T> List<Future<T>> invokeAll(@Nonnull Collection<? extends Callable<T>> tasks) throws InterruptedException {
         return super.invokeAll(wrap(tasks));
     }
 
     @Override
-    public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
+    @Nonnull
+    public <T> List<Future<T>> invokeAll(@Nonnull Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
         return super.invokeAll(wrap(tasks), timeout, unit);
     }
 
     @Override
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+    @Nonnull
+    public <T> T invokeAny(@Nonnull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
         return super.invokeAny(wrap(tasks));
     }
 
     @Override
-    public <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public <T> T invokeAny(@Nonnull Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return super.invokeAny(wrap(tasks), timeout, unit);
     }
 
     private <V> Callable<V> wrap(final Runnable r, final V value) {
-        return wrap(new Callable<V>() {
-            public V call() throws Exception {
-                r.run();
-                return value;
-            }
+        return wrap(() -> {
+            r.run();
+            return value;
         });
     }
 
     private <T> Collection<Callable<T>> wrap(Collection<? extends Callable<T>> callables) {
-        List<Callable<T>> r = new ArrayList<Callable<T>>();
+        List<Callable<T>> r = new ArrayList<>();
         for (Callable<T> c : callables) {
             r.add(wrap(c));
         }

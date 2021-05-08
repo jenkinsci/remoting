@@ -90,11 +90,13 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         notifyAll(); // release blocking writes
     }
 
+    @Override
     public void write(int b) throws IOException {
         write(new byte[]{(byte)b},0,1);
     }
 
-    public synchronized void write(byte[] b, int off, int len) throws IOException {
+    @Override
+    public synchronized void write(@Nonnull byte[] b, int off, int len) throws IOException {
         try {
             // block until stream gets connected
             while (channel==null) {
@@ -150,16 +152,19 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
     }
 
+    @Override
     public synchronized void flush() throws IOException {
         if (channel != null && /* see #finalize */ oid != -1) {
             channel.send(new Flush(channel.newIoId(), oid));
         }
     }
 
+    @Override
     public synchronized void close() throws IOException {
         error(null);
     }
 
+    @Override
     public synchronized void error(Throwable e) throws IOException {
         if (!closed) {
             closed = true;
@@ -249,38 +254,37 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                 throw new ExecutionException(String.format("Channel %s: Output stream object has been released before sending last chunk for oid=%s", 
                                 channel.getName(), oid), ex);
             }
-            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
-                public void run() {
+            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId, () -> {
+                try {
+                    os.write(buf);
+                } catch (IOException e) {
                     try {
-                        os.write(buf);
-                    } catch (IOException e) {
+                        channel.send(new NotifyDeadWriter(channel,e,oid));
+                    } catch (ChannelClosedException x) {
+                        // the other direction can be already closed if the connection
+                        // shut down is initiated from this side. In that case, remain silent.
+                    } catch (IOException x) {
+                        // ignore errors
+                        LOGGER.log(Level.WARNING, "Failed to notify the sender that the write end is dead",x);
+                        LOGGER.log(Level.WARNING, "... the failed write was:",e);
+                    }
+                } finally {
+                    if (channel.remoteCapability.supportsPipeThrottling()) {
                         try {
-                            channel.send(new NotifyDeadWriter(channel,e,oid));
+                            channel.send(new Ack(oid,buf.length));
                         } catch (ChannelClosedException x) {
                             // the other direction can be already closed if the connection
                             // shut down is initiated from this side. In that case, remain silent.
-                        } catch (IOException x) {
+                        } catch (IOException e) {
                             // ignore errors
-                            LOGGER.log(Level.WARNING, "Failed to notify the sender that the write end is dead",x);
-                            LOGGER.log(Level.WARNING, "... the failed write was:",e);
-                        }
-                    } finally {
-                        if (channel.remoteCapability.supportsPipeThrottling()) {
-                            try {
-                                channel.send(new Ack(oid,buf.length));
-                            } catch (ChannelClosedException x) {
-                                // the other direction can be already closed if the connection
-                                // shut down is initiated from this side. In that case, remain silent.
-                            } catch (IOException e) {
-                                // ignore errors
-                                LOGGER.log(Level.WARNING, "Failed to ack the stream",e);
-                            }
+                            LOGGER.log(Level.WARNING, "Failed to ack the stream",e);
                         }
                     }
                 }
             }));
         }
 
+        @Override
         public String toString() {
             return "Pipe.Chunk("+oid+","+buf.length+")";
         }
@@ -305,17 +309,16 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         @Override
         protected void execute(Channel channel) throws ExecutionException {
             final OutputStream os = (OutputStream) channel.getExportedObject(oid);
-            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
-                public void run() {
-                    try {
-                        os.flush();
-                    } catch (IOException e) {
-                        // ignore errors
-                    }
+            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId, () -> {
+                try {
+                    os.flush();
+                } catch (IOException e) {
+                    // ignore errors
                 }
             }));
         }
 
+        @Override
         public String toString() {
             return "Pipe.Flush("+oid+")";
         }
@@ -338,14 +341,12 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             this.oid = oid;
         }
 
+        @Override
         protected void execute(final Channel channel) {
-            channel.pipeWriter.submit(ioId,new Runnable() {
-                public void run() {
-                    channel.unexport(oid,createdAt,false);
-                }
-            });
+            channel.pipeWriter.submit(ioId, () -> channel.unexport(oid,createdAt,false));
         }
 
+        @Override
         public String toString() {
             return "ProxyOutputStream.Unexport("+oid+")";
         }
@@ -369,6 +370,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
 
 
+        @Override
         protected void execute(final Channel channel) {
             final OutputStream os = (OutputStream) channel.getExportedObjectOrNull(oid);
             // EOF may be late to the party if we interrupt request, hence we do not fail for this command
@@ -376,20 +378,19 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                 LOGGER.log(Level.FINE, "InputStream with oid=%s has been already unexported", oid);
                 return;
             }
-            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId,new Runnable() {
-                public void run() {
-                    channel.unexport(oid,createdAt,false);
-                    try {
-                        if (error!=null && os instanceof ErrorPropagatingOutputStream)
-                            ((ErrorPropagatingOutputStream) os).error(error);
-                        os.close();
-                    } catch (IOException e) {
-                        // ignore errors
-                    }
+            markForIoSync(channel,requestId,channel.pipeWriter.submit(ioId, () -> {
+                channel.unexport(oid,createdAt,false);
+                try {
+                    if (error!=null && os instanceof ErrorPropagatingOutputStream)
+                        ((ErrorPropagatingOutputStream) os).error(error);
+                    os.close();
+                } catch (IOException e) {
+                    // ignore errors
                 }
             }));
         }
 
+        @Override
         public String toString() {
             return "ProxyOutputStream.EOF("+oid+")";
         }
@@ -416,11 +417,13 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             this.size = size;
         }
 
+        @Override
         protected void execute(Channel channel) {
             PipeWindow w = channel.getPipeWindow(oid);
             w.increase(size);
         }
 
+        @Override
         public String toString() {
             return "ProxyOutputStream.Ack("+oid+','+size+")";
         }
@@ -445,6 +448,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             w.dead(createdAt != null ? createdAt.getCause() : null);
         }
 
+        @Override
         public String toString() {
             return "ProxyOutputStream.Dead("+oid+")";
         }

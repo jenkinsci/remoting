@@ -126,6 +126,7 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
      *
      * @see ErrorPropagatingOutputStream#error(Throwable)
      */
+    @Override
     public void error(Throwable t) throws IOException {
         if (out instanceof ErrorPropagatingOutputStream) {
             ErrorPropagatingOutputStream eo = (ErrorPropagatingOutputStream) out;
@@ -156,7 +157,7 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
         // TODO: there's a discrepancy in the pipe window size and FastPipedInputStream buffer size.
         // The former uses 1M, while the latter uses 64K, so if the sender is too fast, it'll cause
         // the pipe IO thread to block other IO activities. Fix this by first using adaptive growing buffer
-        // in FastPipedInputStream, then make sure the maximum size is biger than the pipe window size.
+        // in FastPipedInputStream, then make sure the maximum size is bigger than the pipe window size.
         if(in!=null && out==null) {
             // remote will write to local
             FastPipedOutputStream pos = new FastPipedOutputStream((FastPipedInputStream)in);
@@ -218,18 +219,16 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
         @Override
         protected void execute(final Channel channel) throws ExecutionException {
             // ordering barrier not needed for this I/O call, so not giving I/O ID.
-            channel.pipeWriter.submit(0,new Runnable() {
-                public void run() {
-                    try {
-                        final ProxyOutputStream ros = (ProxyOutputStream) channel.getExportedObject(oidRos);
-                        channel.unexport(oidRos,createdAt);
-                        // the above unexport cancels out the export in writeObject above
-                        ros.connect(channel, oidPos);
-                    } catch (IOException e) {
-                        logger.log(Level.SEVERE,"Failed to connect to pipe",e);
-                    } catch (ExecutionException ex) {
-                        throw new IllegalStateException(ex);
-                    }
+            channel.pipeWriter.submit(0, () -> {
+                try {
+                    final ProxyOutputStream ros = (ProxyOutputStream) channel.getExportedObject(oidRos);
+                    channel.unexport(oidRos,createdAt);
+                    // the above unexport cancels out the export in writeObject above
+                    ros.connect(channel, oidPos);
+                } catch (IOException e) {
+                    logger.log(Level.SEVERE,"Failed to connect to pipe",e);
+                } catch (ExecutionException ex) {
+                    throw new IllegalStateException(ex);
                 }
             });
         }

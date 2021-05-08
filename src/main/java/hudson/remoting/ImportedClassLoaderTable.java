@@ -25,8 +25,8 @@ package hudson.remoting;
 
 import hudson.remoting.RemoteClassLoader.IClassLoader;
 
-import java.util.Hashtable;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
 
 /**
@@ -37,7 +37,7 @@ import javax.annotation.Nonnull;
  */
 final class ImportedClassLoaderTable {
     final Channel channel;
-    final Map<IClassLoader,ClassLoader> classLoaders = new Hashtable<IClassLoader,ClassLoader>();
+    final Map<IClassLoader,ClassLoader> classLoaders = new ConcurrentHashMap<>();
 
     ImportedClassLoaderTable(Channel channel) {
         this.channel = channel;
@@ -50,7 +50,7 @@ final class ImportedClassLoaderTable {
      * This method "consumes" the given oid for the purpose of reference counting.
      */
     @Nonnull
-    public synchronized ClassLoader get(int oid) {
+    public ClassLoader get(int oid) {
         return get(RemoteInvocationHandler.wrap(channel, oid, IClassLoader.class, false, false, false, false));
     }
 
@@ -61,14 +61,8 @@ final class ImportedClassLoaderTable {
      * @return Classloader instance
      */
     @Nonnull
-    public synchronized ClassLoader get(@Nonnull IClassLoader classLoaderProxy) {
-        ClassLoader r = classLoaders.get(classLoaderProxy);
-        if(r==null) {
-            // we need to be able to use the same hudson.remoting classes, hence delegate
-            // to this class loader.
-            r = RemoteClassLoader.create(channel.baseClassLoader,classLoaderProxy);
-            classLoaders.put(classLoaderProxy,r);
-        }
-        return r;
+    public ClassLoader get(@Nonnull IClassLoader classLoaderProxy) {
+        // we need to be able to use the same hudson.remoting classes, hence delegate to this class loader.
+        return classLoaders.computeIfAbsent(classLoaderProxy, proxy -> RemoteClassLoader.create(channel.baseClassLoader, proxy));
     }
 }

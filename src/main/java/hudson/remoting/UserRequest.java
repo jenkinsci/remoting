@@ -132,7 +132,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
     /*package*/ static ClassLoader getClassLoader(@Nonnull Callable<?,?> c) {
         ClassLoader result = null;
         if(c instanceof DelegatingCallable) {
-            result =((DelegatingCallable)c).getClassLoader();
+            result =((DelegatingCallable<?, ?>)c).getClassLoader();
         }
         if (result == null) {
             result = c.getClass().getClassLoader();
@@ -181,7 +181,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                 }
             }
 
-            RSP r = null;
+            RSP r;
             Channel oldc = Channel.setCurrent(channel);
             try {
                 Object o;
@@ -242,7 +242,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                     // perhaps the thrown runtime exception is of type we can't handle
                     response = serialize(new ProxyException(e), channel);
                 }
-                return new UserResponse<RSP,EXC>(response,true);
+                return new UserResponse<>(response, true);
             } catch (IOException x) {
                 // throw it as a lower-level exception
                 throw (EXC)x;
@@ -271,8 +271,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
         try {
             return _serialize(o,localChannel);
         } catch( NotSerializableException e ) {
-            IOException x = new IOException("Unable to serialize " + o, e);
-            throw x;
+            throw new IOException("Unable to serialize " + o, e);
         }
     }
 
@@ -298,6 +297,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
         exports.release(callSite);
     }
 
+    @Override
     public String toString() {
         return "UserRequest:"+toString;
     }
@@ -319,7 +319,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
         }
         @SuppressWarnings("unchecked")
         @Override
-        public RSP retrieve(Channel channel, ClassLoader cl) throws IOException, ClassNotFoundException, EXC {
+        public RSP retrieve(Channel channel, ClassLoader cl) throws IOException, ClassNotFoundException {
             Channel old = Channel.setCurrent(channel);
             try {
                 return (RSP) deserialize(channel, response, cl);
@@ -379,6 +379,7 @@ final class UserResponse<RSP,EXC extends Throwable> implements UserRequest.Respo
     /**
      * Deserializes the response byte stream into an object.
      */
+    @Override
     public RSP retrieve(Channel channel, ClassLoader cl) throws IOException, ClassNotFoundException, EXC {
         Channel old = Channel.setCurrent(channel);
         try {

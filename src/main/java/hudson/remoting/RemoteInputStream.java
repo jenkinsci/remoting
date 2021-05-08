@@ -26,6 +26,7 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
+import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -52,9 +53,9 @@ import static hudson.remoting.RemoteInputStream.Flag.*;
 public class RemoteInputStream extends InputStream implements SerializableOnlyOverRemoting {
     private static final Logger LOGGER = Logger.getLogger(RemoteInputStream.class.getName());
     private transient InputStream core;
-    private boolean autoUnexport;
+    private final boolean autoUnexport;
     private transient Greedy greedyAt;
-    private boolean greedy;
+    private final boolean greedy;
 
     /**
      * Short for {@code RemoteInputStream(core,true)}.
@@ -125,6 +126,7 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
                         setDaemon(true);
                     }
 
+                    @Override
                     public void run() {
                         try {
                             byte[] buf = new byte[8192];
@@ -265,38 +267,47 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
 //
 //
 
+    @Override
     public int read() throws IOException {
         return core.read();
     }
 
-    public int read(byte[] b) throws IOException {
+    @Override
+    public int read(@Nonnull byte[] b) throws IOException {
         return core.read(b);
     }
 
-    public int read(byte[] b, int off, int len) throws IOException {
+    @Override
+    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
         return core.read(b, off, len);
     }
 
+    @Override
     public long skip(long n) throws IOException {
         return core.skip(n);
     }
 
+    @Override
     public int available() throws IOException {
         return core.available();
     }
 
+    @Override
     public void close() throws IOException {
         core.close();
     }
 
+    @Override
     public void mark(int readlimit) {
         core.mark(readlimit);
     }
 
+    @Override
     public void reset() throws IOException {
         core.reset();
     }
 
+    @Override
     public boolean markSupported() {
         return core.markSupported();
     }

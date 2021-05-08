@@ -49,16 +49,20 @@ public class NonSerializableExceptionTest extends RmiTestBase {
     }
 
     private static final class NoneSerializableException extends Exception {
+        @SuppressWarnings("unused")
         private final Object o = new Object(); // this is not serializable
 
         private NoneSerializableException(String msg, Throwable cause) {
             super(msg, cause);
         }
+        private static final long serialVersionUID = 1L;
     }
 
-    private static final class Failure extends CallableBase {
+    private static final class Failure extends CallableBase<Object, Throwable> {
+        @Override
         public Object call() throws Throwable {
             throw new NoneSerializableException("message1",new SocketException("message2"));
         }
+        private static final long serialVersionUID = 1L;
     }
 }

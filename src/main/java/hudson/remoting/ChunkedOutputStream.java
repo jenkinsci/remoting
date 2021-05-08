@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -23,7 +24,9 @@ class ChunkedOutputStream extends OutputStream {
     private final OutputStream base;
 
     public ChunkedOutputStream(int frameSize, OutputStream base) {
-        assert 0<frameSize && frameSize<=Short.MAX_VALUE;
+        if (frameSize < 0 || frameSize > Short.MAX_VALUE) {
+            throw new IllegalArgumentException("Illegal frame size: " + frameSize);
+        }
 
         this.buf = new byte[frameSize];
         size = 0;
@@ -44,7 +47,7 @@ class ChunkedOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(byte[] b, int off, int len) throws IOException {
+    public void write(@Nonnull byte[] b, int off, int len) throws IOException {
         while (len>0) {
             int s = Math.min(capacity(),len);
             System.arraycopy(b,off,buf,size,s);

@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
@@ -52,10 +52,10 @@ public class ChannelBuilder {
     private OutputStream header;
     @CheckForNull
     private JarCache jarCache;
-    private List<CallableDecorator> decorators = new ArrayList<CallableDecorator>();
+    private final List<CallableDecorator> decorators = new ArrayList<>();
     private boolean arbitraryCallableAllowed = true;
     private boolean remoteClassLoadingAllowed = true;
-    private final Hashtable<Object,Object> properties = new Hashtable<Object,Object>();
+    private final Map<Object,Object> properties = new HashMap<>();
     private ClassFilter filter = ClassFilter.DEFAULT;
 
     /**
@@ -203,7 +203,7 @@ public class ChannelBuilder {
      * @since 3.12 {@code null} parameter value is deprecated.
      *        {@link #withoutJarCache()} or {@link #withJarCacheOrDefault(JarCache)} should be used instead.
      */
-    public ChannelBuilder withJarCache(@Nonnull JarCache jarCache) {
+    public ChannelBuilder withJarCache(JarCache jarCache) {
         this.jarCache = jarCache;
         return this;
     }
@@ -271,9 +271,9 @@ public class ChannelBuilder {
     public ChannelBuilder withRoles(final Collection<? extends Role> actual) {
         return withRoleChecker(new RoleChecker() {
             @Override
-            public void check(RoleSensitive subject, @Nonnull Collection<Role> expected) {
+            public void check(@Nonnull RoleSensitive subject, @Nonnull Collection<Role> expected) {
                 if (!actual.containsAll(expected)) {
-                    Collection<Role> c = new ArrayList<Role>(expected);
+                    Collection<Role> c = new ArrayList<>(expected);
                     c.removeAll(actual);
                     throw new SecurityException("Unexpected role: " + c);
                 }

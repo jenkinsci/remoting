@@ -116,7 +116,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     /**
      * The queue used to stage output.
      */
-    private ByteBufferQueue sendStaging = new ByteBufferQueue(transportFrameSize);
+    private final ByteBufferQueue sendStaging = new ByteBufferQueue(transportFrameSize);
 
     /**
      * Write the packet.
@@ -282,11 +282,8 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     @Override
     public final void write(Command cmd, boolean last) throws IOException {
         ByteBufferQueueOutputStream bqos = new ByteBufferQueueOutputStream(sendStaging);
-        ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(bqos);
-        try {
+        try (ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(bqos)) {
             cmd.writeTo(channel, oos);
-        } finally {
-            oos.close();
         }
         long remaining = sendStaging.remaining();
         channel.notifyWrite(cmd, remaining);
@@ -304,6 +301,15 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
             write(writeChunkHeader, writeChunkBody);
             remaining -= frame;
         }
+    }
+
+    /**
+     * Indicates that the endpoint has encountered a problem.
+     * This tells the transport that it shouldn't expect future invocation of {@link #receive(ByteBuffer)},
+     * and it'll abort the communication.
+     */
+    public void terminate(IOException e) {
+        receiver.terminate(e);
     }
 
 }

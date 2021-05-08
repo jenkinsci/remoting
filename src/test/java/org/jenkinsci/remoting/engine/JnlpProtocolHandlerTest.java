@@ -44,7 +44,7 @@ import org.junit.runner.RunWith;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 @RunWith(Theories.class)
@@ -155,7 +155,7 @@ public class JnlpProtocolHandlerTest {
     }
 
     @Theory
-    public void happyPath(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
+    public void happyPath(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Throwable {
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler = createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
         JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler = createClientProtocolHandler(factory, useNioHubClient);
         HashMap<String, String> clientProps = createClientProperties(factory, SECRET_KEY);
@@ -333,7 +333,7 @@ public class JnlpProtocolHandlerTest {
         };
     }
 
-    private class StateListener extends JnlpConnectionStateListener {
+    private static class StateListener extends JnlpConnectionStateListener {
         private Channel.Mode mode;
         private Consumer<JnlpConnectionState> afterPropertiesConsumer;
 

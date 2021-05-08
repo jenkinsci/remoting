@@ -41,7 +41,7 @@ public class DirectByteBufferPool implements ByteBufferPool {
      * The pool of {@link ByteBuffer}. Only the first {@link #poolCount} elements will contain buffers.
      */
     @GuardedBy("this")
-    private ByteBuffer[] pool;
+    private final ByteBuffer[] pool;
     /**
      * The minimum size to allocate buffers.
      */
@@ -66,6 +66,7 @@ public class DirectByteBufferPool implements ByteBufferPool {
     /**
      * {@inheritDoc}
      */
+    @Override
     public ByteBuffer acquire(int size) {
         synchronized (this) {
             if (poolCount > 0) {
@@ -97,6 +98,7 @@ public class DirectByteBufferPool implements ByteBufferPool {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void release(ByteBuffer buffer) {
         if (buffer.isDirect() && !buffer.isReadOnly() && buffer.capacity() >= bufferSize) {
             synchronized (this) {

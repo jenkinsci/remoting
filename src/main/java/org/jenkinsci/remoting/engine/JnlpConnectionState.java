@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 
@@ -51,7 +53,7 @@ public class JnlpConnectionState {
      * The current iterator being used to process the listener notifications.
      */
     private static final ThreadLocal<Iterator<JnlpConnectionStateListener>> fireIterator
-            = new ThreadLocal<Iterator<JnlpConnectionStateListener>>();
+            = new ThreadLocal<>();
 
     /**
      * The property name for the secret key.
@@ -62,15 +64,19 @@ public class JnlpConnectionState {
      */
     public static final String CLIENT_NAME_KEY = "Node-Name";
     /**
-     * The proprty name for the cookie name key.
+     * The property name for the cookie name key.
      */
-    public static final String COOKIE_KEY = "Cookie";
+    public static final String COOKIE_KEY = "JnlpAgentProtocol.cookie";
 
     /**
      * Socket connection to the agent.
      */
-    @Nonnull
+    @CheckForNull
     private final Socket socket;
+
+    @Nonnull
+    private String remoteEndpointDescription = "<unknown>";
+
     /**
      * The {@link JnlpConnectionStateListener} instances that are still interested in this connection event.
      */
@@ -120,19 +126,38 @@ public class JnlpConnectionState {
      * @param socket    the {@link Socket}.
      * @param listeners the {@link JnlpConnectionStateListener} instances.
      */
-    protected JnlpConnectionState(@Nonnull Socket socket, List<? extends JnlpConnectionStateListener> listeners) {
+    public JnlpConnectionState(@Nullable Socket socket, List<? extends JnlpConnectionStateListener> listeners) {
         this.socket = socket;
-        this.listeners = new ArrayList<JnlpConnectionStateListener>(listeners);
+        this.listeners = new ArrayList<>(listeners);
     }
 
     /**
      * Gets the socket that the connection is on.
-     *
-     * @return the socket that the connection is on.
+     * <p>This should be considered deprecated except in situations where you know an actual socket is involved.
+     * Use {@link #getRemoteEndpointDescription} for logging purposes.
+     * @return an actual socket, or just a stub
      */
+    @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "just a stub")
     @Nonnull
     public Socket getSocket() {
-        return socket;
+        return socket != null ? socket : new Socket();
+    }
+
+    /**
+     * Description of the remote endpoint to which {@link #getSocket} is connected, if using an actual socket and it is actually connected.
+     * Or may be some other text identifying a remote client.
+     * @return some text suitable for debug logs
+     */
+    @Nonnull
+    public String getRemoteEndpointDescription() {
+        return socket != null ? String.valueOf(socket.getRemoteSocketAddress()) : remoteEndpointDescription;
+    }
+
+    /**
+     * Set a specific value for {@link #getRemoteEndpointDescription}.
+     */
+    public void setRemoteEndpointDescription(@Nonnull String description) {
+        remoteEndpointDescription = description;
     }
 
     /**
@@ -214,7 +239,7 @@ public class JnlpConnectionState {
 
     /**
      * Signals that the current {@link JnlpConnectionStateListener} is not interested in this event any more. If all
-     * {@link JnlpConnectionStateListener} implementations {@link #ignore()} the event then the connection will be
+     * {@link JnlpConnectionStateListener} implementations ignore the event then the connection will be
      * rejected.
      *
      * @throws IllegalStateException if invoked outside of
@@ -327,18 +352,13 @@ public class JnlpConnectionState {
      *
      * @throws ConnectionRefusalException if the connection has been refused.
      */
-    /*package*/ void fireBeforeProperties() throws ConnectionRefusalException {
+    public void fireBeforeProperties() throws ConnectionRefusalException {
         if (lifecycle != State.INITIALIZED) {
             throw new IllegalStateException("fireBeforeProperties cannot be invoked at lifecycle " + lifecycle);
         }
         lifecycle = State.BEFORE_PROPERTIES;
         // TODO fire(JnlpConnectionStateListener::beforeProperties); // Java 8
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.beforeProperties(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::beforeProperties);
         // check for early rejection
         if (lifecycle == State.REJECTED || listeners.isEmpty()) {
             lifecycle = State.REJECTED;
@@ -356,19 +376,14 @@ public class JnlpConnectionState {
      *
      * @throws ConnectionRefusalException if the connection has been refused.
      */
-    /*package*/ void fireAfterProperties(@Nonnull Map<String, String> properties) throws ConnectionRefusalException {
+    public void fireAfterProperties(@Nonnull Map<String, String> properties) throws ConnectionRefusalException {
         if (lifecycle != State.BEFORE_PROPERTIES) {
             throw new IllegalStateException("fireAfterProperties cannot be invoked at lifecycle " + lifecycle);
         }
-        this.properties = new HashMap<String, String>(properties);
+        this.properties = new HashMap<>(properties);
         lifecycle = State.AFTER_PROPERTIES;
         // TODO fire(JnlpConnectionStateListener::afterProperties);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.afterProperties(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::afterProperties);
         // must have approval or else connection is rejected
         if (lifecycle != State.APPROVED || listeners.isEmpty()) {
             lifecycle = State.REJECTED;
@@ -386,19 +401,14 @@ public class JnlpConnectionState {
      *
      * @param builder the {@link ChannelBuilder} that will be used to create the channel.
      */
-    /*package*/ void fireBeforeChannel(ChannelBuilder builder) {
+    public void fireBeforeChannel(ChannelBuilder builder) {
         if (lifecycle != State.APPROVED) {
             throw new IllegalStateException("fireBeforeChannel cannot be invoked at lifecycle " + lifecycle);
         }
         lifecycle = State.BEFORE_CHANNEL;
         this.channelBuilder = builder;
         // TODO fire(JnlpConnectionStateListener::beforeChannel);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.beforeChannel(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::beforeChannel);
     }
 
     /**
@@ -407,7 +417,7 @@ public class JnlpConnectionState {
      * @param channel the {@link Channel} (may be closed already but should not unless there is a serious race with
      *                the remote).
      */
-    /*package*/ void fireAfterChannel(Channel channel) {
+    public void fireAfterChannel(Channel channel) {
         if (lifecycle != State.BEFORE_CHANNEL) {
             throw new IllegalStateException("fireAfterChannel cannot be invoked at lifecycle " + lifecycle);
         }
@@ -415,12 +425,7 @@ public class JnlpConnectionState {
         this.channelBuilder = null;
         this.channel = channel;
         // TODO fire(JnlpConnectionStateListener::afterChannel);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.afterChannel(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::afterChannel);
     }
 
     /**
@@ -428,36 +433,26 @@ public class JnlpConnectionState {
      *
      * @param cause the reason why the channel was closed or {@code null} if normally closed
      */
-    /*package*/ void fireChannelClosed(@CheckForNull IOException cause) {
+    public void fireChannelClosed(@CheckForNull IOException cause) {
         if (lifecycle.compareTo(State.BEFORE_CHANNEL) < 0) {
             throw new IllegalStateException("fireChannelClosed cannot be invoked at lifecycle " + lifecycle);
         }
         closeCause = cause;
         lifecycle = State.CHANNEL_CLOSED;
         // TODO fire(JnlpConnectionStateListener::channelClosed);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.channelClosed(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::channelClosed);
     }
 
     /**
      * Advances the connection state to indicate that the socket has been closed.
      */
-    /*package*/ void fireAfterDisconnect() {
+    public void fireAfterDisconnect() {
         if (lifecycle == State.AFTER_CHANNEL) {
             fireChannelClosed(null);
         }
         lifecycle = State.DISCONNECTED;
         // TODO fire(JnlpConnectionStateListener::afterDisconnect);
-        fire(new EventHandler() {
-            @Override
-            public void invoke(JnlpConnectionStateListener listener, JnlpConnectionState event) {
-                listener.afterDisconnect(event);
-            }
-        });
+        fire(JnlpConnectionStateListener::afterDisconnect);
     }
 
     /**

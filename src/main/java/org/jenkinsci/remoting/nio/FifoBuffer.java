@@ -11,6 +11,7 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnegative;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -417,6 +418,7 @@ public class FifoBuffer implements Closeable {
      * Once the remaining bytes are drained by the reader, the read method will start
      * returning EOF signals.
      */
+    @Override
     public void close() {
         // Async modification of the field in order to notify other threads that we are about closing this buffer
         closeRequested = true;
@@ -564,15 +566,17 @@ public class FifoBuffer implements Closeable {
                     byte[] buf = new byte[]{(byte)b};
                     FifoBuffer.this.write(buf);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                 }
             }
 
             @Override
-            public void write(byte[] b, int off, int len) throws IOException {
+            public void write(@Nonnull byte[] b, int off, int len) throws IOException {
                 try {
                     FifoBuffer.this.write(b,off,len);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                 }
             }
@@ -598,15 +602,17 @@ public class FifoBuffer implements Closeable {
                     if (n==0)   throw new AssertionError();
                     return ((int)b[0])&0xFF;
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                 }
             }
 
             @Override
-            public int read(byte[] b, int off, int len) throws IOException {
+            public int read(@Nonnull byte[] b, int off, int len) throws IOException {
                 try {
                     return FifoBuffer.this.read(b, off, len);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                 }
             }

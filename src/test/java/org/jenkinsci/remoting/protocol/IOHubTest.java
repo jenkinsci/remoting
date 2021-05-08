@@ -47,7 +47,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 public class IOHubTest {
@@ -58,14 +58,14 @@ public class IOHubTest {
 
     @Test
     @IOHubRule.Skip
-    public void noHub() throws Exception {
+    public void noHub() {
         assertThat(hub.executorService(), nullValue());
         assertThat(hub.hub(), nullValue());
     }
 
     @Test
     @IOHubRule.Skip("foo")
-    public void hubForDifferentId() throws Exception {
+    public void hubForDifferentId() {
         assertThat(hub.executorService(), notNullValue());
         assertThat(hub.hub(), notNullValue());
     }
@@ -75,17 +75,14 @@ public class IOHubTest {
         final CountDownLatch started = new CountDownLatch(1);
         final CountDownLatch finish = new CountDownLatch(1);
         final CountDownLatch finished = new CountDownLatch(1);
-        hub.hub().execute(new Runnable() {
-            @Override
-            public void run() {
-                started.countDown();
-                try {
-                    finish.await();
-                } catch (InterruptedException e) {
-                    // ignore
-                } finally {
-                    finished.countDown();
-                }
+        hub.hub().execute(() -> {
+            started.countDown();
+            try {
+                finish.await();
+            } catch (InterruptedException e) {
+                // ignore
+            } finally {
+                finished.countDown();
             }
         });
         assertThat(finished.getCount(), is(1L));
@@ -100,7 +97,7 @@ public class IOHubTest {
         final ServerSocketChannel srv = ServerSocketChannel.open();
         srv.bind(new InetSocketAddress(0));
         srv.configureBlocking(false);
-        final AtomicReference<SelectionKey> key = new AtomicReference<SelectionKey>();
+        final AtomicReference<SelectionKey> key = new AtomicReference<>();
         final AtomicBoolean oops = new AtomicBoolean(false);
         hub.hub().register(srv, new IOHubReadyListener() {
 
@@ -152,7 +149,7 @@ public class IOHubTest {
         final ServerSocketChannel srv = ServerSocketChannel.open();
         srv.bind(new InetSocketAddress(0));
         srv.configureBlocking(false);
-        final AtomicReference<SelectionKey> key = new AtomicReference<SelectionKey>();
+        final AtomicReference<SelectionKey> key = new AtomicReference<>();
         final AtomicBoolean oops = new AtomicBoolean(false);
         hub.hub().register(srv, new IOHubReadyListener() {
 
@@ -212,7 +209,7 @@ public class IOHubTest {
         final ServerSocketChannel srv = ServerSocketChannel.open();
         srv.bind(new InetSocketAddress(0));
         srv.configureBlocking(false);
-        final AtomicReference<SelectionKey> key = new AtomicReference<SelectionKey>();
+        final AtomicReference<SelectionKey> key = new AtomicReference<>();
         final AtomicBoolean oops = new AtomicBoolean(false);
         hub.hub().register(srv, new IOHubReadyListener() {
 

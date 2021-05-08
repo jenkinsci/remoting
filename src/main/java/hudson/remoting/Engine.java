@@ -29,8 +29,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.Socket;
+import java.net.URI;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -45,6 +48,8 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +57,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -62,6 +69,13 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.websocket.ClientEndpointConfig;
+import javax.websocket.CloseReason;
+import javax.websocket.ContainerProvider;
+import javax.websocket.Endpoint;
+import javax.websocket.EndpointConfig;
+import javax.websocket.HandshakeResponse;
+import javax.websocket.Session;
 
 import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
@@ -79,6 +93,7 @@ import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
+import org.jenkinsci.remoting.util.VersionNumber;
 
 /**
  * Agent engine that proactively connects to Jenkins master.
@@ -87,18 +102,25 @@ import org.jenkinsci.remoting.util.KeyUtils;
  */
 @NotThreadSafe // the fields in this class should not be modified by multiple threads concurrently
 public class Engine extends Thread {
+
+    /**
+     * HTTP header sent by Jenkins to indicate the earliest version of Remoting it is prepared to accept connections from.
+     */
+    public static final String REMOTING_MINIMUM_VERSION_HEADER = "X-Remoting-Minimum-Version";
+
     /**
      * Thread pool that sets {@link #CURRENT}.
      */
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
-        public Thread newThread(final Runnable r) {
+        @Override
+        public Thread newThread(@Nonnull final Runnable r) {
             Thread thread = defaultFactory.newThread(() -> {
                 CURRENT.set(Engine.this);
                 r.run();
             });
             thread.setDaemon(true);
-            thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in thread " + t, e));
+            thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in thread " + t));
             return thread;
         }
     });
@@ -117,7 +139,7 @@ public class Engine extends Thread {
      * This field specifies those candidate URLs, such as
      * "http://foo.bar/jenkins/".
      */
-    private List<URL> candidateUrls;
+    private final List<URL> candidateUrls;
     /**
      * The list of {@link X509Certificate} instances to trust when connecting to any of the {@link #candidateUrls}
      * or {@code null} to use the JVM default trust store.
@@ -134,8 +156,10 @@ public class Engine extends Thread {
     @CheckForNull
     private URL hudsonUrl;
     private final String secretKey;
-    public final String slaveName;
+    private final String agentName;
+    private boolean webSocket;
     private String credentials;
+    private String protocolName;
     private String proxyCredentials = System.getProperty("proxyCredentials");
 
     /**
@@ -202,34 +226,33 @@ public class Engine extends Thread {
      * (e.g. if a filesystem mount gets disconnected).
      * @since 3.8
      */
-    @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
-    private DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
+    private final DelegatingX509ExtendedTrustManager agentTrustManager = new DelegatingX509ExtendedTrustManager(new BlindTrustX509ExtendedTrustManager());
 
-    private String directConnection;
-    private String instanceIdentity;
+    private final String directConnection;
+    private final String instanceIdentity;
     private final Set<String> protocols;
 
-    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName) {
-        this(listener, hudsonUrls, secretKey, slaveName, null, null, null);
+    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String agentName) {
+        this(listener, hudsonUrls, secretKey, agentName, null, null, null);
     }
 
-    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String slaveName, String directConnection, String instanceIdentity,
+    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String agentName, String directConnection, String instanceIdentity,
                   Set<String> protocols) {
         this.listener = listener;
         this.directConnection = directConnection;
         this.events.add(listener);
         this.candidateUrls = hudsonUrls;
         this.secretKey = secretKey;
-        this.slaveName = slaveName;
+        this.agentName = agentName;
         this.instanceIdentity = instanceIdentity;
         this.protocols = protocols;
         if(candidateUrls.isEmpty() && instanceIdentity == null) {
             throw new IllegalArgumentException("No URLs given");
         }
         setUncaughtExceptionHandler((t, e) -> {
-            LOGGER.log(Level.SEVERE, "Uncaught exception in Engine thread " + t, e);
+            LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in Engine thread " + t);
             interrupt();
         });
     }
@@ -321,6 +344,10 @@ public class Engine extends Thread {
     @CheckForNull
     public URL getHudsonUrl() {
         return hudsonUrl;
+    }
+
+    public void setWebSocket(boolean webSocket) {
+        this.webSocket = webSocket;
     }
 
     /**
@@ -420,12 +447,12 @@ public class Engine extends Thread {
     public void setCandidateCertificates(List<X509Certificate> candidateCertificates) {
         this.candidateCertificates = candidateCertificates == null
                 ? null
-                : new ArrayList<X509Certificate>(candidateCertificates);
+                : new ArrayList<>(candidateCertificates);
     }
 
     public void addCandidateCertificate(X509Certificate certificate) {
         if (candidateCertificates == null) {
-            candidateCertificates = new ArrayList<X509Certificate>();
+            candidateCertificates = new ArrayList<>();
         }
         candidateCertificates.add(certificate);
     }
@@ -441,10 +468,13 @@ public class Engine extends Thread {
     @Override
     @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
     public void run() {
+        if (webSocket) {
+            runWebSocket();
+            return;
+        }
         // Create the engine
         try {
-            IOHub hub = IOHub.create(executor);
-            try {
+            try (IOHub hub = IOHub.create(executor)) {
                 SSLContext context;
                 // prepare our SSLContext
                 try {
@@ -455,7 +485,7 @@ public class Engine extends Thread {
                 char[] password = "password".toCharArray();
                 KeyStore store;
                 try {
-                    store = KeyStore.getInstance("JKS");
+                    store = KeyStore.getInstance(KeyStore.getDefaultType());
                 } catch (KeyStoreException e) {
                     throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
                 }
@@ -474,11 +504,7 @@ public class Engine extends Thread {
                 }
                 try {
                     kmf.init(store, password);
-                } catch (KeyStoreException e) {
-                    throw new IllegalStateException(e);
-                } catch (NoSuchAlgorithmException e) {
-                    throw new IllegalStateException(e);
-                } catch (UnrecoverableKeyException e) {
+                } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
                     throw new IllegalStateException(e);
                 }
                 try {
@@ -488,10 +514,150 @@ public class Engine extends Thread {
                     return;
                 }
                 innerRun(hub, context, executor);
-            } finally {
-                hub.close();
             }
         } catch (IOException e) {
+            events.error(e);
+        }
+    }
+
+    @SuppressFBWarnings(value = {"REC_CATCH_EXCEPTION", "URLCONNECTION_SSRF_FD"}, justification = "checked exceptions were a mistake to begin with; connecting to Jenkins from agent")
+    private void runWebSocket() {
+        try {
+            while (true) {
+                AtomicReference<Channel> ch = new AtomicReference<>();
+                String localCap = new Capability().toASCII();
+                class HeaderHandler extends ClientEndpointConfig.Configurator {
+                    Capability remoteCapability = new Capability();
+                    @Override
+                    public void beforeRequest(Map<String, List<String>> headers) {
+                        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(agentName));
+                        headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
+                        headers.put(Capability.KEY, Collections.singletonList(localCap));
+                        // TODO use JnlpConnectionState.COOKIE_KEY somehow (see EngineJnlpConnectionStateListener.afterChannel)
+                        LOGGER.fine(() -> "Sending: " + headers);
+                    }
+                    @Override
+                    public void afterResponse(HandshakeResponse hr) {
+                        LOGGER.fine(() -> "Receiving: " + hr.getHeaders());
+                        List<String> remotingMinimumVersion = hr.getHeaders().get(REMOTING_MINIMUM_VERSION_HEADER);
+                        if (remotingMinimumVersion != null && !remotingMinimumVersion.isEmpty()) {
+                            VersionNumber minimumSupportedVersion = new VersionNumber(remotingMinimumVersion.get(0));
+                            VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
+                            if (currentVersion.isOlderThan(minimumSupportedVersion)) {
+                                events.error(new IOException("Agent version " + minimumSupportedVersion + " or newer is required."));
+                            }
+                        }
+                        try {
+                            remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
+                            LOGGER.fine(() -> "received " + remoteCapability);
+                        } catch (IOException x) {
+                            events.error(x);
+                        }
+                    }
+                }
+                HeaderHandler headerHandler = new HeaderHandler();
+                class AgentEndpoint extends Endpoint {
+                    @SuppressFBWarnings(value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "just trust me here")
+                    AgentEndpoint.Transport transport;
+
+                    @Override
+                    public void onOpen(Session session, EndpointConfig config) {
+                        events.status("WebSocket connection open");
+                        session.addMessageHandler(ByteBuffer.class, this::onMessage);
+                        try {
+                            transport = new Transport(session);
+                            ch.set(new ChannelBuilder(agentName, executor).
+                                withJarCacheOrDefault(jarCache). // unless EngineJnlpConnectionStateListener can be used for this purpose
+                                build(transport));
+                        } catch (IOException x) {
+                            events.error(x);
+                        }
+                    }
+                    private void onMessage(ByteBuffer message) {
+                        try {
+                            transport.receive(message);
+                        } catch (IOException x) {
+                            events.error(x);
+                        } catch (InterruptedException x) {
+                            events.error(x);
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                    @Override
+                    public void onClose(Session session, CloseReason closeReason) {
+                        LOGGER.fine(() -> "onClose: " + closeReason);
+                        transport.terminate(new ChannelClosedException(ch.get(), null));
+                    }
+                    @Override
+                    public void onError(Session session, Throwable x) {
+                        // TODO or would events.error(x) be better?
+                        LOGGER.log(Level.FINE, null, x);
+                        transport.terminate(new ChannelClosedException(ch.get(), x));
+                    }
+
+                    class Transport extends AbstractByteBufferCommandTransport {
+                        final Session session;
+                        Transport(Session session) {
+                            this.session = session;
+                        }
+                        @Override
+                        protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
+                            LOGGER.finest(() -> "sending message of length + " + ChunkHeader.length(ChunkHeader.peek(header)));
+                            session.getBasicRemote().sendBinary(header, false);
+                            session.getBasicRemote().sendBinary(data, true);
+                        }
+
+                        @Override
+                        public Capability getRemoteCapability() {
+                            return headerHandler.remoteCapability;
+                        }
+                        @Override
+                        public void closeWrite() throws IOException {
+                            events.status("Write side closed");
+                            session.close();
+                        }
+                        @Override
+                        public void closeRead() throws IOException {
+                            events.status("Read side closed");
+                            session.close();
+                        }
+                    }
+                }
+                String wsUrl = candidateUrls.get(0).toString().replaceFirst("^http", "ws");
+                if(!wsUrl.endsWith("/")) wsUrl += "/";
+                ContainerProvider.getWebSocketContainer().connectToServer(new AgentEndpoint(),
+                    ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(wsUrl + "wsagents/"));
+                while (ch.get() == null) {
+                    Thread.sleep(100);
+                }
+                this.protocolName = "WebSocket";
+                events.status("Connected");
+                ch.get().join();
+                events.status("Terminated");
+                if (noReconnect) {
+                    return;
+                }
+                events.onDisconnect();
+                while (true) {
+                    // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
+                    URL ping = new URL(candidateUrls.get(0), "login");
+                    try {
+                        HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
+                        int status = conn.getResponseCode();
+                        conn.disconnect();
+                        if (status == 200) {
+                            break;
+                        } else {
+                            events.status(ping + " is not ready: " + status);
+                        }
+                    } catch (IOException x) {
+                        events.status(ping + " is not ready", x);
+                    }
+                    TimeUnit.SECONDS.sleep(10);
+                }
+                events.onReconnect();
+            }
+        } catch (Exception e) {
             events.error(e);
         }
     }
@@ -499,13 +665,13 @@ public class Engine extends Thread {
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
         // Create the protocols that will be attempted to connect to the master.
-        List<JnlpProtocolHandler> protocols = new JnlpProtocolHandlerFactory(service)
+        List<JnlpProtocolHandler<? extends JnlpConnectionState>> protocols = new JnlpProtocolHandlerFactory(service)
                 .withIOHub(hub)
                 .withSSLContext(context)
                 .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
                 .handlers();
         final Map<String,String> headers = new HashMap<>();
-        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, slaveName);
+        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
         headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
         List<String> jenkinsUrls = new ArrayList<>();
         for (URL url: candidateUrls) {
@@ -528,7 +694,11 @@ public class Engine extends Thread {
                 try {
                     endpoint = resolver.resolve();
                 } catch (Exception e) {
-                    events.error(e);
+                    if (Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
+                        events.status("Could not resolve JNLP agent endpoint", e);
+                    } else {
+                        events.error(e);
+                    }
                     return;
                 }
                 if (endpoint == null) {
@@ -561,7 +731,7 @@ public class Engine extends Thread {
                 try {
                     // Try available protocols.
                     boolean triedAtLeastOneProtocol = false;
-                    for (JnlpProtocolHandler<?> protocol : protocols) {
+                    for (JnlpProtocolHandler<? extends JnlpConnectionState> protocol : protocols) {
                         if (!protocol.isEnabled()) {
                             events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
                             continue;
@@ -590,6 +760,7 @@ public class Engine extends Thread {
 
                         // On success do not try other protocols.
                         if (channel != null) {
+                            this.protocolName = protocol.getName();
                             break;
                         }
 
@@ -662,7 +833,7 @@ public class Engine extends Thread {
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
         events.error(new Exception("The server rejected the connection: " + greeting));
-        Thread.sleep(10*1000);
+        TimeUnit.SECONDS.sleep(10);
     }
 
     /**
@@ -684,7 +855,7 @@ public class Engine extends Thread {
                 if(retry++>10) {
                     throw e;
                 }
-                Thread.sleep(1000*10);
+                TimeUnit.SECONDS.sleep(10);
                 events.status(msg+" (retrying:"+retry+")",e);
             }
         }
@@ -700,7 +871,7 @@ public class Engine extends Thread {
         return CURRENT.get();
     }
 
-    private static final ThreadLocal<Engine> CURRENT = new ThreadLocal<Engine>();
+    private static final ThreadLocal<Engine> CURRENT = new ThreadLocal<>();
 
     private static final Logger LOGGER = Logger.getLogger(Engine.class.getName());
 
@@ -709,17 +880,15 @@ public class Engine extends Thread {
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException {
         Map<String, String> properties = AccessController.doPrivileged(
-                new PrivilegedExceptionAction<Map<String, String>>() {
-                    public Map<String, String> run() throws Exception {
-                        Map<String, String> result = new HashMap<String, String>();
-                        result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
-                        result.put("javaHome", System.getProperty("java.home"));
-                        result.put("trustStoreType",
-                                System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
-                        result.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
-                        result.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
-                        return result;
-                    }
+                (PrivilegedExceptionAction<Map<String, String>>) () -> {
+                    Map<String, String> result = new HashMap<>();
+                    result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
+                    result.put("javaHome", System.getProperty("java.home"));
+                    result.put("trustStoreType",
+                            System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
+                    result.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
+                    result.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
+                    return result;
                 });
         KeyStore keystore = null;
 
@@ -774,9 +943,7 @@ public class Engine extends Thread {
 
                 keystore.load(trustStoreStream, trustStorePasswdChars);
                 if (trustStorePasswdChars != null) {
-                    for (int i = 0; i < trustStorePasswdChars.length; ++i) {
-                        trustStorePasswdChars[i] = 0;
-                    }
+                    Arrays.fill(trustStorePasswdChars, (char) 0);
                 }
             }
         } finally {
@@ -790,13 +957,11 @@ public class Engine extends Thread {
 
     @CheckForNull
     private static FileInputStream getFileInputStream(final File file) throws PrivilegedActionException {
-        return AccessController.doPrivileged(new PrivilegedExceptionAction<FileInputStream>() {
-            public FileInputStream run() throws Exception {
-                try {
-                    return file.exists() ? new FileInputStream(file) : null;
-                } catch (FileNotFoundException e) {
-                    return null;
-                }
+        return AccessController.doPrivileged((PrivilegedExceptionAction<FileInputStream>) () -> {
+            try {
+                return file.exists() ? new FileInputStream(file) : null;
+            } catch (FileNotFoundException e) {
+                return null;
             }
         });
     }
@@ -832,6 +997,21 @@ public class Engine extends Thread {
      * @since 2.4
      */
     static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName()+".socketTimeout",30*60*1000);
+
+    /**
+     * Get the agent name associated with this Engine instance.
+     *
+     * @return the agent name.
+     * @since TODO
+     */
+    public String getAgentName() {
+        // This is used by various external components that need to get the name from the engine.
+        return agentName;
+    }
+
+    public String getProtocolName() {
+        return this.protocolName;
+    }
 
     private class EngineJnlpConnectionStateListener extends JnlpConnectionStateListener {
 

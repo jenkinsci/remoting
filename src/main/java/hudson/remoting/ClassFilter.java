@@ -53,7 +53,7 @@ public abstract class ClassFilter {
      * @param c a loaded class
      * @return false by default; override to return true to blacklist this class
      */
-    public boolean isBlacklisted(@Nonnull Class c) {
+    public boolean isBlacklisted(@Nonnull Class<?> c) {
         return false;
     }
 
@@ -74,7 +74,7 @@ public abstract class ClassFilter {
      * @return the same {@code c}
      * @throws SecurityException if it is blacklisted
      */
-    public final Class check(Class c) {
+    public final Class<?> check(Class<?> c) {
         if (isBlacklisted(c)) {
             throw new SecurityException("Rejected: " + c.getName() + "; see https://jenkins.io/redirect/class-filter/");
         }
@@ -119,11 +119,11 @@ public abstract class ClassFilter {
      */
     public static final ClassFilter DEFAULT = new ClassFilter() {
         @Override
-        public boolean isBlacklisted(Class c) {
+        public boolean isBlacklisted(@Nonnull Class<?> c) {
             return CURRENT_DEFAULT.isBlacklisted(c);
         }
         @Override
-        public boolean isBlacklisted(String name) {
+        public boolean isBlacklisted(@Nonnull String name) {
             return CURRENT_DEFAULT.isBlacklisted(name);
         }
     };
@@ -132,7 +132,7 @@ public abstract class ClassFilter {
 
     /**
      * Changes the effective value of {@link #DEFAULT}.
-     * @param filter a new default to set; may or may not delegate to {@link STANDARD}
+     * @param filter a new default to set; may or may not delegate to {@link #STANDARD}
      * @since 3.16
      */
     public static void setDefault(@Nonnull ClassFilter filter) {
@@ -187,7 +187,7 @@ public abstract class ClassFilter {
             List<String> patternOverride = loadPatternOverride();
             if (patternOverride != null) {
                 LOGGER.log(Level.FINE, "Using user specified overrides for class blacklisting");
-                return new RegExpClassFilter(patternOverride.toArray(new String[patternOverride.size()]));
+                return new RegExpClassFilter(patternOverride.toArray(new String[0]));
             } else {
                 LOGGER.log(Level.FINE, "Using default in built class blacklisting");
                 return new RegExpClassFilter(DEFAULT_PATTERNS);
@@ -216,7 +216,7 @@ public abstract class ClassFilter {
         BufferedReader br = null;
         try {
             br = new BufferedReader(new InputStreamReader(new FileInputStream(prop), Charset.defaultCharset()));
-            ArrayList<String> patterns = new ArrayList<String>();
+            ArrayList<String> patterns = new ArrayList<>();
             for (String line = br.readLine(); line != null; line = br.readLine()) {
                 try {
                     Pattern.compile(line);
@@ -288,7 +288,7 @@ public abstract class ClassFilter {
         }
 
         @Override
-        public boolean isBlacklisted(String name) {
+        public boolean isBlacklisted(@Nonnull String name) {
             for (Object p : blacklistPatterns) {
                 if (p instanceof Pattern && ((Pattern)p).matcher(name).matches()) {
                     return true;
@@ -300,7 +300,7 @@ public abstract class ClassFilter {
         }
 
         @Override
-        public boolean isBlacklisted(Class c) {
+        public boolean isBlacklisted(@Nonnull Class<?> c) {
             AnonymousClassWarnings.check(c);
             return false;
         }

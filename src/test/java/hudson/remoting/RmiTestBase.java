@@ -46,11 +46,13 @@ public abstract class RmiTestBase extends TestCase {
     protected transient ChannelRunner channelRunner = new NioPipeRunner();
     protected String testSuffix="";
 
+    @Override
     protected void setUp() throws Exception {
         System.out.println("Starting "+getName());
         channel = channelRunner.start();
     }
 
+    @Override
     protected void tearDown() throws Exception {
         channelRunner.stop(channel);
     }
@@ -59,13 +61,12 @@ public abstract class RmiTestBase extends TestCase {
         try {
             this.channelRunner = runner.newInstance();
             testSuffix = "-"+channelRunner.getName();
-        } catch (InstantiationException e) {
-            throw new Error(e);
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             throw new Error(e);
         }
     }
 
+    @Override
     public String getName() {
         return super.getName()+testSuffix;
     }

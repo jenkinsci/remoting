@@ -69,8 +69,8 @@ public class SSLContextRule implements TestRule {
     }
 
     public SSLContextRule(String id) {
-        this.keys = new ArrayList<KeyWithChain>();
-        this.certificates = new ArrayList<X509CertificateRule>();
+        this.keys = new ArrayList<>();
+        this.certificates = new ArrayList<>();
         this.id = id;
     }
 
@@ -78,7 +78,7 @@ public class SSLContextRule implements TestRule {
                                            @CheckForNull List<KeyWithChain> keys,
                                            @NonNull char[] password)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-        KeyStore store = KeyStore.getInstance("jks");
+        KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
         int id = 1;
         store.load(null, password);
         if (certificates != null) {
@@ -202,7 +202,6 @@ public class SSLContextRule implements TestRule {
                 context.init(keyManagers, trustManagers, null);
                 try {
                     base.evaluate();
-                    ;
                 } finally {
                     context = null;
                 }

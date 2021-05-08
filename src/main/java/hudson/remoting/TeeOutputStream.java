@@ -19,6 +19,7 @@ package hudson.remoting;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+import javax.annotation.Nonnull;
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -51,7 +52,8 @@ public class TeeOutputStream extends FilterOutputStream {
      * @param b the bytes to write
      * @throws IOException if an I/O error occurs
      */
-    public synchronized void write(byte[] b) throws IOException {
+    @Override
+    public synchronized void write(@Nonnull byte[] b) throws IOException {
         super.write(b);
         this.branch.write(b);
     }
@@ -63,7 +65,8 @@ public class TeeOutputStream extends FilterOutputStream {
      * @param len The number of bytes to write
      * @throws IOException if an I/O error occurs
      */
-    public synchronized void write(byte[] b, int off, int len) throws IOException {
+    @Override
+    public synchronized void write(@Nonnull byte[] b, int off, int len) throws IOException {
         super.write(b, off, len);
         this.branch.write(b, off, len);
     }
@@ -73,6 +76,7 @@ public class TeeOutputStream extends FilterOutputStream {
      * @param b the byte to write
      * @throws IOException if an I/O error occurs
      */
+    @Override
     public synchronized void write(int b) throws IOException {
         super.write(b);
         this.branch.write(b);
@@ -82,6 +86,7 @@ public class TeeOutputStream extends FilterOutputStream {
      * Flushes both streams.
      * @throws IOException if an I/O error occurs
      */
+    @Override
     public void flush() throws IOException {
         super.flush();
         this.branch.flush();
@@ -91,6 +96,7 @@ public class TeeOutputStream extends FilterOutputStream {
      * Closes both streams.
      * @throws IOException if an I/O error occurs
      */
+    @Override
     public void close() throws IOException {
         super.close();
         this.branch.close();

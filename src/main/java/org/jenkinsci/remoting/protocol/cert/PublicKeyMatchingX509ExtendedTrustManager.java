@@ -97,7 +97,7 @@ public class PublicKeyMatchingX509ExtendedTrustManager extends X509ExtendedTrust
      */
     public PublicKeyMatchingX509ExtendedTrustManager(boolean strictClient, boolean strictServer,
                                                      PublicKey... publicKeys) {
-        this.publicKeys = new ArrayList<PublicKey>(Arrays.asList(publicKeys));
+        this.publicKeys = new ArrayList<>(Arrays.asList(publicKeys));
         this.strictClient = strictClient;
         this.strictServer = strictServer;
     }

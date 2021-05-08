@@ -13,4 +13,5 @@ public abstract class CallableBase<V,T extends Throwable> implements Callable<V,
     }
 
     public static final Role ROLE = new Role("test callable");
+    private static final long serialVersionUID = 1L;
 }

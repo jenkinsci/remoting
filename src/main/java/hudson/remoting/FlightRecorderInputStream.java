@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,6 +54,7 @@ class FlightRecorderInputStream extends InputStream {
         final IOException[] error = new IOException[1];
 
         Thread diagnosisThread = new Thread(diagnosisName+" stream corruption diagnosis thread") {
+            @Override
             public void run() {
                 int b;
                 try {
@@ -66,7 +68,7 @@ class FlightRecorderInputStream extends InputStream {
             }
         };
         diagnosisThread.setUncaughtExceptionHandler(
-                (t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in diagnosis thread " + t, e));
+                (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in diagnosis thread " + t));
 
         // wait up to 1 sec to grab as much data as possible
         diagnosisThread.start();
@@ -95,7 +97,7 @@ class FlightRecorderInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
         len = source.read(b, off, len);
         if (len>0)
             recorder.write(b,off,len);
@@ -160,7 +162,7 @@ class FlightRecorderInputStream extends InputStream {
         }
         
         /** @author @roadrunner2 */
-        @Override public synchronized void write(byte[] buf, int off, int len) {
+        @Override public synchronized void write(@Nonnull byte[] buf, int off, int len) {
             // no point in trying to copy more than capacity; this also simplifies logic below
             if (len > capacity) {
                 off += (len - capacity);

@@ -30,6 +30,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.protocol.FilterLayer;
@@ -55,7 +56,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
     /**
      * The headers to send.
      */
-    private ByteBuffer headerOutput;
+    private final ByteBuffer headerOutput;
     /**
      * The response to send.
      */
@@ -63,7 +64,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
     /**
      * The length of the headers to receive.
      */
-    private ByteBuffer headerInputLength;
+    private final ByteBuffer headerInputLength;
     /**
      * The content of the headers to receive.
      */
@@ -93,16 +94,16 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * The queue of data to {@link ProtocolStack.Ptr#doSend(ByteBuffer)} on {@link #next()}, populated while we await
      * the complete response cycle.
      */
-    private ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
+    private final ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
     /**
      * The queue of data to {@link ProtocolStack.Ptr#onRecv(ByteBuffer)} on {@link #next()}, populated while we await
      * the complete response cycle.
      */
-    private ByteBufferQueue recvQueue = new ByteBufferQueue(8192);
+    private final ByteBufferQueue recvQueue = new ByteBufferQueue(8192);
     /**
      * The {@link Listener} to decide the response to the received headers.
      */
-    private Listener listener;
+    private final Listener listener;
     /**
      * Flag to signify that we have completed.
      */
@@ -110,7 +111,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
     /**
      * Marker for the abort reason
      */
-    private volatile ConnectionRefusalException aborted;
+    private final AtomicReference<ConnectionRefusalException> aborted = new AtomicReference<>();
 
     /**
      * Constructor.
@@ -130,7 +131,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void start() throws IOException {
+    public synchronized void start() {
         try {
             doSend(EMPTY_BUFFER);
         } catch (IOException e) {
@@ -143,7 +144,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      */
     @Override
     public void onRecv(@Nonnull ByteBuffer data) throws IOException {
-        final ConnectionRefusalException aborted = this.aborted;
+        final ConnectionRefusalException aborted = this.aborted.get();
         if (aborted != null) {
             throw newAbortCause(aborted);
         }
@@ -268,7 +269,6 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 onAbortCompleted();
                 throw abortCause;
             }
-            assert responseInputLength != null;
             if (responseInputLength.hasRemaining()) {
                 ByteBufferUtils.put(data, responseInputLength);
                 if (responseInputLength.hasRemaining()) {
@@ -396,7 +396,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * Finalizes the abort of the connection.
      */
     private synchronized void onAbortCompleted() {
-        ConnectionHeadersFilterLayer.this.aborted = abortCause;
+        ConnectionHeadersFilterLayer.this.aborted.set(abortCause);
         abort(abortCause);
         try {
             next().doCloseSend();
@@ -421,7 +421,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
             super.onRecvClosed(cause);
             return;
         }
-        ConnectionRefusalException aborted = this.aborted;
+        ConnectionRefusalException aborted = this.aborted.get();
         if (aborted != null && !(cause instanceof ConnectionRefusalException)) {
             // handle the case where we have refuseded the incoming headers and actually aborted
             ConnectionRefusalException newCause = newAbortCause(aborted);
@@ -450,7 +450,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      */
     @Override
     public boolean isRecvOpen() {
-        return aborted == null && super.isRecvOpen();
+        return aborted.get() == null && super.isRecvOpen();
     }
 
     /**
@@ -458,7 +458,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      */
     @Override
     public void doSend(@Nonnull ByteBuffer data) throws IOException {
-        ConnectionRefusalException aborted = this.aborted;
+        ConnectionRefusalException aborted = this.aborted.get();
         if (aborted != null) {
             throw newAbortCause(aborted);
         }
@@ -511,7 +511,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      */
     @Override
     public boolean isSendOpen() {
-        return aborted == null && super.isSendOpen();
+        return aborted.get() == null && super.isSendOpen();
     }
 
     /**

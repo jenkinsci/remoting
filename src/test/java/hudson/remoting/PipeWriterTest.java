@@ -31,6 +31,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
      * Base test case for the response / IO coordination.
      */
     abstract class ResponseIoCoordCallable extends CallableBase<Object,Exception> {
+        @Override
         public Object call() throws Exception {
             long start = System.currentTimeMillis();
             System.out.println("touch");
@@ -68,6 +69,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
          * This is where the actual I/O happens.
          */
         abstract void touch() throws IOException;
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -101,6 +103,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
      * Base test case for the request / IO coordination.
      */
     abstract class RequestIoCoordCallable extends CallableBase<Object,Exception> {
+        @Override
         public Object call() throws IOException {
             long start = System.currentTimeMillis();
             System.out.println("touch");
@@ -116,6 +119,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
          * This is where the actual I/O happens.
          */
         abstract void touch() throws IOException;
+        private static final long serialVersionUID = 1L;
     }
 
     public void testRequestIoCoord() throws Exception {
@@ -133,12 +137,14 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
         assertSlowStreamTouched();
     }
 
+    @Override
     public void assertSlowStreamNotTouched() {
         assertFalse(slow.closed);
         assertFalse(slow.flushed);
         assertFalse(slow.written);
     }
 
+    @Override
     public void assertSlowStreamTouched() {
         assertTrue(slow.closed || slow.flushed || slow.written);
     }
@@ -146,7 +152,7 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
     /**
      * Induces delay.
      */
-    class SlowOutputStream extends OutputStream {
+    static class SlowOutputStream extends OutputStream {
         boolean closed,flushed,written;
 
         @Override
@@ -177,38 +183,51 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
     }
 
     private class ResponseCallableWriter extends ResponseIoCoordCallable {
+        @Override
         void touch() throws IOException {
             ros.write(0);
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class ResponseCallableFlusher extends ResponseIoCoordCallable {
+        @Override
         void touch() throws IOException {
             ros.flush();
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class ResponseCallableCloser extends ResponseIoCoordCallable {
+        @Override
         void touch() throws IOException {
             ros.close();
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class RequestCallableWriter extends RequestIoCoordCallable {
+        @Override
         void touch() throws IOException {
             ros.write(0);
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class RequestCallableFlusher extends RequestIoCoordCallable {
+        @Override
         void touch() throws IOException {
             ros.flush();
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class RequestCallableCloser extends RequestIoCoordCallable {
+        @Override
         void touch() throws IOException {
             ros.close();
         }
+        private static final long serialVersionUID = 1L;
     }
+    private static final long serialVersionUID = 1L;
 }

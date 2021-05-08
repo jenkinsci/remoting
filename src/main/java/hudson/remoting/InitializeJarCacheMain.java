@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.file.Files;
 
 /**
  * Takes a directory of jars and populates them into the given jar cache
@@ -19,12 +20,7 @@ import java.io.IOException;
  */
 public class InitializeJarCacheMain {
 
-    private static final FilenameFilter JAR_FILE_FILTER = new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            return name.endsWith(".jar");
-        }
-    };
+    private static final FilenameFilter JAR_FILE_FILTER = (dir, name) -> name.endsWith(".jar");
 
     /**
      * Requires 2 parameters:
@@ -33,7 +29,7 @@ public class InitializeJarCacheMain {
      * <li>The jar cache directory.
      * </ol>
      */
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "These file values are provided by users with sufficient adminstrative permissions to run this utility program.")
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "These file values are provided by users with sufficient administrative permissions to run this utility program.")
     public static void main(String[] argv) throws Exception {
         if (argv.length != 2) {
             throw new IllegalArgumentException(
@@ -53,7 +49,7 @@ public class InitializeJarCacheMain {
             Checksum checksum = Checksum.forFile(jar);
             File newJarLocation = jarCache.map(checksum.sum1, checksum.sum2);
 
-            Util.mkdirs(newJarLocation.getParentFile());
+            Files.createDirectories(newJarLocation.getParentFile().toPath());
             copyFile(jar, newJarLocation);
         }
     }

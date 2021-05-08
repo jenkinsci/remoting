@@ -187,7 +187,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                                 LOGGER.log(record);
                             }
                         } finally {
-                            // incase this was an OOMErr and logging caused another OOMErr
+                            // in case this was an OOMErr and logging caused another OOMErr
                             recvKey.cancel();
                             onRecvClosed();
                         }
@@ -332,7 +332,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
      * {@inheritDoc}
      */
     @Override
-    public void doCloseSend() throws IOException {
+    public void doCloseSend() {
         if (out.isOpen()) {
             if (LOGGER.isLoggable(Level.FINEST)) {
                 LOGGER.log(Level.FINEST, "[{0}] Closing SEND", stack().name());
@@ -416,5 +416,4 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
         }
     }
 
-    ;
 }

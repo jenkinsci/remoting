@@ -20,6 +20,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -78,10 +79,9 @@ public class FastPipedInputStream extends InputStream {
         this.buffer = new byte[bufferSize];
     }
 
-    private FastPipedOutputStream source() throws IOException {
+    private void checkSource() throws IOException {
         FastPipedOutputStream s = source.get();
         if (s==null)    throw new IOException("Writer side has already been abandoned", allocatedAt);
-        return s;
     }
 
     @Override
@@ -122,8 +122,8 @@ public class FastPipedInputStream extends InputStream {
         if(this.source != null) {
             throw new IOException("Pipe already connected");
         }
-        this.source = new WeakReference<FastPipedOutputStream>(source);
-        source.sink = new WeakReference<FastPipedInputStream>(this);
+        this.source = new WeakReference<>(source);
+        source.sink = new WeakReference<>(this);
     }
 
     @Override
@@ -141,13 +141,14 @@ public class FastPipedInputStream extends InputStream {
         return false;
     }
 
+    @Override
     public int read() throws IOException {
         byte[] b = new byte[1];
         return read(b, 0, b.length) == -1 ? -1 : (255 & b[0]);
     }
 
     @Override
-    public int read(byte[] b) throws IOException {
+    public int read(@Nonnull byte[] b) throws IOException {
         return read(b, 0, b.length);
     }
 
@@ -155,7 +156,7 @@ public class FastPipedInputStream extends InputStream {
      * @exception IOException The pipe is not connected.
      */
     @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
         if(source == null) {
             throw new IOException("Unconnected pipe");
         }
@@ -168,12 +169,13 @@ public class FastPipedInputStream extends InputStream {
                         if (c==null)        return -1;  // EOF
                         throw new IOException(c);
                     }
-                    source(); // make sure the sink is still trying to read, or else fail the write.
+                    checkSource(); // make sure the sink is still trying to read, or else fail the write.
 
                     // Wait for any writer to put something in the circular buffer.
                     try {
                         buffer.wait(FastPipedOutputStream.TIMEOUT);
                     } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                         throw new IOException(e);
                     }
                     // Try again.
@@ -202,14 +204,6 @@ public class FastPipedInputStream extends InputStream {
     static final class ClosedBy extends Throwable {
         ClosedBy(Throwable error) {
             super("The pipe was closed at...", error);
-        }
-
-        /**
-         * If the pipe was closed by inducing an error, return that error object.
-         */
-        @Override
-        public Throwable getCause() {
-            return super.getCause();
         }
     }
 }

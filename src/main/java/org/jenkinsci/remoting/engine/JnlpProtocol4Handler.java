@@ -32,6 +32,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.channels.Channels;
 import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
@@ -150,7 +152,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                 .filter(new ConnectionHeadersFilterLayer(headers, handler))
                 .named(String.format("%s connection from %s", getName(), socket.getRemoteSocketAddress()))
                 .listener(handler)
-                .build(new ChannelApplicationLayer(threadPool, handler))
+                .build(new ChannelApplicationLayer(threadPool, handler, headers.get(JnlpConnectionState.COOKIE_KEY)))
                 .get();
     }
 
@@ -236,14 +238,14 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@code true} when invoked from {@link JnlpProtocol4Handler#connect(Socket, Map, List)}, {@code false} when
          * invoked from {@link JnlpProtocol4Handler#handle(Socket, Map, List)}.
          */
-        private boolean client;
+        private final boolean client;
 
         /**
          * Internal constructor for {@link JnlpProtocol4Handler#connect(Socket, Map, List)}.
          *
          * @param event the event.
          */
-        Handler(Jnlp4ConnectionState event) {
+        Handler(@Nonnull Jnlp4ConnectionState event) {
             this.event = event;
             this.client = true;
         }
@@ -301,7 +303,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                     case INVALID:
                         LOGGER.log(Level.WARNING,
                                 "An attempt was made to connect as {0} from {1} with an invalid client certificate",
-                                new Object[]{clientName, event.getSocket().getRemoteSocketAddress()});
+                                new Object[]{clientName, event.getRemoteEndpointDescription()});
                         throw new ConnectionRefusalException("Authentication failure");
                     default:
                         String secretKey = clientDatabase.getSecretOf(clientName);
@@ -309,10 +311,10 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                             // should never get hear unless there is a race condition in removing an entry from the DB
                             throw new ConnectionRefusalException("Unknown client name: " + clientName);
                         }
-                        if (!secretKey.equals(headers.get(JnlpConnectionState.SECRET_KEY))) {
+                        if (!MessageDigest.isEqual(secretKey.getBytes(StandardCharsets.UTF_8), headers.get(JnlpConnectionState.SECRET_KEY).getBytes(StandardCharsets.UTF_8))) {
                             LOGGER.log(Level.WARNING,
                                     "An attempt was made to connect as {0} from {1} with an incorrect secret",
-                                    new Object[]{clientName, event.getSocket().getRemoteSocketAddress()});
+                                    new Object[]{clientName, event.getRemoteEndpointDescription()});
                             throw new ConnectionRefusalException("Authorization failure");
                         }
                         break;
@@ -327,12 +329,9 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         @Override
         public void onChannel(@Nonnull final Channel channel) {
             channel.addListener(this);
-            threadPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    if (!channel.isClosingOrClosed()) {
-                        event.fireAfterChannel(channel);
-                    }
+            threadPool.execute(() -> {
+                if (!channel.isClosingOrClosed()) {
+                    event.fireAfterChannel(channel);
                 }
             });
         }
@@ -371,7 +370,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@inheritDoc}
          */
         @Override
-        public void onClosed(ProtocolStack stack, IOException cause) {
+        public void onClosed(ProtocolStack<?> stack, IOException cause) {
             try {
                 event.fireAfterDisconnect();
             } finally {

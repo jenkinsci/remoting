@@ -85,7 +85,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
     /**
      * The listeners to notify.
      */
-    private final Queue<Map.Entry<Runnable, Executor>> listeners = new LinkedList<Map.Entry<Runnable, Executor>>();
+    private final Queue<Map.Entry<Runnable, Executor>> listeners = new LinkedList<>();
     /**
      * Flag to indicate that the listeners have been/are being notified and thus
      * {@link #addListener(Runnable, Executor)} should execute immediately (which is OK as we do not guarantee order of
@@ -101,7 +101,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * @return a new {@link SettableFuture}.
      */
     public static <V> SettableFuture<V> create() {
-        return new SettableFuture<V>();
+        return new SettableFuture<>();
     }
 
     /**
@@ -263,7 +263,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
         boolean executeImmediate = false;
         synchronized (listeners) {
             if (!notified) {
-                listeners.add(new AbstractMap.SimpleImmutableEntry<Runnable, Executor>(listener, executor));
+                listeners.add(new AbstractMap.SimpleImmutableEntry<>(listener, executor));
             } else {
                 executeImmediate = true;
             }
@@ -273,8 +273,8 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
             try {
                 executor.execute(listener);
             } catch (RuntimeException e) {
-                LOGGER.log(Level.SEVERE,
-                        "RuntimeException while executing runnable " + listener + " with executor " + executor, e);
+                LOGGER.log(Level.SEVERE, e, () ->
+                        "RuntimeException while executing runnable " + listener + " with executor " + executor);
             }
         }
     }
@@ -294,9 +294,9 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
             try {
                 entry.getValue().execute(entry.getKey());
             } catch (RuntimeException e) {
-                LOGGER.log(Level.SEVERE,
+                LOGGER.log(Level.SEVERE, e, () ->
                         "RuntimeException while executing runnable " + entry.getKey() + " with executor "
-                                + entry.getValue(), e);
+                                + entry.getValue());
             }
 
         }

@@ -37,6 +37,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.NetworkLayer;
+import org.jenkinsci.remoting.protocol.ProtocolStack;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.IOUtils;
 
@@ -230,6 +231,13 @@ public class BIONetworkLayer extends NetworkLayer {
          */
         @Override
         public void run() {
+            LOGGER.info("Waiting for ProtocolStack to start.");
+            try {
+                ProtocolStack.waitForStart();
+            } catch (InterruptedException e) {
+                LOGGER.warning("Interrupted while waiting for ProtocolStack to start.");
+                return;
+            }
             synchronized (BIONetworkLayer.this) {
                 starting = false;
                 running = true;

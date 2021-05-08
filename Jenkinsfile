@@ -14,12 +14,15 @@ parallel linux: {
         }
         stage('Build') {
             timeout(30) {
-                infra.runMaven(['-Dset.changelist', 'clean', 'install', '-Dmaven.test.failure.ignore'])
+                infra.runMaven(['-Dset.changelist', 'clean', 'install', '-Dmaven.test.failure.ignore', '-e'])
             }
         }
         stage('Archive') {
             junit '**/target/surefire-reports/TEST-*.xml'
-            findbugs pattern: '**/target/findbugsXml.xml'
+            recordIssues(
+                    enabledForFailure: true, aggregatingResults: true,
+                    tools: [java(), spotBugs(pattern: '**/target/spotbugsXml.xml')]
+            )
             infra.prepareToPublishIncrementals()
         }
     }

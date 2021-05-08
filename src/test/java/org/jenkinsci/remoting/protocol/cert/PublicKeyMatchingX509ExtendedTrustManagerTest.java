@@ -33,7 +33,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 public class PublicKeyMatchingX509ExtendedTrustManagerTest {
 
@@ -202,7 +202,7 @@ public class PublicKeyMatchingX509ExtendedTrustManagerTest {
     }
 
     @Test
-    public void getAcceptedIssuers() throws Exception {
+    public void getAcceptedIssuers() {
         assertThat(instance.getAcceptedIssuers(), notNullValue());
     }
 

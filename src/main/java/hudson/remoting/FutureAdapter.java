@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -39,23 +40,28 @@ abstract class FutureAdapter<X,Y> implements Future<X> {
         this.core = core;
     }
 
+    @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return core.cancel(mayInterruptIfRunning);
     }
 
+    @Override
     public boolean isCancelled() {
         return core.isCancelled();
     }
 
+    @Override
     public boolean isDone() {
         return core.isDone();
     }
 
+    @Override
     public X get() throws InterruptedException, ExecutionException {
         return adapt(core.get());
     }
 
-    public X get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    @Override
+    public X get(long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return adapt(core.get(timeout, unit));
     }
 

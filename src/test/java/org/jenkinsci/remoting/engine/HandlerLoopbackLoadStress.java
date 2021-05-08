@@ -27,6 +27,35 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.SocketChannelStream;
+import org.apache.commons.io.IOUtils;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.nio.NioChannelHub;
+import org.jenkinsci.remoting.protocol.IOHub;
+import org.jenkinsci.remoting.protocol.IOHubReadyListener;
+import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
+import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
+import java.util.concurrent.CompletableFuture;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileWriter;
@@ -34,6 +63,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryManagerMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.reflect.InvocationTargetException;
@@ -58,7 +88,6 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -77,34 +106,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import org.apache.commons.io.IOUtils;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.X500NameBuilder;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.nio.NioChannelHub;
-import org.jenkinsci.remoting.protocol.IOHub;
-import org.jenkinsci.remoting.protocol.IOHubReadyListener;
-import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
-import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
-import org.jenkinsci.remoting.util.SettableFuture;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
 
 /**
  * A stress-testing client
@@ -122,20 +123,14 @@ public class HandlerLoopbackLoadStress {
 
     private final IOHub mainHub;
     private final IOHub acceptorHub;
-    private final NioChannelHub legacyHub;
-
-    private final SSLContext context;
 
     private final ServerSocketChannel serverSocketChannel;
 
     private final Acceptor acceptor;
 
-    private final KeyPair keyPair;
-    private final X509Certificate certificate;
-
     private final JnlpProtocolHandler<? extends JnlpConnectionState> handler;
 
-    private final SettableFuture<SocketAddress> addr = SettableFuture.create();
+    private final CompletableFuture<SocketAddress> addr = new CompletableFuture<>();
     private final Random entropy = new Random();
 
     private final RuntimeMXBean runtimeMXBean;
@@ -151,7 +146,7 @@ public class HandlerLoopbackLoadStress {
         this.config = config;
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048); // maximum supported by JVM with export restrictions
-        keyPair = gen.generateKeyPair();
+        KeyPair keyPair = gen.generateKeyPair();
 
         Date now = new Date();
         Date firstDate = new Date(now.getTime() + TimeUnit.DAYS.toMillis(10));
@@ -186,32 +181,32 @@ public class HandlerLoopbackLoadStress {
                 .setProvider(BOUNCY_CASTLE_PROVIDER)
                 .build(keyPair.getPrivate());
 
-        certificate = new JcaX509CertificateConverter()
+        X509Certificate certificate = new JcaX509CertificateConverter()
                 .setProvider(BOUNCY_CASTLE_PROVIDER)
                 .getCertificate(certGen.build(signer));
 
         char[] password = "password".toCharArray();
 
-        KeyStore store = KeyStore.getInstance("jks");
+        KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
         store.load(null, password);
         store.setKeyEntry("alias", keyPair.getPrivate(), password, new Certificate[]{certificate});
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(store, password);
 
-        context = SSLContext.getInstance("TLS");
+        SSLContext context = SSLContext.getInstance("TLS");
         context.init(kmf.getKeyManagers(),
                 new TrustManager[]{new BlindTrustX509ExtendedTrustManager()}, null);
 
         mainHub = IOHub.create(executorService);
         // on windows there is a bug whereby you cannot mix ServerSockets and Sockets on the same selector
         acceptorHub = File.pathSeparatorChar == 59 ? IOHub.create(executorService) : mainHub;
-        legacyHub = new NioChannelHub(executorService);
+        NioChannelHub legacyHub = new NioChannelHub(executorService);
         executorService.submit(legacyHub);
         serverSocketChannel = ServerSocketChannel.open();
 
-        JnlpProtocolHandler handler = null;
-        for (JnlpProtocolHandler h : new JnlpProtocolHandlerFactory(executorService)
+        JnlpProtocolHandler<? extends JnlpConnectionState> handler = null;
+        for (JnlpProtocolHandler<? extends JnlpConnectionState> h : new JnlpProtocolHandlerFactory(executorService)
                 .withNioChannelHub(legacyHub)
                 .withIOHub(mainHub)
                 .withSSLContext(context)
@@ -248,13 +243,8 @@ public class HandlerLoopbackLoadStress {
         } else {
             _getProcessCpuTime = _getProcessCpuTime(operatingSystemMXBean);
         }
-        garbageCollectorMXBeans = new ArrayList<GarbageCollectorMXBean>(ManagementFactory.getGarbageCollectorMXBeans());
-        Collections.sort(garbageCollectorMXBeans, new Comparator<GarbageCollectorMXBean>() {
-            @Override
-            public int compare(GarbageCollectorMXBean o1, GarbageCollectorMXBean o2) {
-                return o1.getName().compareTo(o2.getName());
-            }
-        });
+        garbageCollectorMXBeans = new ArrayList<>(ManagementFactory.getGarbageCollectorMXBeans());
+        garbageCollectorMXBeans.sort(Comparator.comparing(MemoryManagerMXBean::getName));
         stats = new Stats();
     }
 
@@ -321,14 +311,14 @@ public class HandlerLoopbackLoadStress {
         final SocketAddress serverAddress;
         if (config.client == null) {
             serverAddress = stress.startServer(config.listen);
-            Thread.sleep(1000);
+            TimeUnit.SECONDS.sleep(1);
         } else {
             serverAddress = toSocketAddress(config.client);
         }
         try {
             if (!config.server) {
                 final CountDownLatch started = new CountDownLatch(config.numClients);
-                List<Future<Void>> clients = new ArrayList<Future<Void>>(config.numClients);
+                List<Future<Void>> clients = new ArrayList<>(config.numClients);
                 for (int i = 0; i < config.numClients; i++) {
                     if (config.connectDelay > 0) {
                         Thread.sleep(config.connectDelay);
@@ -338,17 +328,14 @@ public class HandlerLoopbackLoadStress {
                     }
                     final int clientNumber = i;
                     clients.add(
-                    stress.executorService.submit(new java.util.concurrent.Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            try {
-                                stress.startClient(clientNumber, serverAddress, config.clientIntervalMs,
-                                        config.payload);
-                            } finally {
-                                started.countDown();
-                            }
-                            return null;
+                    stress.executorService.submit(() -> {
+                        try {
+                            stress.startClient(clientNumber, serverAddress, config.clientIntervalMs,
+                                    config.payload);
+                        } finally {
+                            started.countDown();
                         }
+                        return null;
                     }));
                 }
                 for (Future<Void> future: clients) {
@@ -377,9 +364,7 @@ public class HandlerLoopbackLoadStress {
         try {
             getProcessCpuTime = operatingSystemMXBean.getClass().getMethod("getProcessCpuTime");
             getProcessCpuTime.setAccessible(true);
-        } catch (ClassCastException e) {
-            getProcessCpuTime = null;
-        } catch (NoSuchMethodException e) {
+        } catch (ClassCastException | NoSuchMethodException e) {
             getProcessCpuTime = null;
         }
         return getProcessCpuTime;
@@ -412,7 +397,7 @@ public class HandlerLoopbackLoadStress {
             try {
                 r = _getProcessCpuTime.invoke(operatingSystemMXBean);
             } catch (IllegalAccessException | InvocationTargetException e) {
-                r = null;
+                // Do nothing on failure
             }
         }
         if (r instanceof Number) {
@@ -429,7 +414,7 @@ public class HandlerLoopbackLoadStress {
         toServer.socket().setTcpNoDelay(true);
         toServer.configureBlocking(true);
         toServer.connect(serverAddress);
-        HashMap<String, String> headers = new HashMap<String, String>();
+        HashMap<String, String> headers = new HashMap<>();
         String clientName = runtimeMXBean.getName() + "-client-" + n;
         headers.put(JnlpConnectionState.CLIENT_NAME_KEY, clientName);
         headers.put(JnlpConnectionState.SECRET_KEY, secretFor(clientName));
@@ -554,8 +539,7 @@ public class HandlerLoopbackLoadStress {
         public void afterChannel(@NonNull JnlpConnectionState event) {
             String clientName = event.getProperty(JnlpConnectionState.CLIENT_NAME_KEY);
             if (clientName != null) {
-                System.out.println("Accepted connection from client " + clientName + " on " + event.getSocket()
-                        .getRemoteSocketAddress());
+                System.out.println("Accepted connection from client " + clientName + " on " + event.getRemoteEndpointDescription());
             }
         }
     }
@@ -580,6 +564,7 @@ public class HandlerLoopbackLoadStress {
         public void checkRoles(RoleChecker checker) throws SecurityException {
 
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class Stats implements Runnable {
@@ -734,7 +719,7 @@ public class HandlerLoopbackLoadStress {
 
     }
 
-    private class GCStats {
+    private static class GCStats {
         private final long count;
         private final long time;
 
@@ -756,7 +741,7 @@ public class HandlerLoopbackLoadStress {
             noops = NoOpCallable.noops.get();
             uptime = runtimeMXBean.getUptime();
             cpu = getProcessCpuTime();
-            gc = new TreeMap<String, GCStats>();
+            gc = new TreeMap<>();
             for (GarbageCollectorMXBean bean: garbageCollectorMXBeans) {
                 this.gc.put(bean.getName(), new GCStats(bean));
             }
@@ -859,7 +844,7 @@ public class HandlerLoopbackLoadStress {
     private class Acceptor implements IOHubReadyListener, IOHubRegistrationCallback {
         private final ServerSocketChannel channel;
         private final AtomicInteger clientCount = new AtomicInteger();
-        public SettableFuture<Void> registered = SettableFuture.create();
+        public CompletableFuture<Void> registered = new CompletableFuture<>();
         private SelectionKey selectionKey;
 
         private Acceptor(ServerSocketChannel channel) {
@@ -874,28 +859,23 @@ public class HandlerLoopbackLoadStress {
                     fromClient.socket().setKeepAlive(true);
                     fromClient.socket().setTcpNoDelay(true);
                     fromClient.configureBlocking(true);
-                    executorService.submit(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                DataInputStream dis = new DataInputStream(SocketChannelStream.in(fromClient));
-                                String header = dis.readUTF();
-                                if (header.equals("Protocol:" + handler.getName())) {
-                                    handler.handle(fromClient.socket(), new HashMap<String, String>(), serverListener)
-                                            .get();
-                                    if (config.server && clientCount.incrementAndGet() >= config.numClients) {
-                                        stats.clientsStarted();
-                                    }
-                                } else {
-                                    fromClient.close();
+                    executorService.submit(() -> {
+                        try {
+                            DataInputStream dis = new DataInputStream(SocketChannelStream.in(fromClient));
+                            String header = dis.readUTF();
+                            if (header.equals("Protocol:" + handler.getName())) {
+                                handler.handle(fromClient.socket(), new HashMap<>(), serverListener)
+                                        .get();
+                                if (config.server && clientCount.incrementAndGet() >= config.numClients) {
+                                    stats.clientsStarted();
                                 }
-                            } catch (IOException e) {
-                                e.printStackTrace(System.err);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            } catch (ExecutionException e) {
-                                e.printStackTrace();
+                            } else {
+                                fromClient.close();
                             }
+                        } catch (IOException e) {
+                            e.printStackTrace(System.err);
+                        } catch (InterruptedException | ExecutionException e) {
+                            e.printStackTrace();
                         }
                     });
                     acceptorHub.addInterestAccept(selectionKey);
@@ -911,9 +891,9 @@ public class HandlerLoopbackLoadStress {
             SocketAddress localAddress;
             try {
                 localAddress = serverSocketChannel.getLocalAddress();
-                addr.set(localAddress);
+                addr.complete(localAddress);
             } catch (IOException e) {
-                addr.setException(e);
+                addr.completeExceptionally(e);
                 return;
             }
             try {
@@ -921,7 +901,7 @@ public class HandlerLoopbackLoadStress {
             } catch (Exception e) {
                 // ignore
             }
-            registered.set(null);
+            registered.complete(null);
         }
 
         @Override

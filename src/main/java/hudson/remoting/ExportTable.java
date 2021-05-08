@@ -40,8 +40,6 @@ import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
 import javax.annotation.CheckForNull;
-import javax.annotation.CheckReturnValue;
-import javax.annotation.meta.When;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -51,13 +49,13 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @author Kohsuke Kawaguchi
  */
 final class ExportTable {
-    private final Map<Integer,Entry<?>> table = new HashMap<Integer,Entry<?>>();
-    private final Map<Object,Entry<?>> reverse = new HashMap<Object,Entry<?>>();
+    private final Map<Integer,Entry<?>> table = new HashMap<>();
+    private final Map<Object,Entry<?>> reverse = new HashMap<>();
     /**
      * {@link ExportList}s which are actively recording the current
      * export operation.
      */
-    private final ThreadLocal<ExportList> lists = new ThreadLocal<ExportList>();
+    private final ThreadLocal<ExportList> lists = new ThreadLocal<>();
 
     /**
      * For diagnosing problems like JENKINS-20707 where we seem to be unexporting too eagerly,
@@ -65,7 +63,7 @@ final class ExportTable {
      *
      * New entries are added to the end, and older ones are removed from the beginning.
      */
-    private final List<Entry<?>> unexportLog = new LinkedList<Entry<?>>();
+    private final List<Entry<?>> unexportLog = new LinkedList<>();
 
     /**
      * Information about one exported object.
@@ -83,7 +81,7 @@ final class ExportTable {
         /**
          * Where was this object first exported?
          */
-        @Nonnull
+        @CheckForNull
         final CreatedAt allocationTrace;
         /**
          * Where was this object unexported?
@@ -97,21 +95,12 @@ final class ExportTable {
          */
         private int referenceCount;
 
-        //TODO: cleanup this mess?
-        /**
-         * This field can be set programmatically to track reference counting.
-         * Please note that value unset is not thread-safe.
-         */
-        @SuppressFBWarnings(value = "UWF_UNWRITTEN_FIELD", justification = "Old System script magic")
-        @CheckForNull
-        private ReferenceCountRecorder recorder;
-
         Entry(@Nonnull T object, Class<? super T>... interfaces) {
             this.id = iota++;
             this.interfaces = interfaces.clone();
             this.object = object;
             this.objectType = object.getClass().getName();
-            this.allocationTrace = new CreatedAt();
+            this.allocationTrace = EXPORT_TRACES ? new CreatedAt() : null;
 
             table.put(id,this);
             reverse.put(object,this);
@@ -119,8 +108,6 @@ final class ExportTable {
 
         void addRef() {
             referenceCount++;
-            if (recorder!=null)
-                recorder.onAddRef(null);
         }
 
         /**
@@ -152,18 +139,16 @@ final class ExportTable {
          *      in case it was requested from the other side of the channel.
          */
         void release(@CheckForNull Throwable callSite) {
-            if (recorder!=null)
-                recorder.onRelease(callSite);
-
             if(--referenceCount==0) {
                 table.remove(id);
                 reverse.remove(object);
 
                 object = null;
-                releaseTrace = new ReleasedAt(callSite);
-
+                if (EXPORT_TRACES) {
+                    releaseTrace = new ReleasedAt(callSite);
+                }
                 unexportLog.add(this);
-                while (unexportLog.size()>UNEXPORT_LOG_SIZE)
+                while (unexportLog.size() > UNEXPORT_LOG_SIZE)
                     unexportLog.remove(0);
             }
         }
@@ -184,12 +169,11 @@ final class ExportTable {
          */
         void dump(PrintWriter w) throws IOException {
             w.printf("#%d (ref.%d) : object=%s type=%s interfaces=%s%n", id, referenceCount, object, objectType, interfaceNames());
-            allocationTrace.printStackTrace(w);
-            if (releaseTrace!=null) {
-                releaseTrace.printStackTrace(w);
+            if (allocationTrace != null) {
+                allocationTrace.printStackTrace(w);
             }
-            if (recorder!=null) {
-                recorder.dump(w);
+            if (releaseTrace != null) {
+                releaseTrace.printStackTrace(w);
             }
         }
 
@@ -207,10 +191,6 @@ final class ExportTable {
 
         synchronized Class<? super T>[] getInterfaces() {
             return interfaces;
-        }
-
-        synchronized void setInterfaces(Class<? super T>[] interfaces) {
-            this.interfaces = interfaces;
         }
 
         synchronized void addInterface(Class<? super T> clazz) {
@@ -233,27 +213,10 @@ final class ExportTable {
          *      Optional location that indicates where the actual call site was that triggered the activity,
          *      in case it was requested from the other side of the channel.
          */
-        @SuppressWarnings("ResultOfMethodCallIgnored")
         Source(@CheckForNull Throwable callSite) {
             super(callSite);
-            updateOurStackTraceCache();
         }
 
-        // TODO: We export the objects frequently, The current approach ALWAYS leads
-        // to creation of two Stacktrace arrays in the memory: the original and the cloned one
-        // Throwable API. Throwable API allows to workaround it only by using a heavy printStackTrace() method.
-        // Approach #1: Maybe a manual implementation of getOurStackTrace() and local storage is preferable.
-        // Approach #2: Consider disabling this logic by default
-        /**
-         * Update the internal stacktrace cache.
-         * Forces the computation of the stack trace in a Java friendly data structure,
-         * so that the call stack can be seen from the heap dump after the fact.
-         * @return Cloned version of the inner cache.
-         */
-        @CheckReturnValue(when = When.NEVER)
-        protected final StackTraceElement[] updateOurStackTraceCache() {
-            return getStackTrace();
-        }
     }
 
     static class CreatedAt extends Source {
@@ -332,7 +295,7 @@ final class ExportTable {
      * Exports the given object.
      *
      * <p>
-     * Until the object is {@link #unexport(Object,Throwable) unexported}, it will
+     * Until the object is unexported, it will
      * not be subject to GC.
      *
      * @return
@@ -360,9 +323,9 @@ final class ExportTable {
     synchronized <T> int export(@Nonnull Class<T> clazz, @CheckForNull T t, boolean notifyListener) {
         if(t==null)    return 0;   // bootstrap classloader
 
-        Entry e = reverse.get(t);
+        Entry<T> e = (Entry<T>) reverse.get(t);
         if (e == null) {
-            e = new Entry<T>(t, clazz);
+            e = new Entry<>(t, clazz);
         } else {
             e.addInterface(clazz);
         }
@@ -432,7 +395,7 @@ final class ExportTable {
     void abort(@CheckForNull Throwable e) {
         List<Entry<?>> values;
         synchronized (this) {
-            values = new ArrayList<Entry<?>>(table.values());
+            values = new ArrayList<>(table.values());
         }
         for (Entry<?> v : values) {
             if (v.object instanceof ErrorPropagatingOutputStream) {
@@ -464,8 +427,10 @@ final class ExportTable {
 
         if (!unexportLog.isEmpty()) {
             for (Entry<?> e : unexportLog) {
-                if (e.id==id)
-                    cause = new Exception("Object was recently deallocated\n"+Util.indent(e.dump()), e.releaseTrace);
+                if (e.id==id) {
+                    cause = new Exception("Object was recently deallocated\n" + Util.indent(e.dump()), e.releaseTrace);
+                    break;
+                }
             }
             if (cause==null) {
                 // If there is no cause available, create an artificial cause and use the last unexport entry as an estimated release time if possible
@@ -479,26 +444,11 @@ final class ExportTable {
     }
 
     /**
-     * Removes the exported object from the table.
-     * @param t Object to be unexported. {@code null} instances will be ignored.
-     * @param callSite Stacktrace of the invocation source
-     */
-    synchronized void unexport(@CheckForNull Object t, Throwable callSite) {
-        if(t==null)     return;
-        Entry<?> e = reverse.get(t);
-        if(e==null) {
-            LOGGER.log(SEVERE, "Trying to unexport an object that's not exported: "+t);
-            return;
-        }
-        e.release(callSite);
-    }
-
-    /**
      * Removes the exported object for the specified oid from the table.
      * Logs error if the object has been already unexported.
      */
-    void unexportByOid(Integer oid, Throwable callSite) {
-        unexportByOid(oid, callSite, false);
+    void unexportByOid(Integer oid) {
+        unexportByOid(oid, null, false);
     }
 
     /**
@@ -540,6 +490,8 @@ final class ExportTable {
      * @since 2.40
      */
     public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName()+".unexportLogSize",1024);
+
+    static boolean EXPORT_TRACES = Boolean.getBoolean(ExportTable.class.getName() + ".exportTraces");
 
     private static final Logger LOGGER = Logger.getLogger(ExportTable.class.getName());
 }

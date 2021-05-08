@@ -46,14 +46,12 @@ public class GUI {
     public static void setUILookAndFeel() {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (InstantiationException e) {
-        } catch (ClassNotFoundException e) {
-        } catch (UnsupportedLookAndFeelException e) {
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | ClassNotFoundException | UnsupportedLookAndFeelException | IllegalAccessException e) {
+            // Ignore error if we can't set look and feel.
         }
     }
 
-    // Set up contraints so that the user supplied component and the
+    // Set up constraints so that the user supplied component and the
     // background image label overlap and resize identically
     private static final GridBagConstraints gbc;
 

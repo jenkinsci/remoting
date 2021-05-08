@@ -26,18 +26,15 @@ public class ForkRunner implements ChannelRunner {
     protected List<String> buildCommandLine() {
         String cp = getClasspath();
 
-        System.out.println(cp);
-        List<String> r = new ArrayList<String>();
+        List<String> r = new ArrayList<>();
         r.add("-cp");
         r.add(cp);
         r.add(Launcher.class.getName());
         return r;
     }
 
+    @Override
     public Channel start() throws Exception {
-        System.out.println("forking a new process");
-        // proc = Runtime.getRuntime().exec("java -Xdebug -Xrunjdwp:transport=dt_socket,server=y,address=8000 hudson.remoting.Launcher");
-
         List<String> cmds = buildCommandLine();
         cmds.add(0,"java");
         proc = Runtime.getRuntime().exec(cmds.toArray(new String[0]));
@@ -47,29 +44,23 @@ public class ForkRunner implements ChannelRunner {
 
         executor = Executors.newCachedThreadPool();
         OutputStream out = proc.getOutputStream();
-        if (RECORD_OUTPUT) {
-            File f = File.createTempFile("remoting",".log");
-            System.out.println("Recording to "+f);
-            out = new TeeOutputStream(out,new FileOutputStream(f));
-        }
         return new ChannelBuilder("north", executor).build(proc.getInputStream(), out);
     }
 
+    @Override
     public void stop(Channel channel) throws Exception {
         channel.close();
         channel.join(10*1000);
-
-//            System.out.println("north completed");
 
         executor.shutdown();
 
         copier.join();
         int r = proc.waitFor();
-//            System.out.println("south completed");
 
         assertEquals("exit code should have been 0", 0, r);
     }
 
+    @Override
     public String getName() {
         return "fork";
     }
@@ -85,8 +76,4 @@ public class ForkRunner implements ChannelRunner {
         return buf.toString();
     }
 
-    /**
-     * Record the communication to the remote node. Used during debugging.
-     */
-    private static boolean RECORD_OUTPUT = false;
 }

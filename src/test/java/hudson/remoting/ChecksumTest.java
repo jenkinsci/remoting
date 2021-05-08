@@ -10,11 +10,9 @@ import org.junit.rules.TemporaryFolder;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 
 /**

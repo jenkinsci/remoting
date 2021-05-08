@@ -44,9 +44,11 @@ public class SocketClientMain {
             this.arg = arg;
         }
 
+        @Override
         public String call() throws Exception {
             LOGGER.info("Echoing back " + arg);
             return arg;
         }
+        private static final long serialVersionUID = 1L;
     }
 }

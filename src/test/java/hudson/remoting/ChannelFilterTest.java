@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 public class ChannelFilterTest extends RmiTestBase {
     public void testFilter() throws Exception {
         channel.addLocalExecutionInterceptor(new CallableDecorator() {
+            @Override
             public <V> V call(Callable<V> callable) throws Exception {
                 Object old = STORE.get();
                 STORE.set("x");
@@ -21,28 +22,26 @@ public class ChannelFilterTest extends RmiTestBase {
             }
         });
 
-        Callable<Object> t = new Callable<Object>() {
-            public Object call() throws Exception {
-                return STORE.get();
-            }
-        };
-        final Callable c = channel.export(Callable.class, t);
+        Callable<Object> t = STORE::get;
+        final Callable<Object> c = channel.export(Callable.class, t);
         
         assertEquals("x", channel.call(new CallableCallable(c)));
     }
     
-    private final ThreadLocal<Object> STORE = new ThreadLocal<Object>();
+    private final ThreadLocal<Object> STORE = new ThreadLocal<>();
 
     private static class CallableCallable extends CallableBase<Object, Exception> {
-        private final Callable c;
+        private final Callable<Object> c;
 
-        public CallableCallable(Callable c) {
+        public CallableCallable(Callable<Object> c) {
             this.c = c;
         }
 
+        @Override
         public Object call() throws Exception {
            return c.call();
         }
+        private static final long serialVersionUID = 1L;
     }
 
     public void testBlacklisting() throws Exception {
@@ -88,14 +87,18 @@ public class ChannelFilterTest extends RmiTestBase {
     private interface ShadyBusiness {}
 
     static class GunImporter extends CallableBase<String,IOException> implements ShadyBusiness {
+        @Override
         public String call() {
             return "gun";
         }
+        private static final long serialVersionUID = 1L;
     }
 
     static class ReverseGunImporter extends CallableBase<String, Exception> {
+        @Override
         public String call() throws Exception {
             return Channel.currentOrFail().call(new GunImporter());
         }
+        private static final long serialVersionUID = 1L;
     }
 }

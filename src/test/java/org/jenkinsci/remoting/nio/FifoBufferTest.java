@@ -6,7 +6,6 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -111,15 +110,15 @@ public class FifoBufferTest extends Assert {
         assertEquals("6789", new String(d,0,4));
     }
 
-    private InputStream bs(String s) throws UnsupportedEncodingException {
+    private InputStream bs(String s) {
         return new ByteArrayInputStream(b(s));
     }
 
-    private byte[] b(String s) throws UnsupportedEncodingException {
+    private byte[] b(String s) {
         return s.getBytes(StandardCharsets.UTF_8);
     }
 
-    private ByteBuffer bb(String s) throws UnsupportedEncodingException {
+    private ByteBuffer bb(String s) {
         return ByteBuffer.wrap(b(s));
     }
 
@@ -131,5 +130,4 @@ public class FifoBufferTest extends Assert {
      */
     static final String TEN = "0123456789";
 
-    static final String SIXTEEN = "0123456789abcdef";
 }

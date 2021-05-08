@@ -67,12 +67,12 @@ public class NioChannelHub implements Runnable, Closeable {
      * Used to schedule work that can be only done synchronously with the {@link Selector#select()} call.
      */
     private final Queue<Callable<Void,IOException>> selectorTasks
-            = new ConcurrentLinkedQueue<Callable<Void, IOException>>();
+            = new ConcurrentLinkedQueue<>();
 
     /**
      * {@link ExecutorService} that processes command parsing and executions.
      */
-    private ExecutorService commandProcessor;
+    private final ExecutorService commandProcessor;
 
     /**
      * Counts the # of select loops. Ocassionally useful for diagnosing whether the selector
@@ -216,7 +216,7 @@ public class NioChannelHub implements Runnable, Closeable {
             if (receiver == null) {
                 throw new IllegalStateException("Aborting connection before it has been actually set up");
             }
-            receiver.terminate((IOException) new IOException("Connection aborted: "+this, e));
+            receiver.terminate(new IOException("Connection aborted: "+this, e));
         }
 
         @Override
@@ -233,6 +233,7 @@ public class NioChannelHub implements Runnable, Closeable {
                     pos+=frame;
                 } while(hasMore);
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw (InterruptedIOException)new InterruptedIOException().initCause(e);
             }
         }
@@ -480,6 +481,7 @@ public class NioChannelHub implements Runnable, Closeable {
                                 startedLock.wait();
                         }
                     } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                         throw (InterruptedIOException)new InterruptedIOException().initCause(e);
                     }
 
@@ -549,6 +551,7 @@ public class NioChannelHub implements Runnable, Closeable {
     /**
      * Shuts down the selector thread and aborts all
      */
+    @Override
     public void close() throws IOException {
         selector.close();
     }
@@ -558,6 +561,7 @@ public class NioChannelHub implements Runnable, Closeable {
      *
      * This method returns when {@link #close()} is called and the selector is shut down.
      */
+    @Override
     public void run() {
         synchronized (startedLock) {
             started = true;
@@ -631,15 +635,12 @@ public class NioChannelHub implements Runnable, Closeable {
                                         } while (!last);
                                         assert packetSize==0;
                                         if (packet.length > 0) {
-                                            ExecutorServiceUtils.submitAsync(t.swimLane, new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    final ByteArrayReceiver receiver = t.receiver;
-                                                    if (receiver == null) {
-                                                        throw new IllegalStateException("NIO transport layer has not been set up yet");
-                                                    }
-                                                    receiver.handle(packet);
+                                            ExecutorServiceUtils.submitAsync(t.swimLane, () -> {
+                                                final ByteArrayReceiver receiver = t.receiver;
+                                                if (receiver == null) {
+                                                    throw new IllegalStateException("NIO transport layer has not been set up yet");
                                                 }
+                                                receiver.handle(packet);
                                             });
                                         }
                                         pos=0;
@@ -654,14 +655,11 @@ public class NioChannelHub implements Runnable, Closeable {
                                 }
                                 if (t.rb.isClosed()) {
                                     // EOF. process this synchronously with respect to packets waiting for handling in the queue
-                                    ExecutorServiceUtils.submitAsync(t.swimLane, new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            // if this EOF is unexpected, report an error.
-                                            if (!t.getChannel().isInClosed()) {
-                                                t.getChannel().terminate(new IOException("Unexpected EOF while receiving the data from the channel. "
-                                                        + "FIFO buffer has been already closed", t.rb.getCloseCause()));
-                                            }
+                                    ExecutorServiceUtils.submitAsync(t.swimLane, () -> {
+                                        // if this EOF is unexpected, report an error.
+                                        if (!t.getChannel().isInClosed()) {
+                                            t.getChannel().terminate(new IOException("Unexpected EOF while receiving the data from the channel. "
+                                                    + "FIFO buffer has been already closed", t.rb.getCloseCause()));
                                         }
                                     });
                                 }
@@ -702,12 +700,7 @@ public class NioChannelHub implements Runnable, Closeable {
             // end normally
             // TODO: what happens to all the registered ChannelPairs? don't we need to shut them down?
             whatKilledSelectorThread = e;
-        } catch (RuntimeException e) {
-            whatKilledSelectorThread = e;
-            LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
-            abortAll(e);
-            throw e;
-        } catch (Error e) {
+        } catch (RuntimeException | Error e) {
             whatKilledSelectorThread = e;
             LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
             abortAll(e);
@@ -729,7 +722,7 @@ public class NioChannelHub implements Runnable, Closeable {
 
     @SelectorThreadOnly
     private void abortAll(Throwable e) {
-        Set<NioTransport> pairs = new HashSet<NioTransport>();
+        Set<NioTransport> pairs = new HashSet<>();
         for (SelectionKey k : selector.keys())
             pairs.add((NioTransport)k.attachment());
         for (NioTransport p : pairs)

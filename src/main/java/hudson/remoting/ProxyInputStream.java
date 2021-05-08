@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -81,7 +82,7 @@ final class ProxyInputStream extends InputStream {
     }
 
     @Override
-    public int read(byte b[], int off, int len) throws IOException {
+    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
         try {
             Buffer buf = _read(len);
             if(buf.len==-1) return -1;
@@ -131,6 +132,7 @@ final class ProxyInputStream extends InputStream {
             this.len = len;
         }
 
+        @Override
         protected Buffer perform(Channel channel) throws IOException {
             InputStream in;
             try {
@@ -163,6 +165,7 @@ final class ProxyInputStream extends InputStream {
             this.oid = oid;
         }
 
+        @Override
         protected void execute(Channel channel) {
             final InputStream in = (InputStream) channel.getExportedObjectOrNull(oid);
             // EOF may be late to the party if we interrupt request, hence we do not fail for this command         
@@ -180,6 +183,7 @@ final class ProxyInputStream extends InputStream {
             }
         }
 
+        @Override
         public String toString() {
             return "ProxyInputStream.EOF("+oid+")";
         }

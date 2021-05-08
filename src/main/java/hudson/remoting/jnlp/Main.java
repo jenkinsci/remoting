@@ -59,7 +59,7 @@ import static java.util.logging.Level.WARNING;
  * Entry point to JNLP agent.
  *
  * <p>
- * See also <tt>slave-agent.jnlp.jelly</tt> in the core.
+ * See also <tt>jenkins-agent.jnlp.jelly</tt> in the core.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -79,6 +79,12 @@ public class Main {
     @Option(name="-url",
             usage="Specify the Jenkins root URLs to connect to.")
     public List<URL> urls = new ArrayList<>();
+
+    @Option(name="-webSocket",
+            usage="Make a WebSocket connection to Jenkins rather than using the TCP port.",
+            depends="-url",
+            forbids={"-direct", "-tunnel", "-credentials", "-proxyCredentials", "-cert", "-disableHttpsCertValidation", "-noKeepAlive"})
+    public boolean webSocket;
 
     @Option(name="-credentials",metaVar="USER:PASSWORD",
             usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
@@ -164,7 +170,6 @@ public class Main {
     @Option(name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
             depends = "-workDir")
-    @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     /**
@@ -218,7 +223,7 @@ public class Main {
      * Two mandatory parameters: secret key, and agent name.
      */
     @Argument
-    public List<String> args = new ArrayList<String>();
+    public List<String> args = new ArrayList<>();
 
     public static void main(String[] args) throws IOException, InterruptedException {
         try {
@@ -264,6 +269,12 @@ public class Main {
         if(m.urls.isEmpty() && m.directConnection == null) {
             throw new CmdLineException(p, "At least one -url option is required.", null);
         }
+        if (m.webSocket) {
+            assert !m.urls.isEmpty(); // depends="-url"
+            if (m.urls.size() > 1) {
+                throw new CmdLineException(p, "-webSocket supports only a single -url", null);
+            }
+        }
         m.main();
     }
 
@@ -288,6 +299,7 @@ public class Main {
         Engine engine = new Engine(
                 headlessMode ? new CuiListener() : new GuiListener(),
                 urls, args.get(0), agentName, directConnection, instanceIdentity, new HashSet<>(protocols));
+        engine.setWebSocket(webSocket);
         if(tunnel!=null)
             engine.setTunnel(tunnel);
         if(credentials!=null)
@@ -328,7 +340,7 @@ public class Main {
             } catch (CertificateException e) {
                 throw new IllegalStateException("Java platform specification mandates support for X.509", e);
             }
-            List<X509Certificate> certificates = new ArrayList<X509Certificate>(candidateCertificates.size());
+            List<X509Certificate> certificates = new ArrayList<>(candidateCertificates.size());
             for (String certOrAtFilename : candidateCertificates) {
                 certOrAtFilename = certOrAtFilename.trim();
                 byte[] cert;
@@ -343,12 +355,9 @@ public class Main {
                             // larger
                             // than 64kb we can revisit the upper bound.
                             cert = new byte[(int) length];
-                            FileInputStream fis = new FileInputStream(file);
                             final int read;
-                            try {
+                            try (FileInputStream fis = new FileInputStream(file)) {
                                 read = fis.read(cert);
-                            } finally {
-                                fis.close();
                             }
                             if (cert.length != read) {
                                 LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
@@ -357,7 +366,7 @@ public class Main {
                                 continue;
                             }
                         } catch (IOException e) {
-                            LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
+                            LOGGER.log(Level.WARNING, e, () -> "Could not read certificate from " + file);
                             continue;
                         }
                     } else {
@@ -406,14 +415,17 @@ public class Main {
             LOGGER.info("Jenkins agent is running in headless mode.");
         }
 
+        @Override
         public void status(String msg, Throwable t) {
             LOGGER.log(INFO,msg,t);
         }
 
+        @Override
         public void status(String msg) {
             status(msg,null);
         }
 
+        @Override
         @SuppressFBWarnings(value = "DM_EXIT",
                 justification = "Yes, we really want to exit in the case of severe error")
         public void error(Throwable t) {
@@ -421,9 +433,11 @@ public class Main {
             System.exit(-1);
         }
 
+        @Override
         public void onDisconnect() {
         }
 
+        @Override
         public void onReconnect() {
         }
     }

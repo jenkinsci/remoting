@@ -28,7 +28,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
+import java.util.Objects;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -58,10 +58,6 @@ public final class KeyUtils {
         if (key1 == null || key2 == null) {
             return false;
         }
-        if (key1.equals(key2)) {
-            // in the event that the key actually has implemented an equals() method, let's use that
-            return true;
-        }
         if (!equals(key1.getAlgorithm(), key1.getAlgorithm())) {
             return false;
         }
@@ -76,7 +72,7 @@ public final class KeyUtils {
             // If both do not support encoding, while they may be the same, we have no way of knowing.
             return false;
         }
-        return Arrays.equals(key1.getEncoded(), key2.getEncoded());
+        return MessageDigest.isEqual(key1.getEncoded(), key2.getEncoded());
     }
 
     /**
@@ -88,7 +84,7 @@ public final class KeyUtils {
      * @return {@code true} if the two strings are equal.
      */
     private static boolean equals(String str1, String str2) {
-        return str1 == null ? str2 == null : str1.equals(str2);
+        return Objects.equals(str1, str2);
     }
 
     /**
@@ -99,7 +95,6 @@ public final class KeyUtils {
      */
     @Nonnull
     @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_MD5", justification = "Used for fingerprinting, not security.")
-    @Deprecated
     public static String fingerprint(@CheckForNull Key key) {
         if (key == null) {
             return "null";

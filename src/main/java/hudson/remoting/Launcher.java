@@ -48,7 +48,6 @@ import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -93,6 +92,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -118,9 +118,9 @@ public class Launcher {
      * If specified, this option overrides the default destination within {@link #workDir}.
      * If both this options and {@link #workDir} is not set, the log will not be generated.
      */
-    @Option(name="-agentLog", aliases = {"-slaveLog"}, usage="Local agent error log destination (overrides workDir)")
+    @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
     @CheckForNull
-    public File slaveLog = null;
+    public File agentLog = null;
 
     @Option(name="-text",usage="encode communication with the master with base64. " +
             "Useful for running agent over 8-bit unsafe protocol like telnet")
@@ -132,10 +132,10 @@ public class Launcher {
     @Option(name="-jnlpUrl",usage="instead of talking to the master via stdin/stdout, " +
             "emulate a JNLP client by making a TCP connection to the master. " +
             "Connection parameters are obtained by parsing the JNLP file.")
-    public URL slaveJnlpURL = null;
+    public URL agentJnlpURL = null;
 
     @Option(name="-jnlpCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
-    public String slaveJnlpCredentials = null;
+    public String agentJnlpCredentials = null;
 
     @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret to use instead of -jnlpCredentials.")
     public String secret;
@@ -268,7 +268,6 @@ public class Launcher {
     @Option(name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
             depends = "-workDir")
-    @Nonnull
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
     
     /**
@@ -320,13 +319,13 @@ public class Launcher {
         // On the other hand, in such case there is no need to invoke WorkDirManager and handle the double initialization logic
         final WorkDirManager workDirManager = WorkDirManager.getInstance();
         final Path internalDirPath = workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
-        if (slaveLog != null) {
+        if (agentLog != null) {
             workDirManager.disable(WorkDirManager.DirType.LOGS_DIR);
         }
         if (loggingConfigFilePath != null) {
             workDirManager.setLoggingConfig(loggingConfigFilePath);
         }
-        workDirManager.setupLogging(internalDirPath, slaveLog != null ? PathUtils.fileToPath(slaveLog) : null);
+        workDirManager.setupLogging(internalDirPath, agentLog != null ? PathUtils.fileToPath(agentLog) : null);
 
         if(auth!=null) {
             final int idx = auth.indexOf(':');
@@ -343,7 +342,7 @@ public class Launcher {
         if(connectionTarget!=null) {
             runAsTcpClient();
         } else
-        if(slaveJnlpURL!=null) {
+        if(agentJnlpURL !=null) {
             List<String> jnlpArgs = parseJnlpArguments();
             if (jarCache != null) {
               jnlpArgs.add("-jar-cache");
@@ -355,9 +354,9 @@ public class Launcher {
             if (this.noKeepAlive) {
                 jnlpArgs.add("-noKeepAlive");
             }
-            if (slaveLog != null) {
+            if (agentLog != null) {
                 jnlpArgs.add("-agentLog");
-                jnlpArgs.add(slaveLog.getPath());
+                jnlpArgs.add(agentLog.getPath());
             }
             if (loggingConfigFilePath != null) {
                 jnlpArgs.add("-loggingConfig");
@@ -384,9 +383,9 @@ public class Launcher {
                 jnlpArgs.add("-disableHttpsCertValidation");
             }
             try {
-                hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[jnlpArgs.size()]));
+                hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[0]));
             } catch (CmdLineException e) {
-                System.err.println("JNLP file "+slaveJnlpURL+" has invalid arguments: "+jnlpArgs);
+                System.err.println("JNLP file "+ agentJnlpURL +" has invalid arguments: "+jnlpArgs);
                 System.err.println("Most likely a configuration error in the master");
                 System.err.println(e.getMessage());
                 System.exit(1);
@@ -426,13 +425,11 @@ public class Launcher {
                     if (file.isFile()
                             && (length = file.length()) < 65536
                             && length > "-----BEGIN CERTIFICATE-----\n-----END CERTIFICATE-----".length()) {
-                        FileInputStream fis = null;
-                        try {
+                        try (FileInputStream fis = new FileInputStream(file)) {
                             // we do basic size validation, if there are x509 certificates that have a PEM encoding
                             // larger
                             // than 64kb we can revisit the upper bound.
                             cert = new byte[(int) length];
-                            fis = new FileInputStream(file);
                                 int read = fis.read(cert);
                                 if (cert.length != read) {
                                     LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
@@ -441,10 +438,8 @@ public class Launcher {
                                     continue;
                                 }
                         } catch (IOException e) {
-                            LOGGER.log(Level.WARNING, "Could not read certificate from " + file, e);
+                            LOGGER.log(Level.WARNING, e, () -> "Could not read certificate from " + file);
                             continue;
-                        } finally {
-                            IOUtils.closeQuietly(fis);
                         }
                     } else {
                         if (file.isFile()) {
@@ -489,19 +484,19 @@ public class Launcher {
     @SuppressFBWarnings(value = {"CIPHER_INTEGRITY", "STATIC_IV"}, justification = "Integrity not needed here. IV used for decryption only, loaded from encryptor.")
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
         if (secret != null) {
-            slaveJnlpURL = new URL(slaveJnlpURL + "?encrypt=true");
-            if (slaveJnlpCredentials != null) {
+            agentJnlpURL = new URL(agentJnlpURL + "?encrypt=true");
+            if (agentJnlpCredentials != null) {
                 throw new IOException("-jnlpCredentials and -secret are mutually exclusive");
             }
         }
         while (true) {
             URLConnection con = null;
             try {
-                con = Util.openURLConnection(slaveJnlpURL);
+                con = Util.openURLConnection(agentJnlpURL);
                 if (con instanceof HttpURLConnection) {
                     HttpURLConnection http = (HttpURLConnection) con;
-                    if  (slaveJnlpCredentials != null) {
-                        String userPassword = slaveJnlpCredentials;
+                    if  (agentJnlpCredentials != null) {
+                        String userPassword = agentJnlpCredentials;
                         String encoding = Base64.getEncoder().encodeToString(userPassword.getBytes(StandardCharsets.UTF_8));
                         http.setRequestProperty("Authorization", "Basic " + encoding);
                     }
@@ -516,7 +511,7 @@ public class Launcher {
                     HttpURLConnection http = (HttpURLConnection) con;
                     if(http.getResponseCode()>=400)
                         // got the error code. report that (such as 401)
-                        throw new IOException("Failed to load "+slaveJnlpURL+": "+http.getResponseCode()+" "+http.getResponseMessage());
+                        throw new IOException("Failed to load "+ agentJnlpURL +": "+http.getResponseCode()+" "+http.getResponseMessage());
                 }
 
                 Document dom;
@@ -543,24 +538,22 @@ public class Launcher {
                 if(contentType==null || !contentType.startsWith(expectedContentType)) {
                     // load DOM anyway, but if it fails to parse, that's probably because this is not an XML file to begin with.
                     try {
-                        dom = loadDom(slaveJnlpURL, input);
-                    } catch (SAXException e) {
-                        throw new IOException(slaveJnlpURL+" doesn't look like a JNLP file; content type was "+contentType);
-                    } catch (IOException e) {
-                        throw new IOException(slaveJnlpURL+" doesn't look like a JNLP file; content type was "+contentType);
+                        dom = loadDom(input);
+                    } catch (SAXException | IOException e) {
+                        throw new IOException(agentJnlpURL +" doesn't look like a JNLP file; content type was "+contentType);
                     }
                 } else {
-                    dom = loadDom(slaveJnlpURL, input);
+                    dom = loadDom(input);
                 }
 
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
                 NodeList argElements = dom.getElementsByTagName("argument");
-                List<String> jnlpArgs = new ArrayList<String>();
+                List<String> jnlpArgs = new ArrayList<>();
                 for( int i=0; i<argElements.getLength(); i++ )
                         jnlpArgs.add(argElements.item(i).getTextContent());
-                if (slaveJnlpCredentials != null) {
+                if (agentJnlpCredentials != null) {
                     jnlpArgs.add("-credentials");
-                    jnlpArgs.add(slaveJnlpCredentials);
+                    jnlpArgs.add(agentJnlpCredentials);
                 }
                 // force a headless mode
                 jnlpArgs.add("-headless");
@@ -568,18 +561,17 @@ public class Launcher {
             } catch (SSLHandshakeException e) {
                 if(e.getMessage().contains("PKIX path building failed")) {
                     // invalid SSL certificate. One reason this happens is when the certificate is self-signed
-                    IOException x = new IOException("Failed to validate a server certificate. If you are using a self-signed certificate, you can use the -noCertificateCheck option to bypass this check.", e);
-                    throw x;
+                    throw new IOException("Failed to validate a server certificate. If you are using a self-signed certificate, you can use the -noCertificateCheck option to bypass this check.", e);
                 } else
                     throw e;
             } catch (IOException e) {
                 if (this.noReconnect)
-                    throw new IOException("Failing to obtain " + slaveJnlpURL, e);
+                    throw new IOException("Failed to obtain " + agentJnlpURL, e);
 
-                System.err.println("Failing to obtain "+slaveJnlpURL);
+                System.err.println("Failed to obtain "+ agentJnlpURL);
                 e.printStackTrace(System.err);
                 System.err.println("Waiting 10 seconds before retry");
-                Thread.sleep(10*1000);
+                TimeUnit.SECONDS.sleep(10);
                 // retry
             } finally {
                 if (con instanceof HttpURLConnection) {
@@ -607,11 +599,11 @@ public class Launcher {
         return r;
     }
 
-    private static Document loadDom(URL agentJnlpURL, InputStream is) throws ParserConfigurationException, SAXException, IOException {
+    static Document loadDom(InputStream is) throws ParserConfigurationException, SAXException, IOException {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+        dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
         DocumentBuilder db = dbf.newDocumentBuilder();
-        return db.parse(is, agentJnlpURL.toExternalForm());
+        return db.parse(is);
     }
 
     /**
@@ -621,25 +613,19 @@ public class Launcher {
     @Deprecated
     @SuppressFBWarnings(value = {"UNENCRYPTED_SERVER_SOCKET", "DM_DEFAULT_ENCODING"}, justification = "This is an old, insecure mechanism that should be removed. port number file should be in platform default encoding.")
     private void runAsTcpServer() throws IOException, InterruptedException {
-        // if no one connects for too long, assume something went wrong
-        // and avoid hanging forever
-        ServerSocket ss = new ServerSocket(0,1);
-        ss.setSoTimeout(30*1000);
-
-        // write a port file to report the port number
-        FileWriter w = new FileWriter(tcpPortFile);
-        try {
-            w.write(String.valueOf(ss.getLocalPort()));
-        } finally {
-            w.close();
-        }
-
         // accept just one connection and that's it.
         // when we are done, remove the port file to avoid stale port file
         Socket s;
-        try {
+        try (ServerSocket ss = new ServerSocket(0,1)) {
+            // if no one connects for too long, assume something went wrong
+            // and avoid hanging forever
+            ss.setSoTimeout(30*1000);
+
+            // write a port file to report the port number
+            try (FileWriter w = new FileWriter(tcpPortFile)) {
+                w.write(String.valueOf(ss.getLocalPort()));
+            }
             s = ss.accept();
-            ss.close();
         } finally {
             boolean deleted = tcpPortFile.delete();
             if (!deleted) {

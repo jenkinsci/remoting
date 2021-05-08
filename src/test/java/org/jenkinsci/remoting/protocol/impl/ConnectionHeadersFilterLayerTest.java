@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import com.google.common.util.concurrent.SettableFuture;
+import java.util.concurrent.CompletableFuture;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
@@ -56,7 +56,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 @RunWith(Theories.class)
@@ -90,7 +90,7 @@ public class ConnectionHeadersFilterLayerTest {
     }
 
     @After
-    public void tearDownPipe() throws Exception {
+    public void tearDownPipe() {
         IOUtils.closeQuietly(clientToServer.sink());
         IOUtils.closeQuietly(clientToServer.source());
         IOUtils.closeQuietly(serverToClient.sink());
@@ -103,27 +103,14 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
-
 
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
@@ -133,7 +120,7 @@ public class ConnectionHeadersFilterLayerTest {
         server.get().send(data);
         client.get().awaitByteContent(is(expected));
         assertThat(client.get().asByteArray(), is(expected));
-        server.get().close();
+        server.get().close(null);
         client.get().awaitClose();
     }
 
@@ -143,29 +130,17 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new PermanentConnectionRefusalException("Go away");
-                                    }
+                                headers -> {
+                                    throw new PermanentConnectionRefusalException("Go away");
                                 }))
                         .build(new IOBufferMatcherLayer());
-
 
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
-
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(), instanceOf(PermanentConnectionRefusalException.class));
@@ -179,29 +154,17 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
-
 
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new PermanentConnectionRefusalException("Go away");
-                                    }
+                                headers -> {
+                                    throw new PermanentConnectionRefusalException("Go away");
                                 }))
                         .build(new IOBufferMatcherLayer());
-
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(), instanceOf(PermanentConnectionRefusalException.class));
@@ -215,29 +178,19 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new PermanentConnectionRefusalException("Go away");
-                                    }
+                                headers -> {
+                                    throw new PermanentConnectionRefusalException("Go away");
                                 }))
                         .build(new IOBufferMatcherLayer());
-
 
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new PermanentConnectionRefusalException("Go away");
-                                    }
+                                headers -> {
+                                    throw new PermanentConnectionRefusalException("Go away");
                                 }))
                         .build(new IOBufferMatcherLayer());
-
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(),
@@ -255,29 +208,17 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new ConnectionRefusalException("Go away");
-                                    }
+                                headers -> {
+                                    throw new ConnectionRefusalException("Go away");
                                 }))
                         .build(new IOBufferMatcherLayer());
-
 
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
-
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(),
@@ -294,29 +235,17 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new IOBufferMatcherLayer());
-
 
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new ConnectionRefusalException("Go away");
-                                    }
+                                headers -> {
+                                    throw new ConnectionRefusalException("Go away");
                                 }))
                         .build(new IOBufferMatcherLayer());
-
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(),
@@ -333,29 +262,19 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new ConnectionRefusalException("Go away");
-                                    }
+                                headers -> {
+                                    throw new ConnectionRefusalException("Go away");
                                 }))
                         .build(new IOBufferMatcherLayer());
-
 
         ProtocolStack<IOBufferMatcher> server =
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        throw new ConnectionRefusalException("Go away");
-                                    }
+                                headers -> {
+                                    throw new ConnectionRefusalException("Go away");
                                 }))
                         .build(new IOBufferMatcherLayer());
-
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(),
@@ -370,8 +289,8 @@ public class ConnectionHeadersFilterLayerTest {
     @Theory
     public void headerExchange(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
         Random entropy = new Random();
-        final SettableFuture<Map<String, String>> serverActualHeaders = SettableFuture.create();
-        Map<String, String> clientExpectedHeaders = new HashMap<String, String>();
+        final CompletableFuture<Map<String, String>> serverActualHeaders = new CompletableFuture<>();
+        Map<String, String> clientExpectedHeaders = new HashMap<>();
         for (int i = 1 + entropy.nextInt(50); i > 0; i--) {
             clientExpectedHeaders.put(Long.toHexString(entropy.nextLong()), Long.toHexString(entropy.nextLong()));
         }
@@ -379,17 +298,11 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders,
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        serverActualHeaders.set(headers);
-                                    }
-                                }))
+                                serverActualHeaders::complete))
                         .build(new IOBufferMatcherLayer());
 
-        final SettableFuture<Map<String, String>> clientActualHeaders = SettableFuture.create();
-        Map<String, String> serverExpectedHeaders = new HashMap<String, String>();
+        final CompletableFuture<Map<String, String>> clientActualHeaders = new CompletableFuture<>();
+        Map<String, String> serverExpectedHeaders = new HashMap<>();
         for (int i = 1 + entropy.nextInt(50); i > 0; i--) {
             serverExpectedHeaders.put(Long.toHexString(entropy.nextLong()), Long.toHexString(entropy.nextLong()));
         }
@@ -397,13 +310,7 @@ public class ConnectionHeadersFilterLayerTest {
                 ProtocolStack
                         .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new ConnectionHeadersFilterLayer(serverExpectedHeaders,
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-                                        clientActualHeaders.set(headers);
-                                    }
-                                }))
+                                clientActualHeaders::complete))
                         .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
@@ -420,8 +327,8 @@ public class ConnectionHeadersFilterLayerTest {
 
     @Theory
     public void tooBigHeader(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        final SettableFuture<Map<String, String>> serverActualHeaders = SettableFuture.create();
-        Map<String, String> clientExpectedHeaders = new HashMap<String, String>(64);
+        final CompletableFuture<Map<String, String>> serverActualHeaders = new CompletableFuture<>();
+        Map<String, String> clientExpectedHeaders = new HashMap<>(64);
         StringBuilder bigString = new StringBuilder(8*128);
         for (int i = 0; i < 128; i++) {
             bigString.append("Too Big!");
@@ -433,13 +340,7 @@ public class ConnectionHeadersFilterLayerTest {
             ProtocolStack
                     .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                     .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders,
-                            new ConnectionHeadersFilterLayer.Listener() {
-                                @Override
-                                public void onReceiveHeaders(Map<String, String> headers)
-                                        throws ConnectionRefusalException {
-                                    serverActualHeaders.set(headers);
-                                }
-                            }))
+                            serverActualHeaders::complete))
                     .build(new IOBufferMatcherLayer());
             fail("IllegalArgumentException expected");
         } catch (IllegalArgumentException e) {

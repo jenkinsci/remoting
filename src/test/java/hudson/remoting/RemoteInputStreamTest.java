@@ -8,13 +8,13 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import static hudson.remoting.RemoteInputStream.Flag.GREEDY;
 import static hudson.remoting.RemoteInputStream.Flag.NOT_GREEDY;
 import static java.util.Arrays.asList;
+import static org.junit.Assert.assertArrayEquals;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -26,7 +26,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
     public void testNonGreedy() throws Exception {
         ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
         channel.call(new Read(new RemoteInputStream(in, NOT_GREEDY),toBytes("1234")));
-        assertTrue(Arrays.equals(readFully(in, 4), "5678".getBytes()));
+        assertArrayEquals(readFully(in, 4), "5678".getBytes());
     }
 
     /**
@@ -58,10 +58,12 @@ public class RemoteInputStreamTest extends RmiTestBase {
             this.expected = expected;
         }
 
+        @Override
         public Object call() throws IOException {
-            assertTrue(Arrays.equals(readFully(in,expected.length),expected));
+            assertArrayEquals(readFully(in, expected.length), expected);
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
 
@@ -83,12 +85,14 @@ public class RemoteInputStreamTest extends RmiTestBase {
             this.i = i;
         }
 
+        @Override
         public Void call() throws IOException {
             assertEquals(readFully(i, 4), toBytes("1234"));
             assertEquals(readFully(i, 4), toBytes("5678"));
             assertEquals(i.read(),-1);
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
 
 
@@ -107,7 +111,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
         }
     }
 
-    private static class SkyIsFalling extends IOException {}
+    private static class SkyIsFalling extends IOException {private static final long serialVersionUID = 1L;}
 
     private static class TestErrorPropagation extends CallableBase<Void, IOException> {
         private final RemoteInputStream i;
@@ -116,6 +120,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
             this.i = i;
         }
 
+        @Override
         public Void call() throws IOException {
             assertEquals(readFully(i, 4), toBytes("1234"));
             try {
@@ -131,6 +136,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
                 throw e;
             }
         }
+        private static final long serialVersionUID = 1L;
     }
 
 
@@ -140,17 +146,17 @@ public class RemoteInputStreamTest extends RmiTestBase {
         return actual;
     }
 
-    private static void assertEquals(byte[] b1, byte[] b2) throws IOException {
+    private static void assertEquals(byte[] b1, byte[] b2) {
         if (!Arrays.equals(b1,b2)) {
             fail("Expected "+ HexDump.toHex(b1)+" but got "+ HexDump.toHex(b2));
         }
     }
 
-    private static byte[] toBytes(String s) throws UnsupportedEncodingException {
+    private static byte[] toBytes(String s) {
         return s.getBytes(StandardCharsets.UTF_8);
     }
 
-    public static Test suite() throws Exception {
+    public static Test suite() {
         return buildSuite(RemoteInputStreamTest.class);
     }
 }

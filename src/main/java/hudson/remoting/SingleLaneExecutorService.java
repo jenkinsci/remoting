@@ -13,6 +13,8 @@ import java.util.logging.Logger;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
 
+import javax.annotation.Nonnull;
+
 /**
  * Creates an {@link ExecutorService} that executes submitted tasks sequentially
  * on top of another generic arbitrary {@link ExecutorService}.
@@ -37,7 +39,7 @@ import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionEx
 public class SingleLaneExecutorService extends AbstractExecutorService {
     private final ExecutorService base;
 
-    private final Queue<Runnable> tasks = new LinkedBlockingQueue<Runnable>();
+    private final Queue<Runnable> tasks = new LinkedBlockingQueue<>();
     private boolean scheduled;
     /**
      * We are being shut down. No further submissions are allowed but existing tasks can continue.
@@ -64,6 +66,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
      * <p>
      * Note that this does not shutdown the wrapped {@link ExecutorService}.
      */
+    @Override
     public synchronized void shutdown() {
         shuttingDown = true;
         if (tasks.isEmpty())
@@ -76,21 +79,26 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
      * <p>
      * Note that this does not shutdown the wrapped {@link ExecutorService}.
      */
+    @Override
+    @Nonnull
     public synchronized List<Runnable> shutdownNow() {
         shuttingDown = shutDown = true;
-        List<Runnable> all = new LinkedList<Runnable>(tasks);
+        List<Runnable> all = new LinkedList<>(tasks);
         tasks.clear();
         return all;
     }
 
+    @Override
     public synchronized boolean isShutdown() {
         return shuttingDown;
     }
 
+    @Override
     public synchronized boolean isTerminated() {
         return shutDown;
     }
 
+    @Override
     public synchronized boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         long now = System.nanoTime();
         long end = now + unit.toNanos(timeout);
@@ -103,7 +111,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
 
     // TODO: create a new method with non-Runtime exceptions and timeout support
     @Override
-    public synchronized void execute(Runnable command) {
+    public synchronized void execute(@Nonnull Runnable command) {
         if (shuttingDown) {
             throw new FatalRejectedExecutionException("Cannot execute the command " + command +
                     ". The executor service is shutting down");

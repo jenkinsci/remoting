@@ -13,7 +13,17 @@ It includes: TCP-based communication protocols, data serialization, Java classlo
 
 The library is reusable outside Jenkins.
 
+### Downloads
 
+Jenkins Remoting libraries are supplied as a part of the Jenkins distributions,
+and it is recommended to use versions from there to ensure compatibility with your Jenkins instance.
+You can download the `${JENKINS_URL}/jnlpJars/agent.jar` from your Jenkins server.
+If you need a specific Remoting version, it can be downloaded from the Jenkins artifact repository.
+Recent artifacts are available [here](https://repo.jenkins-ci.org/webapp/#/artifacts/browse/tree/General/releases/org/jenkins-ci/main/remoting).
+
+For usage in Docker, the Jenkins project also provides official agent images which bundle Remoting:
+[jenkins/agent](https://hub.docker.com/r/jenkins/agent) and [jenkins/inbound-agent](https://hub.docker.com/r/jenkins/inbound-agent).
+We recommend using and extending these images if you need to run agents in Docker.
 
 ### Documentation
 
@@ -24,7 +34,7 @@ Feel free to contribute.
 User documentation:
 
 * [Changelog](CHANGELOG.md) - Remoting release notes
-* [Launching inbound TCP agents](docs/tcpAgent.md) - Mechanisms and parameters for launching inbound TCP agents
+* [Launching inbound agents](docs/inbound-agent.md) - Mechanisms and parameters for launching inbound agents
 * [Remoting Protocols](docs/protocols.md) - Overview of protocols integrated with Jenkins
 * [Remoting Configuration](docs/configuration.md) - Configuring remoting agents
 * [Logging](docs/logging.md) - Logging
@@ -36,7 +46,6 @@ Previous versions:
 
 * [Remoting versions](docs/versions.md) - Description of Remoting `2.x` and `3.x` differences
 * [Changelog - 2.x](CHANGELOG-2.x.md) - Changelog for the Remoting `2.x` stabilization releases
-* [Remoting 3 Compatibility Notes](docs/remoting-3-compatibility.md)
 
 Developer documentation:
 
@@ -53,7 +62,7 @@ See [How to report an issue](https://wiki.jenkins-ci.org/display/JENKINS/How+to+
 
 ### More info
 
-* [Remoting Architecture Overview](http://hudson-ci.org/docs/HudsonArch-Remoting.pdf) 
+* [Remoting Architecture Overview](https://github.com/hudson/www/blob/master/docs/HudsonArch-Remoting.pdf) 
 by Winston Prakash, Oracle (the information is outdated)
 * [Making your plugin behave in distributed Jenkins](https://wiki.jenkins-ci.org/display/JENKINS/Making+your+plugin+behave+in+distributed+Jenkins)
 * [Writing an SCM plugin. Remoting examples](https://wiki.jenkins-ci.org/display/JENKINS/Remoting)

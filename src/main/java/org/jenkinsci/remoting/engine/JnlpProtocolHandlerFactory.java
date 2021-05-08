@@ -45,11 +45,6 @@ public class JnlpProtocolHandlerFactory {
      */
     private boolean needClientAuth;
     /**
-     * The {@link NioChannelHub} to use or {@code null}
-     */
-    @CheckForNull
-    private NioChannelHub nioChannelHub;
-    /**
      * The {@link IOHub}.
      */
     @CheckForNull
@@ -92,7 +87,9 @@ public class JnlpProtocolHandlerFactory {
      * @return {@code this} for method chaining.
      */
     public JnlpProtocolHandlerFactory withNioChannelHub(@CheckForNull NioChannelHub nioChannelHub) {
-        this.nioChannelHub = nioChannelHub;
+        /**
+         * The {@link NioChannelHub} to use or {@code null}
+         */
         return this;
     }
 
@@ -160,8 +157,8 @@ public class JnlpProtocolHandlerFactory {
      * @return the {@link JnlpProtocolHandler} instances, may be empty, never {@code null}
      */
     @Nonnull
-    public List<JnlpProtocolHandler> handlers() {
-        List<JnlpProtocolHandler> result = new ArrayList<JnlpProtocolHandler>();
+    public List<JnlpProtocolHandler<? extends JnlpConnectionState>> handlers() {
+        List<JnlpProtocolHandler<? extends JnlpConnectionState>> result = new ArrayList<>();
         if (ioHub != null && context != null) {
             result.add(new JnlpProtocol4Handler(clientDatabase, threadPool, ioHub, context, needClientAuth, preferNio));
         }

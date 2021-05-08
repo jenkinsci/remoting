@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
-import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -37,7 +36,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
      *
      * In this subtype, we pass in {@link ByteArrayReceiver} that uses byte[] instead of {@link Command}
      */
-    public abstract void setup(@Nonnull ByteArrayReceiver receiver);
+    public abstract void setup(ByteArrayReceiver receiver);
 
     public interface ByteArrayReceiver {
         /**
@@ -45,11 +44,12 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
          *
          * As discussed in {@link AbstractByteArrayCommandTransport#writeBlock(Channel, byte[])},
          * the block boundary is significant.
+         * @see CommandReceiver#handle
          */
         void handle(byte[] payload);
 
         /**
-         * See {@link CommandReceiver#handle(Command)} for details.
+         * @see CommandReceiver#terminate
          */
         void terminate(IOException e);
     }
@@ -58,6 +58,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
     public final void setup(final Channel channel, final CommandReceiver receiver) {
         this.channel = channel;
         setup(new ByteArrayReceiver() {
+            @Override
             public void handle(byte[] payload) {
                 try {
                     Command cmd = Command.readFrom(channel, payload);
@@ -67,6 +68,7 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
                 }
             }
 
+            @Override
             public void terminate(IOException e) {
                 receiver.terminate(e);
             }

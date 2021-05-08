@@ -35,7 +35,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 public class ConnectionHeadersTest {
@@ -54,13 +54,13 @@ public class ConnectionHeadersTest {
 
     @Test
     public void multiValueRoundTrip() throws Exception {
-        Map<String, String> payload = new TreeMap<String, String>();
+        Map<String, String> payload = new TreeMap<>();
         payload.put("a", "b");
         payload.put("c", null);
         payload.put("d", "\u0000\u0001\u0002\u0003\u1234SomeText\u0000MoreText\u0000");
         payload.put("e", "\"hi there\"");
-        payload.put("e\u0000", "\'hi there\'");
-        payload.put("e\u0009", "\'hi\u0008there\'");
+        payload.put("e\u0000", "'hi there'");
+        payload.put("e\u0009", "'hi\u0008there'");
         payload.put("\f\b\n\r\t/\\", "null");
         payload.put("a/b/c/d", "e\\f\\g\\h");
         assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(payload)),
@@ -68,14 +68,14 @@ public class ConnectionHeadersTest {
     }
 
     @Test
-    public void newlineEscaping() throws Exception {
+    public void newlineEscaping() {
         assertThat(ConnectionHeaders.toString(Collections.singletonMap("a\nmultiline\nkey", "b")),
                 not(containsString("\n")));
     }
 
     @Test
     public void paddedData_1() throws Exception {
-        Map<String, String> expected = new TreeMap<String, String>();
+        Map<String, String> expected = new TreeMap<>();
         expected.put("key", "value");
         expected.put("foo", "bar");
         assertThat(ConnectionHeaders.fromString("\n{\n  \"key\"\t:\f\"value\"\n,\n\"foo\"   :   \"bar\"\n}\n\n"),
@@ -84,7 +84,7 @@ public class ConnectionHeadersTest {
 
     @Test
     public void paddedData_2() throws Exception {
-        Map<String, String> expected = new TreeMap<String, String>();
+        Map<String, String> expected = new TreeMap<>();
         expected.put("key", "value/other");
         expected.put("foo", "bar\\manchu");
         assertThat(ConnectionHeaders.fromString(

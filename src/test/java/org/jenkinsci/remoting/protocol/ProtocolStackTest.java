@@ -44,7 +44,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
 
 public class ProtocolStackTest {
@@ -59,7 +59,7 @@ public class ProtocolStackTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         IOUtils.closeQuietly(selector);
         executorService.shutdownNow();
     }
@@ -78,25 +78,21 @@ public class ProtocolStackTest {
             ProtocolStack.on(new NetworkLayer(selector) {
 
                 @Override
-                protected void write(@NonNull ByteBuffer data) throws IOException {
-
+                protected void write(@NonNull ByteBuffer data) {
                 }
 
                 @Override
-                public void start() throws IOException {
+                public void start() {
                     state.compareAndSet(0, 1);
                 }
 
                 @Override
-                public void doCloseSend() throws IOException {
-
+                public void doCloseSend() {
                 }
 
                 @Override
                 public void doCloseRecv() {
-
                 }
-
 
                 @Override
                 public boolean isSendOpen() {
@@ -105,34 +101,30 @@ public class ProtocolStackTest {
 
             }).filter(new FilterLayer() {
                 @Override
-                public void start() throws IOException {
+                public void start() {
                     state.compareAndSet(1, 2);
                 }
 
                 @Override
-                public void onRecv(@NonNull ByteBuffer data) throws IOException {
-
+                public void onRecv(@NonNull ByteBuffer data) {
                 }
 
                 @Override
-                public void doSend(@NonNull ByteBuffer data) throws IOException {
-
+                public void doSend(@NonNull ByteBuffer data) {
                 }
 
             }).filter(new FilterLayer() {
                 @Override
-                public void start() throws IOException {
+                public void start() {
                     state.compareAndSet(2, 3);
                 }
 
                 @Override
-                public void onRecv(@NonNull ByteBuffer data) throws IOException {
-
+                public void onRecv(@NonNull ByteBuffer data) {
                 }
 
                 @Override
-                public void doSend(@NonNull ByteBuffer data) throws IOException {
-
+                public void doSend(@NonNull ByteBuffer data) {
                 }
 
             }).named("initSeq").build(new ApplicationLayer<Void>() {
@@ -142,19 +134,17 @@ public class ProtocolStackTest {
                 }
 
                 @Override
-                public void onRead(@NonNull ByteBuffer data) throws IOException {
-
+                public void onRead(@NonNull ByteBuffer data) {
                 }
 
                 @Override
-                public void start() throws IOException {
+                public void start() {
                     state.compareAndSet(3, 4);
                 }
 
 
                 @Override
-                public void onReadClosed(IOException cause) throws IOException {
-
+                public void onReadClosed(IOException cause) {
                 }
 
                 @Override
@@ -179,7 +169,7 @@ public class ProtocolStackTest {
     }
 
     @Test
-    public void initSequenceFailure() throws IOException {
+    public void initSequenceFailure() {
         Logger logger = Logger.getLogger(ProtocolStack.class.getName());
         CapturingHandler handler = new CapturingHandler();
         assertThat(logger.isLoggable(Level.FINEST), is(false));
@@ -193,23 +183,20 @@ public class ProtocolStackTest {
                 ProtocolStack.on(new NetworkLayer(selector) {
 
                     @Override
-                    protected void write(@NonNull ByteBuffer data) throws IOException {
-
+                    protected void write(@NonNull ByteBuffer data) {
                     }
 
                     @Override
-                    public void start() throws IOException {
+                    public void start() {
                         state.compareAndSet(0, 1);
                     }
 
                     @Override
-                    public void doCloseSend() throws IOException {
-
+                    public void doCloseSend() {
                     }
 
                     @Override
                     public void doCloseRecv() {
-
                     }
 
 
@@ -226,29 +213,25 @@ public class ProtocolStackTest {
                     }
 
                     @Override
-                    public void onRecv(@NonNull ByteBuffer data) throws IOException {
-
+                    public void onRecv(@NonNull ByteBuffer data) {
                     }
 
                     @Override
-                    public void doSend(@NonNull ByteBuffer data) throws IOException {
-
+                    public void doSend(@NonNull ByteBuffer data) {
                     }
 
                 }).filter(new FilterLayer() {
                     @Override
-                    public void start() throws IOException {
+                    public void start() {
                         state.set(-2);
                     }
 
                     @Override
-                    public void onRecv(@NonNull ByteBuffer data) throws IOException {
-
+                    public void onRecv(@NonNull ByteBuffer data) {
                     }
 
                     @Override
-                    public void doSend(@NonNull ByteBuffer data) throws IOException {
-
+                    public void doSend(@NonNull ByteBuffer data) {
                     }
 
                     @Override
@@ -263,18 +246,17 @@ public class ProtocolStackTest {
                     }
 
                     @Override
-                    public void onRead(@NonNull ByteBuffer data) throws IOException {
-
+                    public void onRead(@NonNull ByteBuffer data) {
                     }
 
                     @Override
-                    public void start() throws IOException {
+                    public void start() {
                         state.set(-3);
                     }
 
 
                     @Override
-                    public void onReadClosed(IOException cause) throws IOException {
+                    public void onReadClosed(IOException cause) {
                         state.compareAndSet(3, 4);
                     }
 
@@ -319,23 +301,21 @@ public class ProtocolStackTest {
             ProtocolStack.on(new NetworkLayer(selector) {
 
                 @Override
-                public void start() throws IOException {
+                public void start() {
                 }
 
                 @Override
-                protected void write(@NonNull ByteBuffer data) throws IOException {
-
+                protected void write(@NonNull ByteBuffer data) {
                 }
 
                 @Override
                 public void doCloseRecv() {
                     state.compareAndSet(3, 4);
                     onRecvClosed();
-
                 }
 
                 @Override
-                public void doCloseSend() throws IOException {
+                public void doCloseSend() {
                     state.compareAndSet(2, 3);
                     doCloseRecv();
                 }
@@ -347,17 +327,15 @@ public class ProtocolStackTest {
 
             }).filter(new FilterLayer() {
                 @Override
-                public void start() throws IOException {
+                public void start() {
                 }
 
                 @Override
-                public void onRecv(@NonNull ByteBuffer data) throws IOException {
-
+                public void onRecv(@NonNull ByteBuffer data) {
                 }
 
                 @Override
-                public void doSend(@NonNull ByteBuffer data) throws IOException {
-
+                public void doSend(@NonNull ByteBuffer data) {
                 }
 
                 @Override
@@ -373,17 +351,15 @@ public class ProtocolStackTest {
                 }
             }).filter(new FilterLayer() {
                 @Override
-                public void start() throws IOException {
+                public void start() {
                 }
 
                 @Override
-                public void onRecv(@NonNull ByteBuffer data) throws IOException {
-
+                public void onRecv(@NonNull ByteBuffer data) {
                 }
 
                 @Override
-                public void doSend(@NonNull ByteBuffer data) throws IOException {
-
+                public void doSend(@NonNull ByteBuffer data) {
                 }
 
                 @Override
@@ -404,8 +380,7 @@ public class ProtocolStackTest {
                 }
 
                 @Override
-                public void onRead(@NonNull ByteBuffer data) throws IOException {
-
+                public void onRead(@NonNull ByteBuffer data) {
                 }
 
                 @Override
@@ -414,12 +389,12 @@ public class ProtocolStackTest {
                 }
 
                 @Override
-                public void start() throws IOException {
+                public void start() {
                 }
 
 
                 @Override
-                public void onReadClosed(IOException cause) throws IOException {
+                public void onReadClosed(IOException cause) {
                     state.compareAndSet(6, 7);
                 }
 
@@ -444,7 +419,7 @@ public class ProtocolStackTest {
     }
 
     private static class CapturingHandler extends Handler {
-        private final Queue<LogRecord> logRecords = new ConcurrentLinkedQueue<LogRecord>();
+        private final Queue<LogRecord> logRecords = new ConcurrentLinkedQueue<>();
 
         @Override
         public boolean isLoggable(LogRecord record) {
@@ -458,12 +433,10 @@ public class ProtocolStackTest {
 
         @Override
         public void flush() {
-
         }
 
         @Override
         public void close() throws SecurityException {
-
         }
     }
 }

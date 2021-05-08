@@ -26,6 +26,7 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
+import java.io.Serializable;
 
 /**
  * Request/response pattern over {@link Command}.
@@ -36,7 +37,7 @@ import javax.annotation.Nullable;
  * @see Request
  * @since 3.17
  */
-public final class Response<RSP,EXC extends Throwable> extends Command {
+public final class Response<RSP extends Serializable,EXC extends Throwable> extends Command {
     /**
      * ID of the {@link Request} for which
      */
@@ -51,7 +52,7 @@ public final class Response<RSP,EXC extends Throwable> extends Command {
      *
      * @see PipeWriter
      */
-    private int lastIoId;
+    private final int lastIoId;
 
     final RSP returnValue;
     final EXC exception;
@@ -59,9 +60,9 @@ public final class Response<RSP,EXC extends Throwable> extends Command {
     @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED", justification="Only supposed to be defined on one side.")
     private transient long totalTime;
     @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED", justification="Bound after deserialization, in execute.")
-    private transient Request<?, ?> request;
+    private transient Request<RSP, ? extends Throwable> request;
 
-    Response(Request request, int id, int lastIoId, RSP returnValue) {
+    Response(Request<RSP, ? extends Throwable> request, int id, int lastIoId, RSP returnValue) {
         this.request = request;
         this.id = id;
         this.lastIoId = lastIoId;
@@ -69,7 +70,7 @@ public final class Response<RSP,EXC extends Throwable> extends Command {
         this.exception = null;
     }
 
-    Response(Request request, int id, int lastIoId, EXC exception) {
+    Response(Request<RSP, ? extends Throwable> request, int id, int lastIoId, EXC exception) {
         this.request = request;
         this.id = id;
         this.lastIoId = lastIoId;
@@ -82,7 +83,7 @@ public final class Response<RSP,EXC extends Throwable> extends Command {
      */
     @Override
     void execute(Channel channel) {
-        Request req = channel.pendingCalls.get(id);
+        Request<RSP, ? extends Throwable> req = (Request<RSP, ? extends Throwable>) channel.pendingCalls.get(id);
         if(req==null)
             return; // maybe aborted
         req.responseIoId = lastIoId;

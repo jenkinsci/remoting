@@ -99,6 +99,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
      */
     private static class WildCardItem implements Item {
 
+        @Override
         public int compare(Item item) {
             if (item==null) // 1.* ( > 1.99) > 1
                 return 1;
@@ -114,10 +115,12 @@ public class VersionNumber implements Comparable<VersionNumber> {
             }
         }
 
+        @Override
         public int getType() {
             return WILDCARD_ITEM;
         }
 
+        @Override
         public boolean isNull() {
             return false;
         }
@@ -147,14 +150,17 @@ public class VersionNumber implements Comparable<VersionNumber> {
             this.value = new BigInteger(str);
         }
 
+        @Override
         public int getType() {
             return INTEGER_ITEM;
         }
 
+        @Override
         public boolean isNull() {
             return BigInteger_ZERO.equals(value);
         }
 
+        @Override
         public int compare(Item item) {
             if (item == null) {
                 return BigInteger_ZERO.equals(value) ? 0 : 1; // 1.0 == 1, 1.1 > 1
@@ -180,6 +186,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
             }
         }
 
+        @Override
         public String toString() {
             return value.toString();
         }
@@ -230,10 +237,12 @@ public class VersionNumber implements Comparable<VersionNumber> {
             this.value = ALIASES.getProperty(value, value);
         }
 
+        @Override
         public int getType() {
             return STRING_ITEM;
         }
 
+        @Override
         public boolean isNull() {
             return (comparableQualifier(value).compareTo(RELEASE_VERSION_INDEX) == 0);
         }
@@ -247,9 +256,6 @@ public class VersionNumber implements Comparable<VersionNumber> {
          * just returning an Integer with the index here is faster, but requires a lot of if/then/else to check for -1
          * or QUALIFIERS.size and then resort to lexical ordering. Most comparisons are decided by the first character,
          * so this is still fast. If more characters are needed then it requires a lexical sort anyway.
-         *
-         * @param qualifier
-         * @return
          */
         public static String comparableQualifier(String qualifier) {
             int i = _QUALIFIERS.indexOf(qualifier);
@@ -257,6 +263,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
             return i == -1 ? _QUALIFIERS.size() + "-" + qualifier : String.valueOf(i);
         }
 
+        @Override
         public int compare(Item item) {
             if (item == null) {
                 // 1-rc < 1, 1-ga > 1
@@ -282,6 +289,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
             }
         }
 
+        @Override
         public String toString() {
             return value;
         }
@@ -294,10 +302,12 @@ public class VersionNumber implements Comparable<VersionNumber> {
     private static class ListItem extends ArrayList<Item> implements Item {
         private static final long serialVersionUID = 1;
 
+        @Override
         public int getType() {
             return LIST_ITEM;
         }
 
+        @Override
         public boolean isNull() {
             return (size() == 0);
         }
@@ -313,6 +323,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
             }
         }
 
+        @Override
         public int compare(Item item) {
             if (item == null) {
                 if (size() == 0) {
@@ -366,6 +377,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
             }
         }
 
+        @Override
         public String toString() {
             StringBuilder buffer = new StringBuilder("(");
             for (Iterator<Item> iter = iterator(); iter.hasNext(); ) {
@@ -398,7 +410,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
 
         ListItem list = items;
 
-        Stack<Item> stack = new Stack<Item>();
+        Stack<Item> stack = new Stack<>();
         stack.push(list);
 
         boolean isDigit = false;
@@ -481,6 +493,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
         return isDigit ? new IntegerItem(buf) : new StringItem(buf, false);
     }
 
+    @Override
     public int compareTo(VersionNumber o) {
         int result = items.compare(o.items);
         if (result != 0) {
@@ -502,13 +515,15 @@ public class VersionNumber implements Comparable<VersionNumber> {
         }
         int i1 = Integer.parseInt(snapshot.substring(17));
         int i2 = Integer.parseInt(o.snapshot.substring(17));
-        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+        return Integer.compare(i1, i2);
     }
 
+    @Override
     public String toString() {
         return value;
     }
 
+    @Override
     public boolean equals(Object o) {
         if (!(o instanceof VersionNumber)) {
             return false;
@@ -527,6 +542,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
         return snapshot.equals(that.snapshot);
     }
 
+    @Override
     public int hashCode() {
         return canonical.hashCode();
     }
@@ -574,6 +590,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
     }
 
     public static final Comparator<VersionNumber> DESCENDING = new Comparator<VersionNumber>() {
+        @Override
         public int compare(VersionNumber o1, VersionNumber o2) {
             return o2.compareTo(o1);
         }

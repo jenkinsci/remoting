@@ -33,7 +33,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     /**
      * We've reported these checksums as present on this side.
      */
-    private final Set<Checksum> notified = Collections.synchronizedSet(new HashSet<Checksum>());
+    private final Set<Checksum> notified = Collections.synchronizedSet(new HashSet<>());
 
     /**
      * Cache of computer checksums for cached jars.
@@ -58,7 +58,7 @@ public class FileSystemJarCache extends JarCacheSupport {
             throw new IllegalArgumentException("Root directory is null");
 
         try {
-            Util.mkdirs(rootDir);
+            Files.createDirectories(rootDir.toPath());
         } catch (IOException ex) {
             throw new IllegalArgumentException("Root directory not writable: " + rootDir, ex);
         }
@@ -73,7 +73,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     protected URL lookInCache(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         File jar = map(sum1, sum2);
         if (jar.exists()) {
-            LOGGER.log(Level.FINER, String.format("Jar file cache hit %16X%16X",sum1,sum2));
+            LOGGER.log(Level.FINER, () -> String.format("Jar file cache hit %16X%16X",sum1,sum2));
             if (touch)  {
                 Files.setLastModifiedTime(PathUtils.fileToPath(jar), FileTime.fromMillis(System.currentTimeMillis()));
             }
@@ -111,12 +111,9 @@ public class FileSystemJarCache extends JarCacheSupport {
         try {
             File tmp = createTempJar(target);
             try {
-                RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp));
-                try {
-                    LOGGER.log(Level.FINE, String.format("Retrieving jar file %16X%16X",sum1,sum2));
+                try (RemoteOutputStream o = new RemoteOutputStream(new FileOutputStream(tmp))) {
+                    LOGGER.log(Level.FINE, () -> String.format("Retrieving jar file %16X%16X", sum1, sum2));
                     getJarLoader(channel).writeJarTo(sum1, sum2, o);
-                } finally {
-                    o.close();
                 }
 
                 // Verify the checksum of the download.
@@ -175,7 +172,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
     /*package for testing*/ File createTempJar(@Nonnull File target) throws IOException {
         File parent = target.getParentFile();
-        Util.mkdirs(parent);
+        Files.createDirectories(parent.toPath());
         return File.createTempFile(target.getName(), "tmp", parent);
     }
 

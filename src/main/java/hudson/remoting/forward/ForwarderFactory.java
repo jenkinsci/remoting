@@ -70,6 +70,7 @@ public class ForwarderFactory {
             this.remotePort = remotePort;
         }
 
+        @Override
         @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "Unused mechanism.")
         public OutputStream connect(OutputStream out) throws IOException {
             Socket s = new Socket(remoteHost, remotePort);
@@ -115,6 +116,7 @@ public class ForwarderFactory {
             this.remotePort = remotePort;
         }
 
+        @Override
         public Forwarder call() throws IOException {
             return new ForwarderImpl(remoteHost, remotePort);
         }

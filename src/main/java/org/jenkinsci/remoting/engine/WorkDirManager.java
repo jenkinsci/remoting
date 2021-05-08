@@ -308,9 +308,6 @@ public class WorkDirManager {
             }
 
             this.loggingInitialized = true;
-        } else {
-            // TODO: This message is suspected to break the CI
-            // System.err.println("WARNING: Log location is not specified (neither -workDir nor -agentLog set)");
         }
     }
 
@@ -354,7 +351,7 @@ public class WorkDirManager {
         @CheckForNull
         private final DirType parentDir;
 
-        DirType(String name, String defaultLocation, @CheckForNull DirType parentDir) {
+        DirType(@Nonnull String name, @Nonnull String defaultLocation, @CheckForNull DirType parentDir) {
             this.name = name;
             this.defaultLocation = defaultLocation;
             this.parentDir = parentDir;
@@ -375,9 +372,5 @@ public class WorkDirManager {
             return name;
         }
 
-        @CheckForNull
-        public DirType getParentDir() {
-            return parentDir;
-        }
     }
 }

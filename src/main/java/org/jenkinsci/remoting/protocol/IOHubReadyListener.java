@@ -49,7 +49,7 @@ public interface IOHubReadyListener {
      * Callback to indicate the {@link SelectableChannel} that this listener was registered for is ready for the
      * indicated operations. The {@link SelectionKey#interestOps()} will have been cleared for all the operations
      * that are {@code true} so the callback can be assured that processing of any one specific operation will
-     * be linearized, though there may be concurrent calls to {@link #ready(boolean, boolean, boolean, boolean)} with
+     * be linearized, though there may be concurrent calls to ready() with
      * disjoint ready operations. The callback will most likely want to re-register for
      * {@link IOHub#addInterestRead(SelectionKey)} or {@link IOHub#addInterestAccept(SelectionKey)} immediately before
      * returning from a ready notification of the read or accept status. The callback will only want to re-register

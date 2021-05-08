@@ -81,6 +81,7 @@ public abstract class PingThread extends Thread {
         this(channel, TimeUnit.MINUTES.toMillis(10));
     }
 
+    @Override
     public void run() {
         try {
             while(true) {
@@ -91,7 +92,7 @@ public abstract class PingThread extends Thread {
                 // wait until the next check
                 long diff;
                 while((diff = nextCheck - System.nanoTime()) > 0) {
-                    Thread.sleep(TimeUnit.NANOSECONDS.toMillis(diff));
+                    TimeUnit.NANOSECONDS.sleep(diff);
                 }
             }
         } catch (ChannelClosedException e) {
@@ -155,6 +156,7 @@ public abstract class PingThread extends Thread {
     private static final class Ping implements Callable<Void, IOException> {
         private static final long serialVersionUID = 1L;
 
+        @Override
         public Void call() throws IOException {
             return null;
         }

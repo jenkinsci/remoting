@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
@@ -60,7 +61,7 @@ public final class BinarySafeStream {
     public static InputStream wrap(InputStream in) {
         return new FilterInputStream(in) {
             /**
-             * Place a part of the decoded triplet that hasn's read by the caller yet.
+             * Place a part of the decoded triplet that hasn't read by the caller yet.
              * We allocate four bytes because of the way we implement {@link #read(byte[], int, int)},
              * which puts encoded base64 in the given array during the computation.
              */
@@ -75,6 +76,7 @@ public final class BinarySafeStream {
             final byte[] qualtet = new byte[4];
             int input = 0;
 
+            @Override
             public int read() throws IOException {
                 if(remaining==0) {
                     remaining = _read(triplet,0,3);
@@ -87,7 +89,8 @@ public final class BinarySafeStream {
                 return ((int) triplet[3 - remaining--]) & 0xFF;
             }
 
-            public int read(byte b[], int off, int len) throws IOException {
+            @Override
+            public int read(@Nonnull byte[] b, int off, int len) throws IOException {
                 if(remaining==-1)   return -1; // EOF
 
                 if(len<4) {
@@ -129,7 +132,7 @@ public final class BinarySafeStream {
              * The same as {@link #read(byte[], int, int)} but the buffer must be
              * longer than off+4,
              */
-            private int _read(byte b[], int off, int len) throws IOException {
+            private int _read(byte[] b, int off, int len) throws IOException {
                 assert remaining==0;
                 assert b.length>=off+4;
 
@@ -209,6 +212,7 @@ public final class BinarySafeStream {
                 return totalRead;
             }
 
+            @Override
             public int available() throws IOException {
                 // roughly speaking we got 3/4 of the underlying available bytes
                 return super.available()*3/4;
@@ -228,6 +232,7 @@ public final class BinarySafeStream {
             private int remaining=0;
             private final byte[] out = new byte[4];
 
+            @Override
             public void write(int b) throws IOException {
                 if(remaining==2) {
                     _write(triplet[0],triplet[1],(byte)b);
@@ -237,7 +242,8 @@ public final class BinarySafeStream {
                 }
             }
 
-            public void write(byte b[], int off, int len) throws IOException {
+            @Override
+            public void write(@Nonnull byte[] b, int off, int len) throws IOException {
                 // if there's anything left in triplet from the last write, try to write them first
                 if(remaining>0) {
                     while(len>0 && remaining<3) {
@@ -257,7 +263,6 @@ public final class BinarySafeStream {
                 }
 
                 // store remaining stuff back to triplet
-                assert 0<=len && len<3;
                 while(len>0) {
                     triplet[remaining++] = b[off++];
                     len--;
@@ -272,6 +277,7 @@ public final class BinarySafeStream {
                 super.out.write(out,0,4);
             }
 
+            @Override
             public void flush() throws IOException {
                 int a = triplet[0];
                 int b = triplet[1];

@@ -26,7 +26,6 @@ package org.jenkinsci.remoting.protocol.impl;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.logging.Logger;
 import javax.annotation.concurrent.GuardedBy;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
@@ -39,18 +38,14 @@ import org.jenkinsci.remoting.util.ByteBufferUtils;
  */
 public class AgentProtocolClientFilterLayer extends FilterLayer {
     /**
-     * Our logger.
-     */
-    private static final Logger LOGGER = Logger.getLogger(AgentProtocolClientFilterLayer.class.getName());
-    /**
      * The read-only send buffer.
      */
-    private ByteBuffer sendProtocol;
+    private final ByteBuffer sendProtocol;
     /**
      * The queue of messages to send once the acknowledgement has been completed.
      */
     @GuardedBy("sendLock")
-    private ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
+    private final ByteBufferQueue sendQueue = new ByteBufferQueue(8192);
 
     /**
      * Constructor
@@ -96,11 +91,7 @@ public class AgentProtocolClientFilterLayer extends FilterLayer {
                 sendQueue.put(data);
                 flushSend(sendQueue);
             } else {
-                try {
-                    next().doSend(data);
-                } catch (IOException e) {
-                    throw e;
-                }
+                next().doSend(data);
             }
             completed();
         }

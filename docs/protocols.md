@@ -1,8 +1,7 @@
 Remoting protocols
 ====
 
-Remoting library provides extension points, which allow implementing custom communication protocols.
-For example, Jenkins project defines its own protocols for the CLI client.
+The Remoting library provides APIs which allow custom communication protocols to be implemented.
 
 This section describes only the protocols available within the remoting library.
 
@@ -26,6 +25,13 @@ If stronger algorithms are needed (for example, AES with 256-bit keys), the [JCE
 
 
 Protocol uses non-blocking I/O wherever possible which removes the performance bottleneck of the <code>JNLP3-connect</code> protocol.
+
+### WebSocket
+
+* Introduced in: Remoting version 4.0, [JEP-222](https://jenkins.io/jep/222)
+* At initial release, this protocol is considered a beta release and has not yet undergone extensive testing.
+
+Uses WebSocket over an HTTP(S) port to handle handshakes, encryption, framing, etc.
 
 ## Plugin protocols
 

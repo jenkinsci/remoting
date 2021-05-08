@@ -32,8 +32,9 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
     @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DMI_COLLECTION_OF_URLS") // TODO: fix this
     private final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<>();
 
-    private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<Checksum>());
+    private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<>());
 
+    @Override
     @SuppressFBWarnings(value = {"URLCONNECTION_SSRF_FD", "PATH_TRAVERSAL_IN"}, justification = "This is only used for managing the jar cache as files, not URLs.")
     public void writeJarTo(long sum1, long sum2, OutputStream sink) throws IOException, InterruptedException {
         Checksum k = new Checksum(sum1, sum2);
@@ -47,7 +48,7 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
                 try {
                     channel.notifyJar(new File(url.toURI()));
                 } catch (URISyntaxException | IllegalArgumentException x) {
-                    LOGGER.log(Level.WARNING, "cannot properly report " + url, x);
+                    LOGGER.log(Level.WARNING, x, () -> "cannot properly report " + url);
                 }
             } else {
                 LOGGER.log(Level.FINE, "serving non-file URL {0}", url);
@@ -63,14 +64,17 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
         return calcChecksum(jar.toURI().toURL());
     }
 
+    @Override
     public boolean isPresentOnRemote(Checksum sum) {
         return presentOnRemote.contains(sum);
     }
 
+    @Override
     public void notifyJarPresence(long sum1, long sum2) {
         presentOnRemote.add(new Checksum(sum1,sum2));
     }
 
+    @Override
     public void notifyJarPresence(long[] sums) {
         synchronized (presentOnRemote) {
             for (int i=0; i<sums.length; i+=2)

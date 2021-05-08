@@ -1,4 +1,4 @@
-    package hudson.remoting;
+package hudson.remoting;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -90,12 +90,13 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         channel.call(new ForceJarLoad(sum1));
         channel.call(new ForceJarLoad(sum2));
 
-        Callable<Void,IOException> sc = (Callable)cl.loadClass("test.ClassLoadingFromJarTester").newInstance();
-        ((Function)sc).apply(new Verifier());
+        Callable<Void,IOException> sc = (Callable<Void, IOException>)cl.loadClass("test.ClassLoadingFromJarTester").newInstance();
+        ((Function<Function<Object, Object>, Void>)sc).apply(new Verifier());
         assertNull(channel.call(sc));
     }
 
     private static class Verifier implements Function<Object,Object>, Serializable {
+        @Override
         public Object apply(Object o) {
             try {
                 // verify that 'o' is loaded from a jar file
@@ -107,6 +108,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 throw new Error(e);
             }
         }
+        private static final long serialVersionUID = 1L;
     }
 
     public void testGetResource() throws Exception {
@@ -137,7 +139,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     /**
      * Validates that the resource is coming from a jar.
      */
-    private void verifyResource(String v) throws IOException, InterruptedException {
+    private void verifyResource(String v) {
         Assert.assertThat(v, allOf(startsWith("jar:file:"), 
                                    containsString(dir.toURI().getPath()), 
                                    endsWith("::hello")));
@@ -146,7 +148,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     /**
      * Validates that the resource is coming from a file path.
      */
-    private void verifyResourcePrecache(String v) throws IOException, InterruptedException {
+    private void verifyResourcePrecache(String v) {
         assertTrue(v, v.startsWith("file:"));
         assertTrue(v, v.endsWith("::hello"));
     }
@@ -188,19 +190,21 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     }
 
     public void testInnerClass() throws Exception {
-        Echo<Object> e = new Echo<Object>();
+        Echo<Object> e = new Echo<>();
         e.value = cl.loadClass("test.Foo").newInstance();
         Object r = channel.call(e);
 
-        ((Predicate)r).apply(null); // this verifies that the object is still in a good state
+        ((Predicate<Void>)r).apply(null); // this verifies that the object is still in a good state
     }
 
     private static final class Echo<V> extends CallableBase<V,IOException> implements Serializable {
         V value;
 
-        public V call() throws IOException {
+        @Override
+        public V call() {
             return value;
         }
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -214,6 +218,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
             this.sum2 = sum.sum2;
         }
 
+        @Override
         public Void call() throws IOException {
             try {
                 final Channel ch = Channel.currentOrFail();
@@ -223,18 +228,20 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 }
                 jarCache.resolve(ch,sum1,sum2).get();
                 return null;
-            } catch (InterruptedException e) {
-                throw new IOException(e);
-            } catch (ExecutionException e) {
+            } catch (InterruptedException | ExecutionException e) {
                 throw new IOException(e);
             }
         }
+        private static final long serialVersionUID = 1L;
     }
 
     private class JarCacherCallable extends CallableBase<Void, IOException> {
-        public Void call() throws IOException {
+        @Override
+        public Void call() {
             Channel.currentOrFail().setJarCache(new FileSystemJarCache(dir, true));
             return null;
         }
+        private static final long serialVersionUID = 1L;
     }
+    private static final long serialVersionUID = 1L;
 }

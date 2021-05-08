@@ -23,9 +23,35 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import com.google.common.util.concurrent.SettableFuture;
+import java.util.concurrent.CompletableFuture;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
+import org.apache.commons.io.IOUtils;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
+import org.jenkinsci.remoting.protocol.impl.AckFilterLayer;
+import org.jenkinsci.remoting.protocol.impl.BIONetworkLayer;
+import org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer;
+import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
+import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
+import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
@@ -46,7 +72,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Date;
-import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -56,32 +81,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.TrustManager;
-import org.apache.commons.io.IOUtils;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.X500NameBuilder;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
-import org.jenkinsci.remoting.protocol.impl.AckFilterLayer;
-import org.jenkinsci.remoting.protocol.impl.BIONetworkLayer;
-import org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer;
-import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
-import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
-import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
-import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 
 public class ProtocolStackLoopbackLoadStress {
 
@@ -106,10 +105,7 @@ public class ProtocolStackLoopbackLoadStress {
 
     private final Acceptor acceptor;
 
-    private final KeyPair keyPair;
-    private final X509Certificate certificate;
-
-    private final SettableFuture<SocketAddress> addr = SettableFuture.create();
+    private final CompletableFuture<SocketAddress> addr = new CompletableFuture<>();
     private final Random entropy = new Random();
 
     public ProtocolStackLoopbackLoadStress(boolean nio, boolean ssl)
@@ -117,7 +113,7 @@ public class ProtocolStackLoopbackLoadStress {
             UnrecoverableKeyException, KeyManagementException, OperatorCreationException {
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048); // maximum supported by JVM with export restrictions
-        keyPair = gen.generateKeyPair();
+        KeyPair keyPair = gen.generateKeyPair();
 
         Date now = new Date();
         Date firstDate = new Date(now.getTime() + TimeUnit.DAYS.toMillis(10));
@@ -152,13 +148,13 @@ public class ProtocolStackLoopbackLoadStress {
                 .setProvider(BOUNCY_CASTLE_PROVIDER)
                 .build(keyPair.getPrivate());
 
-        certificate = new JcaX509CertificateConverter()
+        X509Certificate certificate = new JcaX509CertificateConverter()
                 .setProvider(BOUNCY_CASTLE_PROVIDER)
                 .getCertificate(certGen.build(signer));
 
         char[] password = "password".toCharArray();
 
-        KeyStore store = KeyStore.getInstance("jks");
+        KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
         store.load(null, password);
         store.setKeyEntry("alias", keyPair.getPrivate(), password, new Certificate[]{certificate});
 
@@ -195,6 +191,7 @@ public class ProtocolStackLoopbackLoadStress {
         public void checkRoles(RoleChecker checker) throws SecurityException {
 
         }
+        private static final long serialVersionUID = 1L;
     }
 
     public class Acceptor implements IOHubReadyListener, IOHubRegistrationCallback {
@@ -223,23 +220,14 @@ public class ProtocolStackLoopbackLoadStress {
                             .filter(new AckFilterLayer())
                             .filter(ssl ? new SSLEngineFilterLayer(sslEngine, null) : null)
                             .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
-                                    new ConnectionHeadersFilterLayer.Listener() {
-                                        @Override
-                                        public void onReceiveHeaders(Map<String, String> headers)
-                                                throws ConnectionRefusalException {
-
-                                        }
-                                    }))
+                                    headers -> {}))
                             .build(new ChannelApplicationLayer(executorService, null));
-                    hub.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                channelFromClient.get();
-                                System.out.println("Accepted connection from " + fromClient.getRemoteAddress());
-                            } catch (IOException e) {
-                                e.printStackTrace(System.err);
-                            }
+                    hub.execute(() -> {
+                        try {
+                            channelFromClient.get();
+                            System.out.println("Accepted connection from " + fromClient.getRemoteAddress());
+                        } catch (IOException e) {
+                            e.printStackTrace(System.err);
                         }
                     });
                     hub.addInterestAccept(selectionKey);
@@ -256,9 +244,9 @@ public class ProtocolStackLoopbackLoadStress {
             SocketAddress localAddress;
             try {
                 localAddress = serverSocketChannel.getLocalAddress();
-                addr.set(localAddress);
+                addr.complete(localAddress);
             } catch (IOException e) {
-                addr.setException(e);
+                addr.completeExceptionally(e);
                 return;
             }
             try {
@@ -284,33 +272,30 @@ public class ProtocolStackLoopbackLoadStress {
         System.out.printf("Server using %s%n", nio ? "Non-blocking I/O" : "Reader thread per client I/O");
         System.out.printf("Protocol stack using %s%n", ssl ? "TLS encrypted transport" : "cleartext transport");
         ProtocolStackLoopbackLoadStress stress = new ProtocolStackLoopbackLoadStress(nio, ssl);
-        stress.hub.execute(new Runnable() {
-            @Override
-            public void run() {
-                long start = System.currentTimeMillis();
-                long last = start;
-                long initialNoops = NoOpCallable.noops.get();
-                long previousNoops = NoOpCallable.noops.get();
-                while (true) {
-                    long next = last + 1000;
-                    long wait;
-                    while ((wait = next - System.currentTimeMillis()) > 0) {
-                        try {
-                            Thread.sleep(wait);
-                        } catch (InterruptedException e) {
-                            return;
-                        }
+        stress.hub.execute(() -> {
+            long start = System.currentTimeMillis();
+            long last = start;
+            long initialNoops = NoOpCallable.noops.get();
+            long previousNoops = NoOpCallable.noops.get();
+            while (true) {
+                long next = last + 1000;
+                long wait;
+                while ((wait = next - System.currentTimeMillis()) > 0) {
+                    try {
+                        Thread.sleep(wait);
+                    } catch (InterruptedException e) {
+                        return;
                     }
-                    long now = System.currentTimeMillis();
-                    long currentNoops = NoOpCallable.noops.get();
-                    double noopsPerSecond = (currentNoops - initialNoops) * 1000.0 / (now - start);
-                    double instantNoopsPerSecond = (currentNoops - previousNoops) * 1000.0 / (now - last);
-                    System.out.printf("%nTotal rate %.1f/sec, instant %.1f/sec, expect %.1f/sec%n", noopsPerSecond,
-                            instantNoopsPerSecond, expectNoopsPerSecond);
-                    System.out.flush();
-                    last = now;
-                    previousNoops = currentNoops;
                 }
+                long now = System.currentTimeMillis();
+                long currentNoops = NoOpCallable.noops.get();
+                double noopsPerSecond = (currentNoops - initialNoops) * 1000.0 / (now - start);
+                double instantNoopsPerSecond = (currentNoops - previousNoops) * 1000.0 / (now - last);
+                System.out.printf("%nTotal rate %.1f/sec, instant %.1f/sec, expect %.1f/sec%n", noopsPerSecond,
+                        instantNoopsPerSecond, expectNoopsPerSecond);
+                System.out.flush();
+                last = now;
+                previousNoops = currentNoops;
             }
         });
         SocketAddress serverAddress = stress.startServer();
@@ -336,13 +321,7 @@ public class ProtocolStackLoopbackLoadStress {
                         .filter(new AckFilterLayer())
                         .filter(ssl ? new SSLEngineFilterLayer(sslEngine, null) : null)
                         .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
-                                new ConnectionHeadersFilterLayer.Listener() {
-                                    @Override
-                                    public void onReceiveHeaders(Map<String, String> headers)
-                                            throws ConnectionRefusalException {
-
-                                    }
-                                }))
+                                headers -> {}))
                         .build(new ChannelApplicationLayer(executorService, null)).get().get();
         timer[n % timer.length].scheduleAtFixedRate(new TimerTask() {
             private NoOpCallable callable = new NoOpCallable();
