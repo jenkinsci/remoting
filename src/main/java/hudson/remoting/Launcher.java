@@ -611,7 +611,7 @@ public class Launcher {
      * then accepts one TCP connection.
      */
     @Deprecated
-    @SuppressFBWarnings(value = {"UNENCRYPTED_SERVER_SOCKET", "DM_DEFAULT_ENCODING"}, justification = "This is an old, insecure mechanism that should be removed. port number file should be in platform default encoding.")
+    @SuppressFBWarnings(value = {"UNENCRYPTED_SERVER_SOCKET", "DM_DEFAULT_ENCODING", "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"}, justification = "This is an old, insecure mechanism that should be removed. port number file should be in platform default encoding. Laucher instance is created only once.")
     private void runAsTcpServer() throws IOException, InterruptedException {
         // accept just one connection and that's it.
         // when we are done, remove the port file to avoid stale port file
@@ -633,6 +633,7 @@ public class Launcher {
             }
         }
 
+        Launcher.communicationProtocolName = "TCP (remote: server)";
         runOnSocket(s);
     }
 
@@ -651,16 +652,18 @@ public class Launcher {
     /**
      * Connects to the given TCP port and then start running
      */
-    @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This implements an old, insecure connection mechanism.")
+    @SuppressFBWarnings(value = {"UNENCRYPTED_SOCKET", "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"}, justification = "This implements an old, insecure connection mechanism. Laucher instance is created only once.")
     @Deprecated
     private void runAsTcpClient() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
         // and avoid hanging forever
         Socket s = new Socket(connectionTarget.getAddress(),connectionTarget.getPort());
 
+        Launcher.communicationProtocolName = "TCP (remote: client)";
         runOnSocket(s);
     }
 
+    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "Laucher instance is created only once.")
     private void runWithStdinStdout() throws IOException, InterruptedException {
         // use stdin/stdout for channel communication
         ttyCheck();
@@ -699,6 +702,7 @@ public class Launcher {
         OutputStream os = new StandardOutputStream();
         System.setOut(System.err);
 
+        Launcher.communicationProtocolName = "Standard in/out";
         // System.in/out appear to be already buffered (at least that was the case in Linux and Windows as of Java6)
         // so we are not going to double-buffer these.
         main(System.in, os, mode, ping, jarCache != null ? new FileSystemJarCache(jarCache,true) : null);
@@ -787,6 +791,18 @@ public class Launcher {
         return File.pathSeparatorChar==';';
     }
 
+    /**
+     * Get the name of the communication protocol used in the Launcher.
+     * When the channel is established by an Engine instance (that is, using JNLP),
+     * use {@link Engine#getProtocolName()} instead.
+     *
+     * @return the communication protocol name.
+     * @since 4.8
+     */
+    public static String getCommunicationProtocolName() {
+        return Launcher.communicationProtocolName;
+    }
+
     private static String computeVersion() {
         Properties props = new Properties();
         InputStream is = Launcher.class.getResourceAsStream(JENKINS_VERSION_PROP_FILE);
@@ -813,6 +829,8 @@ public class Launcher {
             LOGGER.log(Level.WARNING, "Cannot close the resource file " + name, ex);
         }
     }
+
+    private static String communicationProtocolName;
 
     /**
      * Version number of Hudson this agent.jar is from.
