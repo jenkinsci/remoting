@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>4.8</version>
+  <version>${revision}${changelist}</version>
 
   <name>Jenkins remoting layer</name>
   <url>https://github.com/jenkinsci/remoting</url>
@@ -58,11 +58,11 @@ THE SOFTWARE.
     <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
     <url>https://github.com/jenkinsci/remoting</url>
-    <tag>remoting-4.8</tag>
+    <tag>${scmTag}</tag>
   </scm>
 
   <properties>
-    <revision>4.8</revision>
+    <revision>4.9</revision>
     <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
     <build.type>private</build.type>
