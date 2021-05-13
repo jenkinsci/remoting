@@ -21,7 +21,7 @@ The long string of hex digits is a secret key that the client needs to establish
 Depending on how you connect you may also need the agent name, "AgentName" in this example, or the (misnamed) jnlpUrl, "https://myjenkins.example.com/computer/AgentName/jenkins-agent.jnlp".
 
 ### "Launch" button
-This is the only launch mechanism that actually uses JNLP.
+This is the only launch mechanism that actually uses Java Web Start and the JNLP files.
 When properly configured and supported, clicking this button causes a JNLP file to be downloaded via the web browser and launched with Java WebStart. 
 
 While this is the simplest mechanism it has many drawbacks.
@@ -30,7 +30,9 @@ It requires an interactive user.
 If the agent terminates the user will have to click the button again.
 This mechanism is not recommended, is deprecated, and may not be supported or available.
 
-### Download JNLP file
+### Launching agent from console
+
+#### Option 1. Download JNLP file
 Another mechanism, shown in the above status page fragment, runs the agent from a script or command-line to retrieve the JNLP file. 
 This mechanism does not use JNLP or WebStart but uses the downloaded file to obtain connection information. 
 
@@ -52,7 +54,7 @@ java -jar agent.jar \
   -workDir <work directory> 
 ```
 
-### Connect directly to TCP port
+### Option 2. Connect directly to TCP port
 With the latest versions of the Remoting library (since 3.34), it is possible to connect directly to the TCP port. 
 This skips the download of the connection information file, described in step 1) above. 
 To use this you must provide some of the information that the downloaded file would contain.
@@ -95,7 +97,7 @@ The only currently supported and recommended protocol is "JNLP4-connect".
 Note that this mechanism uses a different JAR entry point than used for "Download JNLP file". 
 The parameters available and the default behavior may be different between the entry points.
 
-### Install as Windows service
+### Installing as Windows service
 On a Microsoft Windows platform, you can install the agent as a Windows Service.
 This allows the Windows Service infrastructure to manage the process lifecycle.
 
