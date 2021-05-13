@@ -1009,6 +1009,14 @@ public class Engine extends Thread {
         return agentName;
     }
 
+    /**
+     * Get the name of the communication protocol used in this Engine instance.
+     * When the channel is not established by Engine (that is, {@link Engine#current()}) returns null),
+     * use {@link Launcher#getCommunicationProtocolName()} instead.
+     *
+     * @return the communication protocol name.
+     * @since 4.8
+     */
     public String getProtocolName() {
         return this.protocolName;
     }
