@@ -158,6 +158,7 @@ public class Engine extends Thread {
     private final String secretKey;
     private final String agentName;
     private boolean webSocket;
+    private Map<String, String> connectionHeaders;
     private String credentials;
     private String protocolName;
     private String proxyCredentials = System.getProperty("proxyCredentials");
@@ -350,6 +351,10 @@ public class Engine extends Thread {
         this.webSocket = webSocket;
     }
 
+    public void setConnectionHeaders(@Nonnull Map<String, String> connectionHeaders) {
+        this.connectionHeaders = connectionHeaders;
+    }
+
     /**
      * If set, connect to the specified host and port instead of connecting directly to Jenkins.
      * @param tunnel Value. {@code null} to disable tunneling
@@ -534,6 +539,11 @@ public class Engine extends Thread {
                         headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
                         headers.put(Capability.KEY, Collections.singletonList(localCap));
                         // TODO use JnlpConnectionState.COOKIE_KEY somehow (see EngineJnlpConnectionStateListener.afterChannel)
+                        if (connectionHeaders != null) {
+                            for (Map.Entry<String, String> entry : connectionHeaders.entrySet()) {
+                                headers.put(entry.getKey(), Collections.singletonList(entry.getValue()));
+                            }
+                        }
                         LOGGER.fine(() -> "Sending: " + headers);
                     }
                     @Override
@@ -673,6 +683,11 @@ public class Engine extends Thread {
         final Map<String,String> headers = new HashMap<>();
         headers.put(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
         headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
+        if (connectionHeaders != null) {
+            for (Map.Entry<String, String> entry : connectionHeaders.entrySet()) {
+                headers.put(entry.getKey(), entry.getValue());
+            }
+        }
         List<String> jenkinsUrls = new ArrayList<>();
         for (URL url: candidateUrls) {
             jenkinsUrls.add(url.toExternalForm());

@@ -28,6 +28,7 @@ import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
 import hudson.remoting.FileSystemJarCache;
 import hudson.remoting.Util;
+import java.util.Map;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.args4j.Argument;
@@ -85,6 +86,11 @@ public class Main {
             depends="-url",
             forbids={"-direct", "-tunnel", "-credentials", "-proxyCredentials", "-cert", "-disableHttpsCertValidation", "-noKeepAlive"})
     public boolean webSocket;
+
+    @Option(name="-connectionHeader",
+            usage="Additional connection header to set, eg for authenticating with reverse proxies. To specify multiple headers, call this flag multiple times, one with each header",
+            metaVar = "NAME=VALUE")
+    public Map<String, String> connectionHeaders;
 
     @Option(name="-credentials",metaVar="USER:PASSWORD",
             usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
@@ -300,6 +306,8 @@ public class Main {
                 headlessMode ? new CuiListener() : new GuiListener(),
                 urls, args.get(0), agentName, directConnection, instanceIdentity, new HashSet<>(protocols));
         engine.setWebSocket(webSocket);
+        if(connectionHeaders !=null)
+            engine.setConnectionHeaders(connectionHeaders);
         if(tunnel!=null)
             engine.setTunnel(tunnel);
         if(credentials!=null)
