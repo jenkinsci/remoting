@@ -30,6 +30,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
@@ -61,6 +62,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -243,7 +245,7 @@ public class Engine extends Thread {
         this.listener = listener;
         this.directConnection = directConnection;
         this.events.add(listener);
-        this.candidateUrls = hudsonUrls;
+        this.candidateUrls = hudsonUrls.stream().map(Engine::ensureTrailingSlash).collect(Collectors.toList());
         this.secretKey = secretKey;
         this.agentName = agentName;
         this.instanceIdentity = instanceIdentity;
@@ -255,6 +257,18 @@ public class Engine extends Thread {
             LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in Engine thread " + t);
             interrupt();
         });
+    }
+
+    private static URL ensureTrailingSlash(URL u) {
+        if (u.toString().endsWith("/")) {
+            return u;
+        } else {
+            try {
+                return new URL(u + "/");
+            } catch (MalformedURLException x) {
+                throw new IllegalArgumentException(x);
+            }
+        }
     }
 
     /**
@@ -623,8 +637,8 @@ public class Engine extends Thread {
                         }
                     }
                 }
-                String wsUrl = candidateUrls.get(0).toString().replaceFirst("^http", "ws");
-                if(!wsUrl.endsWith("/")) wsUrl += "/";
+                hudsonUrl = candidateUrls.get(0);
+                String wsUrl = hudsonUrl.toString().replaceFirst("^http", "ws");
                 ContainerProvider.getWebSocketContainer().connectToServer(new AgentEndpoint(),
                     ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(wsUrl + "wsagents/"));
                 while (ch.get() == null) {
@@ -640,7 +654,7 @@ public class Engine extends Thread {
                 events.onDisconnect();
                 while (true) {
                     // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
-                    URL ping = new URL(candidateUrls.get(0), "login");
+                    URL ping = new URL(hudsonUrl, "login");
                     try {
                         HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
                         int status = conn.getResponseCode();
