@@ -151,7 +151,7 @@ public class Engine extends Thread {
      *
      * <p>
      * This value is determined from {@link #candidateUrls} after a successful connection.
-     * Note that this URL <b>DOES NOT</b> have "tcpSlaveAgentListener" in it.
+     * Note that this URL <b>DOES NOT</b> have "tcp-agent-listener" in it.
      */
     @CheckForNull
     private URL hudsonUrl;
@@ -639,7 +639,7 @@ public class Engine extends Thread {
                 }
                 events.onDisconnect();
                 while (true) {
-                    // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
+                    // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcp-agent-listener/, as that will be a 404 if the TCP port is disabled.
                     URL ping = new URL(candidateUrls.get(0), "login");
                     try {
                         HttpURLConnection conn = (HttpURLConnection) ping.openConnection();

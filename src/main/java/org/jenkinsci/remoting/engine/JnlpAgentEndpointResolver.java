@@ -377,8 +377,8 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     @Nonnull
     private URL toAgentListenerURL(@Nonnull String jenkinsUrl) throws MalformedURLException {
         return jenkinsUrl.endsWith("/")
-                ? new URL(jenkinsUrl + "tcpSlaveAgentListener/")
-                : new URL(jenkinsUrl + "/tcpSlaveAgentListener/");
+                ? new URL(jenkinsUrl + "tcp-agent-listener/")
+                : new URL(jenkinsUrl + "/tcp-agent-listener/");
     }
 
     @Override

@@ -38,5 +38,7 @@ public interface RoleSensitive {
      *      receive {@link AbstractMethodError}, and treat that as if the invocation of
      *      {@code checker.check(this,Role.UNKNOWN)} has happened.
      */
+    // TODO Update Javadoc once https://github.com/jenkinsci/jenkins/pull/5494 is updated
+    // TODO Update Javadoc once developer documentation is migrated to jenkins.io/doc/developer
     void checkRoles(RoleChecker checker) throws SecurityException;
 }
