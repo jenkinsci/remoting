@@ -351,6 +351,11 @@ public class Engine extends Thread {
         this.webSocket = webSocket;
     }
 
+    /**
+     * Sets map of custom websocket headers. These headers will be applied to the websocket connection to Jenkins.
+     *
+     * @param webSocketHeaders a map of the headers to apply to the websocket connection
+     */
     public void setWebSocketHeaders(@Nonnull Map<String, String> webSocketHeaders) {
         this.webSocketHeaders = webSocketHeaders;
     }
