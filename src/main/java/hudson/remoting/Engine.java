@@ -158,6 +158,7 @@ public class Engine extends Thread {
     private final String secretKey;
     private final String agentName;
     private boolean webSocket;
+    private Map<String, String> webSocketHeaders;
     private String credentials;
     private String protocolName;
     private String proxyCredentials = System.getProperty("proxyCredentials");
@@ -351,6 +352,15 @@ public class Engine extends Thread {
     }
 
     /**
+     * Sets map of custom websocket headers. These headers will be applied to the websocket connection to Jenkins.
+     *
+     * @param webSocketHeaders a map of the headers to apply to the websocket connection
+     */
+    public void setWebSocketHeaders(@Nonnull Map<String, String> webSocketHeaders) {
+        this.webSocketHeaders = webSocketHeaders;
+    }
+
+    /**
      * If set, connect to the specified host and port instead of connecting directly to Jenkins.
      * @param tunnel Value. {@code null} to disable tunneling
      */
@@ -534,6 +544,11 @@ public class Engine extends Thread {
                         headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
                         headers.put(Capability.KEY, Collections.singletonList(localCap));
                         // TODO use JnlpConnectionState.COOKIE_KEY somehow (see EngineJnlpConnectionStateListener.afterChannel)
+                        if (webSocketHeaders != null) {
+                            for (Map.Entry<String, String> entry : webSocketHeaders.entrySet()) {
+                                headers.put(entry.getKey(), Collections.singletonList(entry.getValue()));
+                            }
+                        }
                         LOGGER.fine(() -> "Sending: " + headers);
                     }
                     @Override
