@@ -391,9 +391,10 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                     // communication error.
                     // this means the caller will block forever
                     if (e instanceof ChannelClosedException && !logger.isLoggable(Level.FINE)) {
-                        logger.log(Level.INFO, "Failed to send back a reply to the request {0}: {1}", new Object[] {this, e});
+                        // TODO if this is from CloseCommand reduce level to FINE
+                        logger.log(Level.INFO, "Failed to send back a reply to the request {0}: {1}", new Object[] {Request.this, e});
                     } else {
-                        logger.log(Level.WARNING, e, () -> "Failed to send back a reply to the request " + this);
+                        logger.log(Level.WARNING, e, () -> "Failed to send back a reply to the request " + Request.this);
                     }
                 } finally {
                     channel.executingCalls.remove(id);
