@@ -13,7 +13,7 @@ Major changes:
 * New [JNLP4-connect](protocols.md) protocol, 
   which improves performance and stability compared to the [JNLP3 protocol](protocols.md)
 
-Remoting 3 does not have full binary compatibity with Remoting <code>2</code> (see [Remoting 3 Compatibility Notes](remoting-3-compatibility.md)).
+Remoting 3 does not have full binary compatibility with Remoting <code>2</code>.
 
 #### Remoting 2
 
