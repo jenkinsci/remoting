@@ -44,7 +44,6 @@ User documentation:
 
 Previous versions:
 
-* [Remoting versions](docs/versions.md) - Description of Remoting `2.x` and `3.x` differences
 * [Changelog - 2.x](CHANGELOG-2.x.md) - Changelog for the Remoting `2.x` stabilization releases
 
 Developer documentation:
