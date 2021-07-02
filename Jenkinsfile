@@ -14,7 +14,7 @@ parallel linux: {
         }
         stage('Build') {
             timeout(30) {
-                sh 'mvn -B -ntp -Dset.changelist clean install -Dmaven.test.failure.ignore -e'
+                infra.runMaven(['-Dset.changelist', 'clean', 'install', '-Dmaven.test.failure.ignore', '-e'])
             }
         }
         stage('Archive') {
