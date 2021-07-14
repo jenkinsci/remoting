@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -53,6 +54,16 @@ public class LauncherTest {
         // A JNLP containing an embedded doctype
         FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/embedded_doctype.jnlp");
         shouldFailWithDoctype(jnlpFile);
+    }
+
+    @Test
+    public void loadLauncherInstrumentationListeners() throws Exception {
+        String ENGINE_INST_PROP = "hudson.remoting.Launcher.launcherInstrumentationListenerCanonicalNames";
+        System.setProperty(ENGINE_INST_PROP, "hudson.remoting.LauncherInstrumentationListenerAdapter");
+        Launcher launcher = new Launcher();
+        Assert.assertTrue(launcher.loadLauncherListeners());
+        System.setProperty(ENGINE_INST_PROP, "hudson.remoting.NotExist");
+        Assert.assertFalse(launcher.loadLauncherListeners());
     }
 
     private void shouldFailWithDoctype(FileInputStream jnlpFile) throws ParserConfigurationException, SAXException, IOException {

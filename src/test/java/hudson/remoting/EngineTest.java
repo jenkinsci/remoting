@@ -127,6 +127,17 @@ public class EngineTest {
         assertThat(engine.getAgentName(), is(AGENT_NAME));
     }
 
+    @Test
+    public void loadEngineInstrumentationListeners() throws Exception {
+        String ENGINE_INST_PROP = "hudson.remoting.Engine.engineInstrumentationListenerCanonicalNames";
+        System.setProperty(ENGINE_INST_PROP, "hudson.remoting.EngineInstrumentationListenerAdapter");
+        EngineListener l = new TestEngineListener();
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Assert.assertTrue(engine.loadEngineInstrumentationListeners());
+        System.setProperty(ENGINE_INST_PROP, "hudson.remoting.NotExist");
+        Assert.assertFalse(engine.loadEngineInstrumentationListeners());
+    }
+
     private static class TestEngineListener implements EngineListener {
 
         @Override

@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.Socket;
@@ -135,6 +136,7 @@ public class Engine extends Thread {
     public final EngineListener listener;
 
     private final EngineListenerSplitter events = new EngineListenerSplitter();
+    private final EngineInstrumentationListenerSplitter instrumentation = new EngineInstrumentationListenerSplitter();
     /**
      * To make Jenkins more graceful against user error,
      * JNLP agent can try to connect to multiple possible Jenkins URLs.
@@ -288,6 +290,7 @@ public class Engine extends Thread {
      *               This method can be used for testing startup logic.
      */
     /*package*/ void startEngine(boolean dryRun) throws IOException {
+        loadEngineInstrumentationListeners();
         LOGGER.log(Level.INFO, "Using Remoting version: {0}", Launcher.VERSION);
         @CheckForNull File jarCacheDirectory = null;
         
@@ -330,6 +333,37 @@ public class Engine extends Thread {
         if (!dryRun) {
             this.start();
         }
+    }
+
+    /*package*/boolean loadEngineInstrumentationListeners() {
+        boolean success = true;
+        String listenerCanonicalNamesProp = System.getProperty("hudson.remoting.Engine.engineInstrumentationListenerCanonicalNames", "");
+        if (listenerCanonicalNamesProp.trim().equals("")) return success;
+
+        String[] listenerCanonicalNames = listenerCanonicalNamesProp.split(":");
+        for (String listenerName : listenerCanonicalNames) {
+            try {
+                Class<?> clazz = Thread.currentThread().getContextClassLoader().loadClass(listenerName);
+                Object listener = clazz.getDeclaredConstructor(null).newInstance();
+                if (listener instanceof EngineInstrumentationListener) {
+                    instrumentation.add((EngineInstrumentationListener) listener);
+                    LOGGER.log(Level.INFO, String.format("Loaded an external engine instrumentation listener (%s)", listenerName));
+                } else {
+                    LOGGER.log(Level.WARNING, String.format("Failed to use %s. Not an instance of %s", listenerName, EngineInstrumentationListener.class.getCanonicalName()));
+                    success = false;
+                }
+            } catch (ClassNotFoundException e) {
+                LOGGER.log(Level.WARNING, String.format("Failed to load %s", listenerName), e);
+                success = false;
+            } catch (NoSuchMethodException e) {
+                LOGGER.log(Level.WARNING, String.format("Failed to get constructor of %s", listenerName), e);
+                success = false;
+            } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+                LOGGER.log(Level.WARNING, String.format("Failed to instantiate %s", listenerName), e);
+                success = false;
+            }
+        }
+        return success;
     }
 
     /**
@@ -492,6 +526,7 @@ public class Engine extends Thread {
     @Override
     @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
     public void run() {
+        instrumentation.onStart(this, webSocket);
         if (webSocket) {
             runWebSocket();
             return;
@@ -661,6 +696,7 @@ public class Engine extends Thread {
                 }
                 this.protocolName = "WebSocket";
                 events.status("Connected");
+                instrumentation.onConnected();
                 ch.get().join();
                 events.status("Terminated");
                 if (noReconnect) {
@@ -810,6 +846,7 @@ public class Engine extends Thread {
                     }
 
                     events.status("Connected");
+                    instrumentation.onConnected();
                     channel.join();
                     events.status("Terminated");
                 } finally {
