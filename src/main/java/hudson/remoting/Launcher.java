@@ -63,6 +63,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
@@ -147,16 +148,28 @@ public class Launcher {
             usage="add the given classpath elements to the system classloader.")
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     public void addClasspath(String pathList) throws Exception {
-        Method $addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-        $addURL.setAccessible(true);
+        if (ClassLoader.getSystemClassLoader() instanceof  URLClassLoader) {
+            // Java 8
+            Method $addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
+            $addURL.setAccessible(true);
 
-        for(String token : pathList.split(File.pathSeparator))
-            $addURL.invoke(ClassLoader.getSystemClassLoader(),new File(token).toURI().toURL());
+            for(String token : pathList.split(File.pathSeparator))
+                $addURL.invoke(ClassLoader.getSystemClassLoader(),new File(token).toURI().toURL());
 
-        // fix up the system.class.path to pretend that those jar files
-        // are given through CLASSPATH or something.
-        // some tools like JAX-WS RI and Hadoop relies on this.
-        System.setProperty("java.class.path",System.getProperty("java.class.path")+File.pathSeparatorChar+pathList);
+            // fix up the system.class.path to pretend that those jar files
+            // are given through CLASSPATH or something.
+            // some tools like JAX-WS RI and Hadoop relies on this.
+            System.setProperty("java.class.path",System.getProperty("java.class.path")+File.pathSeparatorChar+pathList);
+        } else {
+            // Java 9 or later
+            List<URL> urls = new ArrayList<>();
+            for (String token : pathList.split(File.pathSeparator))
+                urls.add(new File(token).toURI().toURL());
+
+            ClassLoader currentThreadClassLoader = Thread.currentThread().getContextClassLoader();
+            URLClassLoader urlClassLoader = new URLClassLoader(urls.toArray(new URL[]{}), currentThreadClassLoader);
+            Thread.currentThread().setContextClassLoader(urlClassLoader);
+        }
     }
 
     @Option(name="-tcp",usage="instead of talking to the master via stdin/stdout, " +
@@ -284,6 +297,7 @@ public class Launcher {
     @Option(name="-version",usage="Shows the version of the remoting jar and then exits")
     public boolean showVersion = false;
 
+    private static final LauncherInstrumentationListenerSplitter instrumentation = new LauncherInstrumentationListenerSplitter();
 
     public static void main(String... args) throws Exception {
         Launcher launcher = new Launcher();
@@ -312,6 +326,8 @@ public class Launcher {
             }
             return;
         }
+        loadLauncherListeners();
+        instrumentation.onLaunch(this);
 
         // Create and verify working directory and logging
         // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this parameter in
@@ -394,6 +410,7 @@ public class Launcher {
         if(tcpPortFile!=null) {
             runAsTcpServer();
         } else {
+            instrumentation.onRunWithStdinStdout();
             runWithStdinStdout();
         }
         System.exit(0);
@@ -758,6 +775,7 @@ public class Launcher {
             cb.withProperty(StandardOutputStream.class,os);
 
         Channel channel = cb.build(is, os);
+        instrumentation.onConnected();
         System.err.println("channel started");
 
         // Both settings are available since remoting-2.0
@@ -828,6 +846,37 @@ public class Launcher {
         } catch (IOException ex) {
             LOGGER.log(Level.WARNING, "Cannot close the resource file " + name, ex);
         }
+    }
+
+    /*package*/boolean loadLauncherListeners() {
+        boolean success = true;
+        String listenerCanonicalNamesProp = System.getProperty("hudson.remoting.Launcher.launcherInstrumentationListenerCanonicalNames", "");
+        if (listenerCanonicalNamesProp.trim().equals("")) return success;
+
+        String[] listenerCanonicalNames = listenerCanonicalNamesProp.split(":");
+        for (String listenerName : listenerCanonicalNames) {
+            try {
+                Class<?> clazz = Thread.currentThread().getContextClassLoader().loadClass(listenerName);
+                Object listener = clazz.getDeclaredConstructor(null).newInstance();
+                if (listener instanceof LauncherInstrumentationListener) {
+                    instrumentation.add((LauncherInstrumentationListener) listener);
+                    LOGGER.log(Level.INFO, String.format("Loaded an external launcher listener (%s)", listenerName));
+                } else {
+                    LOGGER.log(Level.WARNING, String.format("Failed to use %s. Not an instance of %s", listenerName, LauncherInstrumentationListener.class.getCanonicalName()));
+                    success = false;
+                }
+            } catch (ClassNotFoundException e) {
+                LOGGER.log(Level.WARNING, String.format("Failed to load %s", listenerName), e);
+                success = false;
+            } catch (NoSuchMethodException e) {
+                LOGGER.log(Level.WARNING, String.format("Failed to get constructor of %s", listenerName), e);
+                success = false;
+            } catch (InvocationTargetException | InstantiationException | IllegalAccessException e) {
+                LOGGER.log(Level.WARNING, String.format("Failed to instantiate %s", listenerName), e);
+                success = false;
+            }
+        }
+        return success;
     }
 
     private static String communicationProtocolName;
