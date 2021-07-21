@@ -144,9 +144,10 @@ public class Launcher {
     public String proxyCredentials = null;
 
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
-            usage="add the given classpath elements to the system classloader.")
+            usage="add the given classpath elements to the system classloader. (DEPRECATED)")
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     public void addClasspath(String pathList) throws Exception {
+        LOGGER.warning("[JENKINS-64831] Passing -cp to hudson.remoting.Launcher is deprecated and may not work at all on Java 9+");
         Method $addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
         $addURL.setAccessible(true);
 
