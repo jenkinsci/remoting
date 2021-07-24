@@ -663,7 +663,7 @@ public class Launcher {
         runOnSocket(s);
     }
 
-    @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification = "Laucher instance is created only once.")
+    @SuppressFBWarnings(value = {"ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", "DMI_RANDOM_USED_ONLY_ONCE"}, justification = "Laucher instance is created only once.")
     private void runWithStdinStdout() throws IOException, InterruptedException {
         // use stdin/stdout for channel communication
         ttyCheck();
