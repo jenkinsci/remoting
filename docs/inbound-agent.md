@@ -20,6 +20,8 @@ If you use a different mechanism than clicking the "Launch" button, this page co
 The long string of hex digits is a secret key that the client needs to establish the connection. 
 Depending on how you connect you may also need the agent name, "AgentName" in this example, or the (misnamed) jnlpUrl, "https://myjenkins.example.com/computer/AgentName/jenkins-agent.jnlp".
 
+**Security Warning**: The secret key is actually not created randomly but implemented as a MAC of the agent name. This means that even when deleting and creating a new agent, the secret will not change if the agent name stays the same. If you assume a secret is compromised, it is therefore crucial to avoid re-using the compromised agent's name.
+
 ### "Launch" button
 This is the only launch mechanism that actually uses JNLP.
 When properly configured and supported, clicking this button causes a JNLP file to be downloaded via the web browser and launched with Java WebStart. 
