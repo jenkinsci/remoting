@@ -32,7 +32,7 @@ import java.lang.reflect.Proxy;
 import java.net.URL;
 
 /**
- * {@link ObjectInputStream} that uses a specific class loader.
+ * {@link ObjectInputStream} that uses a specific {@link ClassLoader} and can use a {@link ClassFilter} to limit what classes can be loaded.
  */
 public class ObjectInputStreamEx extends ObjectInputStream {
     private final ClassLoader cl;
