@@ -18,7 +18,11 @@ Part of the agent status page for inbound agents looks something like this:
 This shows a couple of launch methods, but there are other mechanisms.
 If you use a different mechanism than clicking the "Launch" button, this page contains parameters that you will need. 
 The long string of hex digits is a secret key that the client needs to establish the connection. 
+This key is based on the agent name and a per-controller secret.
 Depending on how you connect you may also need the agent name, "AgentName" in this example, or the (misnamed) jnlpUrl, "https://myjenkins.example.com/computer/AgentName/jenkins-agent.jnlp".
+
+Note that the secret key will always be the same for a given agent name on the same Jenkins controller.
+If the secret key of an agent is compromised, do not reuse the agent name on the affected Jenkins controller.
 
 ### "Launch" button
 This is the only launch mechanism that actually uses JNLP.
