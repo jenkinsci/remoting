@@ -39,7 +39,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 import org.jenkinsci.remoting.util.KeyUtils;
 
 /**
@@ -48,7 +47,6 @@ import org.jenkinsci.remoting.util.KeyUtils;
  *
  * @since 3.0
  */
-@IgnoreJRERequirement // TODO We override some methods in Java 7, so remove this ignore when baseline is Java 7
 public class PublicKeyMatchingX509ExtendedTrustManager extends X509ExtendedTrustManager {
 
     /**
