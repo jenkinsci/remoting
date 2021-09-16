@@ -246,17 +246,6 @@ public class Main {
      * Main without the argument handling.
      */
     public static void _main(String[] args) throws IOException, InterruptedException, CmdLineException {
-        // see http://forum.java.sun.com/thread.jspa?threadID=706976&tstart=0
-        // not sure if this is the cause, but attempting to fix
-        // https://hudson.dev.java.net/issues/show_bug.cgi?id=310
-        // by overwriting the security manager.
-        try {
-            System.setSecurityManager(null);
-        } catch (SecurityException e) {
-            // ignore and move on.
-            // some user reported that this happens on their JVM: http://d.hatena.ne.jp/tueda_wolf/20080723
-        }
-
         // if we run in Mac, put the menu bar where the user expects it
         System.setProperty("apple.laf.useScreenMenuBar", "true");
 
