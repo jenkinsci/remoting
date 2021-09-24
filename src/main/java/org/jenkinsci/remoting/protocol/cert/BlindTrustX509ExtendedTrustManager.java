@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.protocol.cert;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedTrustManager;
@@ -36,7 +35,6 @@ import java.security.cert.X509Certificate;
  *
  * @since 3.0
  */
-@IgnoreJRERequirement // TODO We override some methods in Java 7, so remove this ignore when baseline is Java 7
 @SuppressFBWarnings(value = "WEAK_TRUST_MANAGER", justification = "User set parameter to skip verifier.")
 public class BlindTrustX509ExtendedTrustManager extends X509ExtendedTrustManager {
     /**
