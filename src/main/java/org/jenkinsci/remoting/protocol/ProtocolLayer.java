@@ -26,12 +26,8 @@ package org.jenkinsci.remoting.protocol;
 import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import javax.annotation.CheckForNull;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.DoNotUse;
 
 /**
  * A network {@link ProtocolStack} consists of a number of {@link ProtocolLayer}s. This interface represents the general
@@ -45,14 +41,6 @@ public interface ProtocolLayer {
      * A handy constant to use for no-op send/receive calls.
      */
     ByteBuffer EMPTY_BUFFER = ByteBufferUtils.EMPTY_BUFFER;
-    /**
-     * A handy constant until Java 7 compatibility can be assumed.
-     *
-     * @deprecated Use {@link StandardCharsets}
-     */
-    @Deprecated
-    @Restricted(DoNotUse.class)
-    Charset UTF_8 = StandardCharsets.UTF_8;
 
     /**
      * Initializes the layer with its {@link ProtocolStack.Ptr}. All lower layers in the stack will be initialized
