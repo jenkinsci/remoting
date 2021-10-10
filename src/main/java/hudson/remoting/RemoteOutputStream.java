@@ -23,9 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -103,12 +103,12 @@ public final class RemoteOutputStream extends OutputStream implements Serializab
     }
 
     @Override
-    public void write(@Nonnull byte[] b) throws IOException {
+    public void write(@NonNull byte[] b) throws IOException {
         core.write(b);
     }
 
     @Override
-    public void write(@Nonnull byte[] b, int off, int len) throws IOException {
+    public void write(@NonNull byte[] b, int off, int len) throws IOException {
         core.write(b, off, len);
     }
 

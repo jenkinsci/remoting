@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
@@ -34,9 +37,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 
@@ -74,7 +74,7 @@ public class JnlpConnectionState {
     @CheckForNull
     private final Socket socket;
 
-    @Nonnull
+    @NonNull
     private String remoteEndpointDescription = "<unknown>";
 
     /**
@@ -138,7 +138,7 @@ public class JnlpConnectionState {
      * @return an actual socket, or just a stub
      */
     @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "just a stub")
-    @Nonnull
+    @NonNull
     public Socket getSocket() {
         return socket != null ? socket : new Socket();
     }
@@ -148,7 +148,7 @@ public class JnlpConnectionState {
      * Or may be some other text identifying a remote client.
      * @return some text suitable for debug logs
      */
-    @Nonnull
+    @NonNull
     public String getRemoteEndpointDescription() {
         return socket != null ? String.valueOf(socket.getRemoteSocketAddress()) : remoteEndpointDescription;
     }
@@ -156,7 +156,7 @@ public class JnlpConnectionState {
     /**
      * Set a specific value for {@link #getRemoteEndpointDescription}.
      */
-    public void setRemoteEndpointDescription(@Nonnull String description) {
+    public void setRemoteEndpointDescription(@NonNull String description) {
         remoteEndpointDescription = description;
     }
 
@@ -376,7 +376,7 @@ public class JnlpConnectionState {
      *
      * @throws ConnectionRefusalException if the connection has been refused.
      */
-    public void fireAfterProperties(@Nonnull Map<String, String> properties) throws ConnectionRefusalException {
+    public void fireAfterProperties(@NonNull Map<String, String> properties) throws ConnectionRefusalException {
         if (lifecycle != State.BEFORE_PROPERTIES) {
             throw new IllegalStateException("fireAfterProperties cannot be invoked at lifecycle " + lifecycle);
         }

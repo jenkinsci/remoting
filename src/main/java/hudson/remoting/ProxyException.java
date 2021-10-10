@@ -23,8 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.IOException;
-import javax.annotation.Nonnull;
 
 /**
  * Used when the exception thrown by the remoted code cannot be serialized.
@@ -36,7 +37,7 @@ import javax.annotation.Nonnull;
  * @author Kohsuke Kawaguchi
  */
 public class ProxyException extends IOException {
-    public ProxyException(@Nonnull Throwable cause) {
+    public ProxyException(@NonNull Throwable cause) {
         super(cause.toString()); // use toString() to capture the class name and error message
         setStackTrace(cause.getStackTrace());
 

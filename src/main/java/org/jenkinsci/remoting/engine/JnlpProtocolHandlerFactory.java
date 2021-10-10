@@ -28,9 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.net.ssl.SSLContext;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.protocol.IOHub;
 
@@ -62,7 +63,7 @@ public class JnlpProtocolHandlerFactory {
     /**
      * The thread pool to use.
      */
-    @Nonnull
+    @NonNull
     private final ExecutorService threadPool;
 
     /**
@@ -75,7 +76,7 @@ public class JnlpProtocolHandlerFactory {
      *
      * @param threadPool the thread pool to use.
      */
-    public JnlpProtocolHandlerFactory(@Nonnull ExecutorService threadPool) {
+    public JnlpProtocolHandlerFactory(@NonNull ExecutorService threadPool) {
         this.threadPool = threadPool;
         needClientAuth = false;
     }
@@ -156,7 +157,7 @@ public class JnlpProtocolHandlerFactory {
      *
      * @return the {@link JnlpProtocolHandler} instances, may be empty, never {@code null}
      */
-    @Nonnull
+    @NonNull
     public List<JnlpProtocolHandler<? extends JnlpConnectionState>> handlers() {
         List<JnlpProtocolHandler<? extends JnlpConnectionState>> result = new ArrayList<>();
         if (ioHub != null && context != null) {

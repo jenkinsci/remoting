@@ -29,8 +29,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.ByteBufferQueueOutputStream;
@@ -134,7 +135,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * @throws IOException          if something goes wrong during the receive.
      * @throws InterruptedException if interrupted during the receive.
      */
-    public final void receive(@Nonnull ByteBuffer data) throws IOException, InterruptedException {
+    public final void receive(@NonNull ByteBuffer data) throws IOException, InterruptedException {
         while (receiver != null && readCommandIndex > 0) {
             processCommand();
         }

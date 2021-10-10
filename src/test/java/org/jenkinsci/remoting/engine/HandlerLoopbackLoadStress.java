@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
@@ -51,8 +52,6 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -218,7 +217,7 @@ public class HandlerLoopbackLoadStress {
                     }
 
                     @Override
-                    public String getSecretOf(@Nonnull String clientName) {
+                    public String getSecretOf(@NonNull String clientName) {
                         return secretFor(clientName);
                     }
                 })
@@ -248,7 +247,7 @@ public class HandlerLoopbackLoadStress {
         stats = new Stats();
     }
 
-    private static String secretFor(@Nonnull String clientName) {
+    private static String secretFor(@NonNull String clientName) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             digest.reset();

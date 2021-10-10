@@ -2,13 +2,15 @@ package hudson.remoting;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.CallableDecorator;
 import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.RoleSensitive;
 
-import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
@@ -27,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import javax.annotation.CheckForNull;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
@@ -271,7 +272,7 @@ public class ChannelBuilder {
     public ChannelBuilder withRoles(final Collection<? extends Role> actual) {
         return withRoleChecker(new RoleChecker() {
             @Override
-            public void check(@Nonnull RoleSensitive subject, @Nonnull Collection<Role> expected) {
+            public void check(@NonNull RoleSensitive subject, @NonNull Collection<Role> expected) {
                 if (!actual.containsAll(expected)) {
                     Collection<Role> c = new ArrayList<>(expected);
                     c.removeAll(actual);

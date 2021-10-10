@@ -26,11 +26,11 @@
 
 package org.jenkinsci.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.ProtectedExternally;
 
-import javax.annotation.Nonnull;
 import java.io.NotSerializableException;
 import java.io.Serializable;
 
@@ -54,7 +54,7 @@ public interface SerializableOnlyOverRemoting extends Serializable {
      * @throws NotSerializableException the calling thread has no associated channel.
      *      In such case the object cannot be serialized.
      */
-    @Nonnull
+    @NonNull
     @Restricted(ProtectedExternally.class)
     default Channel getChannelForSerialization() throws NotSerializableException {
         final Channel ch = Channel.current();

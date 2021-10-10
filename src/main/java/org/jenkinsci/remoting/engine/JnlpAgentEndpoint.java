@@ -23,12 +23,12 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.ThrowableUtils;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -54,7 +54,7 @@ public class JnlpAgentEndpoint {
     /**
      * The hostname to connect to.
      */
-    @Nonnull
+    @NonNull
     private final String host;
     private final int port;
     /**
@@ -80,7 +80,7 @@ public class JnlpAgentEndpoint {
      * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.net.URL)}
      */
     @Deprecated
-    public JnlpAgentEndpoint(@Nonnull String host, int port, @CheckForNull RSAPublicKey publicKey,
+    public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,
                              @CheckForNull Set<String> protocols) {
         this(host, port, publicKey, protocols, null);
     }
@@ -96,7 +96,7 @@ public class JnlpAgentEndpoint {
      *                   Use {@code null} if it is not a web service or if the URL cannot be determined
      * @since 3.0
      */
-    public JnlpAgentEndpoint(@Nonnull String host, int port, @CheckForNull RSAPublicKey publicKey,
+    public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,
                              @CheckForNull Set<String> protocols, @CheckForNull URL serviceURL) {
         if (port <= 0 || 65536 <= port) {
             throw new IllegalArgumentException("Port " + port + " is not in the range 1-65535");
@@ -113,7 +113,7 @@ public class JnlpAgentEndpoint {
      *
      * @return the socket address
      */
-    @Nonnull
+    @NonNull
     public InetSocketAddress getAddress() {
         return new InetSocketAddress(host, port);
     }
@@ -132,7 +132,7 @@ public class JnlpAgentEndpoint {
      *
      * @return the hostname.
      */
-    @Nonnull
+    @NonNull
     public String getHost() {
         return host;
     }
@@ -173,7 +173,7 @@ public class JnlpAgentEndpoint {
      * @return {@code false} if and only if the endpoint reports supported protocols and the named protocol is not in
      * the list of supported protocols.
      */
-    public boolean isProtocolSupported(@Nonnull String name) {
+    public boolean isProtocolSupported(@NonNull String name) {
         return protocols == null || protocols.contains(name);
     }
 

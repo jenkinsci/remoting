@@ -23,12 +23,12 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.IOException;
 import java.net.URL;
-import javax.annotation.CheckForNull;
 
 /**
  * {@link Callable} used to deliver a jar file to {@link RemoteClassLoader}.

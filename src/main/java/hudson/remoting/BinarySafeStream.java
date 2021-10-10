@@ -23,7 +23,8 @@
  */
 package hudson.remoting;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FilterInputStream;
 import java.io.FilterOutputStream;
@@ -90,7 +91,7 @@ public final class BinarySafeStream {
             }
 
             @Override
-            public int read(@Nonnull byte[] b, int off, int len) throws IOException {
+            public int read(@NonNull byte[] b, int off, int len) throws IOException {
                 if(remaining==-1)   return -1; // EOF
 
                 if(len<4) {
@@ -243,7 +244,7 @@ public final class BinarySafeStream {
             }
 
             @Override
-            public void write(@Nonnull byte[] b, int off, int len) throws IOException {
+            public void write(@NonNull byte[] b, int off, int len) throws IOException {
                 // if there's anything left in triplet from the last write, try to write them first
                 if(remaining>0) {
                     while(len>0 && remaining<3) {

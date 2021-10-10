@@ -1,9 +1,10 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import javax.annotation.Nonnull;
 
 /**
  * Jar file cache.
@@ -32,7 +33,7 @@ public abstract class JarCache {
      * @return Created JAR Cache
      * @throws IOException Default JAR Cache location cannot be initialized
      */
-    @Nonnull
+    @NonNull
     /*package*/ static JarCache getDefault() throws IOException {
         try {
             return new FileSystemJarCache(DEFAULT_NOWS_JAR_CACHE_LOCATION, true);
@@ -53,6 +54,6 @@ public abstract class JarCache {
      * @return
      *      URL of the jar file.
      */
-    @Nonnull
-    public abstract Future<URL> resolve(@Nonnull Channel channel, long sum1, long sum2) throws IOException, InterruptedException;
+    @NonNull
+    public abstract Future<URL> resolve(@NonNull Channel channel, long sum1, long sum2) throws IOException, InterruptedException;
 }

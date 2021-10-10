@@ -23,6 +23,8 @@
  */
 package hudson.remoting.jnlp;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
@@ -36,8 +38,6 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -165,7 +165,7 @@ public class Main {
     @Option(name = "-internalDir",
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
             depends = "-workDir")
-    @Nonnull
+    @NonNull
     public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
 
     /**

@@ -26,8 +26,9 @@ package org.jenkinsci.remoting.engine;
 import java.net.Socket;
 import java.security.cert.X509Certificate;
 import java.util.List;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 
 /**
@@ -46,7 +47,7 @@ public class Jnlp4ConnectionState extends JnlpConnectionState {
     /**
      * {@inheritDoc}
      */
-    protected Jnlp4ConnectionState(@Nonnull Socket socket,
+    protected Jnlp4ConnectionState(@NonNull Socket socket,
                                    List<? extends JnlpConnectionStateListener> listeners) {
         super(socket, listeners);
     }

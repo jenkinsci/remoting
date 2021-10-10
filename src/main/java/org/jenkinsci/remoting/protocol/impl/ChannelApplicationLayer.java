@@ -23,8 +23,9 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.remoting.AbstractByteBufferCommandTransport;
 import hudson.remoting.BinarySafeStream;
 import hudson.remoting.Capability;
@@ -41,7 +42,6 @@ import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import javax.annotation.Nullable;
 
 import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.protocol.ApplicationLayer;
@@ -98,7 +98,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * @param executorService the {@link ExecutorService} to use for the {@link Channel}.
      * @param listener the {@link Listener} to notify when the {@link Channel} is available.
      */
-    public ChannelApplicationLayer(@Nonnull ExecutorService executorService,
+    public ChannelApplicationLayer(@NonNull ExecutorService executorService,
                                    @CheckForNull Listener listener) {
         this.executorService = executorService;
         this.listener = listener;
@@ -112,7 +112,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * @param cookie a cookie to pass through the channel.
      */
     @Restricted(NoExternalUse.class)
-    public ChannelApplicationLayer(@Nonnull ExecutorService executorService,
+    public ChannelApplicationLayer(@NonNull ExecutorService executorService,
                                    @CheckForNull Listener listener, String cookie) {
         this.executorService = executorService;
         this.listener = listener;
@@ -139,7 +139,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * {@inheritDoc}
      */
     @Override
-    public void onRead(@Nonnull ByteBuffer data) throws IOException {
+    public void onRead(@NonNull ByteBuffer data) throws IOException {
         if (!futureChannel.isDone()) {
             assert channel == null && transport == null && capabilityLength != null;
             if (capabilityLength.hasRemaining()) {
@@ -279,7 +279,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          * Called when the {@link Channel} has been constructed.
          * @param channel the {@link Channel}.
          */
-        void onChannel(@Nonnull Channel channel);
+        void onChannel(@NonNull Channel channel);
     }
 
     /**
@@ -292,8 +292,8 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          * @param builder the {@link ChannelBuilder} to decorate
          * @return the provided {@link ChannelBuilder} for method chaining.
          */
-        @Nonnull
-        ChannelBuilder decorate(@Nonnull ChannelBuilder builder);
+        @NonNull
+        ChannelBuilder decorate(@NonNull ChannelBuilder builder);
     }
 
     /**

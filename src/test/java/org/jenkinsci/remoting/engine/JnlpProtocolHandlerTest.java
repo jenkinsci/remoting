@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
 import javax.net.ssl.SSLContext;
 
 import org.apache.commons.io.IOUtils;
@@ -270,7 +269,7 @@ public class JnlpProtocolHandlerTest {
             }
 
             @Override
-            public String getSecretOf(@Nonnull String clientName) {
+            public String getSecretOf(@NonNull String clientName) {
                 return secretKey;
             }
         }, executorService, selector, hub, serverCtx.context(), useNioHubServer);

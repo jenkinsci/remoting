@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.SocketChannelStream;
@@ -41,8 +43,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -76,17 +76,17 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
     /**
      * The thread pool we can use for executing tasks.
      */
-    @Nonnull
+    @NonNull
     private final ExecutorService threadPool;
     /**
      * The {@link IOHub}.
      */
-    @Nonnull
+    @NonNull
     private final IOHub ioHub;
     /**
      * The {@link SSLContext}
      */
-    @Nonnull
+    @NonNull
     private final SSLContext context;
     /**
      * Flag to indicate whether client authentication is reported as required or optional by the server.
@@ -103,8 +103,8 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
      * @param needClientAuth {@code} to force all clients to have a client certificate in order to connect.
      * @param preferNio      {@code true} means that the protocol should attempt to use NIO if possible.
      */
-    public JnlpProtocol4Handler(@Nullable JnlpClientDatabase clientDatabase, @Nonnull ExecutorService threadPool,
-                                @Nonnull IOHub ioHub, @Nonnull SSLContext context, boolean needClientAuth,
+    public JnlpProtocol4Handler(@Nullable JnlpClientDatabase clientDatabase, @NonNull ExecutorService threadPool,
+                                @NonNull IOHub ioHub, @NonNull SSLContext context, boolean needClientAuth,
                                 boolean preferNio) {
         super(clientDatabase, preferNio);
         this.threadPool = threadPool;
@@ -121,10 +121,10 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         return "JNLP4-connect";
     }
 
-    @Nonnull
+    @NonNull
     @Override
-    public Jnlp4ConnectionState createConnectionState(@Nonnull Socket socket,
-                                                      @Nonnull List<? extends JnlpConnectionStateListener> listeners) {
+    public Jnlp4ConnectionState createConnectionState(@NonNull Socket socket,
+                                                      @NonNull List<? extends JnlpConnectionStateListener> listeners) {
         return new Jnlp4ConnectionState(socket, listeners);
     }
 
@@ -135,10 +135,10 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
      * @param headers   the headers to send to the client.
      * @param listeners the listeners to process the connection.
      */
-    @Nonnull
+    @NonNull
     @Override
-    public Future<Channel> handle(@Nonnull Socket socket, @Nonnull Map<String, String> headers,
-                                  @Nonnull List<? extends JnlpConnectionStateListener> listeners)
+    public Future<Channel> handle(@NonNull Socket socket, @NonNull Map<String, String> headers,
+                                  @NonNull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException {
         NetworkLayer networkLayer = createNetworkLayer(socket);
         SSLEngine engine = createSSLEngine(socket);
@@ -163,10 +163,10 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
      * @param headers   the headers to send to the server.
      * @param listeners the listeners to process the connection.
      */
-    @Nonnull
+    @NonNull
     @Override
-    public Future<Channel> connect(@Nonnull Socket socket, @Nonnull Map<String, String> headers,
-                                   @Nonnull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
+    public Future<Channel> connect(@NonNull Socket socket, @NonNull Map<String, String> headers,
+                                   @NonNull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
         NetworkLayer networkLayer = createNetworkLayer(socket);
         SSLEngine sslEngine = createSSLEngine(socket);
         sslEngine.setUseClientMode(true);
@@ -227,7 +227,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         /**
          * The event.
          */
-        @Nonnull
+        @NonNull
         private final Jnlp4ConnectionState event;
         /**
          * The client database used when {@link JnlpProtocol4Handler#handle(Socket, Map, List)} is handling a client.
@@ -245,7 +245,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          *
          * @param event the event.
          */
-        Handler(@Nonnull Jnlp4ConnectionState event) {
+        Handler(@NonNull Jnlp4ConnectionState event) {
             this.event = event;
             this.client = true;
         }
@@ -256,7 +256,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * @param event          the event.
          * @param clientDatabase the client database.
          */
-        Handler(@Nonnull Jnlp4ConnectionState event, JnlpClientDatabase clientDatabase) {
+        Handler(@NonNull Jnlp4ConnectionState event, JnlpClientDatabase clientDatabase) {
             this.event = event;
             this.clientDatabase = clientDatabase;
             this.client = false;
@@ -327,7 +327,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@inheritDoc}
          */
         @Override
-        public void onChannel(@Nonnull final Channel channel) {
+        public void onChannel(@NonNull final Channel channel) {
             channel.addListener(this);
             threadPool.execute(() -> {
                 if (!channel.isClosingOrClosed()) {
@@ -340,8 +340,8 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
          * {@inheritDoc}
          */
         @Override
-        @Nonnull
-        public ChannelBuilder decorate(@Nonnull ChannelBuilder builder) {
+        @NonNull
+        public ChannelBuilder decorate(@NonNull ChannelBuilder builder) {
             if (!client) {
                 builder.withMode(Channel.Mode.NEGOTIATE);
             }

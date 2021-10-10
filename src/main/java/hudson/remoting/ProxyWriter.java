@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.CharArrayWriter;
 import java.io.IOException;
@@ -31,8 +33,6 @@ import java.io.Writer;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -71,14 +71,14 @@ final class ProxyWriter extends Writer {
      * @param oid
      *      The object id of the exported {@link Writer}.
      */
-    public ProxyWriter(@Nonnull Channel channel, int oid) throws IOException {
+    public ProxyWriter(@NonNull Channel channel, int oid) throws IOException {
         connect(channel,oid);
     }
 
     /**
      * Connects this stream to the specified remote object.
      */
-    synchronized void connect(@Nonnull Channel channel, int oid) throws IOException {
+    synchronized void connect(@NonNull Channel channel, int oid) throws IOException {
         if(this.channel!=null)
             throw new IllegalStateException("Cannot connect twice");
         if(oid==0)
@@ -105,7 +105,7 @@ final class ProxyWriter extends Writer {
     }
 
     @Override
-    public void write(@Nonnull char[] cbuf, int off, int len) throws IOException {
+    public void write(@NonNull char[] cbuf, int off, int len) throws IOException {
         if (closeCause != null) {
             throw new IOException("stream is already closed");
         }

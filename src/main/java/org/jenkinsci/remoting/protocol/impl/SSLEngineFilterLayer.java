@@ -15,8 +15,6 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -30,6 +28,9 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
 import org.jenkinsci.remoting.util.ThrowableUtils;
@@ -49,7 +50,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
     /**
      * The {@link SSLEngine} to use.
      */
-    @Nonnull
+    @NonNull
     private final SSLEngine sslEngine;
     /**
      * The {@link Listener} to notify on successful handshaking.
@@ -64,12 +65,12 @@ public class SSLEngineFilterLayer extends FilterLayer {
     /**
      * The state of the connection
      */
-    @Nonnull
+    @NonNull
     private State state = State.CREDENTIALS_NOT_YET_AVAILABLE;
     /**
      * The queue of messages to send, populated while waiting on handshaking to complete.
      */
-    @Nonnull
+    @NonNull
     private final ConcurrentLinkedQueue<ByteBuffer> messages = new ConcurrentLinkedQueue<>();
     /**
      * Buffer to hold any partial reads until we have a complete SSL record.
@@ -84,7 +85,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
      * @param engine   the engine to use.
      * @param listener the listener to notify when handshaking is completed.
      */
-    public SSLEngineFilterLayer(@Nonnull SSLEngine engine, @CheckForNull Listener listener) {
+    public SSLEngineFilterLayer(@NonNull SSLEngine engine, @CheckForNull Listener listener) {
         this.sslEngine = engine;
         this.listener = listener;
         previous = null;
@@ -108,7 +109,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void onRecv(@Nonnull ByteBuffer readBuffer) throws IOException {
+    public void onRecv(@NonNull ByteBuffer readBuffer) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes plus {2} retained",
                     new Object[]{stack().name(), readBuffer.remaining(), previous == null ? 0 : previous.remaining()});
@@ -192,7 +193,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void doSend(@Nonnull ByteBuffer message) throws IOException {
+    public void doSend(@NonNull ByteBuffer message) throws IOException {
         messages.add(ByteBufferUtils.duplicate(message));
         if (State.CREDENTAILS_AVAILABLE.equals(state)) {
             processQueuedWrites();
@@ -317,7 +318,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
      * @param readBuffer the read buffer to pull data from.
      * @throws IOException if there was an error reading data.
      */
-    private void processRead(@Nonnull ByteBuffer readBuffer) throws IOException {
+    private void processRead(@NonNull ByteBuffer readBuffer) throws IOException {
         ByteBuffer tempBuffer;
 
         if (previous != null) {
@@ -477,7 +478,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
      * @param message the data to write.
      * @throws IOException if something goes wrong.
      */
-    private void processWrite(@Nonnull ByteBuffer message) throws IOException {
+    private void processWrite(@NonNull ByteBuffer message) throws IOException {
         ByteBuffer appBuffer = ByteBuffer.allocate(sslEngine.getSession().getPacketBufferSize());
         boolean done = false;
         while (!done) {

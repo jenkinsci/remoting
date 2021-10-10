@@ -23,12 +23,12 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -155,8 +155,8 @@ final class RemoteClassLoader extends URLClassLoader {
      * @param proxy  Classloader proxy instance
      * @return Created classloader
      */
-    @Nonnull
-    public static ClassLoader create(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy) {
+    @NonNull
+    public static ClassLoader create(@CheckForNull ClassLoader parent, @NonNull IClassLoader proxy) {
         if (proxy instanceof ClassLoaderProxy) {
             // when the remote sends 'RemoteIClassLoader' as the proxy, on this side we get it
             // as ClassLoaderProxy. This means, the so-called remote classloader here is
@@ -166,7 +166,7 @@ final class RemoteClassLoader extends URLClassLoader {
         return new RemoteClassLoader(parent, proxy);
     }
 
-    private RemoteClassLoader(@CheckForNull ClassLoader parent, @Nonnull IClassLoader proxy) {
+    private RemoteClassLoader(@CheckForNull ClassLoader parent, @NonNull IClassLoader proxy) {
         super(new URL[0], parent);
         final Channel channel = RemoteInvocationHandler.unwrap(proxy);
         this.channel = channel == null ? null : channel.ref();
@@ -845,7 +845,7 @@ final class RemoteClassLoader extends URLClassLoader {
         @CheckForNull
         byte[] getResource(String name) throws IOException;
 
-        @Nonnull
+        @NonNull
         byte[][] getResources(String name) throws IOException;
 
         // the rest is added as a part of Capability.supportsPrefetch()
@@ -878,7 +878,7 @@ final class RemoteClassLoader extends URLClassLoader {
          * @return never {@code null}
          * @since 2.24
          */
-        @Nonnull
+        @NonNull
         ResourceFile[] getResources2(String name) throws IOException;
     }
 
@@ -892,7 +892,7 @@ final class RemoteClassLoader extends URLClassLoader {
      * @param local Channel
      * @return Exported reference. This reference is always {@link Serializable} though interface is not explicit about that
      */
-    public static IClassLoader export(@Nonnull ClassLoader cl, @Nonnull Channel local) {
+    public static IClassLoader export(@NonNull ClassLoader cl, @NonNull Channel local) {
         if (cl instanceof RemoteClassLoader) {
             // check if this is a remote classloader from the channel
             final RemoteClassLoader rcl = (RemoteClassLoader) cl;
@@ -932,7 +932,7 @@ final class RemoteClassLoader extends URLClassLoader {
          */
         private final Set<String> prefetched = new HashSet<>();
 
-        public ClassLoaderProxy(@Nonnull ClassLoader cl, Channel channel) {
+        public ClassLoaderProxy(@NonNull ClassLoader cl, Channel channel) {
             this.cl = cl;
             this.channel = channel;
         }
@@ -1150,7 +1150,7 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         @Override
-        @Nonnull
+        @NonNull
         public byte[][] getResources(String name) throws IOException {
             List<URL> x = getResourcesURL(name);
             byte[][] r = new byte[x.size()][];
@@ -1161,7 +1161,7 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         @Override
-        @Nonnull
+        @NonNull
         public ResourceFile[] getResources2(String name) throws IOException {
             List<URL> x = getResourcesURL(name);
             ResourceFile[] r = new ResourceFile[x.size()];
@@ -1253,7 +1253,7 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         @Override
-        @Nonnull
+        @NonNull
         public byte[][] getResources(String name) throws IOException {
             return proxy.getResources(name);
         }
@@ -1264,7 +1264,7 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         @Override
-        @Nonnull
+        @NonNull
         public ResourceFile[] getResources2(String name) throws IOException {
             return proxy.getResources2(name);
         }

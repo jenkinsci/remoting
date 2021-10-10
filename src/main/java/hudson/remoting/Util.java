@@ -1,11 +1,11 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayOutputStream;
@@ -61,7 +61,7 @@ public class Util {
         }
     }
 
-    @Nonnull
+    @NonNull
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
@@ -162,7 +162,7 @@ public class Util {
      * @deprecated Use {@link Files#createDirectories(java.nio.file.Path, java.nio.file.attribute.FileAttribute...)} instead.
      */
     @Deprecated
-    static void mkdirs(@Nonnull File file) throws IOException {
+    static void mkdirs(@NonNull File file) throws IOException {
         if (file.isDirectory()) return;
         Files.createDirectories(PathUtils.fileToPath(file));
     }

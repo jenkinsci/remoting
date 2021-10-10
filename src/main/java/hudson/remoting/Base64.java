@@ -15,10 +15,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
 
 /**
  * This class provides encode/decode for RFC 2045 Base64 as

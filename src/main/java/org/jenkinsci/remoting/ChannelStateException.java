@@ -26,10 +26,10 @@
 
 package org.jenkinsci.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 
@@ -45,13 +45,13 @@ import java.lang.ref.WeakReference;
  */
 public class ChannelStateException extends IOException {
 
-    @Nonnull
+    @NonNull
     private final String channelName;
 
     @CheckForNull
     private final transient WeakReference<Channel> channelRef;
 
-    public ChannelStateException(@CheckForNull Channel channel, @Nonnull String message) {
+    public ChannelStateException(@CheckForNull Channel channel, @NonNull String message) {
         super(message);
         channelRef = channel != null ?  new WeakReference<>(channel) : null;
         channelName = channel != null ? channel.getName() : "unknown";
@@ -72,7 +72,7 @@ public class ChannelStateException extends IOException {
      * Gets channel name.
      * @return Channel name ot {@code unknown} if it is not known.
      */
-    @Nonnull
+    @NonNull
     public String getChannelName() {
         return channelName;
     }

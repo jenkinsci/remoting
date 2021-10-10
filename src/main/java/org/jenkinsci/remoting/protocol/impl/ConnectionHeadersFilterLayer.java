@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -33,6 +32,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
@@ -143,7 +144,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void onRecv(@Nonnull ByteBuffer data) throws IOException {
+    public void onRecv(@NonNull ByteBuffer data) throws IOException {
         final ConnectionRefusalException aborted = this.aborted.get();
         if (aborted != null) {
             throw newAbortCause(aborted);
@@ -457,7 +458,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void doSend(@Nonnull ByteBuffer data) throws IOException {
+    public void doSend(@NonNull ByteBuffer data) throws IOException {
         ConnectionRefusalException aborted = this.aborted.get();
         if (aborted != null) {
             throw newAbortCause(aborted);

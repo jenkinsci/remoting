@@ -14,9 +14,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
@@ -44,7 +43,7 @@ public abstract class ClassFilter {
      * @param name {@link Class#getName}
      * @return false by default; override to return true to blacklist this class
      */
-    public boolean isBlacklisted(@Nonnull String name) {
+    public boolean isBlacklisted(@NonNull String name) {
         return false;
     }
 
@@ -53,7 +52,7 @@ public abstract class ClassFilter {
      * @param c a loaded class
      * @return false by default; override to return true to blacklist this class
      */
-    public boolean isBlacklisted(@Nonnull Class<?> c) {
+    public boolean isBlacklisted(@NonNull Class<?> c) {
         return false;
     }
 
@@ -119,23 +118,23 @@ public abstract class ClassFilter {
      */
     public static final ClassFilter DEFAULT = new ClassFilter() {
         @Override
-        public boolean isBlacklisted(@Nonnull Class<?> c) {
+        public boolean isBlacklisted(@NonNull Class<?> c) {
             return CURRENT_DEFAULT.isBlacklisted(c);
         }
         @Override
-        public boolean isBlacklisted(@Nonnull String name) {
+        public boolean isBlacklisted(@NonNull String name) {
             return CURRENT_DEFAULT.isBlacklisted(name);
         }
     };
 
-    private static @Nonnull ClassFilter CURRENT_DEFAULT;
+    private static @NonNull ClassFilter CURRENT_DEFAULT;
 
     /**
      * Changes the effective value of {@link #DEFAULT}.
      * @param filter a new default to set; may or may not delegate to {@link #STANDARD}
      * @since 3.16
      */
-    public static void setDefault(@Nonnull ClassFilter filter) {
+    public static void setDefault(@NonNull ClassFilter filter) {
         CURRENT_DEFAULT = filter;
     }
 
@@ -288,7 +287,7 @@ public abstract class ClassFilter {
         }
 
         @Override
-        public boolean isBlacklisted(@Nonnull String name) {
+        public boolean isBlacklisted(@NonNull String name) {
             for (Object p : blacklistPatterns) {
                 if (p instanceof Pattern && ((Pattern)p).matcher(name).matches()) {
                     return true;
@@ -300,7 +299,7 @@ public abstract class ClassFilter {
         }
 
         @Override
-        public boolean isBlacklisted(@Nonnull Class<?> c) {
+        public boolean isBlacklisted(@NonNull Class<?> c) {
             AnonymousClassWarnings.check(c);
             return false;
         }

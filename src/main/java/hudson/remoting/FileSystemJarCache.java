@@ -1,9 +1,9 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.PathUtils;
 
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -51,7 +51,7 @@ public class FileSystemJarCache extends JarCacheSupport {
      * @throws IllegalArgumentException
      *      Root directory is {@code null} or not writable.
      */
-    public FileSystemJarCache(@Nonnull File rootDir, boolean touch) {
+    public FileSystemJarCache(@NonNull File rootDir, boolean touch) {
         this.rootDir = rootDir;
         this.touch = touch;
         if (rootDir==null)
@@ -170,7 +170,7 @@ public class FileSystemJarCache extends JarCacheSupport {
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
-    /*package for testing*/ File createTempJar(@Nonnull File target) throws IOException {
+    /*package for testing*/ File createTempJar(@NonNull File target) throws IOException {
         File parent = target.getParentFile();
         Files.createDirectories(parent.toPath());
         return File.createTempFile(target.getName(), "tmp", parent);

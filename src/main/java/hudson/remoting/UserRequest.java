@@ -23,14 +23,14 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.ExportTable.ExportList;
 import hudson.remoting.RemoteClassLoader.IClassLoader;
 import hudson.remoting.RemoteInvocationHandler.RPCRequest;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -57,7 +57,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
 
     private final byte[] request;
 
-    @Nonnull
+    @NonNull
     @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "RemoteClassLoader.export() always returns a serializable instance, but we cannot check it statically due to the java.lang.reflect.Proxy")
     private final IClassLoader classLoaderProxy;
     private final String toString;
@@ -129,7 +129,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
      * @return Classloader from the callable. May be {@code null} if all attempts to retrieve the classloader return {@code null}.
      */
     @CheckForNull
-    /*package*/ static ClassLoader getClassLoader(@Nonnull Callable<?,?> c) {
+    /*package*/ static ClassLoader getClassLoader(@NonNull Callable<?,?> c) {
         ClassLoader result = null;
         if(c instanceof DelegatingCallable) {
             result =((DelegatingCallable<?, ?>)c).getClassLoader();

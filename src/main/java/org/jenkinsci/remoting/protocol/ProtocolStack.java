@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.remoting.protocol;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.remoting.Future;
 import java.io.Closeable;
 import java.io.IOException;
@@ -40,9 +43,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.annotation.OverridingMethodsMustInvokeSuper;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -832,7 +832,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @return the next layer down the stack.
          * @throws NullPointerException if invoked from the {@link NetworkLayer}.
          */
-        @Nonnull
+        @NonNull
         private ProtocolLayer.Send nextSend() {
             return (ProtocolLayer.Send) getNextSend().layer;
         }
@@ -885,7 +885,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * @return the next layer up the stack.
          * @throws NullPointerException if invoked from the {@link ApplicationLayer}.
          */
-        @Nonnull
+        @NonNull
         private ProtocolLayer.Recv nextRecv() {
             return (ProtocolLayer.Recv) getNextRecv().layer;
         }

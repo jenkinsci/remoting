@@ -23,9 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.URL;
@@ -53,7 +53,8 @@ public class URLDeserializationHelper {
      * Wraps the given URL into a "safe" version against deserialization attack if the url has a non-empty host 
      * and the JVM configuration is standard.
      */
-    public static @Nonnull URL wrapIfRequired(@Nonnull URL url) throws IOException {
+    public static @NonNull
+    URL wrapIfRequired(@NonNull URL url) throws IOException {
         if(AVOID_URL_WRAPPING){
             // legacy behavior
             return url;
