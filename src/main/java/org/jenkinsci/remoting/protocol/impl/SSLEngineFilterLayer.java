@@ -469,6 +469,8 @@ public class SSLEngineFilterLayer extends FilterLayer {
                     }
                 }
                 break;
+            default:
+                throw new IllegalStateException("Unexpected value: " + sessionStatus);
         }
     }
 
