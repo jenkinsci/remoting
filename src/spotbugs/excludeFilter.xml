@@ -31,6 +31,18 @@
     <!-- TODO: On hold due to the discussion in PR #118 -->
     <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
   </Match>
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP"/>
+  </Match>
+  <Match>
+    <Bug pattern="EI_EXPOSE_REP2"/>
+  </Match>
+  <Match>
+    <Bug pattern="MS_EXPOSE_REP"/>
+  </Match>
+  <Match>
+    <Bug pattern="EI_EXPOSE_STATIC_REP2"/>
+  </Match>
     
   <!--TODO: reconsider commented filters after cleanup-->
   <!-- ignore all low-level (priority=2,3) issues except serialization problems -->
