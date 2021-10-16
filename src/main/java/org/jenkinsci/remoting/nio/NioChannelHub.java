@@ -1,5 +1,7 @@
 package org.jenkinsci.remoting.nio;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.AbstractByteArrayCommandTransport;
 import hudson.remoting.AbstractByteArrayCommandTransport.ByteArrayReceiver;
 import hudson.remoting.Callable;
@@ -13,8 +15,6 @@ import hudson.remoting.SingleLaneExecutorService;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -516,7 +516,7 @@ public class NioChannelHub implements Runnable, Closeable {
         private static final long serialVersionUID = -7331104479109353930L;
         final transient java.util.concurrent.Callable<Void> task;
 
-        CallableRemotingWrapper(@Nonnull java.util.concurrent.Callable<Void> task) {
+        CallableRemotingWrapper(@NonNull java.util.concurrent.Callable<Void> task) {
             this.task = task;
         }
 

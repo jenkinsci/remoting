@@ -29,8 +29,9 @@ import java.nio.channels.ClosedChannelException;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
 import javax.annotation.OverridingMethodsMustInvokeSuper;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 
 /**
@@ -53,7 +54,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
     /**
      * Our {@link IOHub}.
      */
-    @Nonnull
+    @NonNull
     private final IOHub ioHub;
 
     /**
@@ -81,7 +82,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      *
      * @param ioHub the {@link IOHub} that we use.
      */
-    public NetworkLayer(@Nonnull IOHub ioHub) {
+    public NetworkLayer(@NonNull IOHub ioHub) {
         this.ioHub = ioHub;
         this.recvQueue = new ByteBufferQueue(CAPACITY);
         this.sendQueue = new ByteBufferQueue(CAPACITY);
@@ -91,7 +92,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      * {@inheritDoc}
      */
     @Override
-    public final void doSend(@Nonnull ByteBuffer data) throws IOException {
+    public final void doSend(@NonNull ByteBuffer data) throws IOException {
         ByteBufferQueue sendQueue = this.sendQueue;
         if (ptr == null) {
             sendQueue.put(data);
@@ -114,7 +115,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      *             to resubmit in subsequent calls.
      * @throws IOException if something goes wrong
      */
-    protected abstract void write(@Nonnull ByteBuffer data) throws IOException;
+    protected abstract void write(@NonNull ByteBuffer data) throws IOException;
 
     /**
      * SPI: Performed the handling of te actual read from the recipient.
@@ -227,7 +228,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      * {@inheritDoc}
      */
     @Override
-    public final void init(@Nonnull ProtocolStack<?>.Ptr ptr) throws IOException {
+    public final void init(@NonNull ProtocolStack<?>.Ptr ptr) throws IOException {
         if (this.ptr != null && this.ptr != ptr) {
             throw new IllegalStateException("Already initialized");
         }
@@ -265,7 +266,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      *
      * @return the {@link IOHub} that we are using.
      */
-    @Nonnull
+    @NonNull
     public IOHub getIoHub() {
         return ioHub;
     }

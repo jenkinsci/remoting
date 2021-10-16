@@ -1,8 +1,8 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.CallableDecorator;
 
-import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -28,48 +28,48 @@ class InterceptingExecutorService extends DelegatingExecutorService {
     }
 
     @Override
-    public void execute(@Nonnull Runnable command) {
+    public void execute(@NonNull Runnable command) {
         submit(command);
     }
 
     @Override
-    @Nonnull
-    public <T> Future<T> submit(@Nonnull Callable<T> task) {
+    @NonNull
+    public <T> Future<T> submit(@NonNull Callable<T> task) {
         return super.submit(wrap(task));
     }
 
     @Override
-    @Nonnull
-    public Future<?> submit(@Nonnull Runnable task) {
+    @NonNull
+    public Future<?> submit(@NonNull Runnable task) {
         return submit(task, null);
     }
 
     @Override
-    @Nonnull
-    public <T> Future<T> submit(@Nonnull Runnable task, T result) {
+    @NonNull
+    public <T> Future<T> submit(@NonNull Runnable task, T result) {
         return super.submit(wrap(task,result));
     }
 
     @Override
-    @Nonnull
-    public <T> List<Future<T>> invokeAll(@Nonnull Collection<? extends Callable<T>> tasks) throws InterruptedException {
+    @NonNull
+    public <T> List<Future<T>> invokeAll(@NonNull Collection<? extends Callable<T>> tasks) throws InterruptedException {
         return super.invokeAll(wrap(tasks));
     }
 
     @Override
-    @Nonnull
-    public <T> List<Future<T>> invokeAll(@Nonnull Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException {
+    @NonNull
+    public <T> List<Future<T>> invokeAll(@NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit) throws InterruptedException {
         return super.invokeAll(wrap(tasks), timeout, unit);
     }
 
     @Override
-    @Nonnull
-    public <T> T invokeAny(@Nonnull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+    @NonNull
+    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
         return super.invokeAny(wrap(tasks));
     }
 
     @Override
-    public <T> T invokeAny(@Nonnull Collection<? extends Callable<T>> tasks, long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return super.invokeAny(wrap(tasks), timeout, unit);
     }
 

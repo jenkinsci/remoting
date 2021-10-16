@@ -25,7 +25,6 @@ package org.jenkinsci.remoting.protocol.impl;
 
 import java.net.SocketTimeoutException;
 import java.util.logging.LogRecord;
-import javax.annotation.Nonnull;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -35,6 +34,8 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.NetworkLayer;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
@@ -97,7 +98,7 @@ public class BIONetworkLayer extends NetworkLayer {
      * {@inheritDoc}
      */
     @Override
-    protected void write(@Nonnull ByteBuffer data) throws IOException {
+    protected void write(@NonNull ByteBuffer data) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] SEND: {1} bytes", new Object[]{stack().name(), data.remaining()});
         }

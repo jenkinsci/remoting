@@ -7,9 +7,9 @@ import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
 
 /**
  * {@link ExecutorService} that uses at most one executor.
@@ -57,7 +57,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
         return worker!=null && worker.isAlive();
     }
 
-    @Nonnull
+    @NonNull
     @Override
     public List<Runnable> shutdownNow() {
         synchronized (q) {
@@ -92,7 +92,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
     }
 
     @Override
-    public void execute(@Nonnull Runnable command) {
+    public void execute(@NonNull Runnable command) {
         synchronized (q) {
             if (isShutdown()) {
                 // No way this executor service can be recovered

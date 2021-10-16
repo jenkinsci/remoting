@@ -1,6 +1,7 @@
 package hudson.remoting;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -47,7 +48,7 @@ class ChunkedOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(@Nonnull byte[] b, int off, int len) throws IOException {
+    public void write(@NonNull byte[] b, int off, int len) throws IOException {
         while (len>0) {
             int s = Math.min(capacity(),len);
             System.arraycopy(b,off,buf,size,s);

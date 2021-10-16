@@ -23,7 +23,7 @@
  */
 package hudson.remoting;
 
-import javax.annotation.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 /**
  * {@link Callable} that nominates another classloader for serialization.

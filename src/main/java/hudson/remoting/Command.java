@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.ByteArrayInputStream;
@@ -32,8 +34,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 /**
  * One-way command to be sent over to the remote system and executed there.
@@ -123,7 +123,7 @@ public abstract class Command implements Serializable {
      * @throws ClassNotFoundException Deserialization error: class not found
      * @since 3.22
      */
-    public static Command readFrom(@Nonnull Channel channel, @Nonnull byte[] payload)
+    public static Command readFrom(@NonNull Channel channel, @NonNull byte[] payload)
             throws IOException, ClassNotFoundException {
         return readFrom(channel, new ByteArrayInputStream(payload), payload.length);
     }
@@ -137,7 +137,7 @@ public abstract class Command implements Serializable {
      * @throws IOException Read exception
      * @throws ClassNotFoundException Deserialization error: class not found
      */
-    /*package*/ static Command readFrom(@Nonnull Channel channel, @Nonnull InputStream istream, int payloadSize)
+    /*package*/ static Command readFrom(@NonNull Channel channel, @NonNull InputStream istream, int payloadSize)
             throws IOException, ClassNotFoundException {
         Command cmd = Command.readFromObjectStream(channel, new ObjectInputStreamEx(
                 istream,

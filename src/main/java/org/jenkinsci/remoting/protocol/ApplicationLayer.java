@@ -23,14 +23,15 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.concurrent.GuardedBy;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -96,7 +97,7 @@ public abstract class ApplicationLayer<T> implements ProtocolLayer, ProtocolLaye
      *             to resubmit in subsequent calls.
      * @throws IOException if there was an error during processing of the received data.
      */
-    public abstract void onRead(@Nonnull ByteBuffer data) throws IOException;
+    public abstract void onRead(@NonNull ByteBuffer data) throws IOException;
 
     /**
      * Callback on the lower layer's source of data being closed.
@@ -110,7 +111,7 @@ public abstract class ApplicationLayer<T> implements ProtocolLayer, ProtocolLaye
      * {@inheritDoc}
      */
     @Override
-    public final void init(@Nonnull ProtocolStack<?>.Ptr ptr) throws IOException {
+    public final void init(@NonNull ProtocolStack<?>.Ptr ptr) throws IOException {
         if (this.ptr != null && this.ptr != ptr) {
             throw new IllegalStateException("Already initialized");
         }
@@ -152,7 +153,7 @@ public abstract class ApplicationLayer<T> implements ProtocolLayer, ProtocolLaye
      *             to resubmit in subsequent calls.
      * @throws IOException if there was an error during processing of the data.
      */
-    public final void write(@Nonnull ByteBuffer data) throws IOException {
+    public final void write(@NonNull ByteBuffer data) throws IOException {
         ptr.doSend(data);
     }
 
@@ -202,7 +203,7 @@ public abstract class ApplicationLayer<T> implements ProtocolLayer, ProtocolLaye
      */
     @Override
     @Restricted(NoExternalUse.class)
-    public final void onRecv(@Nonnull ByteBuffer data) throws IOException {
+    public final void onRecv(@NonNull ByteBuffer data) throws IOException {
         onRead(data);
     }
 

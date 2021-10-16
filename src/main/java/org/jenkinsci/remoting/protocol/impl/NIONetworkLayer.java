@@ -23,12 +23,12 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.IOHubReadyListener;
 import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
 import org.jenkinsci.remoting.protocol.NetworkLayer;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -265,7 +265,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
      * {@inheritDoc}
      */
     @Override
-    protected void write(@Nonnull ByteBuffer data) throws IOException {
+    protected void write(@NonNull ByteBuffer data) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] SEND: {1} bytes", new Object[]{stack().name(), data.remaining()});
         }

@@ -1,5 +1,7 @@
 package org.jenkinsci.remoting.nio;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -22,7 +24,6 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
 
 /**
  * Extracts out {@link SelectableChannel} from {@link InputStream} or {@link OutputStream}.

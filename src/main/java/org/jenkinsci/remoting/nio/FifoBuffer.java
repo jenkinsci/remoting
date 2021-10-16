@@ -1,5 +1,8 @@
 package org.jenkinsci.remoting.nio;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,9 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnegative;
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -572,7 +573,7 @@ public class FifoBuffer implements Closeable {
             }
 
             @Override
-            public void write(@Nonnull byte[] b, int off, int len) throws IOException {
+            public void write(@NonNull byte[] b, int off, int len) throws IOException {
                 try {
                     FifoBuffer.this.write(b,off,len);
                 } catch (InterruptedException e) {
@@ -608,7 +609,7 @@ public class FifoBuffer implements Closeable {
             }
 
             @Override
-            public int read(@Nonnull byte[] b, int off, int len) throws IOException {
+            public int read(@NonNull byte[] b, int off, int len) throws IOException {
                 try {
                     return FifoBuffer.this.read(b, off, len);
                 } catch (InterruptedException e) {

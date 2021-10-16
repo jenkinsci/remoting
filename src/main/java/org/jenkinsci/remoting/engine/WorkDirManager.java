@@ -25,14 +25,14 @@
 
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.TeeOutputStream;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -108,7 +108,7 @@ public class WorkDirManager {
      * Currently the implementation is hardcoded, but it may change in the future.
      * @return Workspace manager
      */
-    @Nonnull
+    @NonNull
     public static WorkDirManager getInstance() {
         return INSTANCE;
     }
@@ -118,12 +118,12 @@ public class WorkDirManager {
         LogManager.getLogManager().reset();
     }
 
-    public void disable(@Nonnull DirType dir) {
+    public void disable(@NonNull DirType dir) {
         disabledDirectories.add(dir);
     }
 
     @CheckForNull
-    public File getLocation(@Nonnull DirType type) {
+    public File getLocation(@NonNull DirType type) {
         return directories.get(type);
     }
 
@@ -135,7 +135,7 @@ public class WorkDirManager {
      * @throws IOException Invalid path, e.g. ig the root directory is incorrect
      */
     @CheckForNull
-    public Path getLocationPath(@Nonnull DirType type) throws IOException {
+    public Path getLocationPath(@NonNull DirType type) throws IOException {
         File location = directories.get(type);
         return location != null ? PathUtils.fileToPath(location) : null;
     }
@@ -144,7 +144,7 @@ public class WorkDirManager {
      * Sets path to the Logging JUL property file with logging settings.
      * @param configFile config file
      */
-    public void setLoggingConfig(@Nonnull File configFile) {
+    public void setLoggingConfig(@NonNull File configFile) {
         this.loggingConfigFile = configFile;
     }
 
@@ -185,7 +185,7 @@ public class WorkDirManager {
      */
     @CheckForNull
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
-    public Path initializeWorkDir(final @CheckForNull File workDir, final @Nonnull String internalDir, final boolean failIfMissing) throws IOException {
+    public Path initializeWorkDir(final @CheckForNull File workDir, final @NonNull String internalDir, final boolean failIfMissing) throws IOException {
 
         if (!internalDir.matches(SUPPORTED_INTERNAL_DIR_NAME_MASK)) {
             throw new IOException(String.format("Name of %s ('%s') is not compliant with the required format: %s",
@@ -240,7 +240,7 @@ public class WorkDirManager {
      * @param failIfMissing Fail if the directory is missing
      * @throws IOException Verification failure
      */
-    private static void verifyDirectory(@Nonnull File dir, @Nonnull DirType type, boolean failIfMissing) throws IOException {
+    private static void verifyDirectory(@NonNull File dir, @NonNull DirType type, boolean failIfMissing) throws IOException {
         if (dir.exists()) {
             if (!dir.isDirectory()) {
                 throw new IOException("The specified " + type + " path points to a non-directory file: " + dir.getPath());
@@ -342,16 +342,16 @@ public class WorkDirManager {
          */
         LOGS_DIR("Log directory", "logs", INTERNAL_DIR);
 
-        @Nonnull
+        @NonNull
         private final String name;
 
-        @Nonnull
+        @NonNull
         private final String defaultLocation;
 
         @CheckForNull
         private final DirType parentDir;
 
-        DirType(@Nonnull String name, @Nonnull String defaultLocation, @CheckForNull DirType parentDir) {
+        DirType(@NonNull String name, @NonNull String defaultLocation, @CheckForNull DirType parentDir) {
             this.name = name;
             this.defaultLocation = defaultLocation;
             this.parentDir = parentDir;
@@ -362,12 +362,12 @@ public class WorkDirManager {
             return name;
         }
 
-        @Nonnull
+        @NonNull
         public String getDefaultLocation() {
             return defaultLocation;
         }
 
-        @Nonnull
+        @NonNull
         public String getName() {
             return name;
         }

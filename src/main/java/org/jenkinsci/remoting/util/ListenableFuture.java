@@ -23,10 +23,10 @@
  */
 package org.jenkinsci.remoting.util;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Future;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
-import javax.annotation.Nonnull;
 
 /**
  * Extend {@link Future} with the capability to accept completion callbacks. If the future has completed when the
@@ -50,5 +50,5 @@ public interface ListenableFuture<V> extends Future<V> {
      * @param listener the listener to execute.
      * @param executor the executor to run the listener in.
      */
-    void addListener(@Nonnull Runnable listener, @Nonnull Executor executor);
+    void addListener(@NonNull Runnable listener, @NonNull Executor executor);
 }

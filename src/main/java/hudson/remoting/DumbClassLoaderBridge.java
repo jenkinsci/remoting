@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.RemoteClassLoader.ClassFile;
 import hudson.remoting.RemoteClassLoader.ClassFile2;
 import hudson.remoting.RemoteClassLoader.IClassLoader;
@@ -9,7 +10,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
-import javax.annotation.Nonnull;
 
 /**
  * Implements full {@link IClassLoader} from a legacy one
@@ -23,10 +23,10 @@ import javax.annotation.Nonnull;
  * @see Capability#supportsPrefetch()
  */
 class DumbClassLoaderBridge implements IClassLoader {
-    @Nonnull
+    @NonNull
     private final IClassLoader base;
 
-    DumbClassLoaderBridge(@Nonnull IClassLoader base) {
+    DumbClassLoaderBridge(@NonNull IClassLoader base) {
         this.base = base;
     }
 
@@ -51,7 +51,7 @@ class DumbClassLoaderBridge implements IClassLoader {
     }
 
     @Override
-    @Nonnull
+    @NonNull
     public byte[][] getResources(String name) throws IOException {
         return base.getResources(name);
     }
@@ -71,7 +71,7 @@ class DumbClassLoaderBridge implements IClassLoader {
     }
 
     @Override
-    @Nonnull
+    @NonNull
     public ResourceFile[] getResources2(String name) throws IOException {
         byte[][] r = base.getResources(name);
         ResourceFile[] res = new ResourceFile[r.length];

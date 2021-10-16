@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel.Mode;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
@@ -7,7 +8,6 @@ import org.jenkinsci.remoting.nio.NioChannelBuilder;
 import org.junit.After;
 import org.junit.Test;
 
-import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class ClassFilterTest implements Serializable {
 
     private static class TestFilter extends ClassFilter {
         @Override
-        public boolean isBlacklisted(@Nonnull String name) {
+        public boolean isBlacklisted(@NonNull String name) {
             return name.contains("Security218");
         }
     }

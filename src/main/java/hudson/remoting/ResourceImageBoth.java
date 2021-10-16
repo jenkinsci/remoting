@@ -1,10 +1,11 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -39,8 +40,8 @@ class ResourceImageBoth extends ResourceImageDirect {
      * @param channel Channel instance
      * @return Future object. In the case of error the diagnostics info will be sent to {@link #LOGGER}.
      */
-    @Nonnull
-    private Future<URL> initiateJarRetrieval(@Nonnull Channel channel) throws IOException, InterruptedException {
+    @NonNull
+    private Future<URL> initiateJarRetrieval(@NonNull Channel channel) throws IOException, InterruptedException {
         JarCache c = channel.getJarCache();
         if (c == null) {
             throw new IOException("Failed to initiate retrieval. JAR Cache is disabled for the channel " + channel.getName());

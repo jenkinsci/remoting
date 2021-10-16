@@ -23,14 +23,14 @@
  */
 package org.jenkinsci.remoting.util;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 /**
  * Utility methods to help working with {@link Key} instances.
@@ -93,7 +93,7 @@ public final class KeyUtils {
      * @param key the key.
      * @return the MD5 fingerprint of the key.
      */
-    @Nonnull
+    @NonNull
     @SuppressFBWarnings(value = "WEAK_MESSAGE_DIGEST_MD5", justification = "Used for fingerprinting, not security.")
     public static String fingerprint(@CheckForNull Key key) {
         if (key == null) {

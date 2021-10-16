@@ -23,7 +23,8 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.ObjectInputStream;
 import java.util.Map;
 import java.util.TreeMap;
@@ -74,8 +75,8 @@ public final class ConnectionHeaders {
      * @param data the headers.
      * @return the string encoded header.
      */
-    @Nonnull
-    public static String toString(@Nonnull Map<String, String> data) {
+    @NonNull
+    public static String toString(@NonNull Map<String, String> data) {
         StringBuilder b = new StringBuilder();
         b.append('{');
         boolean first = true;
@@ -106,8 +107,8 @@ public final class ConnectionHeaders {
      * @param data the string encoded headers.
      * @return the headers.
      */
-    @Nonnull
-    public static Map<String, String> fromString(@Nonnull String data) throws ParseException {
+    @NonNull
+    public static Map<String, String> fromString(@NonNull String data) throws ParseException {
         Map<String, String> result = new TreeMap<>();
         int state = 0;
         StringBuilder key = new StringBuilder();

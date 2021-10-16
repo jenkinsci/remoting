@@ -23,6 +23,7 @@
  */
 package hudson.remoting.jnlp;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
 
@@ -31,7 +32,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.HeadlessException;
 
-import javax.annotation.CheckForNull;
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;

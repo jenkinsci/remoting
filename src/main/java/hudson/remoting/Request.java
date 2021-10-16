@@ -23,10 +23,10 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.CancellationException;
@@ -301,7 +301,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
             }
 
             @Override
-            public RSP get(long timeout, @Nonnull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            public RSP get(long timeout, @NonNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
                 synchronized (Request.this) {
                     // wait until the response arrives
                     // Note that the wait method can wake up for no reasons at all (AKA spurious wakeup),

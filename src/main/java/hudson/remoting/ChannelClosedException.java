@@ -1,9 +1,8 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.ChannelStateException;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 /**
  * Indicates that the channel is already closed or being closed.
@@ -49,7 +48,7 @@ public class ChannelClosedException extends ChannelStateException {
      * @deprecated Use {@link #ChannelClosedException(Channel, String, Throwable)}
      */
     @Deprecated
-    public ChannelClosedException(@Nonnull String message, @CheckForNull Throwable cause) {
+    public ChannelClosedException(@NonNull String message, @CheckForNull Throwable cause) {
         this(null, message, cause);
     }
 
@@ -62,7 +61,7 @@ public class ChannelClosedException extends ChannelStateException {
      *              May be {@code null} if it cannot be determined when the exception is constructed.
      * @since 3.15
      */
-    public ChannelClosedException(@CheckForNull Channel channel, @Nonnull String message, @CheckForNull Throwable cause) {
+    public ChannelClosedException(@CheckForNull Channel channel, @NonNull String message, @CheckForNull Throwable cause) {
         super(channel, message, cause);
     }
 }

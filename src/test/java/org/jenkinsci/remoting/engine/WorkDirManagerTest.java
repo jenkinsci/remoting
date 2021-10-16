@@ -26,6 +26,7 @@
 
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -42,7 +43,6 @@ import java.nio.file.Path;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
 import org.apache.commons.io.IOUtils;
 
 import static org.hamcrest.CoreMatchers.*;
@@ -323,7 +323,7 @@ public class WorkDirManagerTest {
         Assert.fail("Initialization of WorkDirManager with invalid internal directory '" + internalDirName + "' should have failed");
     }
 
-    private void assertExists(@Nonnull DirType type) throws AssertionError {
+    private void assertExists(@NonNull DirType type) throws AssertionError {
         final File location = WorkDirManager.getInstance().getLocation(type);
         Assert.assertNotNull("WorkDir Manager didn't provide location of " + type, location);
         Assert.assertTrue("Cannot find the " + type + " directory: " + location, location.exists());

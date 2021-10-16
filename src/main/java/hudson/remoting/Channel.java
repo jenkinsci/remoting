@@ -23,6 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.CommandTransport.CommandReceiver;
 import hudson.remoting.PipeWindow.Key;
@@ -37,9 +40,6 @@ import org.jenkinsci.remoting.util.LoggingChannelListener;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -335,7 +335,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     short maximumBytecodeLevel = Short.MAX_VALUE;
 
-    /*package*/ @Nonnull final ClassFilter classFilter;
+    /*package*/ @NonNull
+    final ClassFilter classFilter;
 
     /**
      * Indicates that close of the channel has been requested.
@@ -560,7 +561,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @since 2.38
      */
-    protected Channel(@Nonnull ChannelBuilder settings, @Nonnull CommandTransport transport) throws IOException {
+    protected Channel(@NonNull ChannelBuilder settings, @NonNull CommandTransport transport) throws IOException {
         this.name = settings.getName();
         this.reference = new Ref(this);
         this.executor = new InterceptingExecutorService(settings.getExecutors(),decorators);
@@ -630,7 +631,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @return the {@link Ref} for this {@link Channel}
      * @since 2.52
      */
-    @Nonnull
+    @NonNull
     /*package*/ Ref ref() {
         return reference;
     }
@@ -821,7 +822,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return exportedObjects.export(clazz, instance, automaticUnexport);
     }
 
-    /*package*/ @Nonnull Object getExportedObject(int oid) throws ExecutionException {
+    /*package*/ @NonNull Object getExportedObject(int oid) throws ExecutionException {
         return exportedObjects.get(oid);
     }
 
@@ -830,7 +831,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return exportedObjects.getOrNull(oid);
     }
 
-    /*package*/ @Nonnull Class<?>[] getExportedTypes(int oid) throws ExecutionException {
+    /*package*/ @NonNull Class<?>[] getExportedTypes(int oid) throws ExecutionException {
         return exportedObjects.type(oid);
     }
 
@@ -852,7 +853,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * Increase reference count so much to effectively prevent de-allocation.
      * @param instance Instance to be pinned
      */
-    public void pin(@Nonnull Object instance) {
+    public void pin(@NonNull Object instance) {
         exportedObjects.pin(instance);
     }
 
@@ -957,7 +958,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *                 Cannot be {@code null}, JAR Cache disabling on a running channel is not supported.
      * @since 2.24
      */
-    public void setJarCache(@Nonnull JarCache jarCache) {
+    public void setJarCache(@NonNull JarCache jarCache) {
         this.jarCache = jarCache;
     }
 
@@ -1054,7 +1055,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      */
     @java.lang.SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
     @SuppressFBWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
-    public void terminate(@Nonnull IOException e) {
+    public void terminate(@NonNull IOException e) {
 
         if (e == null) {
             throw new IllegalArgumentException("Cause is null. Channel cannot be closed properly in such case");
@@ -1432,7 +1433,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @since 3.1
      */
     @Restricted(NoExternalUse.class)
-    public void dumpDiagnostics(@Nonnull PrintWriter w) throws IOException {
+    public void dumpDiagnostics(@NonNull PrintWriter w) throws IOException {
         w.printf("Channel %s%n",name);
         w.printf("  Created=%s%n", new Date(createdAt));
         w.printf("  Commands sent=%d%n", commandsSent.get());
@@ -1543,8 +1544,8 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *      If we don't abort after the channel shutdown, this method will block forever.
      */
     @Override
-    @Nonnull
-    public Object waitForProperty(@Nonnull Object key) throws InterruptedException {
+    @NonNull
+    public Object waitForProperty(@NonNull Object key) throws InterruptedException {
 
         // There is no need to acquire the channel lock if the property is already set
         Object prop = properties.get(key);
@@ -1586,7 +1587,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @see #getProperty(Object)
      */
     @CheckForNull
-    public Object setProperty(@Nonnull Object key, @CheckForNull Object value) {
+    public Object setProperty(@NonNull Object key, @CheckForNull Object value) {
         if (value == null) {
             // We do not need to notify listeners here, the only use-case is
             // Channel#waitForProperty(), which cares about defined properties only
@@ -1864,7 +1865,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @since 3.14
      * @see org.jenkinsci.remoting.SerializableOnlyOverRemoting
      */
-    @Nonnull
+    @NonNull
     public static Channel currentOrFail() throws IllegalStateException {
         final Channel ch = CURRENT.get();
         if (ch == null) {
@@ -1886,7 +1887,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @since 3.1
      */
     @Restricted(NoExternalUse.class)
-    public static void dumpDiagnosticsForAll(@Nonnull PrintWriter w) {
+    public static void dumpDiagnosticsForAll(@NonNull PrintWriter w) {
         final Ref[] channels = ACTIVE_CHANNELS.values().toArray(new Ref[0]);
         int processedCount = 0;
         for (Ref ref : channels) {
@@ -2051,7 +2052,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * Cached name of the channel.
          * @see Channel#getName()
          */
-        @Nonnull
+        @NonNull
         private final String name;
 
         /**
@@ -2099,7 +2100,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * @see Channel#getName()
          * @since 3.1
          */
-        @Nonnull
+        @NonNull
         public String name() {
             return name;
         }
@@ -2109,7 +2110,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          * object cycles that might prevent the full garbage collection of the channel's associated object tree.
          * @param cause Channel termination cause
          */
-        public void clear(@Nonnull Exception cause) {
+        public void clear(@NonNull Exception cause) {
             this.channel = null;
             this.cause = cause;
         }
