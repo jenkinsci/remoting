@@ -71,7 +71,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
     /**
      * Gets an open channel, which is ready to accept commands.
      *
-     * It is a convenience method for cases, when a callable needs to invoke call backs on the master.
+     * It is a convenience method for cases, when a callable needs to invoke call backs on the controller.
      * In such case the requests will be likely failed by {@linkplain UserRequest} logic anyway, but it is better to fail fast.
      *
      * @return Channel instance

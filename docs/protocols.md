@@ -37,6 +37,6 @@ Uses WebSocket over an HTTP(S) port to handle handshakes, encryption, framing, e
 
 ### Remoting Kafka Plugin
 
-* [Remoting Kafka Plugin](https://github.com/jenkinsci/remoting-kafka-plugin) uses Kafka as fault-tolerant communication layer to support command invocation between Jenkins master and agent.
-* The plugin gets rid of current direct TCP connection between master and agent.
+* [Remoting Kafka Plugin](https://github.com/jenkinsci/remoting-kafka-plugin) uses Kafka as fault-tolerant communication layer to support command invocation between Jenkins controller and agent.
+* The plugin gets rid of current direct TCP connection between controller and agent.
 * More info can be found in the technical [documentation](https://github.com/jenkinsci/remoting-kafka-plugin/blob/master/docs/DOCUMENTATION.md) of the plugin.

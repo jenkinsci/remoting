@@ -98,7 +98,7 @@ import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
 
 /**
- * Agent engine that proactively connects to Jenkins master.
+ * Agent engine that proactively connects to Jenkins controller.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -451,18 +451,18 @@ public class Engine extends Thread {
     public void setFailIfWorkDirIsMissing(boolean failIfWorkDirIsMissing) { this.failIfWorkDirIsMissing = failIfWorkDirIsMissing; }
 
     /**
-     * Returns {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.
+     * Returns {@code true} if and only if the socket to the controller will have {@link Socket#setKeepAlive(boolean)} set.
      *
-     * @return {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.
+     * @return {@code true} if and only if the socket to the controller will have {@link Socket#setKeepAlive(boolean)} set.
      */
     public boolean isKeepAlive() {
         return keepAlive;
     }
 
     /**
-     * Sets the {@link Socket#setKeepAlive(boolean)} to use for the connection to the master.
+     * Sets the {@link Socket#setKeepAlive(boolean)} to use for the connection to the controller.
      *
-     * @param keepAlive the {@link Socket#setKeepAlive(boolean)} to use for the connection to the master.
+     * @param keepAlive the {@link Socket#setKeepAlive(boolean)} to use for the connection to the controller.
      */
     public void setKeepAlive(boolean keepAlive) {
         this.keepAlive = keepAlive;
@@ -693,7 +693,7 @@ public class Engine extends Thread {
 
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
-        // Create the protocols that will be attempted to connect to the master.
+        // Create the protocols that will be attempted to connect to the controller.
         List<JnlpProtocolHandler<? extends JnlpConnectionState>> protocols = new JnlpProtocolHandlerFactory(service)
                 .withIOHub(hub)
                 .withSSLContext(context)

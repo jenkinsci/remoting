@@ -1,10 +1,10 @@
 # Launching inbound agents
 Jenkins provides a number of ways of connecting remote agents.
 Two of the most popular are outbound SSH agents and inbound agents.
-SSH agents, most commonly used on Unix platforms, are master initiated.
-The master creates the connection when it needs.
+SSH agents, most commonly used on Unix platforms, are controller initiated.
+The controller creates the connection when it needs.
 Inbound agents, most commonly used on Windows platforms, are agent initiated.
-The agent must first connect to the master and then the master sends commands as needed.
+The agent must first connect to the controller and then the controller sends commands as needed.
 These were formerly known as JNLP agents, but that name was erroneous and confusing.
 This document describes some of the primary mechanisms for launching inbound agents.
 
@@ -115,7 +115,7 @@ You can obtain usage information by executing `java -cp agent.jar hudson.remotin
 Not all parameters work together and some parameters require the use of others.
 
 There are also system or environment variables that control some advanced behaviors documented at [Remoting Configuration](https://github.com/jenkinsci/remoting/blob/master/docs/configuration.md). 
-Many of these need to be set at both master and agent. 
+Many of these need to be set at both controller and agent. 
 Changing some of these may result in unreliable behavior. 
 One of these parameters that is supported with defined behavior is [`NO_PROXY`](https://github.com/jenkinsci/remoting/blob/master/docs/no_proxy.md). 
 Similar to the usage in a number of other applications, this controls which hosts should be excluded from proxy configurations.
