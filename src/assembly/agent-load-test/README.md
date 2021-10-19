@@ -1,7 +1,7 @@
 Jenkins Remoting Agent Load Tester
 ==================================
 
-This is a test utility to determine the capacity limits of your Jenkins master.
+This is a test utility to determine the capacity limits of your Jenkins controller.
 Using this utility, you can fire up a remoting server that accepts a number of
 loopback connections in order to see what load the JNLP remoting protocols
 produce on your server.

@@ -254,7 +254,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
                     if (agentProtocolNames.isEmpty()) {
                         LOGGER.log(Level.WARNING, "Received the empty list of supported protocols from the server. " +
-                                "All protocols are disabled on the master side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). " +
+                                "All protocols are disabled on the controller side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). " +
                                 "In the case of the header corruption as a workaround you can use the " +
                                 "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' system property " +
                                 "to define the supported protocols.");
@@ -409,14 +409,14 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                         return;
                     }
                     LOGGER.log(Level.INFO,
-                            "Master isn''t ready to talk to us on {0}. Will try again: response code={1}",
+                            "Controller isn''t ready to talk to us on {0}. Will try again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
                 } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
-                    LOGGER.log(INFO, "Failed to connect to the master. Will try again: {0} {1}",
+                    LOGGER.log(INFO, "Failed to connect to the controller. Will try again: {0} {1}",
                             new String[] { e.getClass().getName(), e.getMessage() });
                 } catch (IOException e) {
                     // report the failure
-                    LOGGER.log(INFO, "Failed to connect to the master. Will try again", e);
+                    LOGGER.log(INFO, "Failed to connect to the controller. Will try again", e);
                 }
             }
         } finally {

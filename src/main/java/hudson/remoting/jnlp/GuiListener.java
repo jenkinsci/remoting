@@ -80,7 +80,7 @@ public final class GuiListener implements EngineListener {
 
     @Override
     public void onDisconnect() {
-        // discard all the menu items that might have been added by the master.
+        // discard all the menu items that might have been added by the controller.
         SwingUtilities.invokeLater(frame::resetMenuBar);
     }
 
