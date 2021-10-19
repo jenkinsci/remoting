@@ -116,9 +116,9 @@ public class NoProxyEvaluatorTest {
 
     @Test
     public void testSimpleHostname() {
-        NoProxyEvaluator evaluator = new NoProxyEvaluator("jenkinsmaster");
+        NoProxyEvaluator evaluator = new NoProxyEvaluator("jenkinscontroller");
 
-        assertFalse(evaluator.shouldProxyHost("jenkinsmaster"));
+        assertFalse(evaluator.shouldProxyHost("jenkinscontroller"));
     }
 
     @Test

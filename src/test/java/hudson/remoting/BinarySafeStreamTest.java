@@ -57,25 +57,25 @@ public class BinarySafeStreamTest extends TestCase {
 
     public void testSingleWrite() throws IOException {
         byte[] ds = getDataSet(65536);
-        String master = Base64.getEncoder().encodeToString(ds);
+        String controller = Base64.getEncoder().encodeToString(ds);
 
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         OutputStream o = BinarySafeStream.wrap(buf);
         o.write(ds,0,ds.length);
         o.close();
-        assertEquals(buf.toString(),master);
+        assertEquals(buf.toString(),controller);
     }
 
     public void testChunkedWrites() throws IOException {
         byte[] ds = getDataSet(65536);
-        String master = Base64.getEncoder().encodeToString(ds);
+        String controller = Base64.getEncoder().encodeToString(ds);
 
         Random r = new Random(0);
         for( int i=0; i<16; i++) {
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
             OutputStream o = BinarySafeStream.wrap(buf);
             randomCopy(r,new ByteArrayInputStream(ds),o,false);
-            assertEquals(buf.toString(),master);
+            assertEquals(buf.toString(),controller);
         }
     }
 
@@ -97,7 +97,7 @@ public class BinarySafeStreamTest extends TestCase {
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
             randomCopy(r,new ByteArrayInputStream(dataSet), BinarySafeStream.wrap(buf), flush);
 
-            decodeByMaster(buf.toString(),dataSet);
+            decodeByController(buf.toString(),dataSet);
 
             if(dump)
                 System.out.println("------");
@@ -121,7 +121,7 @@ public class BinarySafeStreamTest extends TestCase {
     /**
      * Decodes by the JDK base64 code and make sure the encoded string looks correct.
      */
-    private void decodeByMaster(String s, byte[] dataSet) {
+    private void decodeByController(String s, byte[] dataSet) {
         int ptr=0;
 
         for( int i=0; i<s.length(); i+=4 ) {

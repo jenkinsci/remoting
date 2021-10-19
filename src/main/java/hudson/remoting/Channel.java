@@ -1371,7 +1371,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         w.printf(Locale.ENGLISH, "Resource loading time=%,dms%n", resourceLoadingTime.get() / (1000 * 1000));
     }
 
-    //TODO: Make public after merge into the master branch
     /**
      * Print the diagnostic information.
      *
@@ -1875,8 +1874,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return ch;
     }
 
-    // TODO: Unrestrict after the merge into the master.
-    // By now one may use it via the reflection logic only
     /**
      * Calls {@link #dumpDiagnostics(PrintWriter)} across all the active channels in this system.
      * Used for diagnostics.
