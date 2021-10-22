@@ -36,6 +36,9 @@ import java.io.Serializable;
 /**
  * Represents computation to be done on a remote system.
  *
+ * <p>You probably don't want to implement this directly in Jenkins, instead choose {@code MasterToSlaveCallable},
+ * {@code NotReallyRoleSensitiveCallable}, or (in rare cases) {@code SlaveToMasterCallable}.</p>
+ *
  * @see Channel
  * @author Kohsuke Kawaguchi
  */
