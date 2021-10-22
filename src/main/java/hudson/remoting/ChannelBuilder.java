@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.CallableDecorator;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
@@ -42,6 +45,20 @@ public class ChannelBuilder {
      * Our logger.
      */
     private static final Logger LOGGER = Logger.getLogger(ChannelBuilder.class.getName());
+    private static /* non-final for Groovy */ boolean CALLABLES_CAN_IGNORE_ROLECHECKER = Boolean.getBoolean(ChannelBuilder.class.getName() + ".allCallablesCanIgnoreRoleChecker");
+
+    private static final Set<String> SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER = new HashSet<>();
+
+    static {
+        final String propertyName = ChannelBuilder.class.getName() + ".specificCallablesCanIgnoreRoleChecker";
+        final String property = System.getProperty(propertyName);
+        if (property != null) {
+            final Set<String> names = Arrays.stream(property.split(",")).map(String::trim).collect(Collectors.toSet());
+            LOGGER.log(Level.INFO, () -> "Allowing the following callables to bypass role checker requirement: " + String.join(", ", names));
+            SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER.addAll(names);
+        }
+    }
+
 
     private final String name;
     private final ExecutorService executors;
@@ -281,6 +298,31 @@ public class ChannelBuilder {
         });
     }
 
+    private static boolean isCallableProhibitedByRequiredRoleCheck(Callable callable) {
+        if (CALLABLES_CAN_IGNORE_ROLECHECKER) {
+            LOGGER.log(Level.FINE, () -> "Allowing all callables to ignore RoleChecker");
+            return false;
+        }
+
+        if (callable instanceof RemoteInvocationHandler.RPCRequest) {
+            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is an RPCRequest");
+            return false;
+        }
+
+        if (callable instanceof PingThread.Ping) {
+            // TODO Post-release, remove special treatment of this type and have it call RoleChecker#check
+            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is a PingThread.Ping");
+            return false;
+        }
+
+        if (SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER.contains(callable.getClass().getName())) {
+            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is allowed through override");
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Installs another {@link RoleChecker}.
      * @since 2.47
@@ -290,7 +332,14 @@ public class ChannelBuilder {
             @Override
             public <V, T extends Throwable> Callable<V, T> userRequest(Callable<V, T> op, Callable<V, T> stem) {
                 try {
-                    stem.checkRoles(checker);
+                    RequiredRoleCheckerWrapper wrapped = new RequiredRoleCheckerWrapper(checker);
+                    stem.checkRoles(wrapped);
+                    if (wrapped.isChecked()) {
+                        LOGGER.log(Level.FINER, () -> "Callable " + stem.getClass().getName() + " checked roles");
+                    } else if (isCallableProhibitedByRequiredRoleCheck(stem)) {
+                        LOGGER.log(Level.INFO, () -> "Rejecting callable " + stem.getClass().getName() + " for ignoring RoleChecker in #checkRoles, see https://www.jenkins.io/redirect/required-role-check");
+                        throw new SecurityException("Security hardening prohibits the Callable implementation " + stem.getClass().getName() + " from ignoring RoleChecker, see https://www.jenkins.io/redirect/required-role-check");
+                    }
                 } catch (AbstractMethodError e) {
                     checker.check(stem, Role.UNKNOWN);// not implemented, assume 'unknown'
                 }
