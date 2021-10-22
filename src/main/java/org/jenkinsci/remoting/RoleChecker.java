@@ -28,7 +28,10 @@ public abstract class RoleChecker {
      *      Object whose role we are checking right now. Useful context information when reporting an error.
      * @param expected
      *      The current JVM that executes the callable should have one of these roles.
-     *      Never empty nor null.
+     *      Never null.
+     *      Use an empty collection to indicate that any channel can execute a given callable without restriction.
+     *      <strong>Unless you are extremely careful, this is likely to result in a security vulnerability.
+     *      Doing this is strongly discouraged.</strong>
      * @throws SecurityException
      *      Any exception thrown will prevent the callable from getting executed, but we recommend
      *      {@link SecurityException}
