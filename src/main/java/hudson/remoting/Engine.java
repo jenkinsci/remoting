@@ -861,7 +861,7 @@ public class Engine extends Thread {
     }
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
-        events.error(new Exception("The server rejected the connection: " + greeting));
+        events.status("reconnect rejected, sleeping 10s: ", new Exception("The server rejected the connection: " + greeting));
         TimeUnit.SECONDS.sleep(10);
     }
 
