@@ -62,7 +62,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <revision>4.11.2</revision>
+    <revision>4.12</revision>
     <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
     <build.type>private</build.type>
