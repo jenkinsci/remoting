@@ -1,7 +1,7 @@
 package hudson.remoting;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 
@@ -36,7 +36,7 @@ class MimicException extends Exception {
     }
 
     @Nullable
-    public static Throwable make(@Nonnull Channel ch, @Nullable Throwable cause) {
+    public static Throwable make(@NonNull Channel ch, @Nullable Throwable cause) {
         if (cause == null)  return null;
 
         // make sure the remoting layer of the other end supports this

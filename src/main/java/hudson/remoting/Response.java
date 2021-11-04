@@ -23,9 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nullable;
 import java.io.Serializable;
 
 /**
@@ -108,7 +108,8 @@ public final class Response<RSP extends Serializable,EXC extends Throwable> exte
      * Obtains the matching request.
      * @return null if this response has not been processed successfully
      */
-    public @CheckForNull Request<?, ?> getRequest() {
+    public @CheckForNull
+    Request<?, ?> getRequest() {
         return request;
     }
 
@@ -116,7 +117,7 @@ public final class Response<RSP extends Serializable,EXC extends Throwable> exte
      * Gets the return value of the response.
      * @return null in case {@link #getException} is non-null
      */
-    public @Nullable RSP getReturnValue() {
+    public @NonNull RSP getReturnValue() {
         return returnValue;
     }
 
@@ -124,7 +125,7 @@ public final class Response<RSP extends Serializable,EXC extends Throwable> exte
      * Gets the exception thrown by the response.
      * @return null in case {@link #getReturnValue} is non-null
      */
-    public @Nullable EXC getException() {
+    public @NonNull EXC getException() {
         return exception;
     }
 

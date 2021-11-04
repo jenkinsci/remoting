@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.remoting.Channel;
 import java.io.IOException;
 import java.net.Socket;
@@ -30,9 +33,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 /**
  * Consolidates the protocol handling for both the server and the client ends of the connection.
@@ -107,9 +107,9 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @return the {@link JnlpConnectionState} for this connection.
      * @throws IOException if something goes wrong.
      */
-    @Nonnull
-    protected abstract STATE createConnectionState(@Nonnull Socket socket,
-                                                   @Nonnull List<? extends JnlpConnectionStateListener> listeners)
+    @NonNull
+    protected abstract STATE createConnectionState(@NonNull Socket socket,
+                                                   @NonNull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException;
 
     /**
@@ -121,9 +121,9 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @return a {@link Future} for the {@link Channel} to the server.
      * @throws IOException if the protocol cannot be initiated.
      */
-    @Nonnull
-    public final Future<Channel> handle(@Nonnull Socket socket, @Nonnull Map<String, String> headers,
-                                        @Nonnull JnlpConnectionStateListener... listeners)
+    @NonNull
+    public final Future<Channel> handle(@NonNull Socket socket, @NonNull Map<String, String> headers,
+                                        @NonNull JnlpConnectionStateListener... listeners)
             throws IOException {
         return handle(socket, headers, Arrays.asList(listeners));
     }
@@ -137,9 +137,9 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @return a {@link Future} for the {@link Channel} to the server.
      * @throws IOException if the protocol cannot be initiated.
      */
-    @Nonnull
-    public abstract Future<Channel> handle(@Nonnull Socket socket, @Nonnull Map<String, String> headers,
-                                           @Nonnull List<? extends JnlpConnectionStateListener> listeners)
+    @NonNull
+    public abstract Future<Channel> handle(@NonNull Socket socket, @NonNull Map<String, String> headers,
+                                           @NonNull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException;
 
     /**
@@ -151,9 +151,9 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @return a {@link Future} for the {@link Channel} to the server.
      * @throws IOException if the protocol cannot be initiated.
      */
-    @Nonnull
-    public final Future<Channel> connect(@Nonnull Socket socket, @Nonnull Map<String, String> headers,
-                                         @Nonnull JnlpConnectionStateListener... listeners) throws IOException {
+    @NonNull
+    public final Future<Channel> connect(@NonNull Socket socket, @NonNull Map<String, String> headers,
+                                         @NonNull JnlpConnectionStateListener... listeners) throws IOException {
         return connect(socket, headers, Arrays.asList(listeners));
     }
 
@@ -166,9 +166,9 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @return a {@link Future} for the {@link Channel} to the server.
      * @throws IOException if the protocol cannot be initiated.
      */
-    @Nonnull
-    public abstract Future<Channel> connect(@Nonnull Socket socket, @Nonnull Map<String, String> headers,
-                                            @Nonnull List<? extends JnlpConnectionStateListener> listeners)
+    @NonNull
+    public abstract Future<Channel> connect(@NonNull Socket socket, @NonNull Map<String, String> headers,
+                                            @NonNull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException;
 
 }

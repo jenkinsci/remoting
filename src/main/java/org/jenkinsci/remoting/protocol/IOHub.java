@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Future;
 import java.io.Closeable;
 import java.io.IOException;
@@ -52,7 +53,6 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
 import javax.annotation.OverridingMethodsMustInvokeSuper;
 import javax.annotation.concurrent.GuardedBy;
 
@@ -178,7 +178,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      *
      * @return the {@link Selector}
      */
-    @Nonnull
+    @NonNull
     public final Selector getSelector() {
         return selector;
     }
@@ -188,7 +188,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      */
     @Override
     @OverridingMethodsMustInvokeSuper
-    public void execute(@Nonnull Runnable task) {
+    public void execute(@NonNull Runnable task) {
         executor.execute(task);
     }
 
@@ -902,7 +902,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
          * {@inheritDoc}
          */
         @Override
-        public synchronized long getDelay(@Nonnull TimeUnit unit) {
+        public synchronized long getDelay(@NonNull TimeUnit unit) {
             return task == null
                     ? Long.MIN_VALUE
                     : unit.convert(delayTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);

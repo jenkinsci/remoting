@@ -20,7 +20,8 @@
  */
 package hudson.remoting;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
@@ -148,7 +149,7 @@ public class FastPipedInputStream extends InputStream {
     }
 
     @Override
-    public int read(@Nonnull byte[] b) throws IOException {
+    public int read(@NonNull byte[] b) throws IOException {
         return read(b, 0, b.length);
     }
 
@@ -156,7 +157,7 @@ public class FastPipedInputStream extends InputStream {
      * @exception IOException The pipe is not connected.
      */
     @Override
-    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
+    public int read(@NonNull byte[] b, int off, int len) throws IOException {
         if(source == null) {
             throw new IOException("Unconnected pipe");
         }

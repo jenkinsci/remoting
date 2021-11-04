@@ -23,8 +23,9 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.security.cert.X509Certificate;
-import javax.annotation.Nonnull;
 
 /**
  * Represents a database of clients that are permitted to connect.
@@ -46,7 +47,7 @@ public abstract class JnlpClientDatabase {
      * @return the secret or {@code null}. Should not return {@code null} if {@link #exists(String)} but this may occur
      * if there is a race between establishing a connection and the client being removed from the database.
      */
-    public abstract String getSecretOf(@Nonnull String clientName);
+    public abstract String getSecretOf(@NonNull String clientName);
 
     /**
      * Performs client certificate validation.
@@ -54,8 +55,8 @@ public abstract class JnlpClientDatabase {
      * @param certificate the certificate.
      * @return the validation.
      */
-    @Nonnull
-    public ValidationResult validateCertificate(@Nonnull String clientName, @Nonnull X509Certificate certificate) {
+    @NonNull
+    public ValidationResult validateCertificate(@NonNull String clientName, @NonNull X509Certificate certificate) {
         return ValidationResult.UNCHECKED;
     }
 

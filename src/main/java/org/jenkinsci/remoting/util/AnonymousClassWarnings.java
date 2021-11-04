@@ -24,10 +24,10 @@
 
 package org.jenkinsci.remoting.util;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
@@ -51,7 +51,7 @@ public class AnonymousClassWarnings {
      * Checks a class which is being either serialized or deserialized.
      * A warning will only be printed once per class per JVM session.
      */
-    public static void check(@Nonnull Class<?> clazz) {
+    public static void check(@NonNull Class<?> clazz) {
         synchronized (checked) {
             if (checked.containsKey(clazz)) {
                 return; // fast path
@@ -70,7 +70,7 @@ public class AnonymousClassWarnings {
         }
     }
 
-    private static void doCheck(@Nonnull Class<?> c) {
+    private static void doCheck(@NonNull Class<?> c) {
         if (Enum.class.isAssignableFrom(c)) { // e.g., com.cloudbees.plugins.credentials.CredentialsScope$1 ~ CredentialsScope.SYSTEM
             // ignore, enums serialize specially
         } else if (c.isAnonymousClass()) { // e.g., pkg.Outer$1
@@ -82,7 +82,7 @@ public class AnonymousClassWarnings {
         }
     }
 
-    private static void warn(@Nonnull Class<?> c, String kind) {
+    private static void warn(@NonNull Class<?> c, String kind) {
         String name = c.getName();
         String codeSource = codeSource(c);
         // Need to be very defensive about calling anything while holding this lock, lest we trigger class loading-related deadlocks.
@@ -100,7 +100,8 @@ public class AnonymousClassWarnings {
         }
     }
 
-    private static @CheckForNull String codeSource(@Nonnull Class<?> c) {
+    private static @CheckForNull
+    String codeSource(@NonNull Class<?> c) {
         CodeSource cs = c.getProtectionDomain().getCodeSource();
         if (cs == null) {
             return null;
@@ -115,7 +116,7 @@ public class AnonymousClassWarnings {
     /**
      * Like {@link ObjectOutputStream#ObjectOutputStream(OutputStream)} but applies {@link #check} when writing classes.
      */
-    public static @Nonnull ObjectOutputStream checkingObjectOutputStream(@Nonnull OutputStream outputStream) throws IOException {
+    public static @NonNull ObjectOutputStream checkingObjectOutputStream(@NonNull OutputStream outputStream) throws IOException {
         return new ObjectOutputStream(outputStream) {
             @Override
             protected void annotateClass(Class<?> c) throws IOException {

@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.io.File;
@@ -63,8 +65,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -98,7 +98,7 @@ import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
 
 /**
- * Agent engine that proactively connects to Jenkins master.
+ * Agent engine that proactively connects to Jenkins controller.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -116,7 +116,7 @@ public class Engine extends Thread {
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
         private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
         @Override
-        public Thread newThread(@Nonnull final Runnable r) {
+        public Thread newThread(@NonNull final Runnable r) {
             Thread thread = defaultFactory.newThread(() -> {
                 CURRENT.set(Engine.this);
                 r.run();
@@ -220,7 +220,7 @@ public class Engine extends Thread {
      * storage directory if the default {@code remoting} directory is consumed by other stuff.
      * @since 3.8
      */
-    @Nonnull
+    @NonNull
     public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
 
     /**
@@ -338,7 +338,7 @@ public class Engine extends Thread {
      * @param jarCache JAR Cache to be used
      * @since 2.24
      */
-    public void setJarCache(@Nonnull JarCache jarCache) {
+    public void setJarCache(@NonNull JarCache jarCache) {
         this.jarCache = jarCache;
     }
     
@@ -347,7 +347,7 @@ public class Engine extends Thread {
      * @param filePath JAR Cache to be used
      * @since 3.8
      */
-    public void setLoggingConfigFile(@Nonnull Path filePath) {
+    public void setLoggingConfigFile(@NonNull Path filePath) {
         this.loggingConfigFilePath = filePath;
     }
 
@@ -370,7 +370,7 @@ public class Engine extends Thread {
      *
      * @param webSocketHeaders a map of the headers to apply to the websocket connection
      */
-    public void setWebSocketHeaders(@Nonnull Map<String, String> webSocketHeaders) {
+    public void setWebSocketHeaders(@NonNull Map<String, String> webSocketHeaders) {
         this.webSocketHeaders = webSocketHeaders;
     }
 
@@ -437,7 +437,7 @@ public class Engine extends Thread {
      * @param internalDir Directory name
      * @since 3.8
      */
-    public void setInternalDir(@Nonnull String internalDir) {
+    public void setInternalDir(@NonNull String internalDir) {
         this.internalDir = internalDir;
     }
 
@@ -451,18 +451,18 @@ public class Engine extends Thread {
     public void setFailIfWorkDirIsMissing(boolean failIfWorkDirIsMissing) { this.failIfWorkDirIsMissing = failIfWorkDirIsMissing; }
 
     /**
-     * Returns {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.
+     * Returns {@code true} if and only if the socket to the controller will have {@link Socket#setKeepAlive(boolean)} set.
      *
-     * @return {@code true} if and only if the socket to the master will have {@link Socket#setKeepAlive(boolean)} set.
+     * @return {@code true} if and only if the socket to the controller will have {@link Socket#setKeepAlive(boolean)} set.
      */
     public boolean isKeepAlive() {
         return keepAlive;
     }
 
     /**
-     * Sets the {@link Socket#setKeepAlive(boolean)} to use for the connection to the master.
+     * Sets the {@link Socket#setKeepAlive(boolean)} to use for the connection to the controller.
      *
-     * @param keepAlive the {@link Socket#setKeepAlive(boolean)} to use for the connection to the master.
+     * @param keepAlive the {@link Socket#setKeepAlive(boolean)} to use for the connection to the controller.
      */
     public void setKeepAlive(boolean keepAlive) {
         this.keepAlive = keepAlive;
@@ -693,7 +693,7 @@ public class Engine extends Thread {
 
     @SuppressWarnings({"ThrowableInstanceNeverThrown"})
     private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
-        // Create the protocols that will be attempted to connect to the master.
+        // Create the protocols that will be attempted to connect to the controller.
         List<JnlpProtocolHandler<? extends JnlpConnectionState>> protocols = new JnlpProtocolHandlerFactory(service)
                 .withIOHub(hub)
                 .withSSLContext(context)
@@ -861,7 +861,7 @@ public class Engine extends Thread {
     }
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
-        events.error(new Exception("The server rejected the connection: " + greeting));
+        events.status("reconnect rejected, sleeping 10s: ", new Exception("The server rejected the connection: " + greeting));
         TimeUnit.SECONDS.sleep(10);
     }
 
@@ -870,7 +870,7 @@ public class Engine extends Thread {
      * @param endpoint Connection endpoint
      * @throws IOException Connection failure or invalid parameter specification
      */
-    private Socket connectTcp(@Nonnull JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
+    private Socket connectTcp(@NonNull JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
 
         String msg = "Connecting to " + endpoint.getHost() + ':' + endpoint.getPort();
         events.status(msg);
@@ -1061,7 +1061,7 @@ public class Engine extends Thread {
         }
 
         @Override
-        public void beforeProperties(@Nonnull JnlpConnectionState event) {
+        public void beforeProperties(@NonNull JnlpConnectionState event) {
             if (event instanceof Jnlp4ConnectionState) {
                 X509Certificate certificate = ((Jnlp4ConnectionState) event).getCertificate();
                 if (certificate != null) {
@@ -1077,12 +1077,12 @@ public class Engine extends Thread {
         }
 
         @Override
-        public void afterProperties(@Nonnull JnlpConnectionState event) {
+        public void afterProperties(@NonNull JnlpConnectionState event) {
             event.approve();
         }
 
         @Override
-        public void beforeChannel(@Nonnull JnlpConnectionState event) {
+        public void beforeChannel(@NonNull JnlpConnectionState event) {
             ChannelBuilder bldr = event.getChannelBuilder().withMode(Mode.BINARY);
             if (jarCache != null) {
                 bldr.withJarCache(jarCache);
@@ -1090,7 +1090,7 @@ public class Engine extends Thread {
         }
 
         @Override
-        public void afterChannel(@Nonnull JnlpConnectionState event) {
+        public void afterChannel(@NonNull JnlpConnectionState event) {
             // store the new cookie for next connection attempt
             String cookie = event.getProperty(JnlpConnectionState.COOKIE_KEY);
             if (cookie == null) {

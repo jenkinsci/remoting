@@ -23,7 +23,8 @@
  */
 package org.jenkinsci.remoting.util;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -60,7 +61,7 @@ public class ByteBufferQueueOutputStream extends OutputStream {
      * {@inheritDoc}
      */
     @Override
-    public void write(@Nonnull byte[] b, int off, int len) throws IOException {
+    public void write(@NonNull byte[] b, int off, int len) throws IOException {
         queue.put(b, off, len);
     }
 }

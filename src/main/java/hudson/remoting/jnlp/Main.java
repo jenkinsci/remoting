@@ -23,6 +23,8 @@
  */
 package hudson.remoting.jnlp;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListener;
@@ -36,8 +38,6 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -105,7 +105,7 @@ public class Main {
     public boolean noReconnect = false;
 
     @Option(name="-noKeepAlive",
-            usage="Disable TCP socket keep alive on connection to the master.")
+            usage="Disable TCP socket keep alive on connection to the controller.")
     public boolean noKeepAlive = false;
 
     @Option(name = "-cert",
@@ -165,7 +165,7 @@ public class Main {
     @Option(name = "-internalDir",
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
             depends = "-workDir")
-    @Nonnull
+    @NonNull
     public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
 
     /**
@@ -182,7 +182,7 @@ public class Main {
     /**
      * @since 2.24
      */
-    @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
+    @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the controller")
     public File jarCache = null;
 
     /**
@@ -194,12 +194,12 @@ public class Main {
     public String directConnection;
 
     /**
-     * The master's instance identity.
+     * The controller's instance identity.
      * @see <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identity</a>
      * @since 3.34
      */
     @Option(name="-instanceIdentity", depends = {"-direct"},
-            usage="The base64 encoded InstanceIdentity byte array of the Jenkins master. When this is set, the agent skips connecting to an HTTP(S) port for connection info.")
+            usage="The base64 encoded InstanceIdentity byte array of the Jenkins controller. When this is set, the agent skips connecting to an HTTP(S) port for connection info.")
     public String instanceIdentity;
 
     /**

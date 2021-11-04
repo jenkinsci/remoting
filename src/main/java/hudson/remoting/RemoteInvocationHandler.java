@@ -23,13 +23,13 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Ref;
 import org.jenkinsci.remoting.RoleChecker;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -154,7 +154,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * @param userSpace If {@code true} (recommended), the requests will be executed in a user scope
      * @param recordCreatedAt as in {@link Command#Command(boolean)}
      */
-    @Nonnull
+    @NonNull
     static <T> T wrap(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller, boolean userSpace, boolean recordCreatedAt) {
         ClassLoader cl = type.getClassLoader();
         // if the type is a JDK-defined type, classloader should be for IReadResolve
@@ -205,7 +205,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * @throws IOException if the channel is disconnected or otherwise unavailable.
      * @since 2.52
      */
-    @Nonnull
+    @NonNull
     private Channel channelOrFail() throws IOException {
         final Ref ch = this.channel;
         if (ch == null) {
@@ -916,7 +916,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         }
 
         @Override
-        protected Serializable perform(@Nonnull Channel channel) throws Throwable {
+        protected Serializable perform(@NonNull Channel channel) throws Throwable {
             Object o = channel.getExportedObject(oid);
             Class<?>[] clazz = channel.getExportedTypes(oid);
             try {
@@ -1001,7 +1001,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         // Same implementation as UserRequest
         @Override
-        public void checkIfCanBeExecutedOnChannel(@Nonnull Channel channel) throws IOException {
+        public void checkIfCanBeExecutedOnChannel(@NonNull Channel channel) throws IOException {
             // Default check for all requests
             super.checkIfCanBeExecutedOnChannel(channel);
 

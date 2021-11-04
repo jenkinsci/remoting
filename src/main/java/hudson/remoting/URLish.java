@@ -1,10 +1,11 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 
 /**
  * Something that's effectively URL.
@@ -26,20 +27,20 @@ abstract class URLish {
     @CheckForNull
     abstract URL toURL() throws MalformedURLException;
 
-    @Nonnull
-    static URLish from(@Nonnull final URL url) {
+    @NonNull
+    static URLish from(@NonNull final URL url) {
         
         return new URLish() {
             @Override
-            @Nonnull
+            @NonNull
             URL toURL() {
                 return url;
             }
         };
     }
 
-    @Nonnull
-    static URLish from(@Nonnull final File f) {
+    @NonNull
+    static URLish from(@NonNull final File f) {
         return new URLish() {
             @Override
             URL toURL() throws MalformedURLException {

@@ -1,8 +1,8 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import javax.annotation.Nonnull;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -94,11 +94,11 @@ final class Checksum {
         }
 
         @Override
-        public void write(@Nonnull byte[] b) {
+        public void write(@NonNull byte[] b) {
         }
 
         @Override
-        public void write(@Nonnull byte[] b, int off, int len) {
+        public void write(@NonNull byte[] b, int off, int len) {
         }
     }
 }

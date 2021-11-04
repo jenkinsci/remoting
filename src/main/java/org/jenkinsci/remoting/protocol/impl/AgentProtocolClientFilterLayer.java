@@ -23,10 +23,11 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import javax.annotation.concurrent.GuardedBy;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
@@ -72,7 +73,7 @@ public class AgentProtocolClientFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public void onRecv(@Nonnull ByteBuffer data) throws IOException {
+    public void onRecv(@NonNull ByteBuffer data) throws IOException {
         next().onRecv(data);
     }
 
@@ -80,7 +81,7 @@ public class AgentProtocolClientFilterLayer extends FilterLayer {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void doSend(@Nonnull ByteBuffer data) throws IOException {
+    public synchronized void doSend(@NonNull ByteBuffer data) throws IOException {
         if (sendProtocol.hasRemaining()) {
             sendQueue.put(data);
             next().doSend(sendProtocol);

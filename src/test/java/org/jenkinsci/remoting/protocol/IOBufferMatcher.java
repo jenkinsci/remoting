@@ -24,13 +24,13 @@
 package org.jenkinsci.remoting.protocol;
 
 import java.util.concurrent.CompletableFuture;
+
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matcher;
 
-import javax.annotation.CheckForNull;
 import javax.annotation.CheckReturnValue;
-import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -106,7 +106,7 @@ public abstract class IOBufferMatcher {
         innerClose(causeToReport);
     }
 
-    private void innerClose(@Nonnull IOException cause) {
+    private void innerClose(@NonNull IOException cause) {
         if (!closed.isDone()) {
             closed.complete(cause);
             anything.countDown();

@@ -23,7 +23,7 @@
  */
 package hudson.remoting;
 
-import javax.annotation.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 /**
  * {@link Command} that unexports an object.

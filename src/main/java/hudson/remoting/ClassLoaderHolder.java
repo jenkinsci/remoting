@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.RemoteClassLoader.IClassLoader;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
@@ -7,7 +8,6 @@ import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import javax.annotation.CheckForNull;
 
 /**
  * Remoting-aware holder of {@link ClassLoader} that replaces ClassLoader by its {@link RemoteClassLoader}.

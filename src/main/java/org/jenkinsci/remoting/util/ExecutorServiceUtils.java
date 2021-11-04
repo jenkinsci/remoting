@@ -23,10 +23,10 @@
  */
 package org.jenkinsci.remoting.util;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-import javax.annotation.Nonnull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -52,7 +52,7 @@ public class ExecutorServiceUtils {
      */
     @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
             justification = "User of this API explicitly submits the task in the async mode on his own risk")
-    public static void submitAsync(@Nonnull ExecutorService es, @Nonnull Runnable runnable) 
+    public static void submitAsync(@NonNull ExecutorService es, @NonNull Runnable runnable)
             throws ExecutionRejectedException {
         try {
             es.submit(runnable);
@@ -70,10 +70,10 @@ public class ExecutorServiceUtils {
      * @param cause Base non-Runtime exception
      * @return Created Runtime exception
      */
-    @Nonnull
+    @NonNull
     public static RejectedExecutionException createRuntimeException(
-            @Nonnull String message, 
-            @Nonnull ExecutionRejectedException cause) {
+            @NonNull String message,
+            @NonNull ExecutionRejectedException cause) {
         if (cause.isFatal()) {
             return new FatalRejectedExecutionException(message, cause);
         } else {

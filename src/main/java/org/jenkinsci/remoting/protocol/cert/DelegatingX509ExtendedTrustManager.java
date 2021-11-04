@@ -23,10 +23,11 @@
  */
 package org.jenkinsci.remoting.protocol.cert;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.net.Socket;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import javax.annotation.Nonnull;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.X509ExtendedTrustManager;
 
@@ -39,7 +40,7 @@ public class DelegatingX509ExtendedTrustManager extends X509ExtendedTrustManager
     /**
      * Our delegate.
      */
-    @Nonnull
+    @NonNull
     private volatile X509ExtendedTrustManager delegate;
 
     /**
@@ -49,7 +50,7 @@ public class DelegatingX509ExtendedTrustManager extends X509ExtendedTrustManager
      * @param delegate the supplied {@link X509ExtendedTrustManager} that all certificates must additionally be trusted
      *                 by in order for a currently valid certificate to be trusted.
      */
-    public DelegatingX509ExtendedTrustManager(@Nonnull X509ExtendedTrustManager delegate) {
+    public DelegatingX509ExtendedTrustManager(@NonNull X509ExtendedTrustManager delegate) {
         this.delegate = delegate;
     }
 
@@ -58,7 +59,7 @@ public class DelegatingX509ExtendedTrustManager extends X509ExtendedTrustManager
      *
      * @param delegate the new delegate.
      */
-    public void setDelegate(@Nonnull X509ExtendedTrustManager delegate) {
+    public void setDelegate(@NonNull X509ExtendedTrustManager delegate) {
         this.delegate = delegate;
     }
 
@@ -67,7 +68,7 @@ public class DelegatingX509ExtendedTrustManager extends X509ExtendedTrustManager
      *
      * @return the current delegate.
      */
-    @Nonnull
+    @NonNull
     public X509ExtendedTrustManager getDelegate() {
         return delegate;
     }

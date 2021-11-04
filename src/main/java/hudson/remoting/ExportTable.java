@@ -23,8 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -39,7 +40,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.*;
-import javax.annotation.CheckForNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -76,7 +76,7 @@ final class ExportTable {
          * {@code object.getClass().getName()} kept around so that we can see the type even after it
          * gets deallocated.
          */
-        @Nonnull
+        @NonNull
         private final String objectType;
         /**
          * Where was this object first exported?
@@ -95,7 +95,7 @@ final class ExportTable {
          */
         private int referenceCount;
 
-        Entry(@Nonnull T object, Class<? super T>... interfaces) {
+        Entry(@NonNull T object, Class<? super T>... interfaces) {
             this.id = iota++;
             this.interfaces = interfaces.clone();
             this.object = object;
@@ -305,7 +305,7 @@ final class ExportTable {
      * @param clazz Class of the object
      * @param t Class instance
      */
-    synchronized <T> int export(@Nonnull Class<T> clazz, @CheckForNull T t) {
+    synchronized <T> int export(@NonNull Class<T> clazz, @CheckForNull T t) {
         return export(clazz, t,true);
     }
 
@@ -320,7 +320,7 @@ final class ExportTable {
      *      it will return the ID already assigned to it.
      *      {@code 0} if the input parameter is {@code null}.
      */
-    synchronized <T> int export(@Nonnull Class<T> clazz, @CheckForNull T t, boolean notifyListener) {
+    synchronized <T> int export(@NonNull Class<T> clazz, @CheckForNull T t, boolean notifyListener) {
         if(t==null)    return 0;   // bootstrap classloader
 
         Entry<T> e = (Entry<T>) reverse.get(t);
@@ -339,7 +339,7 @@ final class ExportTable {
         return e.id;
     }
 
-    /*package*/ synchronized void pin(@Nonnull Object t) {
+    /*package*/ synchronized void pin(@NonNull Object t) {
         Entry<?> e = reverse.get(t);
         if(e!=null)
             e.pin();
@@ -352,7 +352,7 @@ final class ExportTable {
      * @throws ExecutionException The requested ID cannot be found.
      *      The root cause will be diagnosed by {@link #diagnoseInvalidObjectId(int)}.
      */
-    @Nonnull
+    @NonNull
     synchronized Object get(int id) throws ExecutionException {
         Entry<?> e = table.get(id);
         if(e!=null) return e.object;
@@ -373,7 +373,7 @@ final class ExportTable {
         return null;
     }
 
-    @Nonnull
+    @NonNull
     synchronized Class<?>[] type(int id) throws ExecutionException {
         Entry<?> e = table.get(id);
         if(e!=null) return e.getInterfaces();
@@ -421,7 +421,7 @@ final class ExportTable {
      * @param id Object ID
      * @return Exception to be thrown
      */
-    @Nonnull
+    @NonNull
     private synchronized ExecutionException diagnoseInvalidObjectId(int id) {
         Exception cause=null;
 
@@ -475,7 +475,7 @@ final class ExportTable {
      * Dumps the contents of the table to a file.
      * @throws IOException Output error
      */
-    synchronized void dump(@Nonnull PrintWriter w) throws IOException {
+    synchronized void dump(@NonNull PrintWriter w) throws IOException {
         for (Entry<?> e : table.values()) {
             e.dump(w);
         }

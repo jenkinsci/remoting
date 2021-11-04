@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
 import hudson.remoting.Launcher;
@@ -31,8 +33,6 @@ import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -82,7 +82,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
     private static final Logger LOGGER = Logger.getLogger(JnlpAgentEndpointResolver.class.getName());
 
-    @Nonnull
+    @NonNull
     private final List<String> jenkinsUrls;
 
     private SSLSocketFactory sslSocketFactory;
@@ -108,7 +108,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         this.jenkinsUrls = new ArrayList<>(Arrays.asList(jenkinsUrls));
     }
 
-    public JnlpAgentEndpointResolver(@Nonnull List<String> jenkinsUrls) {
+    public JnlpAgentEndpointResolver(@NonNull List<String> jenkinsUrls) {
         this(jenkinsUrls, null, null, null, null, false);
     }
 
@@ -254,7 +254,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
                     if (agentProtocolNames.isEmpty()) {
                         LOGGER.log(Level.WARNING, "Received the empty list of supported protocols from the server. " +
-                                "All protocols are disabled on the master side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). " +
+                                "All protocols are disabled on the controller side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). " +
                                 "In the case of the header corruption as a workaround you can use the " +
                                 "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' system property " +
                                 "to define the supported protocols.");
@@ -374,8 +374,8 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         return exitStatus;
     }
 
-    @Nonnull
-    private URL toAgentListenerURL(@Nonnull String jenkinsUrl) throws MalformedURLException {
+    @NonNull
+    private URL toAgentListenerURL(@NonNull String jenkinsUrl) throws MalformedURLException {
         return new URL(jenkinsUrl + "tcpSlaveAgentListener/");
     }
 
@@ -409,14 +409,14 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                         return;
                     }
                     LOGGER.log(Level.INFO,
-                            "Master isn''t ready to talk to us on {0}. Will try again: response code={1}",
+                            "Controller isn''t ready to talk to us on {0}. Will try again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
                 } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
-                    LOGGER.log(INFO, "Failed to connect to the master. Will try again: {0} {1}",
+                    LOGGER.log(INFO, "Failed to connect to the controller. Will try again: {0} {1}",
                             new String[] { e.getClass().getName(), e.getMessage() });
                 } catch (IOException e) {
                     // report the failure
-                    LOGGER.log(INFO, "Failed to connect to the master. Will try again", e);
+                    LOGGER.log(INFO, "Failed to connect to the controller. Will try again", e);
                 }
             }
         } finally {
@@ -425,7 +425,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     }
 
     @CheckForNull
-    static InetSocketAddress getResolvedHttpProxyAddress(@Nonnull String host, int port) throws IOException {
+    static InetSocketAddress getResolvedHttpProxyAddress(@NonNull String host, int port) throws IOException {
         InetSocketAddress targetAddress = null;
         Iterator<Proxy>
                 proxies =
@@ -567,7 +567,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     }
 
     @CheckForNull
-    private static List<String> header(@Nonnull HttpURLConnection connection, String... headerNames) {
+    private static List<String> header(@NonNull HttpURLConnection connection, String... headerNames) {
         Map<String, List<String>> headerFields = connection.getHeaderFields();
         for (String headerName : headerNames) {
             for (Map.Entry<String, List<String>> entry: headerFields.entrySet()) {
@@ -590,8 +590,8 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         return values == null || values.isEmpty() ? null : values.get(0);
     }
 
-    @Nonnull
-    private static String defaultString(@CheckForNull String value, @Nonnull String defaultValue) {
+    @NonNull
+    private static String defaultString(@CheckForNull String value, @NonNull String defaultValue) {
         return value == null ? defaultValue : value;
     }
 }

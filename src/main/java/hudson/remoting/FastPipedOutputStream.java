@@ -20,7 +20,8 @@
  */
 package hudson.remoting;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
@@ -131,7 +132,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     }
 
     @Override
-    public void write(@Nonnull byte[] b) throws IOException {
+    public void write(@NonNull byte[] b) throws IOException {
         write(b, 0, b.length);
     }
 
@@ -139,7 +140,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
      * @exception IOException The pipe is not connected or a reader has closed it.
      */
     @Override
-    public void write(@Nonnull byte[] b, int off, int len) throws IOException {
+    public void write(@NonNull byte[] b, int off, int len) throws IOException {
         if(sink == null) {
             throw new IOException("Unconnected pipe");
         }

@@ -23,9 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import javax.annotation.Nonnull;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -58,7 +58,7 @@ public class Which {
      * @return URL of the class file
      * @since 2.24
      */
-    @Nonnull
+    @NonNull
     public static URL classFileUrl(Class<?> clazz) throws IOException {
         ClassLoader cl = clazz.getClassLoader();
         if(cl==null)
@@ -90,7 +90,7 @@ public class Which {
      * @return
      *      JAR File, which contains the class.
      */
-    @Nonnull
+    @NonNull
     public static File jarFile(Class<?> clazz) throws IOException {
         return jarFile(classFileUrl(clazz),clazz.getName().replace('.','/')+".class");
     }
@@ -111,7 +111,7 @@ public class Which {
      * @return
      *      JAR File, which contains the URL
      */
-    @Nonnull
+    @NonNull
     @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent as part of jar cache management.")
     /*package*/ static File jarFile(URL res, String qualifiedName) throws IOException {
         String resURL = res.toExternalForm();

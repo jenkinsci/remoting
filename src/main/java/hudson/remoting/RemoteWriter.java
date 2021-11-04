@@ -23,9 +23,9 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -88,22 +88,22 @@ public final class RemoteWriter extends Writer implements SerializableOnlyOverRe
     }
 
     @Override
-    public void write(@Nonnull char[] cbuf) throws IOException {
+    public void write(@NonNull char[] cbuf) throws IOException {
         core.write(cbuf);
     }
 
     @Override
-    public void write(@Nonnull char[] cbuf, int off, int len) throws IOException {
+    public void write(@NonNull char[] cbuf, int off, int len) throws IOException {
         core.write(cbuf, off, len);
     }
 
     @Override
-    public void write(@Nonnull String str) throws IOException {
+    public void write(@NonNull String str) throws IOException {
         core.write(str);
     }
 
     @Override
-    public void write(@Nonnull String str, int off, int len) throws IOException {
+    public void write(@NonNull String str, int off, int len) throws IOException {
         core.write(str, off, len);
     }
 

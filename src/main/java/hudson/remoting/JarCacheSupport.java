@@ -7,9 +7,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 
 /**
  * Default partial implementation of {@link JarCache}.
@@ -44,8 +44,8 @@ public abstract class JarCacheSupport extends JarCache {
     );
 
     @Override
-    @Nonnull
-    public Future<URL> resolve(@Nonnull final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
+    @NonNull
+    public Future<URL> resolve(@NonNull final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
         URL jar = lookInCache(channel,sum1, sum2);
         if (jar!=null) {
             // already in the cache

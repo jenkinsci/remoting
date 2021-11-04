@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.engine.WorkDirManager;
@@ -37,8 +39,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -122,15 +122,15 @@ public class Launcher {
     @CheckForNull
     public File agentLog = null;
 
-    @Option(name="-text",usage="encode communication with the master with base64. " +
+    @Option(name="-text",usage="encode communication with the controller with base64. " +
             "Useful for running agent over 8-bit unsafe protocol like telnet")
     public void setTextMode(boolean b) {
         mode = b?Mode.TEXT:Mode.BINARY;
         System.out.println("Running in "+mode.name().toLowerCase(Locale.ENGLISH)+" mode");
     }
 
-    @Option(name="-jnlpUrl",usage="instead of talking to the master via stdin/stdout, " +
-            "emulate a JNLP client by making a TCP connection to the master. " +
+    @Option(name="-jnlpUrl",usage="instead of talking to the controller via stdin/stdout, " +
+            "emulate a JNLP client by making a TCP connection to the controller. " +
             "Connection parameters are obtained by parsing the JNLP file.")
     public URL agentJnlpURL = null;
 
@@ -160,9 +160,9 @@ public class Launcher {
         System.setProperty("java.class.path",System.getProperty("java.class.path")+File.pathSeparatorChar+pathList);
     }
 
-    @Option(name="-tcp",usage="instead of talking to the master via stdin/stdout, " +
+    @Option(name="-tcp",usage="instead of talking to the controller via stdin/stdout, " +
             "listens to a random local port, write that port number to the given file, " +
-            "then wait for the master to connect to that port.")
+            "then wait for the controller to connect to that port.")
     public File tcpPortFile=null;
 
 
@@ -173,7 +173,7 @@ public class Launcher {
      * @since 2.24
      */
     @CheckForNull
-    @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the master")
+    @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the controller")
     public File jarCache = null;
 
     /**
@@ -230,7 +230,7 @@ public class Launcher {
     public boolean noReconnect = false;
 
     @Option(name = "-noKeepAlive",
-            usage = "Disable TCP socket keep alive on connection to the master.")
+            usage = "Disable TCP socket keep alive on connection to the controller.")
     public boolean noKeepAlive = false;
 
     /**
@@ -257,7 +257,7 @@ public class Launcher {
     @Option(name = "-internalDir",
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
             depends = "-workDir")
-    @Nonnull
+    @NonNull
     public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
 
     /**
@@ -387,7 +387,7 @@ public class Launcher {
                 hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[0]));
             } catch (CmdLineException e) {
                 System.err.println("JNLP file "+ agentJnlpURL +" has invalid arguments: "+jnlpArgs);
-                System.err.println("Most likely a configuration error in the master");
+                System.err.println("Most likely a configuration error in the controller");
                 System.err.println(e.getMessage());
                 System.exit(1);
             }

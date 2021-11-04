@@ -26,10 +26,10 @@
 
 package org.jenkinsci.remoting.util;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.InvalidPathException;
@@ -50,9 +50,9 @@ public class PathUtils {
      * @throws IOException Conversion error caused by {@link InvalidPathException}
      * @since 3.14
      */
-    @Nonnull
+    @NonNull
     @Restricted(NoExternalUse.class)
-    public static Path fileToPath(@Nonnull File file) throws IOException {
+    public static Path fileToPath(@NonNull File file) throws IOException {
         try {
             return file.toPath();
         } catch (InvalidPathException ex) {

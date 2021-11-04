@@ -23,7 +23,8 @@
  */
 package hudson.remoting;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,12 +59,12 @@ public class SocketOutputStream extends FilterOutputStream {
     }
 
     @Override
-    public void write(@Nonnull byte[] b) throws IOException {
+    public void write(@NonNull byte[] b) throws IOException {
         out.write(b);
     }
 
     @Override
-    public void write(@Nonnull byte[] b, int off, int len) throws IOException {
+    public void write(@NonNull byte[] b, int off, int len) throws IOException {
         out.write(b, off, len);
     }
 

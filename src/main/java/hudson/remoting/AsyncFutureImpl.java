@@ -23,7 +23,8 @@
  */
 package hudson.remoting;
 
-import javax.annotation.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+
 import javax.annotation.Nonnegative;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;

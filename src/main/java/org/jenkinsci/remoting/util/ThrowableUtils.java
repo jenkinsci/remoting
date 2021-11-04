@@ -23,7 +23,7 @@
  */
 package org.jenkinsci.remoting.util;
 
-import javax.annotation.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 
 /**
  * Utility methods to help when working with {@link Throwable} instances.

@@ -23,11 +23,11 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.ChannelStateException;
 import org.jenkinsci.remoting.RoleSensitive;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
-import javax.annotation.Nonnull;
 import java.io.Serializable;
 
 //TODO: Make it SerializableOnlyOverRemoting?
@@ -55,7 +55,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
      * @throws ChannelStateException Channel is not associated with the thread
      * @since 3.15
      */
-    @Nonnull
+    @NonNull
     default Channel getChannelOrFail() throws ChannelStateException {
         final Channel ch = Channel.current();
         if (ch == null) {
@@ -74,7 +74,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
     /**
      * Gets an open channel, which is ready to accept commands.
      *
-     * It is a convenience method for cases, when a callable needs to invoke call backs on the master.
+     * It is a convenience method for cases, when a callable needs to invoke call backs on the controller.
      * In such case the requests will be likely failed by {@linkplain UserRequest} logic anyway, but it is better to fail fast.
      *
      * @return Channel instance
@@ -82,7 +82,7 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
      *          Also happens if the channel is not associated with the thread at all.
      * @since 3.15
      */
-    @Nonnull
+    @NonNull
     default Channel getOpenChannelOrFail() throws ChannelStateException {
         final Channel ch = getChannelOrFail();
         if (ch.isClosingOrClosed()) {

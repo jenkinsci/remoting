@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.remoting.util;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Future;
 import java.util.AbstractMap;
@@ -37,9 +40,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 
 /**
@@ -140,7 +140,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * @param throwable the exception.
      * @return {@code true} if the future is now completed, {@code false} if the future has already been completed.
      */
-    public boolean setException(@Nonnull Throwable throwable) {
+    public boolean setException(@NonNull Throwable throwable) {
         verifyNonnull(throwable);
         boolean result;
         synchronized (lock) {
@@ -230,7 +230,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * {@inheritDoc}
      */
     @Override
-    public V get(long timeout, @Nonnull TimeUnit unit)
+    public V get(long timeout, @NonNull TimeUnit unit)
             throws InterruptedException, ExecutionException, TimeoutException {
         long timeoutNanos = unit.toNanos(timeout);
         long start = System.nanoTime();
@@ -257,7 +257,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * {@inheritDoc}
      */
     @Override
-    public void addListener(@Nonnull Runnable listener, @Nonnull Executor executor) {
+    public void addListener(@NonNull Runnable listener, @NonNull Executor executor) {
         verifyNonnull(listener);
         verifyNonnull(executor);
         boolean executeImmediate = false;

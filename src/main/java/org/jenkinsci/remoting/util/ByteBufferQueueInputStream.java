@@ -23,7 +23,8 @@
  */
 package org.jenkinsci.remoting.util;
 
-import javax.annotation.Nonnull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.BufferUnderflowException;
@@ -114,7 +115,7 @@ public class ByteBufferQueueInputStream extends InputStream {
      * {@inheritDoc}
      */
     @Override
-    public int read(@Nonnull byte[] b, int off, int len) throws IOException {
+    public int read(@NonNull byte[] b, int off, int len) throws IOException {
         if (length != -1) {
             int rem = length - pos;
             if (rem <= 0) {

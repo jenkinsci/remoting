@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.util.GCTask;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
@@ -17,7 +18,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
 
 import org.jenkinsci.remoting.RoleChecker;
 import org.jvnet.hudson.test.Issue;
@@ -326,7 +326,7 @@ public class ChannelTest extends RmiTestBase {
         final ExecutorService svc;
         final Channel channel;
 
-        public ChannelCloseLock(final @Nonnull Channel channel) throws AssertionError, InterruptedException {
+        public ChannelCloseLock(final @NonNull Channel channel) throws AssertionError, InterruptedException {
             this.svc = Executors.newFixedThreadPool(2);
             this.channel = channel;
             
