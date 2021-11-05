@@ -1281,6 +1281,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             // no specific role needed, which is somewhat dubious, but I can't think of any attack vector that involves this.
             // it would have been simpler if the setMaximumBytecodeLevel only controlled the local setting,
             // not the remote setting
+            checker.check(this);
         }
     }
 
@@ -1784,6 +1785,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          */
         @Override
         public void checkRoles(RoleChecker checker) throws SecurityException {
+            checker.check(this);
         }
 
         private static final long serialVersionUID = 1L;
