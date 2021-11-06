@@ -48,9 +48,16 @@ public class ChannelBuilder {
     private static final Logger LOGGER = Logger.getLogger(ChannelBuilder.class.getName());
     private static /* non-final for Groovy */ boolean CALLABLES_CAN_IGNORE_ROLECHECKER = Boolean.getBoolean(ChannelBuilder.class.getName() + ".allCallablesCanIgnoreRoleChecker");
 
+    private static final Set<String> REMOTING_CALLABLES = new HashSet<>();
     private static final Set<String> SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER = new HashSet<>();
 
     static {
+        REMOTING_CALLABLES.add(RemoteInvocationHandler.RPCRequest.class.getName());
+        REMOTING_CALLABLES.add(RemoteInvocationHandler.UserRPCRequest.class.getName());
+        REMOTING_CALLABLES.add(PingThread.Ping.class.getName());
+        REMOTING_CALLABLES.add(Channel.SetMaximumBytecodeLevel.class.getName());
+        REMOTING_CALLABLES.add(Channel.IOSyncer.class.getName());
+
         final String propertyName = ChannelBuilder.class.getName() + ".specificCallablesCanIgnoreRoleChecker";
         final String property = System.getProperty(propertyName);
         if (property != null) {
@@ -299,21 +306,14 @@ public class ChannelBuilder {
         });
     }
 
-    private static boolean isCallableProhibitedByRequiredRoleCheck(Callable callable) {
+    private static boolean isCallableProhibitedByRequiredRoleCheck(Callable<?, ?> callable) {
         if (CALLABLES_CAN_IGNORE_ROLECHECKER) {
             LOGGER.log(Level.FINE, () -> "Allowing all callables to ignore RoleChecker");
             return false;
         }
 
-        if (callable instanceof RemoteInvocationHandler.RPCRequest) {
-            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is an RPCRequest");
-            return false;
-        }
-
-        if (callable instanceof PingThread.Ping) {
-            // TODO Post-release, remove special treatment of this type and have it call RoleChecker#check
-            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is a PingThread.Ping");
-            return false;
+        if (REMOTING_CALLABLES.contains(callable.getClass().getName()))) {
+            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is a remoting built-in callable");
         }
 
         if (SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER.contains(callable.getClass().getName())) {

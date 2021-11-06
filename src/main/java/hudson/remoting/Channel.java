@@ -1264,7 +1264,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         }
         call(new SetMaximumBytecodeLevel(level));
     }
-    private static final class SetMaximumBytecodeLevel implements Callable<Void,RuntimeException> {
+    /* package */ static final class SetMaximumBytecodeLevel implements Callable<Void,RuntimeException> {
         private static final long serialVersionUID = 1;
         private final short level;
         SetMaximumBytecodeLevel(short level) {
@@ -1281,7 +1281,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             // no specific role needed, which is somewhat dubious, but I can't think of any attack vector that involves this.
             // it would have been simpler if the setMaximumBytecodeLevel only controlled the local setting,
             // not the remote setting
-            checker.check(this);
         }
     }
 
@@ -1770,7 +1769,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         }
     }
 
-    private static final class IOSyncer implements Callable<Object, InterruptedException> {
+    /* package */ static final class IOSyncer implements Callable<Object, InterruptedException> {
         @Override
         public Object call() throws InterruptedException {
             Channel.currentOrFail().syncLocalIO();
@@ -1785,7 +1784,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          */
         @Override
         public void checkRoles(RoleChecker checker) throws SecurityException {
-            checker.check(this);
         }
 
         private static final long serialVersionUID = 1L;

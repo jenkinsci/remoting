@@ -991,7 +991,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * this can be used to send a method call to user-level objects, and
      * classes for the parameters and the return value are sent remotely if needed.
      */
-    private static class UserRPCRequest extends RPCRequest {
+    /* package */ static class UserRPCRequest extends RPCRequest {
 
         private static final long serialVersionUID = -9185841650347902580L;
 
