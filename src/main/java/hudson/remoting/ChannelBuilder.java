@@ -307,6 +307,7 @@ public class ChannelBuilder {
 
         if (callable instanceof InternalCallable) {
             LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is a remoting built-in callable allowed to bypass the role check");
+            return false;
         }
 
         if (SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER.contains(callable.getClass().getName())) {
