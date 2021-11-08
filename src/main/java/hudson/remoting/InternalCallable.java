@@ -23,6 +23,10 @@
  */
 package hudson.remoting;
 
+import org.jenkinsci.remoting.RoleChecker;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+
 /**
  * For remoting internal use only: {@link hudson.remoting.Callable}s implement
  * this marker interface to be allowed to bypass the required role check of
@@ -30,5 +34,10 @@ package hudson.remoting;
  *
  * @since TODO
  */
+@Restricted(NoExternalUse.class)
 /* package */ interface InternalCallable<V, T extends Throwable> extends Callable<V, T> {
+    @Override
+    default void checkRoles(RoleChecker checker) throws SecurityException {
+        // no-op
+    }
 }

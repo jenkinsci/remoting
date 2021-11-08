@@ -1274,13 +1274,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             Channel.currentOrFail().maximumBytecodeLevel = level;
             return null;
         }
-
-        @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
-            // no specific role needed, which is somewhat dubious, but I can't think of any attack vector that involves this.
-            // it would have been simpler if the setMaximumBytecodeLevel only controlled the local setting,
-            // not the remote setting
-        }
+        // no specific role needed, which is somewhat dubious, but I can't think of any attack vector that involves this.
+        // it would have been simpler if the setMaximumBytecodeLevel only controlled the local setting,
+        // not the remote setting
     }
 
     /**
@@ -1774,17 +1770,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             Channel.currentOrFail().syncLocalIO();
             return null;
         }
-
-        /**
+        /*
          * This callable is needed for the proper operation of pipes.
          * In the worst case it causes a bit of wasted CPU cycles without any side-effect,
          * and one can always refuse to read/write from/to pipe, so this layer need not provide
          * any security.
          */
-        @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
-        }
-
         private static final long serialVersionUID = 1L;
     }
 

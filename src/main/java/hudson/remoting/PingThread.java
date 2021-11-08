@@ -160,11 +160,6 @@ public abstract class PingThread extends Thread {
         public Void call() throws IOException {
             return null;
         }
-
-        @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
-            // this callable is literally no-op, can't get any safer than that
-        }
     }
 
     private static final Logger LOGGER = Logger.getLogger(PingThread.class.getName());
