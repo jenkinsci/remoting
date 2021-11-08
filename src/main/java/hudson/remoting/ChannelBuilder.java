@@ -312,7 +312,7 @@ public class ChannelBuilder {
             return false;
         }
 
-        if (REMOTING_CALLABLES.contains(callable.getClass().getName()))) {
+        if (REMOTING_CALLABLES.contains(callable.getClass().getName())) {
             LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is a remoting built-in callable");
         }
 
