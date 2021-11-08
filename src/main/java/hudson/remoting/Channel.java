@@ -53,7 +53,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1264,7 +1263,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         }
         call(new SetMaximumBytecodeLevel(level));
     }
-    /* package */ static final class SetMaximumBytecodeLevel implements Callable<Void,RuntimeException> {
+    private static final class SetMaximumBytecodeLevel implements InternalCallable<Void,RuntimeException> {
         private static final long serialVersionUID = 1;
         private final short level;
         SetMaximumBytecodeLevel(short level) {
@@ -1769,7 +1768,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         }
     }
 
-    /* package */ static final class IOSyncer implements Callable<Object, InterruptedException> {
+    private static final class IOSyncer implements InternalCallable<Object, InterruptedException> {
         @Override
         public Object call() throws InterruptedException {
             Channel.currentOrFail().syncLocalIO();

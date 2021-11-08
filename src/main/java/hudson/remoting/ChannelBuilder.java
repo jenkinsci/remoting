@@ -48,16 +48,9 @@ public class ChannelBuilder {
     private static final Logger LOGGER = Logger.getLogger(ChannelBuilder.class.getName());
     private static /* non-final for Groovy */ boolean CALLABLES_CAN_IGNORE_ROLECHECKER = Boolean.getBoolean(ChannelBuilder.class.getName() + ".allCallablesCanIgnoreRoleChecker");
 
-    private static final Set<String> REMOTING_CALLABLES = new HashSet<>();
     private static final Set<String> SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER = new HashSet<>();
 
     static {
-        REMOTING_CALLABLES.add(RemoteInvocationHandler.RPCRequest.class.getName());
-        REMOTING_CALLABLES.add(RemoteInvocationHandler.UserRPCRequest.class.getName());
-        REMOTING_CALLABLES.add(PingThread.Ping.class.getName());
-        REMOTING_CALLABLES.add(Channel.SetMaximumBytecodeLevel.class.getName());
-        REMOTING_CALLABLES.add(Channel.IOSyncer.class.getName());
-
         final String propertyName = ChannelBuilder.class.getName() + ".specificCallablesCanIgnoreRoleChecker";
         final String property = System.getProperty(propertyName);
         if (property != null) {
@@ -312,8 +305,8 @@ public class ChannelBuilder {
             return false;
         }
 
-        if (REMOTING_CALLABLES.contains(callable.getClass().getName())) {
-            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is a remoting built-in callable");
+        if (callable instanceof InternalCallable) {
+            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is a remoting built-in callable allowed to bypass the role check");
         }
 
         if (SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER.contains(callable.getClass().getName())) {

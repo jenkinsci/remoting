@@ -28,7 +28,7 @@ public abstract class RoleChecker {
      *      Object whose role we are checking right now. Useful context information when reporting an error.
      * @param expected
      *      The current JVM that executes the callable should have one of these roles.
-     *      Never null or empty.
+     *      Never empty nor null.
      * @throws SecurityException
      *      Any exception thrown will prevent the callable from getting executed, but we recommend
      *      {@link SecurityException}

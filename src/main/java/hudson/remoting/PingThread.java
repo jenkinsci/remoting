@@ -153,7 +153,7 @@ public abstract class PingThread extends Thread {
         onDead();   // fall back
     }
 
-    static final class Ping implements Callable<Void, IOException> {
+    private static final class Ping implements InternalCallable<Void, IOException> {
         private static final long serialVersionUID = 1L;
 
         @Override

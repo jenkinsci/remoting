@@ -851,7 +851,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      *
      * @see UserRPCRequest
      */
-    static class RPCRequest extends Request<Serializable,Throwable> implements DelegatingCallable<Serializable,Throwable> {
+    static class RPCRequest extends Request<Serializable,Throwable> implements DelegatingCallable<Serializable,Throwable>, InternalCallable<Serializable, Throwable> {
         /**
          * Target object id to invoke.
          */
@@ -991,7 +991,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * this can be used to send a method call to user-level objects, and
      * classes for the parameters and the return value are sent remotely if needed.
      */
-    /* package */ static class UserRPCRequest extends RPCRequest {
+    private static class UserRPCRequest extends RPCRequest {
 
         private static final long serialVersionUID = -9185841650347902580L;
 
