@@ -301,17 +301,17 @@ public class ChannelBuilder {
 
     private static boolean isCallableProhibitedByRequiredRoleCheck(Callable<?, ?> callable) {
         if (CALLABLES_CAN_IGNORE_ROLECHECKER) {
-            LOGGER.log(Level.FINE, () -> "Allowing all callables to ignore RoleChecker");
+            LOGGER.fine(() -> "Allowing all callables to ignore RoleChecker");
             return false;
         }
 
         if (callable instanceof InternalCallable) {
-            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is a remoting built-in callable allowed to bypass the role check");
+            LOGGER.fine(() -> "Callable " + callable.getClass().getName() + " is a remoting built-in callable allowed to bypass the role check");
             return false;
         }
 
         if (SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER.contains(callable.getClass().getName())) {
-            LOGGER.log(Level.FINE, () -> "Callable " + callable.getClass().getName() + " is allowed through override");
+            LOGGER.fine(() -> "Callable " + callable.getClass().getName() + " is allowed through override");
             return false;
         }
 
