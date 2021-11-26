@@ -4,7 +4,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.tools.ant.AntClassLoader;
 import org.junit.Assert;
 
 import java.io.File;
@@ -12,6 +11,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.core.AllOf.allOf;
@@ -23,7 +23,7 @@ import static org.hamcrest.core.StringStartsWith.startsWith;
  * @author Kohsuke Kawaguchi
  */
 public class PrefetchingTest extends RmiTestBase implements Serializable {
-    private transient AntClassLoader cl;
+    private transient URLClassLoader cl;
     private File dir;
 
     // checksum of the jar files to force loading
@@ -36,9 +36,9 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         URL jar1 = getClass().getClassLoader().getResource("remoting-test-client.jar");
         URL jar2 = getClass().getClassLoader().getResource("remoting-test-client-tests.jar");
 
-        cl = new AntClassLoader(this.getClass().getClassLoader(),true);
-        cl.addPathComponent(toFile(jar1));
-        cl.addPathComponent(toFile(jar2));
+        cl = new URLClassLoader(
+                new URL[] {toFile(jar1).toURI().toURL(), toFile(jar2).toURI().toURL()},
+                this.getClass().getClassLoader());
 
         dir = File.createTempFile("remoting", "cache");
         dir.delete();
@@ -60,7 +60,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
     @Override
     protected void tearDown() throws Exception {
-        cl.cleanup();
+        cl.close();
         super.tearDown();
 
         if (Launcher.isWindows()) {
