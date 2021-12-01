@@ -851,7 +851,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      *
      * @see UserRPCRequest
      */
-    static class RPCRequest extends Request<Serializable,Throwable> implements DelegatingCallable<Serializable,Throwable> {
+    static class RPCRequest extends Request<Serializable,Throwable> implements DelegatingCallable<Serializable,Throwable>, InternalCallable<Serializable, Throwable> {
+        // this callable only executes public methods exported by this side, so these methods are assumed to be safe
         /**
          * Target object id to invoke.
          */
@@ -900,11 +901,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         @Override
         public Serializable call() throws Throwable {
             return perform(getChannelOrFail());
-        }
-
-        @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
-            // this callable only executes public methods exported by this side, so these methods are assumed to be safe
         }
 
         @Override

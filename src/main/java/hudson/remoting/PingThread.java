@@ -153,18 +153,12 @@ public abstract class PingThread extends Thread {
         onDead();   // fall back
     }
 
-    static final class Ping implements Callable<Void, IOException> {
+    private static final class Ping implements InternalCallable<Void, IOException> {
         private static final long serialVersionUID = 1L;
 
         @Override
         public Void call() throws IOException {
             return null;
-        }
-
-        @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
-            // this callable is literally no-op, can't get any safer than that
-            // TODO: Apply `checker.check(this)` after release and make this type private again
         }
     }
 
