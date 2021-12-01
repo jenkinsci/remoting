@@ -72,7 +72,7 @@ THE SOFTWARE.
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.excludeFilterFile>${basedir}/src/spotbugs/excludeFilter.xml</spotbugs.excludeFilterFile>
     <spotbugs.threshold>Low</spotbugs.threshold>
-    <bc-version>1.69</bc-version>
+    <bc-version>1.70</bc-version>
   </properties>
 
   <repositories>
