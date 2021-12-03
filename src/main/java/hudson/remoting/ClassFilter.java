@@ -25,6 +25,7 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  * @author Kohsuke Kawaguchi
  * @since 2.53
  */
+@SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public abstract class ClassFilter {
     /**
      * Property to set to <b>override</b> the blacklist used by {@link #STANDARD} with a different set.
