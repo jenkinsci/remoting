@@ -43,6 +43,9 @@
   <Match>
     <Bug pattern="EI_EXPOSE_STATIC_REP2"/>
   </Match>
+  <Match>
+    <Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"/>
+  </Match>
     
   <!--TODO: reconsider commented filters after cleanup-->
   <!-- ignore all low-level (priority=2,3) issues except serialization problems -->
