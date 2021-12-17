@@ -85,7 +85,7 @@ public class AsyncFutureImpl<V> implements Future<V> {
 
     @Override
     @CheckForNull
-    public synchronized V get(/* @javax.annotation.Nonnegative */ long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public synchronized V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         // The accuracy of wait(long) operation is milliseconds anyway, but ok.
         long endWaitTime = System.nanoTime() + unit.toNanos(timeout);
         while (!completed) {

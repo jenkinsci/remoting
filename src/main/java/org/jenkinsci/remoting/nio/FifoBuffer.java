@@ -235,7 +235,7 @@ public class FifoBuffer implements Closeable {
      * @return Number of bytes we can write to the buffer.
      *         If the buffer is closed, may return the value beyond the limit (JENKINS-37514)
      */
-    /* @javax.annotation.Nonnegative */ public int writable() {
+    public int writable() {
         synchronized(lock) {
             return Math.max(0,limit-readable());
         }
