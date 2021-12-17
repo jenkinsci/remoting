@@ -4,7 +4,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.Assert;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +13,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.concurrent.ExecutionException;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.hamcrest.core.StringEndsWith.endsWith;
@@ -140,7 +140,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
      * Validates that the resource is coming from a jar.
      */
     private void verifyResource(String v) {
-        Assert.assertThat(v, allOf(startsWith("jar:file:"), 
+        assertThat(v, allOf(startsWith("jar:file:"), 
                                    containsString(dir.toURI().getPath()), 
                                    endsWith("::hello")));
     }
@@ -168,7 +168,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
         verifyResource(lines[0]);
 
-        Assert.assertThat(lines[1], allOf(startsWith("jar:file:"), 
+        assertThat(lines[1], allOf(startsWith("jar:file:"), 
                                           containsString(dir.toURI().getPath()), 
                                           endsWith("::hello2")));
     }

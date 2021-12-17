@@ -26,7 +26,7 @@ package org.jenkinsci.remoting.util;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import javax.annotation.concurrent.NotThreadSafe;
+import net.jcip.annotations.NotThreadSafe;
 
 /**
  * A helper class to make queuing up of data easier.

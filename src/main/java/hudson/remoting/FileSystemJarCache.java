@@ -2,9 +2,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.remoting.util.PathUtils;
-
-import javax.annotation.concurrent.GuardedBy;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -18,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import net.jcip.annotations.GuardedBy;
+import org.jenkinsci.remoting.util.PathUtils;
 
 /**
  * {@link JarCache} that stores files in a single directory.

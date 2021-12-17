@@ -33,7 +33,7 @@ import java.io.Writer;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.concurrent.GuardedBy;
+import net.jcip.annotations.GuardedBy;
 
 /**
  * {@link Writer} that sends bits to an exported
