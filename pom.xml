@@ -91,11 +91,6 @@ THE SOFTWARE.
 
   <dependencies>
     <dependency>
-      <groupId>org.codehaus.mojo</groupId>
-      <artifactId>animal-sniffer-annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>org.glassfish.tyrus.bundles</groupId>
       <artifactId>tyrus-standalone-client-jdk</artifactId>
       <version>1.18</version>
