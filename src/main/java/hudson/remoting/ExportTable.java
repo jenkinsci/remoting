@@ -248,7 +248,7 @@ final class ExportTable {
      * The class is not serializable.
      */
     @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = "SE_BAD_FIELD_INNER_CLASS",
+    @SuppressFBWarnings(value = {"EQ_DOESNT_OVERRIDE_EQUALS", "SE_BAD_FIELD_INNER_CLASS"},
             justification = "ExportList is supposed to be serializable as ArrayList, but it is not. "
                           + "The issue is ignored since the class does not belong to the public API")
     public final class ExportList extends ArrayList<Entry<?>> {
