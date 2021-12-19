@@ -1,13 +1,8 @@
 package hudson.remoting;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.output.TeeOutputStream;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -68,10 +63,9 @@ public class ForkRunner implements ChannelRunner {
     public String getClasspath() {
         // this assumes we run in Maven
         StringBuilder buf = new StringBuilder();
-        URLClassLoader ucl = (URLClassLoader)getClass().getClassLoader();
-        for (URL url : ucl.getURLs()) {
+        for (String entry : System.getProperty("java.class.path").split(":")) {
             if (buf.length()>0) buf.append(File.pathSeparatorChar);
-            buf.append(FileUtils.toFile(url)); // assume all of them are file URLs
+            buf.append(entry);
         }
         return buf.toString();
     }
