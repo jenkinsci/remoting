@@ -41,7 +41,7 @@ import java.util.logging.Logger;
  * <p>
  * There are two kinds of pipes. One is for having a local system write to a remote system,
  * and the other is for having a remote system write to a local system. Use
- * the different versions of the <tt>create</tt> method to create the appropriate kind
+ * the different versions of the {@code create} method to create the appropriate kind
  * of pipes.
  *
  * <p>

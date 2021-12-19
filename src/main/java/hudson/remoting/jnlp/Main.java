@@ -60,7 +60,7 @@ import static java.util.logging.Level.WARNING;
  * Entry point to JNLP agent.
  *
  * <p>
- * See also <tt>jenkins-agent.jnlp.jelly</tt> in the core.
+ * See also {@code jenkins-agent.jnlp.jelly} in the core.
  *
  * @author Kohsuke Kawaguchi
  */

@@ -148,7 +148,7 @@ public class Engine extends Thread {
     private List<X509Certificate> candidateCertificates;
 
     /**
-     * URL that points to Jenkins's tcp agent listener, like <tt>http://myhost/hudson/</tt>
+     * URL that points to Jenkins's tcp agent listener, like {@code http://myhost/hudson/}
      *
      * <p>
      * This value is determined from {@link #candidateUrls} after a successful connection.

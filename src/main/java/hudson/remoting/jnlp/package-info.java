@@ -26,6 +26,6 @@
  *
  * <p>
  * This involves in getting the connection parameters through command line,
- * which is provided from <tt>jenkins-agent.jnlp.jelly</tt> file in the core.
+ * which is provided from {@code jenkins-agent.jnlp.jelly} file in the core.
  */
 package hudson.remoting.jnlp;

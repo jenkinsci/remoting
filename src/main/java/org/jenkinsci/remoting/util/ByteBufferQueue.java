@@ -215,7 +215,7 @@ public class ByteBufferQueue {
      * Tells whether there are any bytes between the current read index and
      * the write index.
      *
-     * @return <tt>true</tt> if, and only if, there is at least one byte
+     * @return {@code true} if, and only if, there is at least one byte
      * remaining in this buffer queue.
      */
     public boolean hasRemaining() {
@@ -236,7 +236,7 @@ public class ByteBufferQueue {
      * the write index.
      *
      * @param len the number of bytes that we want at least remaining
-     * @return <tt>true</tt> if, and only if, there is at least {@literal len} bytes
+     * @return {@code true} if, and only if, there is at least {@literal len} bytes
      * remaining in this buffer queue.
      */
     public boolean hasRemaining(int len) {

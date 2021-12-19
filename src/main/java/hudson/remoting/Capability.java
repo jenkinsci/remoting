@@ -21,7 +21,7 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  * Each {@link Channel} exposes its capability to {@link Channel#getProperty(Object)}.
  *
  * <p>
- * This mechanism allows two different versions of <tt>remoting.jar</tt> to talk to each other.
+ * This mechanism allows two different versions of {@code remoting.jar} to talk to each other.
  *
  * @author Kohsuke Kawaguchi
  * @see Channel#remoteCapability
