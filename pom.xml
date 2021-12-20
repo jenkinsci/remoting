@@ -157,6 +157,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>com.github.spotbugs</groupId>
       <artifactId>spotbugs-annotations</artifactId>
+      <scope>provided</scope>
       <optional>true</optional>
       <exclusions>
         <exclusion>
@@ -169,6 +170,7 @@ THE SOFTWARE.
       <groupId>net.jcip</groupId>
       <artifactId>jcip-annotations</artifactId>
       <version>1.0</version>
+      <scope>provided</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -187,6 +189,7 @@ THE SOFTWARE.
       <groupId>org.kohsuke</groupId>
       <artifactId>access-modifier-annotation</artifactId>
       <version>1.27</version>
+      <scope>provided</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
