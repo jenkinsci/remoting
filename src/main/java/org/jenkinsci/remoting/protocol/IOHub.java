@@ -24,6 +24,7 @@
 package org.jenkinsci.remoting.protocol;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
 import hudson.remoting.Future;
 import java.io.Closeable;
 import java.io.IOException;
@@ -53,9 +54,7 @@ import java.util.concurrent.locks.AbstractQueuedSynchronizer;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.annotation.OverridingMethodsMustInvokeSuper;
-import javax.annotation.concurrent.GuardedBy;
-
+import net.jcip.annotations.GuardedBy;
 import org.jenkinsci.remoting.util.ByteBufferPool;
 import org.jenkinsci.remoting.util.DirectByteBufferPool;
 import org.kohsuke.accmod.Restricted;
@@ -187,7 +186,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * {@inheritDoc}
      */
     @Override
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public void execute(@NonNull Runnable task) {
         executor.execute(task);
     }
@@ -200,7 +199,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @throws RejectedExecutionException if this task cannot be accepted for execution
      * @throws NullPointerException       if task is null
      */
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public void executeOnSelector(Runnable task) {
         if (task == null) {
             throw new NullPointerException("Task is null");
@@ -228,7 +227,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @throws RejectedExecutionException if this task cannot be accepted for execution
      * @throws NullPointerException       if task is null
      */
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public Future<?> executeLater(Runnable task, long delay, TimeUnit units) {
         if (task == null) {
             throw new NullPointerException("Task is null");
@@ -246,7 +245,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      *
      * @return {@code true} if the hub is open.
      */
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public boolean isOpen() {
         return selector.isOpen();
     }
@@ -255,7 +254,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * {@inheritDoc}
      */
     @Override
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public void close() throws IOException {
         selector.close();
     }

@@ -25,7 +25,6 @@ package hudson.remoting;
 
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.engine.WorkDirManagerRule;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,6 +40,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Tests of {@link Engine}
@@ -71,7 +71,7 @@ public class EngineTest {
         engine.startEngine(true);
         
         // Cache will go to ~/.jenkins , we do not want to worry anbout this repo
-        Assert.assertTrue("Default JarCache should be touched: " + JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath(), 
+        assertTrue("Default JarCache should be touched: " + JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath(), 
                 JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.exists());
     }
     
@@ -85,7 +85,7 @@ public class EngineTest {
         engine.startEngine(true);
         
         // Cache will go to ~/.jenkins , should be touched by default
-        Assert.assertTrue("The specified JarCache should be touched: " + jarCache.getAbsolutePath(), 
+        assertTrue("The specified JarCache should be touched: " + jarCache.getAbsolutePath(), 
                 jarCache.exists());
     }
     
@@ -99,9 +99,9 @@ public class EngineTest {
         
         WorkDirManager mgr = WorkDirManager.getInstance();
         File workDirLoc = mgr.getLocation(WorkDirManager.DirType.WORK_DIR);
-        Assert.assertThat("The initialized work directory should equal to the one passed in parameters", 
+        assertThat("The initialized work directory should equal to the one passed in parameters", 
                 workDirLoc, equalTo(workDir));
-        Assert.assertTrue("The work directory should exist", workDir.exists());
+        assertTrue("The work directory should exist", workDir.exists());
     }
     
     @Test
@@ -116,7 +116,7 @@ public class EngineTest {
         
         WorkDirManager mgr = WorkDirManager.getInstance();
         File location = mgr.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
-        Assert.assertThat("WorkDir manager should not be aware about external JAR cache location", location, nullValue());
+        assertThat("WorkDir manager should not be aware about external JAR cache location", location, nullValue());
     }
 
     @Test

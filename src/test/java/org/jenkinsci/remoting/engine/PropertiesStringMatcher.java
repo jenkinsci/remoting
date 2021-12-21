@@ -31,7 +31,7 @@ import org.mockito.ArgumentMatcher;
  *
  * @author Akshay Dayal
  */
-public class PropertiesStringMatcher extends ArgumentMatcher<String> {
+public class PropertiesStringMatcher implements ArgumentMatcher<String> {
     private String expected;
 
     public PropertiesStringMatcher(String expected) {
@@ -40,8 +40,7 @@ public class PropertiesStringMatcher extends ArgumentMatcher<String> {
     }
 
     @Override
-    public boolean matches(Object value) {
-        String other = (String) value;
-        return other.endsWith(expected);
+    public boolean matches(String argument) {
+        return argument.endsWith(expected);
     }
 }

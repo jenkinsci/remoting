@@ -23,16 +23,15 @@
  */
 package org.jenkinsci.remoting.protocol;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
+import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.annotation.OverridingMethodsMustInvokeSuper;
-import javax.annotation.concurrent.GuardedBy;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
+import net.jcip.annotations.GuardedBy;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 
 /**
@@ -75,7 +74,7 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
      * {@inheritDoc}
      */
     @Override
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public final synchronized void init(@NonNull ProtocolStack<?>.Ptr ptr) throws IOException {
         synchronized (this) {
             if (this.ptr != null && this.ptr != ptr) {
@@ -274,7 +273,7 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
      * {@inheritDoc}
      */
     @Override
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public void onRecvClosed(IOException cause) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] RECV Closed", stack().name());
@@ -316,7 +315,7 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
      * {@inheritDoc}
      */
     @Override
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public void doCloseSend() throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] Closing SEND", stack().name());

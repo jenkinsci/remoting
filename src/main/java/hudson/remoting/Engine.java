@@ -65,7 +65,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javax.annotation.concurrent.NotThreadSafe;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -78,14 +77,14 @@ import javax.websocket.Endpoint;
 import javax.websocket.EndpointConfig;
 import javax.websocket.HandshakeResponse;
 import javax.websocket.Session;
-
-import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
+import net.jcip.annotations.NotThreadSafe;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.engine.JnlpConnectionStateListener;
+import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
 import org.jenkinsci.remoting.engine.JnlpProtocolHandler;
 import org.jenkinsci.remoting.engine.JnlpProtocolHandlerFactory;
 import org.jenkinsci.remoting.engine.WorkDirManager;
@@ -149,7 +148,7 @@ public class Engine extends Thread {
     private List<X509Certificate> candidateCertificates;
 
     /**
-     * URL that points to Jenkins's tcp agent listener, like <tt>http://myhost/hudson/</tt>
+     * URL that points to Jenkins's tcp agent listener, like {@code http://myhost/hudson/}
      *
      * <p>
      * This value is determined from {@link #candidateUrls} after a successful connection.

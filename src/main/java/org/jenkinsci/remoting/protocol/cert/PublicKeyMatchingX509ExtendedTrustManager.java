@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.remoting.protocol.cert;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.net.Socket;
 import java.security.Key;
 import java.security.PublicKey;
@@ -32,13 +34,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import javax.annotation.concurrent.GuardedBy;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509ExtendedTrustManager;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import net.jcip.annotations.GuardedBy;
 import org.jenkinsci.remoting.util.KeyUtils;
 
 /**

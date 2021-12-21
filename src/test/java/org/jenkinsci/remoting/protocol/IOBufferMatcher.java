@@ -26,11 +26,10 @@ package org.jenkinsci.remoting.protocol;
 import java.util.concurrent.CompletableFuture;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.CheckReturnValue;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matcher;
-
-import javax.annotation.CheckReturnValue;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;

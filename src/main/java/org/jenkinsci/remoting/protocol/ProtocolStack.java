@@ -26,6 +26,7 @@ package org.jenkinsci.remoting.protocol;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
 import hudson.remoting.Future;
 import java.io.Closeable;
 import java.io.IOException;
@@ -43,9 +44,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.annotation.OverridingMethodsMustInvokeSuper;
-import javax.annotation.concurrent.GuardedBy;
-import javax.annotation.concurrent.NotThreadSafe;
+import net.jcip.annotations.GuardedBy;
+import net.jcip.annotations.NotThreadSafe;
 import org.jenkinsci.remoting.util.ByteBufferPool;
 
 /**
@@ -390,7 +390,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * @throws RejectedExecutionException if this task cannot be accepted for execution
      * @throws NullPointerException       if task is null
      */
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public void execute(Runnable task) {
         network.getIoHub().execute(task);
     }
@@ -406,7 +406,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * @throws RejectedExecutionException if this task cannot be accepted for execution
      * @throws NullPointerException       if task is null
      */
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public Future<?> executeLater(Runnable task, long delay, TimeUnit units) {
         return network.getIoHub().executeLater(task, delay, units);
     }

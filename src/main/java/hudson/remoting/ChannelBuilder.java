@@ -139,7 +139,7 @@ public class ChannelBuilder {
     }
 
     /**
-     * If non-null, receive the portion of data in <tt>is</tt> before
+     * If non-null, receive the portion of data in {@code is} before
      * the data goes into the "binary mode". This is useful
      * when the established communication channel might include some data that might
      * be useful for debugging/trouble-shooting.

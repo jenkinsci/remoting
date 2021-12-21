@@ -24,7 +24,7 @@
 package org.jenkinsci.remoting.util;
 
 import java.nio.ByteBuffer;
-import javax.annotation.concurrent.GuardedBy;
+import net.jcip.annotations.GuardedBy;
 
 /**
  * A buffer pool that keeps a free list of {@link ByteBuffer}s of a specified default size in a simple fixed

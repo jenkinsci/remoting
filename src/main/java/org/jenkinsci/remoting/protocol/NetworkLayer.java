@@ -23,15 +23,14 @@
  */
 package org.jenkinsci.remoting.protocol;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.annotation.OverridingMethodsMustInvokeSuper;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 
 /**
@@ -142,7 +141,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
     /**
      * SPI: Notify that the connection with the recipient is closed.
      */
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     protected final void onRecvClosed() {
         if (ptr == null) {
             throw new IllegalStateException("Not initialized");
@@ -239,7 +238,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
      * {@inheritDoc}
      */
     @Override
-    @OverridingMethodsMustInvokeSuper
+    @OverrideMustInvoke
     public void start() throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "[{0}] Starting", ptr.stack().name());

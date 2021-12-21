@@ -3,6 +3,7 @@ package hudson.remoting;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import org.hamcrest.core.StringContains;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,8 +24,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -47,13 +48,20 @@ public class FileSystemJarCacheTest {
     private FileSystemJarCache fileSystemJarCache;
     private Checksum expectedChecksum;
 
+    private AutoCloseable closeable;
+
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        closeable = MockitoAnnotations.openMocks(this);
         fileSystemJarCache = new FileSystemJarCache(tmp.getRoot(), true);
 
         expectedChecksum = ChecksumTest.createdExpectedChecksum(
                 Hashing.sha256().hashBytes(CONTENTS.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        closeable.close();
     }
 
     @Test

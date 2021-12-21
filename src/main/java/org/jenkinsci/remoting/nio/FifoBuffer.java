@@ -12,8 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
-import javax.annotation.Nonnegative;
-import javax.annotation.concurrent.GuardedBy;
+import net.jcip.annotations.GuardedBy;
 
 /**
  * FIFO buffer for a reader thread and a writer thread to collaborate.
@@ -236,7 +235,6 @@ public class FifoBuffer implements Closeable {
      * @return Number of bytes we can write to the buffer.
      *         If the buffer is closed, may return the value beyond the limit (JENKINS-37514)
      */
-    @Nonnegative
     public int writable() {
         synchronized(lock) {
             return Math.max(0,limit-readable());

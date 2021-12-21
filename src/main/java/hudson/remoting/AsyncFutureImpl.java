@@ -24,12 +24,10 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-
-import javax.annotation.Nonnegative;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.CancellationException;
 
 /**
  * {@link Future} implementation whose computation is carried out elsewhere.
@@ -87,7 +85,7 @@ public class AsyncFutureImpl<V> implements Future<V> {
 
     @Override
     @CheckForNull
-    public synchronized V get(@Nonnegative long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public synchronized V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         // The accuracy of wait(long) operation is milliseconds anyway, but ok.
         long endWaitTime = System.nanoTime() + unit.toNanos(timeout);
         while (!completed) {
