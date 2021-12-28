@@ -22,7 +22,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -38,11 +37,8 @@ THE SOFTWARE.
   <version>${revision}${changelist}</version>
 
   <name>Jenkins remoting layer</name>
+  <description>Contains the bootstrap code to bridge separate JVMs into a single semi-shared space. Reusable outside Jenkins.</description>
   <url>https://github.com/jenkinsci/remoting</url>
-  <description>
-    Contains the bootstrap code to bridge separate JVMs into a single semi-shared space.
-    Reusable outside Jenkins.
-  </description>
   <licenses>
     <license>
       <name>The MIT license</name>
@@ -58,8 +54,8 @@ THE SOFTWARE.
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
-    <url>https://github.com/jenkinsci/remoting</url>
     <tag>${scmTag}</tag>
+    <url>https://github.com/jenkinsci/remoting</url>
   </scm>
 
   <properties>
@@ -75,19 +71,6 @@ THE SOFTWARE.
     <spotbugs.threshold>Low</spotbugs.threshold>
     <bc-version>1.70</bc-version>
   </properties>
-
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </repository>
-  </repositories>
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>https://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
 
   <dependencies>
     <dependency>
@@ -200,11 +183,25 @@ THE SOFTWARE.
     </dependency>
   </dependencies>
 
+  <repositories>
+    <repository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </repository>
+  </repositories>
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>repo.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/public/</url>
+    </pluginRepository>
+  </pluginRepositories>
+
   <build>
     <resources>
       <resource>
-        <directory>${basedir}/src/filter/resources</directory>
         <filtering>true</filtering>
+        <directory>${basedir}/src/filter/resources</directory>
       </resource>
       <resource>
         <directory>${basedir}/src/main/resources</directory>
@@ -229,53 +226,53 @@ THE SOFTWARE.
         </configuration>
       </plugin>
       <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-shade-plugin</artifactId>
-          <version>3.2.4</version>
-          <executions>
-              <execution>
-                  <phase>package</phase>
-                  <goals>
-                      <goal>shade</goal>
-                  </goals>
-                  <configuration>
-                      <createDependencyReducedPom>false</createDependencyReducedPom>
-                      <relocations>
-                          <relocation>
-                              <pattern>javax.websocket</pattern>
-                              <shadedPattern>io.jenkins.remoting.shaded.javax.websocket</shadedPattern>
-                          </relocation>
-                          <relocation>
-                              <pattern>org.glassfish.tyrus</pattern>
-                              <shadedPattern>io.jenkins.remoting.shaded.org.glassfish.tyrus</shadedPattern>
-                          </relocation>
-                          <relocation>
-                              <pattern>org.kohsuke.args4j</pattern>
-                              <shadedPattern>io.jenkins.remoting.shaded.org.kohsuke.args4j</shadedPattern>
-                          </relocation>
-                          <relocation>
-                              <pattern>org.jenkinsci.constant_pool_scanner</pattern>
-                              <shadedPattern>io.jenkins.remoting.shaded.org.jenkinsci.constant_pool_scanner</shadedPattern>
-                          </relocation>
-                      </relocations>
-                      <transformers>
-                          <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                              <mainClass>hudson.remoting.Launcher</mainClass>
-                              <manifestEntries>
-                                  <Version>${project.version}</Version>
-                                  <!-- attributes related to Java Web Start -->
-                                  <!-- see http://docs.oracle.com/javase/8/docs/technotes/guides/jweb/security/manifest.html -->
-                                  <Permissions>all-permissions</Permissions>
-                                  <Codebase>*</Codebase>
-                                  <Application-Name>Jenkins Remoting Agent</Application-Name>
-                                  <Trusted-Library>true</Trusted-Library>
-                              </manifestEntries>
-                          </transformer>
-                          <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
-                      </transformers>
-                  </configuration>
-              </execution>
-          </executions>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.2.4</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <relocations>
+                <relocation>
+                  <pattern>javax.websocket</pattern>
+                  <shadedPattern>io.jenkins.remoting.shaded.javax.websocket</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.glassfish.tyrus</pattern>
+                  <shadedPattern>io.jenkins.remoting.shaded.org.glassfish.tyrus</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.kohsuke.args4j</pattern>
+                  <shadedPattern>io.jenkins.remoting.shaded.org.kohsuke.args4j</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.jenkinsci.constant_pool_scanner</pattern>
+                  <shadedPattern>io.jenkins.remoting.shaded.org.jenkinsci.constant_pool_scanner</shadedPattern>
+                </relocation>
+              </relocations>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>hudson.remoting.Launcher</mainClass>
+                  <manifestEntries>
+                    <Version>${project.version}</Version>
+                    <!-- attributes related to Java Web Start -->
+                    <!-- see http://docs.oracle.com/javase/8/docs/technotes/guides/jweb/security/manifest.html -->
+                    <Permissions>all-permissions</Permissions>
+                    <Codebase>*</Codebase>
+                    <Application-Name>Jenkins Remoting Agent</Application-Name>
+                    <Trusted-Library>true</Trusted-Library>
+                  </manifestEntries>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
@@ -334,10 +331,10 @@ THE SOFTWARE.
         <executions>
           <execution>
             <id>resgen</id>
-            <phase>process-test-classes</phase>
             <goals>
               <goal>copy</goal>
             </goals>
+            <phase>process-test-classes</phase>
             <configuration>
               <artifactItems>
                 <artifactItem>
@@ -371,11 +368,13 @@ THE SOFTWARE.
         </configuration>
         <executions>
           <execution>
-            <id>make-assembly</id> <!-- this is used for inheritance merges -->
-            <phase>package</phase> <!-- bind to the packaging phase -->
+            <!-- this is used for inheritance merges -->
+            <id>make-assembly</id>
             <goals>
               <goal>single</goal>
             </goals>
+            <!-- bind to the packaging phase -->
+            <phase>package</phase>
           </execution>
         </executions>
       </plugin>
@@ -433,7 +432,8 @@ THE SOFTWARE.
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.0.0-M5</version>
         <configuration>
-          <trimStackTrace>false</trimStackTrace> <!-- SUREFIRE-1226 workaround -->
+          <!-- SUREFIRE-1226 workaround -->
+          <trimStackTrace>false</trimStackTrace>
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
         </configuration>
       </plugin>
@@ -478,10 +478,10 @@ THE SOFTWARE.
             <executions>
               <execution>
                 <id>sign-artifacts</id>
-                <phase>verify</phase>
                 <goals>
                   <goal>sign</goal>
                 </goals>
+                <phase>verify</phase>
                 <configuration>
                   <gpgArguments>
                     <arg>--pinentry-mode</arg>
@@ -499,24 +499,25 @@ THE SOFTWARE.
                 <!-- Phase and goal are the default ones -->
                 <!-- TODO: Does it cause conflict with signing parameters in the build? Seems "no". Should also use ${hudson.sign.tsa} -->
                 <configuration>
-                    <arguments>
-                        <argument>-tsa</argument>
-                        <argument>http://timestamp.comodoca.com/rfc3161</argument>
-                    </arguments>
+                  <arguments>
+                    <argument>-tsa</argument>
+                    <argument>http://timestamp.comodoca.com/rfc3161</argument>
+                  </arguments>
                 </configuration>
               </execution>
               <execution>
                 <id>verify-signature</id>
-                <phase>verify</phase>
                 <goals>
                   <goal>verify</goal>
                 </goals>
+                <phase>verify</phase>
                 <configuration>
                   <processMainArtifact>true</processMainArtifact>
                   <processAttachedArtifacts>false</processAttachedArtifacts>
                   <certs>true</certs>
                   <errorWhenNotSigned>true</errorWhenNotSigned>
-                  <arguments>-strict</arguments> <!--otherwise certificate chains will be ignored-->
+                  <!-- strict, otherwise certificate chains will be ignored -->
+                  <arguments>-strict</arguments>
                   <alias>${hudson.sign.alias}</alias>
                   <storepass>${hudson.sign.storepass}</storepass>
                   <keystore>${hudson.sign.keystore}</keystore>
@@ -546,10 +547,10 @@ THE SOFTWARE.
               </execution>
               <execution>
                 <id>report</id>
-                <phase>prepare-package</phase>
                 <goals>
                   <goal>report</goal>
                 </goals>
+                <phase>prepare-package</phase>
               </execution>
             </executions>
           </plugin>
