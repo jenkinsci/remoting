@@ -34,7 +34,6 @@ import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
 import org.jenkinsci.remoting.CallableDecorator;
-import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.util.LoggingChannelListener;
 import org.kohsuke.accmod.Restricted;

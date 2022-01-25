@@ -23,8 +23,6 @@
  */
 package hudson.remoting;
 
-import org.jenkinsci.remoting.RoleChecker;
-
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;

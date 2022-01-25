@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.engine.WorkDirManager;
-import org.jenkinsci.remoting.util.IOUtils;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
