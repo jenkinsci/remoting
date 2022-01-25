@@ -31,6 +31,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -84,8 +85,8 @@ public class DefaultClassFilterTest {
         File f = folder.newFile("overrides.txt");
         try (FileOutputStream fos = new FileOutputStream(f)) {
             for (String s : badClasses) {
-                IOUtils.write(s, fos);
-                IOUtils.write("\n", fos);
+                IOUtils.write(s, fos, StandardCharsets.UTF_8);
+                IOUtils.write("\n", fos, StandardCharsets.UTF_8);
             }
         }
         setOverrideProperty(f.getAbsolutePath());
@@ -103,8 +104,8 @@ public class DefaultClassFilterTest {
         File f = folder.newFile("overrides.txt");
         try (FileOutputStream fos = new FileOutputStream(f)) {
             for (String s : badClasses) {
-                IOUtils.write(s, fos);
-                IOUtils.write("\n", fos);
+                IOUtils.write(s, fos, StandardCharsets.UTF_8);
+                IOUtils.write("\n", fos, StandardCharsets.UTF_8);
             }
         }
         setOverrideProperty(f.getAbsolutePath());

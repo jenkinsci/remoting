@@ -31,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -108,8 +109,9 @@ class DummyClassLoader extends ClassLoader {
         for (Entry e : entries) {
             if (e.c==c) {
                 try {
-                    return loadClass(e.logicalName).newInstance();
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException x) {
+                    return loadClass(e.logicalName).getConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException
+                        | NoSuchMethodException | InvocationTargetException x) {
                     throw new Error(x);
                 }
             }

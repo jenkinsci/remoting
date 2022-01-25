@@ -195,7 +195,7 @@ public class ConnectionHeadersTest {
 
     @Test(expected = IllegalAccessException.class)
     public void utilityClass_1() throws Exception {
-        ConnectionHeaders.class.newInstance();
+        ConnectionHeaders.class.getDeclaredConstructor().newInstance();
     }
 
     @Test

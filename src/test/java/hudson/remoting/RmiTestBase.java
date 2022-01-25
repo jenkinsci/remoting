@@ -27,6 +27,8 @@ import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
+import java.lang.reflect.InvocationTargetException;
+
 /**
  * Base class for remoting tests.
  * 
@@ -59,9 +61,9 @@ public abstract class RmiTestBase extends TestCase {
 
     /*package*/ void setChannelRunner(Class<? extends ChannelRunner> runner) {
         try {
-            this.channelRunner = runner.newInstance();
+            this.channelRunner = runner.getConstructor().newInstance();
             testSuffix = "-"+channelRunner.getName();
-        } catch (InstantiationException | IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new Error(e);
         }
     }

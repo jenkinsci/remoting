@@ -28,7 +28,7 @@ public class DiagnosedStreamCorruptionExceptionTest {
                 new ChannelBuilder("dummy",null)
                     .withMode(Mode.BINARY)
                     .withBaseLoader(getClass().getClassLoader())
-                    .negotiate(new ByteArrayInputStream(payload), new NullOutputStream());
+                    .negotiate(new ByteArrayInputStream(payload), NullOutputStream.NULL_OUTPUT_STREAM);
 
         verify(ct);
     }
@@ -63,7 +63,7 @@ public class DiagnosedStreamCorruptionExceptionTest {
                     new ChannelBuilder("dummy",null)
                         .withMode(Mode.BINARY)
                         .withBaseLoader(getClass().getClassLoader())
-                        .negotiate(in, new NullOutputStream());
+                        .negotiate(in, NullOutputStream.NULL_OUTPUT_STREAM);
 
             verify(ct);
         }
