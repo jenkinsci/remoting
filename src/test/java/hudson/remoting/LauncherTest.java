@@ -60,7 +60,7 @@ public class LauncherTest {
             Launcher.loadDom(jnlpFile);
             fail("Dom loading should have failed.");
         } catch (SAXParseException spe) {
-            assertThat(spe.getMessage(), containsString("DOCTYPE is disallowed"));
+            assertThat(spe.getMessage(), containsString("\"http://apache.org/xml/features/disallow-doctype-decl\""));
         }
     }
 
