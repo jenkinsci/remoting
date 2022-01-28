@@ -26,6 +26,7 @@ package org.jenkinsci.remoting.util;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.remoting.AtmostOneThreadExecutor;
 import hudson.remoting.Channel;
 
 import hudson.remoting.DaemonThreadFactory;
@@ -38,7 +39,6 @@ import java.security.CodeSource;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Logger;
 
@@ -51,7 +51,8 @@ public class AnonymousClassWarnings {
     private static final Logger LOGGER = Logger.getLogger(AnonymousClassWarnings.class.getName());
     private static final Map<Class<?>, Boolean> checked = new WeakHashMap<>();
 
-    private final static ExecutorService threadPool = Executors.newFixedThreadPool(10, new NamingThreadFactory(new DaemonThreadFactory(), AnonymousClassWarnings.class.getSimpleName()));
+    private final static boolean USE_SEPARATE_THREAD_POOL = Boolean.getBoolean(AnonymousClassWarnings.class.getName() + ".useSeparateThreadPool");
+    private final static ExecutorService threadPool =  USE_SEPARATE_THREAD_POOL ? new AtmostOneThreadExecutor(new NamingThreadFactory(new DaemonThreadFactory(), AnonymousClassWarnings.class.getSimpleName())) : null;
 
     /**
      * Checks a class which is being either serialized or deserialized.
@@ -69,7 +70,7 @@ public class AnonymousClassWarnings {
         } else {
             // May not call methods like Class#isAnonymousClass synchronously, since these can in turn trigger remote class loading.
             try {
-                threadPool.submit(() -> doCheck(clazz));
+                (USE_SEPARATE_THREAD_POOL ? threadPool : channel.executor).submit(() -> doCheck(clazz));
             } catch (RejectedExecutionException x) {
                 // never mind, we tried
             }
