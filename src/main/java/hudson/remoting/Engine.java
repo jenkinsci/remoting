@@ -109,22 +109,37 @@ public class Engine extends Thread {
      */
     public static final String REMOTING_MINIMUM_VERSION_HEADER = "X-Remoting-Minimum-Version";
 
+    private static final Integer FIXED_THREAD_POOL = Integer.getInteger(Engine.class.getName() + ".threadPoolSize");
+
     /**
      * Thread pool that sets {@link #CURRENT}.
      */
-    private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
-        @Override
-        public Thread newThread(@NonNull final Runnable r) {
-            Thread thread = defaultFactory.newThread(() -> {
-                CURRENT.set(Engine.this);
-                r.run();
-            });
-            thread.setDaemon(true);
-            thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in thread " + t));
-            return thread;
-        }
-    });
+    private final ExecutorService executor = FIXED_THREAD_POOL != null ? Executors.newFixedThreadPool(FIXED_THREAD_POOL, getThreadFactory()) : Executors.newCachedThreadPool(getThreadFactory());
+
+    private NamingThreadFactory getThreadFactory() {
+        return new NamingThreadFactory(new ThreadFactory() {
+            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+
+            @Override
+            public Thread newThread(@NonNull final Runnable r) {
+                Thread thread = defaultFactory.newThread(() -> {
+                    try {
+                        CURRENT.set(Engine.this);
+                        r.run();
+                    } catch (OutOfMemoryError oom) {
+                        String message = oom.getMessage();
+                        if (message != null && message.contains("unable to create new native thread")) {
+                            oom.addSuppressed(new Exception("Currently " + Thread.getAllStackTraces().size() + " threads, including " + Thread.activeCount() + " in the current thread group"));
+                        }
+                        throw oom;
+                    }
+                });
+                thread.setDaemon(true);
+                thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in thread " + t));
+                return thread;
+            }
+        }, "engine-thread");
+    }
 
     /**
      * @deprecated
