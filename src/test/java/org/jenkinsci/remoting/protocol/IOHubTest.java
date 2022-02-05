@@ -135,11 +135,11 @@ public class IOHubTest {
         });
         Socket client = new Socket();
         client.connect(srv.getLocalAddress(), 100);
-        assertThat(IOUtils.toString(client.getInputStream()), is("Go away #1"));
+        assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #1"));
         client.close();
         client = new Socket();
         client.connect(srv.getLocalAddress(), 100);
-        assertThat(IOUtils.toString(client.getInputStream()), is("Go away #2"));
+        assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #2"));
         assertThat("Only ever called ready with accept true", oops.get(), is(false));
         client.close();
     }
@@ -187,19 +187,19 @@ public class IOHubTest {
         Socket client = new Socket();
         client.setSoTimeout(100);
         client.connect(srv.getLocalAddress(), 100);
-        assertThat(IOUtils.toString(client.getInputStream()), is("Go away #1"));
+        assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #1"));
         client.close();
         client = new Socket();
         client.setSoTimeout(100);
         client.connect(srv.getLocalAddress(), 100);
         try {
-            assertThat(IOUtils.toString(client.getInputStream()), is("Go away #2"));
+            assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #2"));
             fail("Expected time-out");
         } catch (SocketTimeoutException e) {
             assertThat(e.getMessage(), containsString("timed out"));
         }
         hub.hub().addInterestAccept(key.get());
-        assertThat(IOUtils.toString(client.getInputStream()), is("Go away #2"));
+        assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #2"));
         assertThat("Only ever called ready with accept true", oops.get(), is(false));
         client.close();
     }
@@ -254,7 +254,7 @@ public class IOHubTest {
         Socket client = new Socket();
         client.setSoTimeout(100);
         client.connect(srv.getLocalAddress(), 100);
-        assertThat(IOUtils.toString(client.getInputStream()), is("Go away #1"));
+        assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #1"));
         client.close();
         hub.hub().removeInterestAccept(key.get());
         // wait for the interest accept to be removed
@@ -265,13 +265,13 @@ public class IOHubTest {
         client.setSoTimeout(100);
         client.connect(srv.getLocalAddress(), 100);
         try {
-            assertThat(IOUtils.toString(client.getInputStream()), is("Go away #2"));
+            assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #2"));
             fail("Expected time-out");
         } catch (SocketTimeoutException e) {
             assertThat(e.getMessage(), containsString("timed out"));
         }
         hub.hub().addInterestAccept(key.get());
-        assertThat(IOUtils.toString(client.getInputStream()), is("Go away #2"));
+        assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #2"));
         assertThat("Only ever called ready with accept true", oops.get(), is(false));
         client.close();
     }

@@ -31,8 +31,8 @@ public class ChecksumTest {
     public void testForFileAndURL() throws Exception {
         File tmpFile1 = createTmpFile("file1.txt", FILE_CONTENTS1);
         File tmpFile2 = createTmpFile("file2.txt", FILE_CONTENTS2);
-        HashCode hash1 = Files.hash(tmpFile1, Hashing.sha256());
-        HashCode hash2 = Files.hash(tmpFile2, Hashing.sha256());
+        HashCode hash1 = Files.asByteSource(tmpFile1).hash(Hashing.sha256());
+        HashCode hash2 = Files.asByteSource(tmpFile2).hash(Hashing.sha256());
 
         assertEquals(createdExpectedChecksum(hash1), Checksum.forFile(tmpFile1));
         assertEquals(createdExpectedChecksum(hash1), Checksum.forURL(tmpFile1.toURI().toURL()));
@@ -45,7 +45,7 @@ public class ChecksumTest {
 
     private File createTmpFile(String name, String contents) throws Exception {
         File tmpFile = tmp.newFile(name);
-        Files.append(contents, tmpFile, StandardCharsets.UTF_8);
+        Files.asCharSink(tmpFile, StandardCharsets.UTF_8).write(contents);
         return tmpFile;
     }
 

@@ -1,13 +1,12 @@
 package hudson.remoting;
 
 import com.google.common.hash.Hashing;
+import com.google.common.io.FileWriteMode;
 import com.google.common.io.Files;
-import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.jvnet.hudson.test.Issue;
 import org.mockito.Mock;
@@ -20,8 +19,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,7 +43,6 @@ public class FileSystemJarCacheTest {
     private static final String CONTENTS = "These are the contents";
 
     @Rule public TemporaryFolder tmp = new TemporaryFolder();
-    @Rule public ExpectedException expectedEx = ExpectedException.none();
 
     @Mock private Channel mockChannel;
     @Mock private JarLoader mockJarLoader;
@@ -104,11 +105,9 @@ public class FileSystemJarCacheTest {
                 eq(expectedChecksum.sum2),
                 any(RemoteOutputStream.class));
 
-        expectedEx.expect(IOException.class);
-        expectedEx.expectCause(hasMessage(StringContains.containsString(
-                "Incorrect checksum of retrieved jar")));
-        fileSystemJarCache.retrieve(
-                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+        final IOException ex = assertThrows(IOException.class,
+                () -> fileSystemJarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2));
+        assertThat(ex.getCause(), hasMessage(containsString("Incorrect checksum of retrieved jar")));
     }
 
     @Test
@@ -144,10 +143,9 @@ public class FileSystemJarCacheTest {
         when(spy.renameTo(expectedFile)).thenReturn(false);
         assertFalse(expectedFile.exists());
 
-        expectedEx.expect(IOException.class);
-        expectedEx.expectCause(hasMessage(StringContains.containsString("Unable to create")));
-
-        jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+        final IOException ex = assertThrows(IOException.class,
+                () -> jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2));
+        assertThat(ex.getCause(), hasMessage(containsString("Unable to create")));
     }
 
     @Test
@@ -161,15 +159,13 @@ public class FileSystemJarCacheTest {
         doAnswer((Answer<Boolean>) invocationOnMock -> {
             Files.createParentDirs(expectedFile);
             expectedFile.createNewFile();
-            Files.append("Some other contents", expectedFile, StandardCharsets.UTF_8);
+            Files.asCharSink(expectedFile, StandardCharsets.UTF_8, FileWriteMode.APPEND).write("Some other contents");
             return false;
         }).when(fileSpy).renameTo(expectedFile);
 
-        expectedEx.expect(IOException.class);
-        expectedEx.expectCause(hasMessage(StringContains.containsString(
-                "Incorrect checksum of previous jar")));
-
-        jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+        final IOException ex = assertThrows(IOException.class,
+                () -> jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2));
+        assertThat(ex.getCause(), hasMessage(containsString("Incorrect checksum of previous jar")));
     }
 
     private void mockCorrectLoad() throws IOException, InterruptedException {

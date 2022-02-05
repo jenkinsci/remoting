@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Ref;
-import org.jenkinsci.remoting.RoleChecker;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;

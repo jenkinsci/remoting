@@ -38,6 +38,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -70,11 +71,11 @@ public class WorkDirManagerTest {
 
         // Probe files to confirm the directory does not get wiped
         final File probeFileInWorkDir = new File(dir, "probe.txt");
-        FileUtils.write(probeFileInWorkDir, "Hello!");
+        FileUtils.write(probeFileInWorkDir, "Hello!", StandardCharsets.UTF_8);
         final File remotingDir = new File(dir, DirType.INTERNAL_DIR.getDefaultLocation());
         Files.createDirectory(remotingDir.toPath());
         final File probeFileInInternalDir = new File(remotingDir, "/probe.txt");
-        FileUtils.write(probeFileInInternalDir, "Hello!");
+        FileUtils.write(probeFileInInternalDir, "Hello!", StandardCharsets.UTF_8);
 
         // Initialize and check the results
         final Path createdDir = WorkDirManager.getInstance().initializeWorkDir(dir, DirType.INTERNAL_DIR.getDefaultLocation(), false);
@@ -228,7 +229,7 @@ public class WorkDirManagerTest {
         // Ensure the entry has been written
         File log0 = new File(logsDir, "remoting.log.0");
         try (FileInputStream istr = new FileInputStream(log0)) {
-            String contents = IOUtils.toString(istr);
+            String contents = IOUtils.toString(istr, StandardCharsets.UTF_8);
             assertThat("Log file " + log0 + " should contain the probe message", contents, containsString(message));
         }
     }
@@ -288,7 +289,7 @@ public class WorkDirManagerTest {
         assertFileLogsExist(customLogDir, "mylog.log", 1);
         File log0 = new File(customLogDir, "mylog.log.0");
         try (FileInputStream istr = new FileInputStream(log0)) {
-            String contents = IOUtils.toString(istr);
+            String contents = IOUtils.toString(istr, StandardCharsets.UTF_8);
             assertThat("Log file " + log0 + " should contain the probe message", contents, containsString(message));
         }
     }
