@@ -246,6 +246,14 @@ public class Main {
      * Main without the argument handling.
      */
     public static void _main(String[] args) throws IOException, InterruptedException, CmdLineException {
+        // TODO skip this on Java 17+ (e.g. io.jenkins.lib.versionnumber.JavaSpecificationVersion) as it prints a warning
+        // otherwise needed for JavaWebStart agents (JENKINS-67000)
+        try {
+            System.setSecurityManager(null);
+        } catch (SecurityException e) {
+            // ignore
+        }
+
         // if we run in Mac, put the menu bar where the user expects it
         System.setProperty("apple.laf.useScreenMenuBar", "true");
 
