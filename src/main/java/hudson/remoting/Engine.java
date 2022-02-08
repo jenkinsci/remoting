@@ -114,7 +114,7 @@ public class Engine extends Thread {
     /**
      * Thread pool that sets {@link #CURRENT}.
      */
-    private final ExecutorService executor = FIXED_THREAD_POOL != null ? Executors.newFixedThreadPool(FIXED_THREAD_POOL, getThreadFactory()) : Executors.newCachedThreadPool(getThreadFactory());
+    private final ExecutorService executor = FIXED_THREAD_POOL == null ? Executors.newCachedThreadPool(getThreadFactory()) : Executors.newFixedThreadPool(FIXED_THREAD_POOL, getThreadFactory());
 
     private NamingThreadFactory getThreadFactory() {
         return new NamingThreadFactory(new ThreadFactory() {
