@@ -24,6 +24,7 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import java.net.SocketTimeoutException;
+import java.nio.Buffer;
 import java.util.logging.LogRecord;
 import java.io.EOFException;
 import java.io.IOException;
@@ -189,12 +190,12 @@ public class BIONetworkLayer extends NetworkLayer {
                 try {
                     boolean done = false;
                     while (getIoHub().isOpen() && out.isOpen() && !done) {
-                        data.clear();
+                        ((Buffer) data).clear();
                         synchronized (writeQueue) {
                             writeQueue.get(data);
                             done = !writeQueue.hasRemaining();
                         }
-                        data.flip();
+                        ((Buffer) data).flip();
                         while (data.remaining() > 0) {
                             try {
                                 if (out.write(data) == -1) {
@@ -282,7 +283,7 @@ public class BIONetworkLayer extends NetworkLayer {
                             onRecvClosed();
                             return;
                         }
-                        buffer.flip();
+                        ((Buffer) buffer).flip();
                         if (buffer.hasRemaining() && LOGGER.isLoggable(Level.FINEST)) {
                             LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes",
                                     new Object[]{stack().name(), buffer.remaining()});
@@ -295,7 +296,7 @@ public class BIONetworkLayer extends NetworkLayer {
                                 return;
                             }
                         }
-                        buffer.clear();
+                        ((Buffer) buffer).clear();
                     }
                 } finally {
                     release(buffer);

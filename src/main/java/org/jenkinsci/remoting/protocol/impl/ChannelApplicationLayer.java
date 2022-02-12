@@ -37,6 +37,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.ObjectOutputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.ExecutionException;
@@ -157,7 +158,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
                     return;
                 }
                 byte[] capabilityBytes = new byte[capabilityContent.capacity()];
-                capabilityContent.flip();
+                ((Buffer) capabilityContent).flip();
                 capabilityContent.get(capabilityBytes);
                 if (capabilityContent.hasRemaining()) {
                     return;
@@ -200,12 +201,12 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
             } catch (InterruptedException e) {
                 InterruptedIOException ie = new InterruptedIOException();
                 ie.bytesTransferred = data.remaining();
-                data.position(data.limit());
+                ((Buffer) data).position(data.limit());
                 Thread.currentThread().interrupt();
                 throw ie;
             } catch (ExecutionException e) {
                 // should never get here as futureChannel.isDone(), but just in case we do throw away
-                data.position(data.limit()); // dump any remaining data as nobody will ever receive it
+                ((Buffer) data).position(data.limit()); // dump any remaining data as nobody will ever receive it
                 throw new IOException(e);
             }
         }
@@ -214,7 +215,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
             transport.receive(data);
         } catch (IOException e) {
             channel.terminate(e); // we are done if there is an I/O error
-            data.position(data.limit()); // dump any remaining data as nobody will ever receive it
+            ((Buffer) data).position(data.limit()); // dump any remaining data as nobody will ever receive it
             throw e;
         } catch (InterruptedException e) {
             // if the channel receive was interrupted we cannot guarantee that the partial state has been correctly
@@ -222,7 +223,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
             InterruptedIOException reason = new InterruptedIOException();
             reason.bytesTransferred = data.remaining();
             channel.terminate(reason);
-            data.position(data.limit()); // dump any remaining data as nobody will ever receive it
+            ((Buffer) data).position(data.limit()); // dump any remaining data as nobody will ever receive it
             Thread.currentThread().interrupt();
             throw reason;
         }

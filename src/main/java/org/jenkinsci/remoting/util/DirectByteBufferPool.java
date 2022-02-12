@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.util;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import net.jcip.annotations.GuardedBy;
 
@@ -75,7 +76,7 @@ public class DirectByteBufferPool implements ByteBufferPool {
                     poolCount--;
                     ByteBuffer result = pool[poolCount];
                     pool[poolCount] = null; // drop reference
-                    result.limit(size);
+                    ((Buffer) result).limit(size);
                     return result;
                 }
                 for (int i = 0; i < poolCount; i++) {
@@ -84,14 +85,14 @@ public class DirectByteBufferPool implements ByteBufferPool {
                         poolCount--;
                         pool[i] = pool[poolCount]; // swap the big for a small
                         pool[poolCount] = null; // drop reference
-                        result.limit(size);
+                        ((Buffer) result).limit(size);
                         return result;
                     }
                 }
             }
         }
         ByteBuffer result = ByteBuffer.allocateDirect(Math.max(bufferSize, size));
-        result.limit(size);
+        ((Buffer) result).limit(size);
         return result;
     }
 
@@ -104,7 +105,7 @@ public class DirectByteBufferPool implements ByteBufferPool {
             synchronized (this) {
                 // we will let GC tidy any that are smaller than our size
                 if (poolCount < pool.length) {
-                    buffer.clear();
+                    ((Buffer) buffer).clear();
                     pool[poolCount++] = buffer;
                 }
             }

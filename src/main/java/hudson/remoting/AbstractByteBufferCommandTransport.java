@@ -25,6 +25,7 @@ package hudson.remoting;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -167,9 +168,9 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
                     } else {
                         readCommandSizes[readCommandIndex] += readFrameRemaining;
                         int oldLimit = data.limit();
-                        data.limit(data.position() + readFrameRemaining);
+                        ((Buffer) data).limit(data.position() + readFrameRemaining);
                         receiveQueue.put(data);
-                        data.limit(oldLimit);
+                        ((Buffer) data).limit(oldLimit);
                         readFrameRemaining = 0;
                         if (ChunkHeader.isLast(readFrameHeader)) {
                             readState = READ_STATE_COMMAND_READY;
@@ -292,13 +293,13 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
             int frame = remaining > transportFrameSize
                     ? transportFrameSize
                     : (int) remaining; // # of bytes we send in this chunk
-            writeChunkHeader.clear();
+            ((Buffer) writeChunkHeader).clear();
             ChunkHeader.write(writeChunkHeader, frame, remaining > transportFrameSize);
-            writeChunkHeader.flip();
-            writeChunkBody.clear();
-            writeChunkBody.limit(frame);
+            ((Buffer) writeChunkHeader).flip();
+            ((Buffer) writeChunkBody).clear();
+            ((Buffer) writeChunkBody).limit(frame);
             sendStaging.get(writeChunkBody);
-            writeChunkBody.flip();
+            ((Buffer) writeChunkBody).flip();
             write(writeChunkHeader, writeChunkBody);
             remaining -= frame;
         }

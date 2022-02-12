@@ -26,6 +26,7 @@ package org.jenkinsci.remoting.protocol;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.util.logging.Level;
@@ -187,9 +188,9 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
         }
         ByteBuffer tmp = recvQueue.newByteBuffer();
         while (recvQueue.hasRemaining()) {
-            tmp.clear();
+            ((Buffer) tmp).clear();
             recvQueue.get(tmp);
-            tmp.flip();
+            ((Buffer) tmp).flip();
             ptr.onRecv(tmp);
         }
         recvQueue = null;
@@ -206,9 +207,9 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
         }
         ByteBuffer tmp = sendQueue.newByteBuffer();
         while (sendQueue.hasRemaining()) {
-            tmp.clear();
+            ((Buffer) tmp).clear();
             sendQueue.get(tmp);
-            tmp.flip();
+            ((Buffer) tmp).flip();
             while (tmp.hasRemaining()) {
                 try {
                     write(tmp);

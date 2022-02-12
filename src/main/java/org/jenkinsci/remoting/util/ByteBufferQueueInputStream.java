@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.Buffer;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
@@ -161,10 +162,10 @@ public class ByteBufferQueueInputStream extends InputStream {
         }
         int l = mark.limit();
         int p = mark.position();
-        mark.limit(mark.position() + (int)n);
+        ((Buffer) mark).limit(mark.position() + (int)n);
         queue.get(mark);
         int skipped = mark.position() - p;
-        mark.limit(l);
+        ((Buffer) mark).limit(l);
         return skipped;
     }
 
@@ -188,8 +189,8 @@ public class ByteBufferQueueInputStream extends InputStream {
     public synchronized void mark(int readlimit) {
         if (mark != null) {
             if (mark.capacity() <= readlimit) {
-                mark.clear();
-                mark.limit(readlimit);
+                ((Buffer) mark).clear();
+                ((Buffer) mark).limit(readlimit);
                 return;
             }
         }
@@ -204,10 +205,10 @@ public class ByteBufferQueueInputStream extends InputStream {
         if (mark == null) {
             throw new IOException();
         }
-        mark.flip();
+        ((Buffer) mark).flip();
         pos -= mark.remaining();
         queue.unget(mark);
-        mark.clear();
+        ((Buffer) mark).clear();
     }
 
     /**

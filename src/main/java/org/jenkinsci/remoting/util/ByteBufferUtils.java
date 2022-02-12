@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.util;
 
+import java.nio.Buffer;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -59,10 +60,10 @@ public final class ByteBufferUtils {
         if (src.remaining() > dst.remaining()) {
             int limit = src.limit();
             try {
-                src.limit(src.position() + dst.remaining());
+                ((Buffer) src).limit(src.position() + dst.remaining());
                 dst.put(src);
             } finally {
-                src.limit(limit);
+                ((Buffer) src).limit(limit);
             }
         } else {
             dst.put(src);
@@ -84,7 +85,7 @@ public final class ByteBufferUtils {
             throw new BufferOverflowException();
         }
         dst.asShortBuffer().put((short) bytes.length);
-        dst.position(dst.position() + 2);
+        ((Buffer) dst).position(dst.position() + 2);
         dst.put(bytes);
     }
 
@@ -104,7 +105,7 @@ public final class ByteBufferUtils {
         if (src.remaining() < length + 2) {
             throw new BufferUnderflowException();
         }
-        src.position(src.position() + 2);
+        ((Buffer) src).position(src.position() + 2);
         byte[] bytes = new byte[length];
         src.get(bytes);
         return new String(bytes, StandardCharsets.UTF_8);
@@ -123,9 +124,9 @@ public final class ByteBufferUtils {
         }
         ByteBuffer result = ByteBuffer.allocate(bytes.length + 2);
         result.asShortBuffer().put((short) bytes.length);
-        result.position(result.position() + 2);
+        ((Buffer) result).position(result.position() + 2);
         result.put(bytes);
-        result.flip();
+        ((Buffer) result).flip();
         return result;
     }
 
@@ -140,16 +141,16 @@ public final class ByteBufferUtils {
     public static ByteBuffer accumulate(ByteBuffer src, ByteBuffer dst) {
         if (dst.capacity() - dst.remaining() > src.remaining()) {
             int oldPosition = dst.position();
-            dst.position(dst.limit());
-            dst.limit(dst.limit() + src.remaining());
+            ((Buffer) dst).position(dst.limit());
+            ((Buffer) dst).limit(dst.limit() + src.remaining());
             dst.put(src);
-            dst.position(oldPosition);
+            ((Buffer) dst).position(oldPosition);
             return dst;
         } else {
             ByteBuffer newDst = ByteBuffer.allocate((dst.remaining() + src.remaining()) * 2);
             newDst.put(dst);
             newDst.put(src);
-            newDst.flip();
+            ((Buffer) newDst).flip();
             return newDst;
         }
     }
@@ -163,7 +164,7 @@ public final class ByteBufferUtils {
     public static ByteBuffer duplicate(ByteBuffer buffer) {
         ByteBuffer newBuffer = ByteBuffer.allocate(buffer.remaining() * 2);
         newBuffer.put(buffer);
-        newBuffer.flip();
+        ((Buffer) newBuffer).flip();
         return newBuffer;
     }
 }
