@@ -3,11 +3,10 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 
 /**
  * Takes a directory of jars and populates them into the given jar cache
@@ -50,23 +49,7 @@ public class InitializeJarCacheMain {
             File newJarLocation = jarCache.map(checksum.sum1, checksum.sum2);
 
             Files.createDirectories(newJarLocation.getParentFile().toPath());
-            copyFile(jar, newJarLocation);
-        }
-    }
-
-    /**
-     * Util method to copy file from one location to another.
-     *
-     * <p>We don't have access to Guava, apache or Java7, so we have to write
-     * our own from scratch.
-     */
-    private static void copyFile(File src, File dest) throws Exception {
-        try (FileInputStream input = new FileInputStream(src); FileOutputStream output = new FileOutputStream(dest)) {
-            byte[] buf = new byte[1024 * 1024];
-            int bytesRead;
-            while ((bytesRead = input.read(buf)) > 0) {
-                output.write(buf, 0, bytesRead);
-            }
+            Files.copy(jar.toPath(), newJarLocation.toPath(), StandardCopyOption.REPLACE_EXISTING);
         }
     }
 }
