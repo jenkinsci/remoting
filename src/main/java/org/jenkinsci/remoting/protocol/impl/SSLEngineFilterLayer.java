@@ -16,6 +16,7 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.security.GeneralSecurityException;
@@ -337,7 +338,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
                 case NEED_UNWRAP: // $FALL-THROUGH$
                 case NOT_HANDSHAKING: // $FALL-THROUGH$
                 case FINISHED:
-                    appBuffer.clear();
+                    ((Buffer) appBuffer).clear();
                     if (!tempBuffer.hasRemaining() && handshakeStatus != SSLEngineResult.HandshakeStatus.NEED_UNWRAP) {
                         /* we need more data */
                         done = true;
@@ -360,13 +361,13 @@ public class SSLEngineFilterLayer extends FilterLayer {
                         case OK:
                             if ((handshakeStatus == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) && (
                                     result.bytesProduced() > 0)) {
-                                appBuffer.flip();
+                                ((Buffer) appBuffer).flip();
                                 if (LOGGER.isLoggable(Level.FINEST)) {
                                     LOGGER.log(Level.FINEST, "[{0}] DECODE: {1} bytes",
                                             new Object[]{stack().name(), appBuffer.remaining()});
                                 }
                                 next().onRecv(appBuffer);
-                                appBuffer.clear();
+                                ((Buffer) appBuffer).clear();
                             }
                             break;
                         case CLOSED:
@@ -384,7 +385,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
                     break;
                 case NEED_WRAP:
                     synchronized (wrapLock) {
-                        appBuffer.clear();
+                        ((Buffer) appBuffer).clear();
                         if (LOGGER.isLoggable(Level.FINEST)) {
                             LOGGER.log(Level.FINEST, "[{0}] HANDSHAKE ENCODE: 0 bytes", stack().name());
                         }
@@ -401,7 +402,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
                                 break;
                             case CLOSED: // $FALL-THROUGH$
                             case OK:
-                                appBuffer.flip();
+                                ((Buffer) appBuffer).flip();
                                 if (appBuffer.hasRemaining()) {
                                     if (LOGGER.isLoggable(Level.FINEST)) {
                                         LOGGER.log(Level.FINEST, "[{0}] HANDSHAKE SEND: {1} bytes",
@@ -508,7 +509,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
                 case BUFFER_UNDERFLOW: // $FALL-THROUGH$
                 case OK:
                     // We are done. Flip the buffer and push it to the write queue.
-                    appBuffer.flip();
+                    ((Buffer) appBuffer).flip();
                     done = !message.hasRemaining();
                     if (appBuffer.hasRemaining()) {
                         if (LOGGER.isLoggable(Level.FINEST)) {
@@ -522,7 +523,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
                     break;
             }
             if (!done) {
-                appBuffer.clear();
+                ((Buffer) appBuffer).clear();
             }
         }
     }

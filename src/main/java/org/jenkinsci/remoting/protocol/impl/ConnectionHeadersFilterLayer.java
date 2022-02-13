@@ -24,6 +24,7 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
@@ -159,9 +160,9 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                     }
                     return;
                 }
-                headerInputLength.flip();
+                ((Buffer) headerInputLength).flip();
                 int length = this.headerInputLength.asShortBuffer().get() & 0xffff;
-                headerInputLength.position(2);
+                ((Buffer) headerInputLength).position(2);
                 headerInputContent = ByteBuffer.allocate(length);
                 if (LOGGER.isLoggable(Level.FINEST)) {
                     LOGGER.log(Level.FINEST, "[{0}] Expecting {1} bytes of headers",
@@ -182,7 +183,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                     return;
                 }
                 byte[] headerBytes = new byte[headerInputContent.capacity()];
-                headerInputContent.flip();
+                ((Buffer) headerInputContent).flip();
                 headerInputContent.get(headerBytes, 0, headerInputContent.remaining());
                 final String headerAsString = new String(headerBytes, StandardCharsets.UTF_8);
                 if (LOGGER.isLoggable(Level.FINER)) {
@@ -275,9 +276,9 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 if (responseInputLength.hasRemaining()) {
                     return;
                 }
-                this.responseInputLength.flip();
+                ((Buffer) this.responseInputLength).flip();
                 int length = this.responseInputLength.asShortBuffer().get() & 0xffff;
-                this.responseInputLength.position(2);
+                ((Buffer) this.responseInputLength).position(2);
                 responseInputContent = ByteBuffer.allocate(length);
                 if (LOGGER.isLoggable(Level.FINEST)) {
                     LOGGER.log(Level.FINEST, "[{0}] Expecting {1} bytes of response",
@@ -298,7 +299,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                     return;
                 }
                 byte[] responseBytes = new byte[responseInputContent.capacity()];
-                responseInputContent.flip();
+                ((Buffer) responseInputContent).flip();
                 responseInputContent.get(responseBytes, 0, responseInputContent.remaining());
                 String response = new String(responseBytes, StandardCharsets.UTF_8);
                 if (LOGGER.isLoggable(Level.FINE)) {
@@ -488,7 +489,7 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
             }
             if (abortCause != null) {
                 // throw on the floor
-                data.clear();
+                ((Buffer) data).clear();
             } else if (finished) {
                 // we can just send through
                 if (sendQueue.hasRemaining()) {

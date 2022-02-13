@@ -26,6 +26,7 @@ package org.jenkinsci.remoting.protocol.impl;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -105,8 +106,8 @@ public class AckFilterLayer extends FilterLayer {
 
     private static String toHexString(ByteBuffer buffer) {
         ByteBuffer expectAck = buffer.duplicate();
-        expectAck.position(0);
-        expectAck.limit(buffer.position());
+        ((Buffer) expectAck).position(0);
+        ((Buffer) expectAck).limit(buffer.position());
         StringBuilder expectHex = new StringBuilder(expectAck.remaining() * 2);
         while (expectAck.hasRemaining()) {
             int b = expectAck.get() & 0xff;
@@ -139,8 +140,8 @@ public class AckFilterLayer extends FilterLayer {
         }
         ByteBuffer expectAck = sendAck.duplicate();
         ByteBuffer actualAck = recvAck.duplicate();
-        expectAck.rewind();
-        actualAck.rewind();
+        ((Buffer) expectAck).rewind();
+        ((Buffer) actualAck).rewind();
         receivedAck = expectAck.equals(actualAck);
         return receivedAck;
     }
@@ -151,10 +152,10 @@ public class AckFilterLayer extends FilterLayer {
         }
         ByteBuffer expectAck = sendAck.duplicate();
         ByteBuffer actualAck = recvAck.duplicate();
-        expectAck.position(0);
-        expectAck.limit(sendAck.position());
-        actualAck.position(0);
-        actualAck.limit(recvAck.position());
+        ((Buffer) expectAck).position(0);
+        ((Buffer) expectAck).limit(sendAck.position());
+        ((Buffer) actualAck).position(0);
+        ((Buffer) actualAck).limit(recvAck.position());
         while (expectAck.hasRemaining() && actualAck.hasRemaining()) {
             byte e = expectAck.get();
             byte a = actualAck.get();

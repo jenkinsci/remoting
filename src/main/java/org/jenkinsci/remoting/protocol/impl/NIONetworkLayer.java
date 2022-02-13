@@ -30,6 +30,7 @@ import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
 import org.jenkinsci.remoting.protocol.NetworkLayer;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
@@ -151,7 +152,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                                     }
                                     break READ;
                                 default:
-                                    recv.flip();
+                                    ((Buffer) recv).flip();
                                     if (logFinest) {
                                         LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes",
                                                 new Object[]{stack().name(), recv.remaining()});
@@ -160,7 +161,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                                         onRead(recv);
                                     }
                                     // it's always clear when we get from acquire, so clear again for re-use
-                                    recv.clear();
+                                    ((Buffer) recv).clear();
                                     break;
                             }
                         }
@@ -215,7 +216,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                     LOGGER.log(Level.FINEST, "[{0}] sendHasRemaining - has remaining: {1}",
                             new Object[] { Thread.currentThread().getName(), sendHasRemaining });
                 }
-                send.flip();
+                ((Buffer) send).flip();
                 try {
                     final int sentBytes = out.write(send);
                     if (LOGGER.isLoggable(Level.FINEST)) {

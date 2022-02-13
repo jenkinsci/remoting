@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.util;
 
+import java.nio.Buffer;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -140,7 +141,7 @@ public class ByteBufferQueue {
         if (buffers[writeIndex] == null) {
             buffers[writeIndex] = newByteBuffer();
         } else {
-            buffers[writeIndex].clear();
+            ((Buffer) buffers[writeIndex]).clear();
         }
     }
 
@@ -166,9 +167,9 @@ public class ByteBufferQueue {
             }
             if (src.remaining() > buffers[writeIndex].remaining()) {
                 int limit = src.limit();
-                src.limit(src.position() + buffers[writeIndex].remaining());
+                ((Buffer) src).limit(src.position() + buffers[writeIndex].remaining());
                 buffers[writeIndex].put(src);
-                src.limit(limit);
+                ((Buffer) src).limit(limit);
             } else {
                 buffers[writeIndex].put(src);
             }
@@ -298,7 +299,7 @@ public class ByteBufferQueue {
                     buffers[0] = buffers[writeIndex];
                     buffers[writeIndex] = null;
                     readIndex = writeIndex = 0;
-                    buffers[0].clear();
+                    ((Buffer) buffers[0]).clear();
                     readPosition = 0;
                 }
                 break;
@@ -316,7 +317,7 @@ public class ByteBufferQueue {
                     readPosition = 0;
                 } else {
                     assert readIndex == writeIndex;
-                    buffers[readIndex].clear();
+                    ((Buffer) buffers[readIndex]).clear();
                     readPosition = 0;
                 }
             }
@@ -334,18 +335,18 @@ public class ByteBufferQueue {
             int p = buffers[readIndex].position();
             int l = buffers[readIndex].limit();
             try {
-                buffers[readIndex].position(readPosition);
-                buffers[readIndex].limit(p);
+                ((Buffer) buffers[readIndex]).position(readPosition);
+                ((Buffer) buffers[readIndex]).limit(p);
                 if (buffers[readIndex].remaining() > dst.remaining()) {
-                    buffers[readIndex].limit(dst.remaining());
+                    ((Buffer) buffers[readIndex]).limit(dst.remaining());
                     dst.put(buffers[readIndex]);
                     break;
                 } else {
                     dst.put(buffers[readIndex]);
                 }
             } finally {
-                buffers[readIndex].limit(l);
-                buffers[readIndex].position(p);
+                ((Buffer) buffers[readIndex]).limit(l);
+                ((Buffer) buffers[readIndex]).position(p);
             }
             readIndex++;
             readPosition = 0;
@@ -370,25 +371,25 @@ public class ByteBufferQueue {
                 }
                 break;
             }
-            buffers[readIndex].flip();
+            ((Buffer) buffers[readIndex]).flip();
             if (buffers[readIndex].remaining() - readPosition > dst.remaining()) {
                 int limit = buffers[readIndex].limit();
-                buffers[readIndex].limit(readPosition + dst.remaining());
-                buffers[readIndex].position(readPosition);
+                ((Buffer) buffers[readIndex]).limit(readPosition + dst.remaining());
+                ((Buffer) buffers[readIndex]).position(readPosition);
                 dst.put(buffers[readIndex]);
                 readPosition = buffers[readIndex].position();
-                buffers[readIndex].limit(buffers[readIndex].capacity());
-                buffers[readIndex].position(limit);
+                ((Buffer) buffers[readIndex]).limit(buffers[readIndex].capacity());
+                ((Buffer) buffers[readIndex]).position(limit);
                 break;
             } else {
-                buffers[readIndex].position(readPosition);
+                ((Buffer) buffers[readIndex]).position(readPosition);
                 dst.put(buffers[readIndex]);
                 readPosition = 0;
                 if (readIndex < writeIndex) {
                     buffers[readIndex++] = null;
                 } else {
                     assert readIndex == writeIndex;
-                    buffers[readIndex].clear();
+                    ((Buffer) buffers[readIndex]).clear();
                 }
             }
         }
@@ -415,16 +416,16 @@ public class ByteBufferQueue {
                 }
                 break;
             }
-            buffers[readIndex].flip();
-            buffers[readIndex].position(readPosition);
+            ((Buffer) buffers[readIndex]).flip();
+            ((Buffer) buffers[readIndex]).position(readPosition);
             int count = buffers[readIndex].remaining();
             if (count > len) {
                 int limit = buffers[readIndex].limit();
                 buffers[readIndex].get(dst, offset, len);
                 read += len;
                 readPosition = buffers[readIndex].position();
-                buffers[readIndex].limit(buffers[readIndex].capacity());
-                buffers[readIndex].position(limit);
+                ((Buffer) buffers[readIndex]).limit(buffers[readIndex].capacity());
+                ((Buffer) buffers[readIndex]).position(limit);
                 return read;
             } else {
                 buffers[readIndex].get(dst, offset, count);
@@ -436,7 +437,7 @@ public class ByteBufferQueue {
                     buffers[readIndex++] = null;
                 } else {
                     assert readIndex == writeIndex;
-                    buffers[readIndex].clear();
+                    ((Buffer) buffers[readIndex]).clear();
                 }
             }
         }
@@ -476,17 +477,17 @@ public class ByteBufferQueue {
             // very fast unget
             int l = buffers[readIndex].limit();
             int p = buffers[readIndex].position();
-            buffers[readIndex].limit(readPosition);
+            ((Buffer) buffers[readIndex]).limit(readPosition);
             readPosition -= src.remaining();
-            buffers[readIndex].position(readPosition);
+            ((Buffer) buffers[readIndex]).position(readPosition);
             buffers[readIndex].put(src);
-            buffers[readIndex].limit(l);
-            buffers[readIndex].position(p);
+            ((Buffer) buffers[readIndex]).limit(l);
+            ((Buffer) buffers[readIndex]).position(p);
             return;
         } else if (readPosition > 0) {
             // need to compact early
-            buffers[readIndex].flip();
-            buffers[readIndex].position(readPosition);
+            ((Buffer) buffers[readIndex]).flip();
+            ((Buffer) buffers[readIndex]).position(readPosition);
             buffers[readIndex].compact();
             readPosition = 0;
         }
@@ -495,9 +496,9 @@ public class ByteBufferQueue {
         while (src.hasRemaining()) {
             if (src.remaining() > bufferSize) {
                 int limit = src.limit();
-                src.limit(src.position() + bufferSize);
+                ((Buffer) src).limit(src.position() + bufferSize);
                 inject[injectIndex++] = newByteBuffer().put(src);
-                src.limit(limit);
+                ((Buffer) src).limit(limit);
             } else {
                 inject[injectIndex++] = newByteBuffer().put(src);
             }
@@ -550,11 +551,11 @@ public class ByteBufferQueue {
             if (buffers[readIndex].position() == readPosition) {
                 return EMPTY_BYTE_ARRAY;
             }
-            buffers[readIndex].flip();
-            buffers[readIndex].position(readPosition);
+            ((Buffer) buffers[readIndex]).flip();
+            ((Buffer) buffers[readIndex]).position(readPosition);
             byte[] result = new byte[buffers[readIndex].remaining()];
             buffers[readIndex].get(result);
-            buffers[readIndex].clear();
+            ((Buffer) buffers[readIndex]).clear();
             readPosition = 0;
             readIndex = writeIndex = 0;
             return result;
@@ -566,11 +567,11 @@ public class ByteBufferQueue {
         byte[] result = new byte[size];
         int pos = 0;
         for (int index = readIndex; index <= writeIndex; index++) {
-            buffers[index].flip();
-            buffers[index].position(readPosition);
+            ((Buffer) buffers[index]).flip();
+            ((Buffer) buffers[index]).position(readPosition);
             int count = buffers[index].remaining();
             buffers[index].get(result, pos, count);
-            buffers[index].clear();
+            ((Buffer) buffers[index]).clear();
             readPosition = 0;
             pos += count;
         }

@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -215,9 +216,9 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
         }
         ByteBuffer tmp = queue.newByteBuffer();
         while (queue.hasRemaining()) {
-            tmp.clear();
+            ((Buffer) tmp).clear();
             queue.get(tmp);
-            tmp.flip();
+            ((Buffer) tmp).flip();
             try {
                 ptr.onRecv(tmp);
             } catch (IOException e) {
@@ -246,9 +247,9 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
         }
         ByteBuffer tmp = queue.newByteBuffer();
         while (queue.hasRemaining()) {
-            tmp.clear();
+            ((Buffer) tmp).clear();
             queue.get(tmp);
-            tmp.flip();
+            ((Buffer) tmp).flip();
             try {
                 ptr.doSend(tmp);
             } catch (IOException e) {
