@@ -40,6 +40,7 @@ import java.io.ObjectOutputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -184,7 +185,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
                     throw e;
                 }
                 if (cookie != null) {
-                    channel.setProperty(JnlpConnectionState.COOKIE_KEY, cookie);
+                    Objects.requireNonNull(channel).setProperty(JnlpConnectionState.COOKIE_KEY, cookie);
                 }
                 futureChannel.set(channel);
                 capabilityContent = null;
