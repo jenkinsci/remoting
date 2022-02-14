@@ -26,11 +26,11 @@ package org.jenkinsci.remoting.util;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Future;
 import java.util.AbstractMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -141,7 +141,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      * @return {@code true} if the future is now completed, {@code false} if the future has already been completed.
      */
     public boolean setException(@NonNull Throwable throwable) {
-        verifyNonnull(throwable);
+        Objects.requireNonNull(throwable);
         boolean result;
         synchronized (lock) {
             if (done) {
@@ -258,8 +258,8 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
      */
     @Override
     public void addListener(@NonNull Runnable listener, @NonNull Executor executor) {
-        verifyNonnull(listener);
-        verifyNonnull(executor);
+        Objects.requireNonNull(listener);
+        Objects.requireNonNull(executor);
         boolean executeImmediate = false;
         synchronized (listeners) {
             if (!notified) {
@@ -299,19 +299,6 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
                                 + entry.getValue());
             }
 
-        }
-    }
-
-    /**
-     * Verifies that a value is non-null without findbugs complaining too much.
-     *
-     * @param o the object that should be non-null.
-     * @throws NullPointerException if the object is actually null
-     */
-    @SuppressFBWarnings
-    private static void verifyNonnull(@Nullable Object o) {
-        if (o == null) {
-            throw new NullPointerException();
         }
     }
 }

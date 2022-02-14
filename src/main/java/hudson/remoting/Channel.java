@@ -559,6 +559,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * @since 2.38
      */
+    @SuppressFBWarnings(value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR", justification = "TODO needs triage")
     protected Channel(@NonNull ChannelBuilder settings, @NonNull CommandTransport transport) throws IOException {
         this.name = settings.getName();
         this.reference = new Ref(this);
@@ -1051,8 +1052,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param e
      *      The error that caused the connection to be aborted. Never null.
      */
-    @java.lang.SuppressWarnings("ToArrayCallWithZeroLengthArrayArgument")
-    @SuppressFBWarnings("ITA_INEFFICIENT_TO_ARRAY") // intentionally; race condition on listeners otherwise
     public void terminate(@NonNull IOException e) {
 
         if (e == null) {

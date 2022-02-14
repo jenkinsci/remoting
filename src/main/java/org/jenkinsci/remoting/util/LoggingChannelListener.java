@@ -39,7 +39,6 @@ import java.util.logging.Logger;
  */
 public class LoggingChannelListener extends Channel.Listener {
 
-    @SuppressWarnings("NonConstantLogger")
     private final Logger logger;
     private final Level level;
 

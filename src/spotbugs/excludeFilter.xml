@@ -1,62 +1,85 @@
 <FindBugsFilter>
-  <!-- don't check anything about dependencies which don't come from this module -->
+  <!--
+    Exclusions in this section have been triaged and determined to be false positives.
+  -->
   <Match>
-    <Package name="~org\.kohsuke\.args4j.*"/>
-  </Match>
-  <Match>
-    <Package name="~org\.jenkinsci\.constant_pool_scanner.*"/>
-  </Match>
-  <Match>
-    <Package name="~javax\.websocket.*"/>
-  </Match>
-  <Match>
-    <Package name="~org\.glassfish\.tyrus.*"/>
-  </Match>
-  
-  <Match>
-    <!--We do not want do break API by converting potentially usefull classes-->
-    <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
-  </Match>
-
-  <Match>
-    <!--We don't care about this behavior.-->
-    <Bug pattern="CRLF_INJECTION_LOGS"/>
-  </Match>
-
-  <Match>
-    <!-- TODO: On hold due to the discussion in PR #118 -->
-    <Bug pattern="DP_DO_INSIDE_DO_PRIVILEGED"/>
-  </Match>
-  <Match>
-    <!-- TODO: On hold due to the discussion in PR #118 -->
-    <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
-  </Match>
-  <Match>
-    <Bug pattern="EI_EXPOSE_REP"/>
-  </Match>
-  <Match>
-    <Bug pattern="EI_EXPOSE_REP2"/>
-  </Match>
-  <Match>
-    <Bug pattern="MS_EXPOSE_REP"/>
-  </Match>
-  <Match>
-    <Bug pattern="EI_EXPOSE_STATIC_REP2"/>
-  </Match>
-  <Match>
-    <Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"/>
-  </Match>
-    
-  <!--TODO: reconsider commented filters after cleanup-->
-  <!-- ignore all low-level (priority=2,3) issues except serialization problems -->
-  <!--<Match>
     <Or>
-      <Priority value="2"/>
-      <Priority value="3"/>
+      <!-- We don't care about this behavior -->
+      <Bug pattern="CRLF_INJECTION_LOGS"/>
+      <!-- Pending https://github.com/spotbugs/spotbugs/issues/1515 -->
+      <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
+      <Bug pattern="DP_DO_INSIDE_DO_PRIVILEGED"/>
     </Or>
-    <Not>
-        <Bug code="SnVI" />
-    </Not>
   </Match>
--->
+  <!--
+    Here lies technical debt. Exclusions in this section have not yet been triaged. When working on
+    on this section, pick an exclusion to triage, then:
+    - If it is a false positive, add a @SuppressFBWarnings(value = "[…]", justification = "[…]")
+      annotation indicating the reason why it is a false positive, then remove the exclusion from
+      this section.
+    - If it is not a false positive, fix the bug, then remove the exclusion from this section.
+   -->
+  <Match>
+    <Confidence value="2"/>
+    <Or>
+      <And>
+        <Bug pattern="EI_EXPOSE_REP"/>
+        <Or>
+          <Class name="hudson.remoting.Channel"/>
+          <Class name="hudson.remoting.ChannelBuilder"/>
+          <Class name="hudson.remoting.ClassLoaderHolder"/>
+          <Class name="hudson.remoting.Command"/>
+          <Class name="hudson.remoting.DiagnosedStreamCorruptionException"/>
+          <Class name="hudson.remoting.jnlp.MainDialog"/>
+          <Class name="hudson.remoting.jnlp.MainMenu"/>
+          <Class name="hudson.remoting.Pipe"/>
+          <Class name="hudson.remoting.Response"/>
+          <Class name="org.jenkinsci.remoting.ChannelStateException"/>
+          <Class name="org.jenkinsci.remoting.engine.Jnlp4ConnectionState"/>
+          <Class name="org.jenkinsci.remoting.engine.JnlpAgentEndpoint"/>
+          <Class name="org.jenkinsci.remoting.engine.JnlpConnectionState"/>
+          <Class name="org.jenkinsci.remoting.nio.FifoBuffer"/>
+          <Class name="org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer"/>
+          <Class name="org.jenkinsci.remoting.protocol.NetworkLayer"/>
+          <Class name="org.jenkinsci.remoting.protocol.ProtocolStack$Ptr"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+        <Or>
+          <Class name="hudson.remoting.AbstractByteArrayCommandTransport"/>
+          <Class name="hudson.remoting.AbstractByteBufferCommandTransport"/>
+          <Class name="hudson.remoting.AsyncFutureImpl"/>
+          <Class name="hudson.remoting.Channel"/>
+          <Class name="hudson.remoting.ChannelBuilder"/>
+          <Class name="hudson.remoting.ClassLoaderHolder"/>
+          <Class name="hudson.remoting.Engine"/>
+          <Class name="hudson.remoting.ObjectInputStreamEx"/>
+          <Class name="hudson.remoting.PingThread"/>
+          <Class name="hudson.remoting.RemoteOutputStream"/>
+          <Class name="hudson.remoting.RemoteWriter"/>
+          <Class name="hudson.remoting.SocketInputStream"/>
+          <Class name="hudson.remoting.SocketOutputStream"/>
+          <Class name="hudson.remoting.StandardOutputStream"/>
+          <Class name="hudson.remoting.SynchronousCommandTransport"/>
+          <Class name="hudson.remoting.TeeOutputStream"/>
+          <Class name="org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator"/>
+          <Class name="org.jenkinsci.remoting.engine.JnlpConnectionState"/>
+          <Class name="org.jenkinsci.remoting.engine.JnlpProtocol4Handler"/>
+          <Class name="org.jenkinsci.remoting.engine.JnlpProtocolHandlerFactory"/>
+          <Class name="org.jenkinsci.remoting.protocol.ApplicationLayer"/>
+          <Class name="org.jenkinsci.remoting.protocol.FilterLayer"/>
+          <Class name="org.jenkinsci.remoting.protocol.impl.BIONetworkLayer"/>
+          <Class name="org.jenkinsci.remoting.protocol.impl.NIONetworkLayer"/>
+          <Class name="org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer"/>
+          <Class name="org.jenkinsci.remoting.protocol.NetworkLayer"/>
+          <Class name="org.jenkinsci.remoting.util.ByteBufferQueueInputStream"/>
+          <Class name="org.jenkinsci.remoting.util.ByteBufferQueueOutputStream"/>
+          <Class name="org.jenkinsci.remoting.util.FastByteBufferQueueInputStream"/>
+          <Class name="org.jenkinsci.remoting.util.LoggingChannelListener"/>
+          <Class name="org.jenkinsci.remoting.util.SettableFuture"/>
+        </Or>
+      </And>
+    </Or>
+  </Match>
 </FindBugsFilter>

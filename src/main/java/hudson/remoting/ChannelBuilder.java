@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.CallableDecorator;
 import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.Role;
@@ -40,6 +41,7 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(value = "SIC_INNER_SHOULD_BE_STATIC_ANON", justification = "TODO needs triage")
 public class ChannelBuilder {
 
     /**

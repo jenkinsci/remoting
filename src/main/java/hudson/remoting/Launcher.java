@@ -303,7 +303,7 @@ public class Launcher {
         }
     }
 
-    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DM_DEFAULT_ENCODING")    // log file, just like console output, should be in platform default encoding
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "log file, just like console output, should be in platform default encoding")
     public void run() throws Exception {
         if (showVersion) {
             String version = Util.getVersion();

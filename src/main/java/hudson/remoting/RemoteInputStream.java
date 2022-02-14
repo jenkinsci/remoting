@@ -50,6 +50,9 @@ import static hudson.remoting.RemoteInputStream.Flag.*;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressFBWarnings(
+        value = {"MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR", "SIC_INNER_SHOULD_BE_STATIC_ANON"},
+        justification = "TODO needs triage")
 public class RemoteInputStream extends InputStream implements SerializableOnlyOverRemoting {
     private static final Logger LOGGER = Logger.getLogger(RemoteInputStream.class.getName());
     private transient InputStream core;

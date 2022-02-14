@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Performs GC.
  *
@@ -30,7 +32,7 @@ package hudson.remoting;
  */
 class GCCommand extends Command {
     @Override
-    @edu.umd.cs.findbugs.annotations.SuppressFBWarnings("DM_GC")
+    @SuppressFBWarnings(value = "DM_GC", justification = "TODO needs triage")
     protected void execute(Channel channel) {
         System.gc();
     }

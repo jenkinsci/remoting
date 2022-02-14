@@ -167,7 +167,7 @@ public class RegexValidator implements Serializable {
      * valid or <code>null</code> if invalid
      */
 //[PATCH]
-    @SuppressFBWarnings("PZLA") // Remoting uses Low threshold
+    @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS", justification = "TODO needs triage") // Remoting uses Low threshold
 // end of [PATCH]
     public String[] match(String value) {
         if (value == null) {
