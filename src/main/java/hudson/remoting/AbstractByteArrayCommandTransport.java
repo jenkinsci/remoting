@@ -1,6 +1,5 @@
 package hudson.remoting;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 import java.io.ByteArrayOutputStream;
@@ -18,7 +17,6 @@ import java.util.logging.Logger;
  * @author Kohsuke Kawaguchi
  * @since 2.13
  */
-@SuppressFBWarnings(value = "SIC_INNER_SHOULD_BE_STATIC_ANON", justification = "TODO needs triage")
 public abstract class AbstractByteArrayCommandTransport extends CommandTransport {
     protected Channel channel;
 

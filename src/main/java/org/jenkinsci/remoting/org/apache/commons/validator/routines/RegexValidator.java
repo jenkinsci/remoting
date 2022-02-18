@@ -17,7 +17,6 @@
 /* Copied from commons-validator:commons-validator:1.6, with [PATCH] modifications */
 package org.jenkinsci.remoting.org.apache.commons.validator.routines;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -166,9 +165,6 @@ public class RegexValidator implements Serializable {
      * @return String array of the <i>groups</i> matched if
      * valid or <code>null</code> if invalid
      */
-//[PATCH]
-    @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS", justification = "TODO needs triage") // Remoting uses Low threshold
-// end of [PATCH]
     public String[] match(String value) {
         if (value == null) {
             return null;

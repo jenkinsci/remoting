@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.IOHubReadyListener;
 import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
@@ -94,7 +93,6 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
      * @param in    the source of data.
      * @param out   the sink for data.
      */
-    @SuppressFBWarnings(value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR", justification = "TODO needs triage")
     public NIONetworkLayer(IOHub ioHub, ReadableByteChannel in,
                            WritableByteChannel out) {
         super(ioHub);

@@ -240,7 +240,6 @@ public class Engine extends Thread {
         this(listener, hudsonUrls, secretKey, agentName, null, null, null);
     }
 
-    @SuppressFBWarnings(value = "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR", justification = "TODO needs triage")
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String agentName, String directConnection, String instanceIdentity,
                   Set<String> protocols) {
         this.listener = listener;

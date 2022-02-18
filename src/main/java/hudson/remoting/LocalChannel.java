@@ -24,7 +24,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -36,7 +35,6 @@ import java.util.concurrent.TimeoutException;
  * 
  * @author Kohsuke Kawaguchi
  */
-@SuppressFBWarnings(value = "SIC_INNER_SHOULD_BE_STATIC_ANON", justification = "TODO needs triage")
 public class LocalChannel implements VirtualChannel {
     private final ExecutorService executor;
 

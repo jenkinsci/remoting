@@ -108,7 +108,6 @@ public class WorkDirManager {
      * Currently the implementation is hardcoded, but it may change in the future.
      * @return Workspace manager
      */
-    @SuppressFBWarnings(value = "MS_EXPOSE_REP", justification = "TODO needs triage")
     @NonNull
     public static WorkDirManager getInstance() {
         return INSTANCE;

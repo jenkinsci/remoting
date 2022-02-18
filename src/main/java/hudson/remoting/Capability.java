@@ -26,7 +26,6 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  * @author Kohsuke Kawaguchi
  * @see Channel#remoteCapability
  */
-@SuppressFBWarnings(value = "SIC_INNER_SHOULD_BE_STATIC_ANON", justification = "TODO needs triage")
 public final class Capability implements Serializable {
 
     /**
