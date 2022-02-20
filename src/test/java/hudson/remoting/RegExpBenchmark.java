@@ -80,9 +80,9 @@ public class RegExpBenchmark {
         final List<String> matchesString = checkClassesString(classes);
         final long durationStringNanos = System.nanoTime() - startString;
         
-        System.out.println(String.format(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns", "RegExp ", matchesRegExp.size(), durationRegexpNanos, durationRegexpNanos/classes.size()));
-        System.out.println(String.format(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns", "SingleRegExp ", matchesSingleRegExp.size(), durationSingleRegexpNanos, durationSingleRegexpNanos/classes.size()));
-        System.out.println(String.format(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns", "String ", matchesString.size(), durationStringNanos, durationStringNanos/classes.size()));
+        System.out.printf(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns%n", "RegExp ", matchesRegExp.size(), durationRegexpNanos, durationRegexpNanos/classes.size());
+        System.out.printf(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns%n", "SingleRegExp ", matchesSingleRegExp.size(), durationSingleRegexpNanos, durationSingleRegexpNanos/classes.size());
+        System.out.printf(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns%n", "String ", matchesString.size(), durationStringNanos, durationStringNanos/classes.size());
         
         System.out.println("Regular Expression is " + durationRegexpNanos/durationStringNanos + " times slower");
         System.out.println("Single Regular Expression is " + durationSingleRegexpNanos/durationStringNanos + " times slower\n");

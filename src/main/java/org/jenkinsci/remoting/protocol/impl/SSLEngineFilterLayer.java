@@ -138,11 +138,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
                 LOGGER.log(Level.SEVERE, "[" + stack().name() + "] ", e);
             }
             abort(e);
-        } catch (ClosedChannelException e) {
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "[" + stack().name() + "] ", e);
-            }
-        } catch (ConnectionRefusalException e) {
+        } catch (ClosedChannelException | ConnectionRefusalException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LOGGER.log(Level.FINE, "[" + stack().name() + "] ", e);
             }

@@ -435,15 +435,14 @@ public class HandlerLoopbackLoadStress {
                     }
                     times++;
                     if (times % 1000 == 0) {
-                        System.out.println(String.format("  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s",
+                        System.out.printf("  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s%n",
                                 clientChannel.getName(), times,
-                                times * 1000.0 / (System.currentTimeMillis() - this.start), 1000.0 / clientIntervalMs));
+                                times * 1000.0 / (System.currentTimeMillis() - this.start), 1000.0 / clientIntervalMs);
                     }
                     long duration = System.currentTimeMillis() - start;
                     if (duration > 250L) {
-                        System.err.println(
-                                String.format("  %s took %dms to complete a callable", clientChannel.getName(),
-                                        duration));
+                        System.err.printf("  %s took %dms to complete a callable%n", clientChannel.getName(),
+                                duration);
                     }
                     if (callable.payload != null && callable.payload.length > 0) {
                         // mutate the payload to prevent compression
