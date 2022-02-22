@@ -348,6 +348,8 @@ public class SSLEngineFilterLayer extends FilterLayer {
                     switch (result.getStatus()) {
                         case BUFFER_UNDERFLOW:
                     /* we need more data */
+                        case CLOSED:
+                    /* connection is already closed */
                             done = true;
                             break;
                         case BUFFER_OVERFLOW:
@@ -367,8 +369,6 @@ public class SSLEngineFilterLayer extends FilterLayer {
                                 next().onRecv(appBuffer);
                                 appBuffer.clear();
                             }
-                            break;
-                        case CLOSED:
                             break;
                     }
                     handshakeStatus = sslEngine.getHandshakeStatus();
