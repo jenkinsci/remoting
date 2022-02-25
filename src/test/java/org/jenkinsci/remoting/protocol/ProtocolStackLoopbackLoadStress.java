@@ -265,8 +265,8 @@ public class ProtocolStackLoopbackLoadStress {
     public static void main(String[] args) throws Exception {
         int numClients = args.length >= 1 ? Integer.parseInt(args[0]) : 100;
         int clientIntervalMs = args.length >= 2 ? Integer.parseInt(args[1]) : 100;
-        boolean nio = args.length < 3 || !"bio".equals(args[2].toLowerCase());
-        final boolean ssl = args.length < 4 || !"cleartext".equals(args[3].toLowerCase());
+        boolean nio = args.length < 3 || !"bio".equalsIgnoreCase(args[2]);
+        final boolean ssl = args.length < 4 || !"cleartext".equalsIgnoreCase(args[3]);
         final double expectNoopsPerSecond = 1000.0 / clientIntervalMs * numClients;
         System.out.printf("Starting stress test with %d clients making calls every %dms (%.1f/sec) to give a total expected rate of %.1f/sec%n", numClients, clientIntervalMs, 1000.0 / clientIntervalMs, expectNoopsPerSecond);
         System.out.printf("Server using %s%n", nio ? "Non-blocking I/O" : "Reader thread per client I/O");
@@ -334,13 +334,13 @@ public class ProtocolStackLoopbackLoadStress {
                     clientChannel.call(callable);
                     times++;
                     if (times % 1000 == 0) {
-                        System.out.println(String.format("  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s",
+                        System.out.printf("  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s%n",
                                 clientChannel.getName(), times,
-                                times * 1000.0 / (System.currentTimeMillis() - this.start), 1000.0 / clientIntervalMs));
+                                times * 1000.0 / (System.currentTimeMillis() - this.start), 1000.0 / clientIntervalMs);
                     }
                     long duration = System.currentTimeMillis() - start;
                     if (duration > 250L) {
-                        System.err.println(String.format("  %s took %dms to complete a callable", clientChannel.getName(), duration));
+                        System.err.printf("  %s took %dms to complete a callable%n", clientChannel.getName(), duration);
                     }
                 } catch (Exception e) {
                     e.printStackTrace(System.err);
