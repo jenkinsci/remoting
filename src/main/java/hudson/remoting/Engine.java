@@ -683,10 +683,21 @@ public class Engine extends Thread {
                     }
                     TimeUnit.SECONDS.sleep(10);
                 }
-                events.onReconnect();
+                reconnect();
             }
         } catch (Exception e) {
             events.error(e);
+        }
+    }
+
+    private void reconnect() {
+        try {
+            events.status("Performing onReconnect operation.");
+            events.onReconnect();
+            events.status("onReconnect operation completed.");
+        } catch (NoClassDefFoundError e) {
+            events.status("onReconnect operation failed.");
+            LOGGER.log(Level.FINE, "Reconnection error.", e);
         }
     }
 
@@ -828,14 +839,7 @@ public class Engine extends Thread {
                 // try to connect back to the server every 10 secs.
                 resolver.waitForReady();
 
-                try {
-                    events.status("Performing onReconnect operation.");
-                    events.onReconnect();
-                    events.status("onReconnect operation completed.");
-                } catch (NoClassDefFoundError e) {
-                    events.status("onReconnect operation failed.");
-                    LOGGER.log(Level.FINE, "Reconnection error.", e);
-                }
+                reconnect();
             }
         } catch (Throwable e) {
             events.error(e);
