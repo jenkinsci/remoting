@@ -21,6 +21,7 @@
     - If it is not a false positive, fix the bug, then remove the exclusion from this section.
    -->
   <Match>
+    <Confidence value="1"/>
     <Or>
       <And>
         <Bug pattern="DM_GC"/>
@@ -30,6 +31,11 @@
         <Bug pattern="DMI_COLLECTION_OF_URLS"/>
         <Class name="hudson.remoting.JarLoaderImpl"/>
       </And>
+    </Or>
+  </Match>
+  <Match>
+    <Confidence value="2"/>
+    <Or>
       <And>
         <Bug pattern="EI_EXPOSE_REP"/>
         <Or>
@@ -89,6 +95,23 @@
         </Or>
       </And>
       <And>
+        <Bug pattern="MS_EXPOSE_REP"/>
+        <Class name="org.jenkinsci.remoting.engine.WorkDirManager"/>
+      </And>
+      <And>
+        <Bug pattern="NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"/>
+        <Class name="hudson.remoting.ClassFilter"/>
+      </And>
+      <And>
+        <Bug pattern="SE_BAD_FIELD"/>
+        <Class name="hudson.remoting.JarLoaderImpl"/>
+      </And>
+    </Or>
+  </Match>
+  <Match>
+    <Confidence value="3"/>
+    <Or>
+      <And>
         <Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"/>
         <Or>
           <Class name="hudson.remoting.Channel"/>
@@ -100,20 +123,8 @@
         </Or>
       </And>
       <And>
-        <Bug pattern="MS_EXPOSE_REP"/>
-        <Class name="org.jenkinsci.remoting.engine.WorkDirManager"/>
-      </And>
-      <And>
-        <Bug pattern="NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"/>
-        <Class name="hudson.remoting.ClassFilter"/>
-      </And>
-      <And>
         <Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
         <Class name="org.jenkinsci.remoting.org.apache.commons.validator.routines.RegexValidator"/>
-      </And>
-      <And>
-        <Bug pattern="SE_BAD_FIELD"/>
-        <Class name="hudson.remoting.JarLoaderImpl"/>
       </And>
       <And>
         <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
