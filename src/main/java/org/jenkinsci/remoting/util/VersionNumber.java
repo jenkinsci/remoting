@@ -589,10 +589,5 @@ public class VersionNumber implements Comparable<VersionNumber> {
         return (idx - i >= 0) ? -1 : ((IntegerItem) item).value.intValue();
     }
 
-    public static final Comparator<VersionNumber> DESCENDING = new Comparator<VersionNumber>() {
-        @Override
-        public int compare(VersionNumber o1, VersionNumber o2) {
-            return o2.compareTo(o1);
-        }
-    };
+    public static final Comparator<VersionNumber> DESCENDING = Comparator.reverseOrder();
 }

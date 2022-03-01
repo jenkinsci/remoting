@@ -1051,6 +1051,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param e
      *      The error that caused the connection to be aborted. Never null.
      */
+    @SuppressFBWarnings(value = "ITA_INEFFICIENT_TO_ARRAY", justification = "intentionally; race condition on listeners otherwise")
     public void terminate(@NonNull IOException e) {
 
         if (e == null) {
