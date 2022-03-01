@@ -697,7 +697,7 @@ public class Engine extends Thread {
             events.status("onReconnect operation completed.");
         } catch (NoClassDefFoundError e) {
             events.status("onReconnect operation failed.");
-            LOGGER.log(Level.FINE, "Reconnection error.", e);
+            LOGGER.log(Level.WARNING, "Reconnection error.", e);
         }
     }
 
