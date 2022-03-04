@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>4.13</version>
 
   <name>Jenkins remoting layer</name>
   <description>Contains the bootstrap code to bridge separate JVMs into a single semi-shared space. Reusable outside Jenkins.</description>
@@ -54,7 +54,7 @@ THE SOFTWARE.
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
-    <tag>${scmTag}</tag>
+    <tag>remoting-4.13</tag>
     <url>https://github.com/jenkinsci/remoting</url>
   </scm>
 
