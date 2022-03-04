@@ -222,7 +222,6 @@ public final class Capability implements Serializable {
      * If we ever use up all 64bits of long, we can probably come back and reuse this bit, as by then
      * hopefully any such remoting.jar deployment is long gone.
      */
-    @SuppressWarnings("PointlessBitwiseExpression")
     private static final long MASK_UNUSED1 = 1L << 0;
 
     /**

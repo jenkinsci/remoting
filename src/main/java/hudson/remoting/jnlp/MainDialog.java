@@ -49,7 +49,11 @@ public class MainDialog extends JFrame {
     private MainMenu mainMenu;
     private final JLabel statusLabel;
 
-    @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE",
+    @SuppressFBWarnings(
+            value = {
+                "UI_INHERITANCE_UNSAFE_GETRESOURCE",
+                "MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"
+            },
             justification = "We allow overriding this resource. Just in case")
     public MainDialog() throws HeadlessException {
         super("Jenkins agent");
