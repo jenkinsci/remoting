@@ -107,9 +107,9 @@ public abstract class CommandTransport {
      * 
      * For subtypes that prefer synchronous operation, extend from {@link SynchronousCommandTransport}.
      * 
-     * <h2>Closing the read pump</h2>
      * <p>
-     * {@link Channel} implements {@code Channel.CloseCommand} its own "end of command stream" marker, and
+     * <strong>Closing the read pump:</strong> {@link Channel} implements
+     * {@code Channel.CloseCommand} its own "end of command stream" marker, and
      * therefore under the orderly shutdown scenario, it doesn't rely on the transport to provide EOF-like
      * marker. Instead, {@link Channel} will call your {@link #closeRead()} (from the same thread
      * that invoked {@link CommandReceiver#handle(Command)}) to indicate that it is done with the reading.
