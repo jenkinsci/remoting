@@ -38,7 +38,7 @@ THE SOFTWARE.
 
   <name>Jenkins remoting layer</name>
   <description>Contains the bootstrap code to bridge separate JVMs into a single semi-shared space. Reusable outside Jenkins.</description>
-  <url>https://github.com/jenkinsci/remoting</url>
+  <url>https://github.com/jenkinsci/${project.artifactId}</url>
   <licenses>
     <license>
       <name>The MIT license</name>
@@ -52,16 +52,17 @@ THE SOFTWARE.
   </licenses>
 
   <scm>
-    <connection>scm:git:git://github.com/jenkinsci/remoting.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/jenkinsci/remoting.git</developerConnection>
+    <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
+    <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
     <tag>${scmTag}</tag>
-    <url>https://github.com/jenkinsci/remoting</url>
+    <url>https://github.com/${gitHubRepo}</url>
   </scm>
 
   <properties>
     <revision>4.14</revision>
     <changelist>-SNAPSHOT</changelist>
     <java.level>8</java.level>
+    <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <build.type>private</build.type>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
