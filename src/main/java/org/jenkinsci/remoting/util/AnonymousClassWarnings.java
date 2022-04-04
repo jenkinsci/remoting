@@ -51,8 +51,7 @@ public class AnonymousClassWarnings {
     private static final Logger LOGGER = Logger.getLogger(AnonymousClassWarnings.class.getName());
     private static final Map<Class<?>, Boolean> checked = new WeakHashMap<>();
 
-    private final static boolean USE_SEPARATE_THREAD_POOL = Boolean.getBoolean(AnonymousClassWarnings.class.getName() + ".useSeparateThreadPool");
-    private final static ExecutorService THREAD_POOL =  USE_SEPARATE_THREAD_POOL ? new AtmostOneThreadExecutor(new NamingThreadFactory(new DaemonThreadFactory(), AnonymousClassWarnings.class.getSimpleName())) : null;
+    private final static ExecutorService THREAD_POOL =  new AtmostOneThreadExecutor(new NamingThreadFactory(new DaemonThreadFactory(), AnonymousClassWarnings.class.getSimpleName()));
 
     /**
      * Checks a class which is being either serialized or deserialized.
@@ -70,7 +69,7 @@ public class AnonymousClassWarnings {
         } else {
             // May not call methods like Class#isAnonymousClass synchronously, since these can in turn trigger remote class loading.
             try {
-                (USE_SEPARATE_THREAD_POOL ? THREAD_POOL : channel.executor).submit(() -> doCheck(clazz));
+                THREAD_POOL.submit(() -> doCheck(clazz));
             } catch (RejectedExecutionException x) {
                 // never mind, we tried
             }
