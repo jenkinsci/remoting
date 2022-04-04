@@ -106,6 +106,13 @@
         <Bug pattern="SE_BAD_FIELD"/>
         <Class name="hudson.remoting.JarLoaderImpl"/>
       </And>
+      <And>
+        <Bug pattern="SSD_DO_NOT_USE_INSTANCE_LOCK_ON_SHARED_STATIC_DATA"/>
+        <Or>
+          <Class name="hudson.remoting.Request"/>
+          <Class name="hudson.remoting.UserRequest"/>
+        </Or>
+      </And>
     </Or>
   </Match>
   <Match>
