@@ -457,6 +457,12 @@ final class RemoteClassLoader extends URLClassLoader {
             throw (ClassFormatError) new ClassFormatError("Failed to load " + name).initCause(e);
         } catch (LinkageError e) {
             throw new LinkageError("Failed to load " + name, e);
+        } catch (OutOfMemoryError oom) {
+            String message = oom.getMessage();
+            if (message != null && message.contains("unable to create new native thread")) {
+                oom.addSuppressed(new Exception("Currently " + Thread.getAllStackTraces().size() + " threads, including " + Thread.activeCount() + " in the current thread group"));
+            }
+            throw oom;
         }
     }
 
