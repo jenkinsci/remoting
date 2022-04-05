@@ -61,7 +61,6 @@ THE SOFTWARE.
   <properties>
     <revision>4.14</revision>
     <changelist>-SNAPSHOT</changelist>
-    <java.level>8</java.level>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <build.type>private</build.type>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -215,17 +214,6 @@ THE SOFTWARE.
       </resource>
     </resources>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-pmd-plugin</artifactId>
-        <!-- version specified in grandparent pom -->
-        <configuration>
-          <!--rulesets>
-            <ruleset>ruleset.xml</ruleset>
-          </rulesets-->
-          <targetJdk>1.${java.level}</targetJdk>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
