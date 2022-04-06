@@ -419,7 +419,7 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M5</version>
+        <version>3.0.0-M6</version>
         <configuration>
           <!-- SUREFIRE-1226 workaround -->
           <trimStackTrace>false</trimStackTrace>
