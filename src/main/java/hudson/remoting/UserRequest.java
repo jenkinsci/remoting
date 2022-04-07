@@ -212,6 +212,14 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                 } finally {
                     Thread.currentThread().setContextClassLoader(old);
                 }
+
+                if (callable.getClass().getName().equals("hudson.slaves.SlaveComputer$DetectOS")) {
+                    try {
+                        callable.getClass().getClassLoader().loadClass("hudson.util.RingBufferLogHandler$LogRecordRef").getDeclaredConstructors();
+                    } catch (Exception x) {
+                        x.printStackTrace();
+                    }
+                }
             } catch (LinkageError e) {
                 LOGGER.log(Level.WARNING, "LinkageError while performing " + toString(), e);
                 throw e;
