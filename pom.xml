@@ -181,6 +181,11 @@ THE SOFTWARE.
       <version>9.3</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci</groupId>
+      <artifactId>version-number</artifactId>
+      <version>1.10</version>
+    </dependency>
   </dependencies>
 
   <repositories>
