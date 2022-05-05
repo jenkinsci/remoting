@@ -354,6 +354,7 @@ THE SOFTWARE.
             <descriptor>src/assembly/agent-load-test.xml</descriptor>
           </descriptors>
           <attach>false</attach>
+          <tarLongFileMode>posix</tarLongFileMode> <!-- MASSEMBLY-728 -->
         </configuration>
         <executions>
           <execution>
