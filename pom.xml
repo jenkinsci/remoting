@@ -354,7 +354,7 @@ THE SOFTWARE.
             <descriptor>src/assembly/agent-load-test.xml</descriptor>
           </descriptors>
           <attach>false</attach>
-          <tarLongFileMode>posix</tarLongFileMode> <!-- MASSEMBLY-728 -->
+          <tarLongFileMode>posix</tarLongFileMode> <!-- https://maven.apache.org/plugins/maven-assembly-plugin/faq.html#tarFileModes -->
         </configuration>
         <executions>
           <execution>
