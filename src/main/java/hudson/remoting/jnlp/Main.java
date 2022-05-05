@@ -249,6 +249,7 @@ public class Main {
      * Main without the argument handling.
      */
     public static void _main(String[] args) throws IOException, InterruptedException, CmdLineException {
+        // TODO skip this on Java 17+ as it prints a warning, otherwise needed for JavaWebStart agents (JENKINS-67000, JENKINS-67913)
         if (JavaSpecificationVersion.forCurrentJVM().isOlderThan(new VersionNumber("17"))) {
             try {
                 System.setSecurityManager(null);
