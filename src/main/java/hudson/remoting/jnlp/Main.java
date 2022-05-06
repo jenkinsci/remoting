@@ -57,7 +57,7 @@ import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.WARNING;
 
 /**
- * Entry point to JNLP agent.
+ * Entry point to pseudo-JNLP agent.
  *
  * <p>
  * See also {@code jenkins-agent.jnlp.jelly} in the core.
@@ -72,10 +72,10 @@ public class Main {
                   "in which case the missing portion will be auto-configured like the default behavior")
     public String tunnel;
 
+    @Deprecated
     @Option(name="-headless",
-            usage="Run agent in headless mode, without GUI")
-    public boolean headlessMode = Boolean.getBoolean("hudson.agent.headless")
-                    || Boolean.getBoolean("hudson.webstart.headless");
+            usage="(deprecated; now always headless)")
+    public boolean headlessMode;
 
     @Option(name="-url",
             usage="Specify the Jenkins root URLs to connect to.")
@@ -246,17 +246,6 @@ public class Main {
      * Main without the argument handling.
      */
     public static void _main(String[] args) throws IOException, InterruptedException, CmdLineException {
-        // TODO skip this on Java 17+ (e.g. io.jenkins.lib.versionnumber.JavaSpecificationVersion) as it prints a warning
-        // otherwise needed for JavaWebStart agents (JENKINS-67000)
-        try {
-            System.setSecurityManager(null);
-        } catch (SecurityException e) {
-            // ignore
-        }
-
-        // if we run in Mac, put the menu bar where the user expects it
-        System.setProperty("apple.laf.useScreenMenuBar", "true");
-
         Main m = new Main();
         CmdLineParser p = new CmdLineParser(m);
         p.parseArgument(args);
@@ -301,7 +290,7 @@ public class Main {
         String agentName = args.get(1);
         LOGGER.log(INFO, "Setting up agent: {0}", agentName);
         Engine engine = new Engine(
-                headlessMode ? new CuiListener() : new GuiListener(),
+                new CuiListener(),
                 urls, args.get(0), agentName, directConnection, instanceIdentity, new HashSet<>(protocols));
         engine.setWebSocket(webSocket);
         if(webSocketHeaders!=null)
@@ -417,10 +406,6 @@ public class Main {
      * {@link EngineListener} implementation that sends output to {@link Logger}.
      */
     private static final class CuiListener implements EngineListener {
-        private CuiListener() {
-            LOGGER.info("Jenkins agent is running in headless mode.");
-        }
-
         @Override
         public void status(String msg, Throwable t) {
             LOGGER.log(INFO,msg,t);

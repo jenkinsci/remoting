@@ -204,9 +204,6 @@ THE SOFTWARE.
         <directory>${basedir}/src/filter/resources</directory>
       </resource>
       <resource>
-        <directory>${basedir}/src/main/resources</directory>
-      </resource>
-      <resource>
         <directory>${basedir}</directory>
         <includes>
           <include>NOTICE</include>
@@ -249,12 +246,6 @@ THE SOFTWARE.
                   <mainClass>hudson.remoting.Launcher</mainClass>
                   <manifestEntries>
                     <Version>${project.version}</Version>
-                    <!-- attributes related to Java Web Start -->
-                    <!-- see http://docs.oracle.com/javase/8/docs/technotes/guides/jweb/security/manifest.html -->
-                    <Permissions>all-permissions</Permissions>
-                    <Codebase>*</Codebase>
-                    <Application-Name>Jenkins Remoting Agent</Application-Name>
-                    <Trusted-Library>true</Trusted-Library>
                   </manifestEntries>
                 </transformer>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
@@ -279,39 +270,6 @@ THE SOFTWARE.
                 </manifest>
               </archive>
             </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-jarsigner-plugin</artifactId>
-        <version>3.0.0</version>
-        <configuration>
-          <!--
-            during the development, debug profile will cause
-            the jars to be signed by a self-certified dummy public key.
-
-            For release, you should define the real values in ~/.m2/settings.xml
-          -->
-          <alias>${hudson.sign.alias}</alias>
-          <storepass>${hudson.sign.storepass}</storepass>
-          <keystore>${hudson.sign.keystore}</keystore>
-          <storetype>${hudson.sign.storetype}</storetype>
-          <providerClass>${hudson.sign.providerClass}</providerClass>
-          <providerArg>${hudson.sign.providerArg}</providerArg>
-          <tsa>${hudson.sign.tsa}</tsa>
-          <!--
-            This option is required for JENKINS-37567, not required on any release machine.
-            In order to take effect, a version with MJARSIGNER-53 should be used.
-            See the "maven-jarsigner-plugin.version" parameter.
-          -->
-          <certchain>${hudson.sign.certchain}</certchain>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>sign</goal>
-              <goal>verify</goal>
-            </goals>
           </execution>
         </executions>
       </plugin>
@@ -374,7 +332,7 @@ THE SOFTWARE.
           <localCheckout>true</localCheckout>
         </configuration>
       </plugin>
-      <plugin>
+      <plugin> <!-- TODO probably superseded by Incrementals? -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
@@ -444,81 +402,6 @@ THE SOFTWARE.
       <properties>
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
       </properties>
-    </profile>
-    <profile>
-      <id>debug</id>
-      <activation>
-        <property>
-          <name>!hudson.sign.alias</name>
-        </property>
-      </activation>
-      <properties>
-        <hudson.sign.alias>jenkins</hudson.sign.alias>
-        <hudson.sign.keystore>${basedir}/src/test/keystore/dummy.keystore</hudson.sign.keystore>
-        <hudson.sign.storepass>jenkins</hudson.sign.storepass>
-      </properties>
-    </profile>
-    <profile>
-      <id>release</id>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-gpg-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>sign-artifacts</id>
-                <goals>
-                  <goal>sign</goal>
-                </goals>
-                <phase>verify</phase>
-                <configuration>
-                  <gpgArguments>
-                    <arg>--pinentry-mode</arg>
-                    <arg>loopback</arg>
-                  </gpgArguments>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-          <plugin>
-            <artifactId>maven-jarsigner-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>add-tsa</id>
-                <!-- Phase and goal are the default ones -->
-                <!-- TODO: Does it cause conflict with signing parameters in the build? Seems "no". Should also use ${hudson.sign.tsa} -->
-                <configuration>
-                  <arguments>
-                    <argument>-tsa</argument>
-                    <argument>http://timestamp.comodoca.com/rfc3161</argument>
-                  </arguments>
-                </configuration>
-              </execution>
-              <execution>
-                <id>verify-signature</id>
-                <goals>
-                  <goal>verify</goal>
-                </goals>
-                <phase>verify</phase>
-                <configuration>
-                  <processMainArtifact>true</processMainArtifact>
-                  <processAttachedArtifacts>false</processAttachedArtifacts>
-                  <certs>true</certs>
-                  <errorWhenNotSigned>true</errorWhenNotSigned>
-                  <!-- strict, otherwise certificate chains will be ignored -->
-                  <arguments>-strict</arguments>
-                  <alias>${hudson.sign.alias}</alias>
-                  <storepass>${hudson.sign.storepass}</storepass>
-                  <keystore>${hudson.sign.keystore}</keystore>
-                  <storetype>${hudson.sign.storetype}</storetype>
-                  <providerClass>${hudson.sign.providerClass}</providerClass>
-                  <providerArg>${hudson.sign.providerArg}</providerArg>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
     <profile>
       <id>jacoco</id>

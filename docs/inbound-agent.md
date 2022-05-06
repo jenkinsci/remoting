@@ -25,14 +25,8 @@ Note that the secret key will always be the same for a given agent name on the s
 If the secret key of an agent is compromised, do not reuse the agent name on the affected Jenkins controller.
 
 ### "Launch" button
-This is the only launch mechanism that actually uses JNLP.
-When properly configured and supported, clicking this button causes a JNLP file to be downloaded via the web browser and launched with Java WebStart. 
-
-While this is the simplest mechanism it has many drawbacks.
-This is an outdated technology that is being phased out.
-It requires an interactive user.
-If the agent terminates the user will have to click the button again.
-This mechanism is not recommended, is deprecated, and may not be supported or available.
+Historically there was a launch mechanism actually using JavaWebStart/JNLP (`javaws`).
+This has been removed.
 
 ### Download JNLP file
 Another mechanism, shown in the above status page fragment, runs the agent from a script or command-line to retrieve the JNLP file. 
@@ -86,7 +80,6 @@ This mechanism requires a download of the `agent.jar`, as described for "Downloa
 Once all the prerequisite files and data have been obtained, the agent can be launched with a command like this
 ```
 java -cp agent.jar hudson.remoting.jnlp.Main \
-  -headless \
   -workDir <work directory> \
   -direct <HOST:PORT> \
   -protocols JNLP4-connect \
@@ -103,8 +96,7 @@ The parameters available and the default behavior may be different between the e
 On a Microsoft Windows platform, you can install the agent as a Windows Service.
 This allows the Windows Service infrastructure to manage the process lifecycle.
 
-To configure the agent this way, first launch the agent using one of the other mechanisms that doesn't run as headless. 
-In the agent GUI, select "File -> Install as a service". 
+GUI-based service installation has been removed. You can still use the Windows service wrapper.
 Additional descriptions of configuring this mechanism are located at [Installing Jenkins as a Windows service](https://wiki.jenkins.io/display/JENKINS/Installing+Jenkins+as+a+Windows+service) or [How to Install Several Windows Agents as a Service?](https://support.cloudbees.com/hc/en-us/articles/217423827-How-to-Install-Several-Windows-Slaves-as-a-Service-)
 
 ## Parameters
