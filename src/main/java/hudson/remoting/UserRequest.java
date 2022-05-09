@@ -213,7 +213,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                     Thread.currentThread().setContextClassLoader(old);
                 }
             } catch (LinkageError e) {
-                LOGGER.log(Level.WARNING, "LinkageError while performing " + toString(), e);
+                LOGGER.log(channel.isClosingOrClosed() ? Level.FINE : Level.WARNING, "LinkageError while performing " + toString(), e);
                 throw e;
             } finally {
                 Channel.setCurrent(oldc);
