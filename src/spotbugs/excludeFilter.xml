@@ -44,8 +44,6 @@
           <Class name="hudson.remoting.ClassLoaderHolder"/>
           <Class name="hudson.remoting.Command"/>
           <Class name="hudson.remoting.DiagnosedStreamCorruptionException"/>
-          <Class name="hudson.remoting.jnlp.MainDialog"/>
-          <Class name="hudson.remoting.jnlp.MainMenu"/>
           <Class name="hudson.remoting.Pipe"/>
           <Class name="hudson.remoting.Response"/>
           <Class name="org.jenkinsci.remoting.ChannelStateException"/>
