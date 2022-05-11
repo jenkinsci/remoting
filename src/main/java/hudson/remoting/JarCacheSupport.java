@@ -123,18 +123,21 @@ public abstract class JarCacheSupport extends JarCache {
                 LOGGER.log(Level.WARNING, String.format("Interrupted while resolving a jar %016x%016x", sum1, sum2), e);
                 Thread.currentThread().interrupt();
             } catch (Throwable e) {
-                // in other general failures, we aren't retrying
-                // TODO: or should we?
-                promise.set(e);
-
-                LOGGER.log(Level.WARNING, String.format("Failed to resolve a jar %016x%016x", sum1, sum2), e);
+                if (channel.isClosingOrClosed()) {
+                    bailout(e);
+                } else {
+                    // in other general failures, we aren't retrying
+                    // TODO: or should we?
+                    promise.set(e);
+                    LOGGER.log(Level.WARNING, String.format("Failed to resolve a jar %016x%016x", sum1, sum2), e);
+                }
             }
         }
 
         /**
          * Report a failure of the retrieval and allows another thread to retry.
          */
-        private void bailout(Exception e) {
+        private void bailout(Throwable e) {
             inprogress.remove(key);     // this lets another thread to retry later
             promise.set(e);             // then tell those who are waiting that we aborted
         }
