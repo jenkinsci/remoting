@@ -555,8 +555,6 @@ public class Launcher {
                     jnlpArgs.add("-credentials");
                     jnlpArgs.add(agentJnlpCredentials);
                 }
-                // force a headless mode
-                jnlpArgs.add("-headless");
                 return jnlpArgs;
             } catch (SSLHandshakeException e) {
                 if(e.getMessage().contains("PKIX path building failed")) {
