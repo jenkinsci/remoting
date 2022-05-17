@@ -326,12 +326,6 @@ THE SOFTWARE.
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <artifactId>maven-release-plugin</artifactId>
-        <configuration>
-          <localCheckout>true</localCheckout>
-        </configuration>
-      </plugin>
       <plugin> <!-- TODO probably superseded by Incrementals? -->
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
