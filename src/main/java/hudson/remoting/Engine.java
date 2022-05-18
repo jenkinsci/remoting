@@ -546,22 +546,23 @@ public class Engine extends Thread {
     @SuppressFBWarnings(value = {"REC_CATCH_EXCEPTION", "URLCONNECTION_SSRF_FD"}, justification = "checked exceptions were a mistake to begin with; connecting to Jenkins from agent")
     private void runWebSocket() {
         try {
+            String localCap = new Capability().toASCII();
+            final Map<String, List<String>> addedHeaders = new HashMap<>();
+            addedHeaders.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(agentName));
+            addedHeaders.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
+            addedHeaders.put(Capability.KEY, Collections.singletonList(localCap));
+            if (webSocketHeaders != null) {
+                for (Map.Entry<String, String> entry : webSocketHeaders.entrySet()) {
+                    addedHeaders.put(entry.getKey(), Collections.singletonList(entry.getValue()));
+                }
+            }
             while (true) {
                 AtomicReference<Channel> ch = new AtomicReference<>();
-                String localCap = new Capability().toASCII();
                 class HeaderHandler extends ClientEndpointConfig.Configurator {
                     Capability remoteCapability = new Capability();
                     @Override
                     public void beforeRequest(Map<String, List<String>> headers) {
-                        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(agentName));
-                        headers.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
-                        headers.put(Capability.KEY, Collections.singletonList(localCap));
-                        // TODO use JnlpConnectionState.COOKIE_KEY somehow (see EngineJnlpConnectionStateListener.afterChannel)
-                        if (webSocketHeaders != null) {
-                            for (Map.Entry<String, String> entry : webSocketHeaders.entrySet()) {
-                                headers.put(entry.getKey(), Collections.singletonList(entry.getValue()));
-                            }
-                        }
+                        headers.putAll(addedHeaders);
                         LOGGER.fine(() -> "Sending: " + headers);
                     }
                     @Override
@@ -576,6 +577,12 @@ public class Engine extends Thread {
                             }
                         }
                         try {
+                            List<String> cookies = hr.getHeaders().get(JnlpConnectionState.COOKIE_KEY);
+                            if (cookies != null && !cookies.isEmpty()) {
+                                addedHeaders.put(JnlpConnectionState.COOKIE_KEY, Collections.singletonList(cookies.get(0)));
+                            } else {
+                                addedHeaders.remove(JnlpConnectionState.COOKIE_KEY);
+                            }
                             remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
                             LOGGER.fine(() -> "received " + remoteCapability);
                         } catch (IOException x) {
