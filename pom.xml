@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>${revision}${changelist}</version>
+  <version>${changelist}</version>
 
   <name>Jenkins remoting layer</name>
   <description>Contains the bootstrap code to bridge separate JVMs into a single semi-shared space. Reusable outside Jenkins.</description>
@@ -59,8 +59,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <revision>4.15</revision>
-    <changelist>-SNAPSHOT</changelist>
+    <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <build.type>private</build.type>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
