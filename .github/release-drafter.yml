@@ -1,2 +1,1 @@
 _extends: .github
-tag-template: remoting-$NEXT_MINOR_VERSION
