@@ -33,7 +33,6 @@ import org.jvnet.hudson.test.Issue;
 
 import java.io.File;
 import java.net.URL;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -92,7 +91,7 @@ public class EngineTest {
     }
 
     @Test
-    public void retryTest() {
+    public void shouldPerformRetryCount() {
         AtomicInteger count = new AtomicInteger(0);
 
         Engine.exponentialRetry(15,
