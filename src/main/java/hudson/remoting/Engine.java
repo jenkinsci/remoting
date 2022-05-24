@@ -110,6 +110,11 @@ public class Engine extends Thread {
     public static final String REMOTING_MINIMUM_VERSION_HEADER = "X-Remoting-Minimum-Version";
 
     /**
+     * The property name for the cookie name key for websockets.
+     */
+    public static final String WEBSOCKET_COOKIE_KEY = "Connection-Cookie";
+
+    /**
      * Thread pool that sets {@link #CURRENT}.
      */
     private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
@@ -577,11 +582,11 @@ public class Engine extends Thread {
                             }
                         }
                         try {
-                            List<String> cookies = hr.getHeaders().get(JnlpConnectionState.COOKIE_KEY);
+                            List<String> cookies = hr.getHeaders().get(Engine.WEBSOCKET_COOKIE_KEY);
                             if (cookies != null && !cookies.isEmpty()) {
-                                addedHeaders.put(JnlpConnectionState.COOKIE_KEY, Collections.singletonList(cookies.get(0)));
+                                addedHeaders.put(Engine.WEBSOCKET_COOKIE_KEY, Collections.singletonList(cookies.get(0)));
                             } else {
-                                addedHeaders.remove(JnlpConnectionState.COOKIE_KEY);
+                                addedHeaders.remove(Engine.WEBSOCKET_COOKIE_KEY);
                             }
                             remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
                             LOGGER.fine(() -> "received " + remoteCapability);
