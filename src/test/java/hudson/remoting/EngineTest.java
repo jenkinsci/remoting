@@ -96,9 +96,9 @@ public class EngineTest {
         AtomicInteger count = new AtomicInteger(0);
 
         Engine.exponentialRetry(15,
-                () -> count.getAndIncrement() < 10);
+                () -> count.getAndIncrement() < 3);
 
-        assertEquals(11, count.get());
+        assertEquals(4, count.get());
     }
 
     @Test
