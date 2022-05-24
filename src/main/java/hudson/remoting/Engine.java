@@ -236,7 +236,7 @@ public class Engine extends Thread {
     private final String instanceIdentity;
     private final Set<String> protocols;
 
-    private Integer wsRetryAttempts;
+    private Integer retryAttempts;
 
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String agentName) {
         this(listener, hudsonUrls, secretKey, agentName, null, null, null);
@@ -672,15 +672,17 @@ public class Engine extends Thread {
                     try {
                         ContainerProvider.getWebSocketContainer()
                                 .connectToServer(endpoint, endpointConfig, wsAgentsUri);
-                    } catch (UnresolvedAddressException | DeploymentException | IOException x) {
+                    } catch (UnresolvedAddressException x) {
                         LOGGER.log(Level.WARNING, "Error connect to WS server", x);
                         return Boolean.TRUE;
+                    } catch (DeploymentException | IOException x) {
+                        throw new RuntimeException(x);
                     }
 
                     return Boolean.FALSE;
                 };
 
-                Boolean retryResult = exponentialRetry(wsRetryAttempts, wsConnectSupplier);
+                Boolean retryResult = exponentialRetry(retryAttempts, wsConnectSupplier);
 
                 if (retryResult) {
                     throw new IllegalStateException("Can't connect to WebSocket instance");
@@ -1103,8 +1105,8 @@ public class Engine extends Thread {
         return this.protocolName;
     }
 
-    public void setWsRetryAttempts(Integer retryAttempts) {
-        this.wsRetryAttempts = retryAttempts;
+    public void setRetryAttempts(Integer retryAttempts) {
+        this.retryAttempts = retryAttempts;
     }
 
     private class EngineJnlpConnectionStateListener extends JnlpConnectionStateListener {
