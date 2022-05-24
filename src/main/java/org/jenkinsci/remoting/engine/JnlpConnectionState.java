@@ -66,7 +66,7 @@ public class JnlpConnectionState {
     /**
      * The property name for the cookie name key.
      */
-    public static final String COOKIE_KEY = "JnlpAgentProtocol.cookie";
+    public static final String COOKIE_KEY = "Connection-Cookie";
 
     /**
      * Socket connection to the agent.
