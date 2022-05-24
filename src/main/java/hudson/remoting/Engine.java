@@ -31,11 +31,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.Socket;
-import java.net.URI;
-import java.net.URL;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.UnresolvedAddressException;
 import java.nio.file.Path;
@@ -925,18 +921,18 @@ public class Engine extends Thread {
      * @param endpoint Connection endpoint
      * @throws IOException Connection failure or invalid parameter specification
      */
-    private Socket connectTcp(@NonNull JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
+    private Socket connectTcp(@NonNull JnlpAgentEndpoint endpoint) {
         String msg = "Connecting to " + endpoint.getHost() + ':' + endpoint.getPort();
         events.status(msg);
 
-        AtomicReference<Socket> s = new AtomicReference<>();
+        AtomicReference<Socket> socketRef = new AtomicReference<>();
 
         Supplier<Boolean> tcpSupplier = () -> {
             try {
                 Socket socket = endpoint.open(SOCKET_TIMEOUT);
                 socket.setKeepAlive(keepAlive);
 
-                s.set(socket);
+                socketRef.set(socket);
             } catch (IOException x) {
                 LOGGER.log(Level.WARNING, "Can't open TCP connection", x);
                 return Boolean.TRUE;
@@ -951,8 +947,8 @@ public class Engine extends Thread {
             throw new IllegalStateException("TCP socket is not initialized");
         }
 
-        if (s.get() != null) {
-            return s.get();
+        if (socketRef.get() != null) {
+            return socketRef.get();
         }
 
         throw new IllegalStateException("TCP socket is not initialized");
