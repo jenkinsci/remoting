@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -37,6 +37,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.channels.UnresolvedAddressException;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -62,6 +63,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -70,13 +72,11 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import javax.websocket.ClientEndpointConfig;
-import javax.websocket.CloseReason;
-import javax.websocket.ContainerProvider;
-import javax.websocket.Endpoint;
-import javax.websocket.EndpointConfig;
-import javax.websocket.HandshakeResponse;
-import javax.websocket.Session;
+import javax.websocket.*;
+
+import io.github.resilience4j.core.IntervalFunction;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryConfig;
 import net.jcip.annotations.NotThreadSafe;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
@@ -180,7 +180,7 @@ public class Engine extends Thread {
      * @since 2.62.1
      */
     private boolean keepAlive = true;
-    
+
     @CheckForNull
     private JarCache jarCache = null;
 
@@ -192,14 +192,14 @@ public class Engine extends Thread {
      */
     @CheckForNull
     private Path agentLog;
-    
+
     /**
      * Specified location of the property file with JUL settings.
      * @since 3.8
      */
     @CheckForNull
     private Path loggingConfigFilePath = null;
-    
+
     /**
      * Specifies a default working directory of the remoting instance.
      * If specified, this directory will be used to store logs, JAR cache, etc.
@@ -235,6 +235,8 @@ public class Engine extends Thread {
     private final String directConnection;
     private final String instanceIdentity;
     private final Set<String> protocols;
+
+    private Integer wsRetryAttempts;
 
     public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String agentName) {
         this(listener, hudsonUrls, secretKey, agentName, null, null, null);
@@ -280,7 +282,7 @@ public class Engine extends Thread {
     public synchronized void startEngine() throws IOException {
         startEngine(false);
     }
-     
+
     /**
      * Starts engine.
      * @param dryRun If {@code true}, do not actually start the engine.
@@ -289,7 +291,7 @@ public class Engine extends Thread {
     /*package*/ void startEngine(boolean dryRun) throws IOException {
         LOGGER.log(Level.INFO, "Using Remoting version: {0}", Launcher.VERSION);
         @CheckForNull File jarCacheDirectory = null;
-        
+
         // Prepare the working directory if required
         if (workDir != null) {
             final WorkDirManager workDirManager = WorkDirManager.getInstance();
@@ -297,11 +299,11 @@ public class Engine extends Thread {
                 // Somebody has already specificed Jar Cache, hence we do not need it in the workspace.
                 workDirManager.disable(WorkDirManager.DirType.JAR_CACHE_DIR);
             }
-            
+
             if (loggingConfigFilePath != null) {
                 workDirManager.setLoggingConfig(loggingConfigFilePath.toFile());
             }
-            
+
             final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
             jarCacheDirectory = workDirManager.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
             workDirManager.setupLogging(path, agentLog);
@@ -309,7 +311,7 @@ public class Engine extends Thread {
             LOGGER.log(Level.WARNING, "No Working Directory. Using the legacy JAR Cache location: {0}", JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION);
             jarCacheDirectory = JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION;
         }
-        
+
         if (jarCache == null){
             if (jarCacheDirectory == null) {
                 // Should never happen in the current code
@@ -324,7 +326,7 @@ public class Engine extends Thread {
         } else {
             LOGGER.log(Level.INFO, "Using custom JAR Cache: {0}", jarCache);
         }
-        
+
         // Start the engine thread
         if (!dryRun) {
             this.start();
@@ -340,7 +342,7 @@ public class Engine extends Thread {
     public void setJarCache(@NonNull JarCache jarCache) {
         this.jarCache = jarCache;
     }
-    
+
     /**
      * Sets path to the property file with JUL settings.
      * @param filePath JAR Cache to be used
@@ -660,8 +662,30 @@ public class Engine extends Thread {
                 }
                 hudsonUrl = candidateUrls.get(0);
                 String wsUrl = hudsonUrl.toString().replaceFirst("^http", "ws");
-                ContainerProvider.getWebSocketContainer().connectToServer(new AgentEndpoint(),
-                    ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(wsUrl + "wsagents/"));
+                ClientEndpointConfig endpointConfig = ClientEndpointConfig.Builder.create()
+                        .configurator(headerHandler).build();
+                URI wsAgentsUri = URI.create(wsUrl + "wsagents/");
+
+                Supplier<Boolean> wsConnectSupplier = () -> {
+                    AgentEndpoint endpoint = new AgentEndpoint();
+
+                    try {
+                        ContainerProvider.getWebSocketContainer()
+                                .connectToServer(endpoint, endpointConfig, wsAgentsUri);
+                    } catch (UnresolvedAddressException | DeploymentException | IOException x) {
+                        LOGGER.log(Level.WARNING, "Error connect to WS server", x);
+                        return Boolean.TRUE;
+                    }
+
+                    return Boolean.FALSE;
+                };
+
+                Boolean retryResult = exponentialRetry(wsRetryAttempts, wsConnectSupplier);
+
+                if (retryResult) {
+                    throw new IllegalStateException("Can't connect to WebSocket instance");
+                }
+
                 while (ch.get() == null) {
                     Thread.sleep(100);
                 }
@@ -695,6 +719,26 @@ public class Engine extends Thread {
         } catch (Exception e) {
             events.error(e);
         }
+    }
+
+    /**
+     * Tries to perform supplier function with exponential retry
+     *
+     * @param attempts Retry attempts
+     * @param supplier Supplier function
+     * @return
+     */
+    public static Boolean exponentialRetry(Integer attempts, Supplier<Boolean> supplier) {
+        IntervalFunction fn = IntervalFunction.ofExponentialBackoff();
+        RetryConfig rc = RetryConfig.custom()
+                .maxAttempts(attempts)
+                .intervalFunction(fn)
+                .retryOnResult(result -> (Boolean) result)
+                .build();
+
+        Retry retry = Retry.of("retry", rc);
+
+        return retry.executeSupplier(supplier);
     }
 
     private void reconnect() {
@@ -1028,7 +1072,7 @@ public class Engine extends Thread {
         }
         return sslSocketFactory;
     }
-    
+
     /**
      * Socket read timeout.
      * A {@link SocketInputStream#read()} call associated with underlying Socket will block for only this amount of time
@@ -1057,6 +1101,10 @@ public class Engine extends Thread {
      */
     public String getProtocolName() {
         return this.protocolName;
+    }
+
+    public void setWsRetryAttempts(Integer retryAttempts) {
+        this.wsRetryAttempts = retryAttempts;
     }
 
     private class EngineJnlpConnectionStateListener extends JnlpConnectionStateListener {

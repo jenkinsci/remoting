@@ -33,62 +33,74 @@ import org.jvnet.hudson.test.Issue;
 
 import java.io.File;
 import java.net.URL;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * Tests of {@link Engine}
  * @author Oleg Nenashev
  */
 public class EngineTest {
-    
+
     private static final String SECRET_KEY = "Hello, world!";
     private static final String AGENT_NAME = "testAgent";
     private List<URL> jenkinsUrls;
-    
+
     @Rule
     public TemporaryFolder tmpDir = new TemporaryFolder();
-    
+
     @Rule
     public WorkDirManagerRule mgr = new WorkDirManagerRule();
-    
+
     @Before
     public void init() throws Exception {
         jenkinsUrls = Collections.singletonList(new URL("http://my.jenkins.not.existent"));
     }
-    
+
     @Test
     @Issue("JENKINS-44290")
     public void shouldInitializeCorrectlyWithDefaults() throws Exception {
         EngineListener l = new TestEngineListener();
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.startEngine(true);
-        
+
         // Cache will go to ~/.jenkins , we do not want to worry anbout this repo
-        assertTrue("Default JarCache should be touched: " + JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath(), 
+        assertTrue("Default JarCache should be touched: " + JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath(),
                 JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.exists());
     }
-    
+
     @Test
     public void shouldInitializeCorrectlyWithCustomCache() throws Exception {
         File jarCache = new File(tmpDir.getRoot(), "jarCache");
-        
+
         EngineListener l = new TestEngineListener();
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setJarCache(new FileSystemJarCache(jarCache, true));
         engine.startEngine(true);
-        
+
         // Cache will go to ~/.jenkins , should be touched by default
-        assertTrue("The specified JarCache should be touched: " + jarCache.getAbsolutePath(), 
+        assertTrue("The specified JarCache should be touched: " + jarCache.getAbsolutePath(),
                 jarCache.exists());
     }
-    
+
+    @Test
+    public void retryTest() {
+        AtomicInteger count = new AtomicInteger(0);
+
+        Engine.exponentialRetry(15,
+                () -> count.getAndIncrement() < 10);
+
+        assertEquals(11, count.get());
+    }
+
     @Test
     public void shouldInitializeCorrectlyWithWorkDir() throws Exception {
         File workDir = new File(tmpDir.getRoot(), "workDir");
@@ -96,14 +108,14 @@ public class EngineTest {
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setWorkDir(workDir.toPath());
         engine.startEngine(true);
-        
+
         WorkDirManager mgr = WorkDirManager.getInstance();
         File workDirLoc = mgr.getLocation(WorkDirManager.DirType.WORK_DIR);
-        assertThat("The initialized work directory should equal to the one passed in parameters", 
+        assertThat("The initialized work directory should equal to the one passed in parameters",
                 workDirLoc, equalTo(workDir));
         assertTrue("The work directory should exist", workDir.exists());
     }
-    
+
     @Test
     public void shouldUseCustomCacheDirIfRequired() throws Exception {
         File workDir = new File(tmpDir.getRoot(), "workDir");
@@ -113,7 +125,7 @@ public class EngineTest {
         engine.setWorkDir(workDir.toPath());
         engine.setJarCache(new FileSystemJarCache(jarCache, true));
         engine.startEngine(true);
-        
+
         WorkDirManager mgr = WorkDirManager.getInstance();
         File location = mgr.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
         assertThat("WorkDir manager should not be aware about external JAR cache location", location, nullValue());
@@ -153,6 +165,6 @@ public class EngineTest {
         public void onReconnect() {
             // Do nothing
         }
-        
+
     }
 }
