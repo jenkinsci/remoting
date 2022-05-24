@@ -794,23 +794,25 @@ public class Engine extends Thread {
 
                 Boolean retryResult = exponentialRetry(retryAttempts, endpointSupplier);
 
-                if (retryResult || endpointRef.get() == null) {
+                JnlpAgentEndpoint jnlpAgentEndpoint = endpointRef.get();
+
+                if (retryResult || jnlpAgentEndpoint == null) {
                     events.status("Could not resolve server among " + candidateUrls);
                     return;
                 }
 
-                hudsonUrl = endpointRef.get().getServiceUrl();
+                hudsonUrl = jnlpAgentEndpoint.getServiceUrl();
 
                 events.status(String.format("Agent discovery successful%n"
                         + "  Agent address: %s%n"
                         + "  Agent port:    %d%n"
                         + "  Identity:      %s",
-                        endpointRef.get().getHost(),
-                        endpointRef.get().getPort(),
-                        KeyUtils.fingerprint(endpointRef.get().getPublicKey()))
+                        jnlpAgentEndpoint.getHost(),
+                        jnlpAgentEndpoint.getPort(),
+                        KeyUtils.fingerprint(jnlpAgentEndpoint.getPublicKey()))
                 );
                 PublicKeyMatchingX509ExtendedTrustManager delegate = new PublicKeyMatchingX509ExtendedTrustManager();
-                RSAPublicKey publicKey = endpointRef.get().getPublicKey();
+                RSAPublicKey publicKey = jnlpAgentEndpoint.getPublicKey();
                 if (publicKey != null) {
                     // This is so that JNLP4-connect will only connect if the public key matches
                     // if the public key is not published then JNLP4-connect will refuse to connect
@@ -819,7 +821,7 @@ public class Engine extends Thread {
                 agentTrustManager.setDelegate(delegate);
 
                 events.status("Handshaking");
-                Socket jnlpSocket = connectTcp(endpointRef.get());
+                Socket jnlpSocket = connectTcp(jnlpAgentEndpoint);
                 Channel channel = null;
 
                 try {
@@ -831,16 +833,16 @@ public class Engine extends Thread {
                             continue;
                         }
                         if (jnlpSocket == null) {
-                            jnlpSocket = connectTcp(endpointRef.get());
+                            jnlpSocket = connectTcp(jnlpAgentEndpoint);
                         }
-                        if (!endpointRef.get().isProtocolSupported(protocol.getName())) {
+                        if (!jnlpAgentEndpoint.isProtocolSupported(protocol.getName())) {
                             events.status("Server reports protocol " + protocol.getName() + " not supported, skipping");
                             continue;
                         }
                         triedAtLeastOneProtocol = true;
                         events.status("Trying protocol: " + protocol.getName());
                         try {
-                            channel = protocol.connect(jnlpSocket, headers, new EngineJnlpConnectionStateListener(endpointRef.get().getPublicKey(), headers)).get();
+                            channel = protocol.connect(jnlpSocket, headers, new EngineJnlpConnectionStateListener(jnlpAgentEndpoint.getPublicKey(), headers)).get();
                         } catch (IOException ioe) {
                             events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
                         } catch (RuntimeException e) {
