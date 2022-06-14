@@ -222,6 +222,15 @@ THE SOFTWARE.
             <phase>package</phase>
             <configuration>
               <createDependencyReducedPom>false</createDependencyReducedPom>
+              <filters>
+                <filter>
+                  <artifact>args4j:args4j</artifact>
+                  <excludes>
+                    <exclude>OSGI-OPT/**/*.html</exclude>
+                    <exclude>OSGI-OPT/**/*.java</exclude>
+                  </excludes>
+                </filter>
+              </filters>
               <relocations>
                 <relocation>
                   <pattern>javax.websocket</pattern>
