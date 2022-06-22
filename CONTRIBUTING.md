@@ -12,5 +12,5 @@ If you need it, please mention it in the pull request or JIRA ticket.
 
 ### Q&A
 
-Use the [Jenkins developer mailing list](https://groups.google.com/forum/#!forum/jenkinsci-dev) or the <code>#jenkins</code> IRC channel on Freenode to sync-up with remoting developers.
+Use the [Jenkins developer mailing list](https://groups.google.com/g/jenkinsci-dev) or the <code>#jenkins</code> IRC channel on Libera.Chat to sync-up with remoting developers.
 In the case of the mailing list, it's a good practice to CC maintainers directly.
