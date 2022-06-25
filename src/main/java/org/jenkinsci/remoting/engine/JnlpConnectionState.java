@@ -32,11 +32,11 @@ import hudson.remoting.ChannelBuilder;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import net.jcip.annotations.NotThreadSafe;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 
@@ -337,7 +337,7 @@ public class JnlpConnectionState {
                 handler.invoke(current, this);
                 if (lifecycle != this.lifecycle) {
                     // a listener has changed the state, thus they are the owner
-                    listeners.retainAll(Collections.singleton(current));
+                    listeners.retainAll(Set.of(current));
                     return;
                 }
             }

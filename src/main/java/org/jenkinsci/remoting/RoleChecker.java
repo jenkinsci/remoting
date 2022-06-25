@@ -6,7 +6,7 @@ import hudson.remoting.ChannelBuilder;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Set;
 
 /**
  * Verifies that the callable is getting run on the intended recipient.
@@ -36,7 +36,7 @@ public abstract class RoleChecker {
     public abstract void check(@NonNull RoleSensitive subject, @NonNull Collection<Role> expected) throws SecurityException;
 
     public void check(@NonNull RoleSensitive subject, @NonNull Role expected) throws SecurityException {
-        check(subject, Collections.singleton(expected));
+        check(subject, Set.of(expected));
     }
 
     public void check(@NonNull RoleSensitive subject, Role... expected) throws SecurityException {

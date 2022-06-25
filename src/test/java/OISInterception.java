@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
-import java.util.Collections;
+import java.util.Set;
 
 /**
  * Experimenting with inspecting stream contents as it is read.
@@ -16,7 +16,7 @@ public class OISInterception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
 
-        oos.writeObject(Collections.singleton("foo"));
+        oos.writeObject(Set.of("foo"));
         oos.close();
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray())) {

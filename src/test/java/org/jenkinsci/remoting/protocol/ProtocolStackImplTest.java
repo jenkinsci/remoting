@@ -53,7 +53,7 @@ import java.nio.channels.Pipe;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -380,7 +380,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
                                 headers -> {}))
                         .build(new IOBufferMatcherLayer());
 
@@ -389,7 +389,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
                                 headers -> {}))
                         .build(new IOBufferMatcherLayer());
 
@@ -421,7 +421,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastChannel, eastChannel))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
                                 headers -> {}))
                         .build(new IOBufferMatcherLayer());
 
@@ -430,7 +430,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), westChannel, westChannel))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
                                 headers -> {}))
                         .build(new IOBufferMatcherLayer());
 
@@ -460,7 +460,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -468,7 +468,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
@@ -496,7 +496,7 @@ public class ProtocolStackImplTest {
                         .named("east")
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -505,7 +505,7 @@ public class ProtocolStackImplTest {
                         .named("west")
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
@@ -529,7 +529,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new NIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -537,7 +537,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new NIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
@@ -565,7 +565,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new NIONetworkLayer(selector.hub(), eastChannel, eastChannel))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "east"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -573,7 +573,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new NIONetworkLayer(selector.hub(), westChannel, westChannel))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "west"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
@@ -599,7 +599,7 @@ public class ProtocolStackImplTest {
                         .on(new NIONetworkLayer(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
                                 headers -> {
                                     throw new ConnectionRefusalException("I don't like you, Mr. Server");
                                 }))
@@ -610,7 +610,7 @@ public class ProtocolStackImplTest {
                         .on(new NIONetworkLayer(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         try {
@@ -646,7 +646,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new NIONetworkLayer(selector.hub(), clientSocketChannel, clientSocketChannel))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
                                 headers -> {
                                     throw new ConnectionRefusalException("I don't like you, Mr. Server");
                                 }))
@@ -656,7 +656,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new NIONetworkLayer(selector.hub(), serverSocketChannel, serverSocketChannel))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         try {
@@ -690,7 +690,7 @@ public class ProtocolStackImplTest {
                         .on(new NIONetworkLayer(selector.hub(), serverToClient.source(), clientToServer.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -699,7 +699,7 @@ public class ProtocolStackImplTest {
                         .on(new NIONetworkLayer(selector.hub(), clientToServer.source(), serverToClient.sink()))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
                                 headers -> {
                                     throw new ConnectionRefusalException("I don't like you, Mr. Server");
                                 }))
@@ -737,7 +737,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new NIONetworkLayer(selector.hub(), clientSocketChannel, clientSocketChannel))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -745,7 +745,7 @@ public class ProtocolStackImplTest {
                 ProtocolStack.on(new NIONetworkLayer(selector.hub(), serverSocketChannel, serverSocketChannel))
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
                                 headers -> {
                                     throw new ConnectionRefusalException("I don't like you, Mr. Client");
                                 }))
@@ -783,7 +783,7 @@ public class ProtocolStackImplTest {
                         .filter(clientHold)
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -794,7 +794,7 @@ public class ProtocolStackImplTest {
                         .filter(serverHold)
                         .filter(new AckFilterLayer("ACk"))
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         clientHold.release();
@@ -835,7 +835,7 @@ public class ProtocolStackImplTest {
                         .filter(clientHold)
                         .filter(new AckFilterLayer())
                         .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
 
@@ -845,7 +845,7 @@ public class ProtocolStackImplTest {
                         .filter(serverHold)
                         .filter(new AckFilterLayer("ACk"))
                         .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         clientHold.release();

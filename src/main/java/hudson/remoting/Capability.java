@@ -194,7 +194,7 @@ public final class Capability implements Serializable {
     public String toASCII() throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             write(baos);
-            return baos.toString(StandardCharsets.US_ASCII.name());
+            return baos.toString(StandardCharsets.US_ASCII);
         }
     }
 

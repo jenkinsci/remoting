@@ -330,9 +330,7 @@ public class ConnectionHeadersFilterLayerTest {
         final CompletableFuture<Map<String, String>> serverActualHeaders = new CompletableFuture<>();
         Map<String, String> clientExpectedHeaders = new HashMap<>(64);
         StringBuilder bigString = new StringBuilder(8*128);
-        for (int i = 0; i < 128; i++) {
-            bigString.append("Too Big!");
-        }
+        bigString.append("Too Big!".repeat(128));
         for (int i = 0; i < 64; i++) {
             clientExpectedHeaders.put(String.format("key-%d", i), bigString.toString());
         }

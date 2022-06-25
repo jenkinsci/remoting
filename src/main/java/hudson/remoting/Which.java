@@ -178,8 +178,7 @@ public class Which {
         if(resURL.startsWith("vfs:")) {
             // JBoss6
             StringBuilder dotdot= new StringBuilder();
-            for (int i=qualifiedName.split("/").length; i>1; i--)
-                dotdot.append("../");
+            dotdot.append("../".repeat(Math.max(0, qualifiedName.split("/").length - 1)));
 
             try {
                 URL jar = new URL(res,dotdot.toString());
@@ -248,7 +247,7 @@ public class Which {
             }
             baos.write(ch);
         }
-        return new String(baos.toByteArray(), StandardCharsets.UTF_8);
+        return baos.toString(StandardCharsets.UTF_8);
     }
 
     private static int hexToInt(int ch) {
