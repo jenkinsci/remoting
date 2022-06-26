@@ -177,11 +177,10 @@ public class Which {
 
         if(resURL.startsWith("vfs:")) {
             // JBoss6
-            StringBuilder dotdot= new StringBuilder();
-            dotdot.append("../".repeat(Math.max(0, qualifiedName.split("/").length - 1)));
+            String dotdot = "../".repeat(Math.max(0, qualifiedName.split("/").length - 1));
 
             try {
-                URL jar = new URL(res,dotdot.toString());
+                URL jar = new URL(res,dotdot);
                 String path = jar.getPath();
                 if (path.endsWith("/")) path=path.substring(0,path.length()-1);
                 // obtain the file name portion
