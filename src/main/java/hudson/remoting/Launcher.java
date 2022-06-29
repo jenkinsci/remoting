@@ -150,8 +150,13 @@ public class Launcher {
         Method $addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
         $addURL.setAccessible(true);
 
-        for(String token : pathList.split(File.pathSeparator))
-            $addURL.invoke(ClassLoader.getSystemClassLoader(),new File(token).toURI().toURL());
+        try {
+            for(String token : pathList.split(File.pathSeparator))
+                $addURL.invoke(ClassLoader.getSystemClassLoader(),new File(token).toURI().toURL());
+        } catch (IllegalArgumentException ex) {
+            // looks like Java > 8 ... ignore it ...
+            LOGGER.log(Level.WARNING, "Cannot do reflection - ignore it...", ex);
+        }
 
         // fix up the system.class.path to pretend that those jar files
         // are given through CLASSPATH or something.
