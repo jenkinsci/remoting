@@ -90,7 +90,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         channel.call(new ForceJarLoad(sum1));
         channel.call(new ForceJarLoad(sum2));
 
-        Callable<Void,IOException> sc = (Callable<Void, IOException>)cl.loadClass("test.ClassLoadingFromJarTester").newInstance();
+        Callable<Void,IOException> sc = (Callable<Void, IOException>)cl.loadClass("test.ClassLoadingFromJarTester").getDeclaredConstructor().newInstance();
         ((Function<Function<Object, Object>, Void>)sc).apply(new Verifier());
         assertNull(channel.call(sc));
     }
@@ -115,7 +115,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         channel.call(new ForceJarLoad(sum1));
         channel.call(new ForceJarLoad(sum2));
 
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResource").newInstance();
+        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResource").getDeclaredConstructor().newInstance();
         String v = channel.call(c);
         System.out.println(v);
 
@@ -123,7 +123,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     }
 
     public void testGetResource_precache() throws Exception {
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResource").newInstance();
+        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResource").getDeclaredConstructor().newInstance();
         String v = channel.call(c);
         System.out.println(v);
 
@@ -131,7 +131,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     }
 
     public void testGetResourceAsStream() throws Exception {
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResourceAsStream").newInstance();
+        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResourceAsStream").getDeclaredConstructor().newInstance();
         String v = channel.call(c);
         assertEquals("hello",v);
     }
@@ -160,7 +160,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         channel.call(new ForceJarLoad(sum1));
         channel.call(new ForceJarLoad(sum2));
 
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResources").newInstance();
+        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResources").getDeclaredConstructor().newInstance();
         String v = channel.call(c);
         System.out.println(v);  // should find two resources
 
@@ -177,7 +177,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
      * Unlike {@link #testGetResources()}, the URL should begin with file:... before the jar file gets cached
      */
     public void testGetResources_precache() throws Exception {
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResources").newInstance();
+        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResources").getDeclaredConstructor().newInstance();
         String v = channel.call(c);
         System.out.println(v);  // should find two resources
 
@@ -191,7 +191,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
 
     public void testInnerClass() throws Exception {
         Echo<Object> e = new Echo<>();
-        e.value = cl.loadClass("test.Foo").newInstance();
+        e.value = cl.loadClass("test.Foo").getDeclaredConstructor().newInstance();
         Object r = channel.call(e);
 
         ((Predicate<Void>)r).apply(null); // this verifies that the object is still in a good state

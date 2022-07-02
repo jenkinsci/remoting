@@ -177,12 +177,10 @@ public class Which {
 
         if(resURL.startsWith("vfs:")) {
             // JBoss6
-            StringBuilder dotdot= new StringBuilder();
-            for (int i=qualifiedName.split("/").length; i>1; i--)
-                dotdot.append("../");
+            String dotdot = "../".repeat(Math.max(0, qualifiedName.split("/").length - 1));
 
             try {
-                URL jar = new URL(res,dotdot.toString());
+                URL jar = new URL(res,dotdot);
                 String path = jar.getPath();
                 if (path.endsWith("/")) path=path.substring(0,path.length()-1);
                 // obtain the file name portion
@@ -248,7 +246,7 @@ public class Which {
             }
             baos.write(ch);
         }
-        return new String(baos.toByteArray(), StandardCharsets.UTF_8);
+        return baos.toString(StandardCharsets.UTF_8);
     }
 
     private static int hexToInt(int ch) {

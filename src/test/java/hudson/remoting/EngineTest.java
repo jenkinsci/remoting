@@ -33,7 +33,6 @@ import org.jvnet.hudson.test.Issue;
 
 import java.io.File;
 import java.net.URL;
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -60,7 +59,7 @@ public class EngineTest {
     
     @Before
     public void init() throws Exception {
-        jenkinsUrls = Collections.singletonList(new URL("http://my.jenkins.not.existent"));
+        jenkinsUrls = List.of(new URL("http://my.jenkins.not.existent"));
     }
     
     @Test
