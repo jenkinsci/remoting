@@ -26,11 +26,10 @@ package org.jenkinsci.remoting.util;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.remoting.AtmostOneThreadExecutor;
 import hudson.remoting.Channel;
-
 import hudson.remoting.DaemonThreadFactory;
 import hudson.remoting.NamingThreadFactory;
+
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
@@ -39,11 +38,13 @@ import java.security.CodeSource;
 import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Logger;
 
 /**
  * Issues warnings about attempts to (de-)serialize anonymous, local, or synthetic classes.
+ *
  * @see <a href="https://jenkins.io/redirect/serialization-of-anonymous-classes/">More information</a>
  */
 public class AnonymousClassWarnings {
@@ -51,7 +52,7 @@ public class AnonymousClassWarnings {
     private static final Logger LOGGER = Logger.getLogger(AnonymousClassWarnings.class.getName());
     private static final Map<Class<?>, Boolean> checked = new WeakHashMap<>();
 
-    private final static ExecutorService THREAD_POOL =  new AtmostOneThreadExecutor(new NamingThreadFactory(new DaemonThreadFactory(), AnonymousClassWarnings.class.getSimpleName()));
+    private static final ExecutorService THREAD_POOL = Executors.newFixedThreadPool(1, new NamingThreadFactory(new DaemonThreadFactory(), AnonymousClassWarnings.class.getSimpleName()));
 
     /**
      * Checks a class which is being either serialized or deserialized.
