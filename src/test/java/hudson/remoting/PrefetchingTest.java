@@ -41,7 +41,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 new URL[] {toFile(jar1).toURI().toURL(), toFile(jar2).toURI().toURL()},
                 this.getClass().getClassLoader());
 
-        dir = Files.createTempDirectory("remoting" + "cache").toFile();
+        dir = Files.createTempDirectory("remoting-cache").toFile();
 
         channel.setJarCache(new FileSystemJarCache(dir, true));
         channel.call(new JarCacherCallable());
