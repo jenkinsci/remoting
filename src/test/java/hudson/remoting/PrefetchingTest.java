@@ -11,6 +11,7 @@ import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -40,9 +41,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 new URL[] {toFile(jar1).toURI().toURL(), toFile(jar2).toURI().toURL()},
                 this.getClass().getClassLoader());
 
-        dir = File.createTempFile("remoting", "cache");
-        dir.delete();
-        dir.mkdirs();
+        dir = Files.createTempDirectory("remoting" + "cache").toFile();
 
         channel.setJarCache(new FileSystemJarCache(dir, true));
         channel.call(new JarCacherCallable());
