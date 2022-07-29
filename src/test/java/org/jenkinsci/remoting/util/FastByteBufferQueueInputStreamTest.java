@@ -150,7 +150,7 @@ public class FastByteBufferQueueInputStreamTest {
         while (-1 != (b = is.read())) {
             tmp.write(b);
         }
-        return new String(tmp.toByteArray(), StandardCharsets.UTF_8);
+        return tmp.toString(StandardCharsets.UTF_8);
     }
 
     private static String read(InputStream is, int count) throws IOException {
@@ -160,6 +160,6 @@ public class FastByteBufferQueueInputStreamTest {
             tmp.write(b);
             count--;
         }
-        return new String(tmp.toByteArray(), StandardCharsets.UTF_8);
+        return tmp.toString(StandardCharsets.UTF_8);
     }
 }

@@ -40,6 +40,7 @@ import java.io.ObjectOutputStream;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -254,7 +255,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
             try (ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos))) {
                 oos.writeObject(new Capability());
             }
-            ByteBuffer buffer = ByteBufferUtils.wrapUTF8(bos.toString("US-ASCII"));
+            ByteBuffer buffer = ByteBufferUtils.wrapUTF8(bos.toString(StandardCharsets.US_ASCII));
             write(buffer);
         } catch (IOException e) {
             futureChannel.setException(e);

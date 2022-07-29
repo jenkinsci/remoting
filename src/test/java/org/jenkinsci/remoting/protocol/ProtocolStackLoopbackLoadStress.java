@@ -70,8 +70,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Collections;
 import java.util.Date;
+import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -219,7 +219,7 @@ public class ProtocolStackLoopbackLoadStress {
                             .named(String.format("Serving client %s", fromClient.toString()))
                             .filter(new AckFilterLayer())
                             .filter(ssl ? new SSLEngineFilterLayer(sslEngine, null) : null)
-                            .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "server"),
+                            .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
                                     headers -> {}))
                             .build(new ChannelApplicationLayer(executorService, null));
                     hub.execute(() -> {
@@ -320,7 +320,7 @@ public class ProtocolStackLoopbackLoadStress {
                         .named(String.format("Client %d:  %s -> %s", n, toServer.getLocalAddress(), serverAddress))
                         .filter(new AckFilterLayer())
                         .filter(ssl ? new SSLEngineFilterLayer(sslEngine, null) : null)
-                        .filter(new ConnectionHeadersFilterLayer(Collections.singletonMap("id", "client"),
+                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(executorService, null)).get().get();
         timer[n % timer.length].scheduleAtFixedRate(new TimerTask() {

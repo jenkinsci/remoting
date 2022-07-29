@@ -33,7 +33,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
@@ -100,7 +99,7 @@ public class DefaultClassFilterTest {
      */
     @Test(expected=Error.class)
     public void testDefaultsAreUsedIfOverridesAreGarbage() throws Exception {
-        List<String> badClasses = Collections.singletonList("Z{100,0}" /* min > max for repetition */);
+        List<String> badClasses = List.of("Z{100,0}" /* min > max for repetition */);
         File f = folder.newFile("overrides.txt");
         try (FileOutputStream fos = new FileOutputStream(f)) {
             for (String s : badClasses) {

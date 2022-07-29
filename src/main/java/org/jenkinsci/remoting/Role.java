@@ -4,7 +4,7 @@ import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Set;
 
 /**
  * Represents different roles two sides of the channel plays.
@@ -89,5 +89,5 @@ public final class Role {
     /**
      * Convenience singleton collection that only include {@link #UNKNOWN}
      */
-    public static final Collection<Role> UNKNOWN_SET = Collections.singleton(UNKNOWN);
+    public static final Collection<Role> UNKNOWN_SET = Set.of(UNKNOWN);
 }

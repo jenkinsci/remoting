@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.76</version>
+    <version>1.82</version>
     <relativePath />
   </parent>
 
@@ -314,7 +314,7 @@ THE SOFTWARE.
       </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>3.4.2</version>
         <configuration>
           <descriptors>
             <descriptor>src/assembly/agent-load-test.xml</descriptor>

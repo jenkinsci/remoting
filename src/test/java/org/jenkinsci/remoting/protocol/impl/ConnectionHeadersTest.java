@@ -48,8 +48,8 @@ public class ConnectionHeadersTest {
 
     @Test
     public void singleValueRoundTrip() throws Exception {
-        assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(Collections.singletonMap("a", "b"))),
-                is(Collections.singletonMap("a", "b")));
+        assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(Map.of("a", "b"))),
+                is(Map.of("a", "b")));
     }
 
     @Test
@@ -69,7 +69,7 @@ public class ConnectionHeadersTest {
 
     @Test
     public void newlineEscaping() {
-        assertThat(ConnectionHeaders.toString(Collections.singletonMap("a\nmultiline\nkey", "b")),
+        assertThat(ConnectionHeaders.toString(Map.of("a\nmultiline\nkey", "b")),
                 not(containsString("\n")));
     }
 

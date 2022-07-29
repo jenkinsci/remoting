@@ -52,7 +52,6 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -553,12 +552,12 @@ public class Engine extends Thread {
         try {
             String localCap = new Capability().toASCII();
             final Map<String, List<String>> addedHeaders = new HashMap<>();
-            addedHeaders.put(JnlpConnectionState.CLIENT_NAME_KEY, Collections.singletonList(agentName));
-            addedHeaders.put(JnlpConnectionState.SECRET_KEY, Collections.singletonList(secretKey));
-            addedHeaders.put(Capability.KEY, Collections.singletonList(localCap));
+            addedHeaders.put(JnlpConnectionState.CLIENT_NAME_KEY, List.of(agentName));
+            addedHeaders.put(JnlpConnectionState.SECRET_KEY, List.of(secretKey));
+            addedHeaders.put(Capability.KEY, List.of(localCap));
             if (webSocketHeaders != null) {
                 for (Map.Entry<String, String> entry : webSocketHeaders.entrySet()) {
-                    addedHeaders.put(entry.getKey(), Collections.singletonList(entry.getValue()));
+                    addedHeaders.put(entry.getKey(), List.of(entry.getValue()));
                 }
             }
             while (true) {
@@ -584,7 +583,7 @@ public class Engine extends Thread {
                         try {
                             List<String> cookies = hr.getHeaders().get(Engine.WEBSOCKET_COOKIE_HEADER);
                             if (cookies != null && !cookies.isEmpty()) {
-                                addedHeaders.put(Engine.WEBSOCKET_COOKIE_HEADER, Collections.singletonList(cookies.get(0)));
+                                addedHeaders.put(Engine.WEBSOCKET_COOKIE_HEADER, List.of(cookies.get(0)));
                             } else {
                                 addedHeaders.remove(Engine.WEBSOCKET_COOKIE_HEADER);
                             }

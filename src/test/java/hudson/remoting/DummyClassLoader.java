@@ -68,7 +68,7 @@ class DummyClassLoader extends ClassLoader {
 
         private byte[] loadTransformedClassImage() throws IOException {
             InputStream in = getResourceAsStream(physicalPath);
-            String data = IOUtils.toString(in, "ISO-8859-1");
+            String data = IOUtils.toString(in, StandardCharsets.ISO_8859_1);
             // Single-character substitutions will not change length fields in bytecode etc.
             String data2 = data.replaceAll("remoting(.)Test", "rem0ting$1Test");
             return data2.getBytes(StandardCharsets.ISO_8859_1);
