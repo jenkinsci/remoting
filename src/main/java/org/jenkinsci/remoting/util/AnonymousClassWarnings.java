@@ -53,8 +53,8 @@ public class AnonymousClassWarnings {
      */
     public static void check(@NonNull Class<?> clazz) {
         synchronized (checked) {
-            if (checked.containsKey(clazz)) {
-                return; // fast path
+            if (checked.put(clazz, true) != null) {
+                return;
             }
         }
         Channel channel = Channel.current();
@@ -85,18 +85,11 @@ public class AnonymousClassWarnings {
     private static void warn(@NonNull Class<?> c, String kind) {
         String name = c.getName();
         String codeSource = codeSource(c);
-        // Need to be very defensive about calling anything while holding this lock, lest we trigger class loading-related deadlocks.
-        boolean doWarn;
-        synchronized (checked) {
-            doWarn = checked.put(c, true) == null;
-        }
-        if (doWarn) {
-            if (codeSource == null) {
-                LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
-            } else {
-                // most easily tracked back to source using javap -classpath <location> -l '<name>'
-                LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name + " in " + codeSource + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
-            }
+        if (codeSource == null) {
+            LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
+        } else {
+            // most easily tracked back to source using javap -classpath <location> -l '<name>'
+            LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name + " in " + codeSource + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
         }
     }
 
