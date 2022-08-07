@@ -72,13 +72,13 @@ public class SSLEngineFilterLayerTest {
     private static RSAKeyPairRule clientKey = new RSAKeyPairRule();
     private static RSAKeyPairRule serverKey = new RSAKeyPairRule();
     private static RSAKeyPairRule caRootKey = new RSAKeyPairRule();
-    private static X509CertificateRule caRootCert = X509CertificateRule.create("caRoot", caRootKey, caRootKey);
-    private static X509CertificateRule clientCert = X509CertificateRule.create("client", clientKey, caRootKey);
-    private static X509CertificateRule serverCert = X509CertificateRule.create("server", serverKey, caRootKey);
+    private static X509CertificateRule caRootCert = X509CertificateRule.create("caRoot", caRootKey, caRootKey, null);
+    private static X509CertificateRule clientCert = X509CertificateRule.create("client", clientKey, caRootKey, caRootCert);
+    private static X509CertificateRule serverCert = X509CertificateRule.create("server", serverKey, caRootKey, caRootCert);
     private static X509CertificateRule expiredClientCert =
-            X509CertificateRule.create("expiredClient", clientKey, caRootKey, -10, -5, TimeUnit.DAYS);
+            X509CertificateRule.create("expiredClient", clientKey, caRootKey, caRootCert, -10, -5, TimeUnit.DAYS);
     private static X509CertificateRule notYetValidServerCert =
-            X509CertificateRule.create("notYetValidServer", serverKey, caRootKey, +5, +10, TimeUnit.DAYS);
+            X509CertificateRule.create("notYetValidServer", serverKey, caRootKey, caRootCert, +5, +10, TimeUnit.DAYS);
     private static SSLContextRule clientCtx =
             new SSLContextRule("client")
                     .as(clientKey, clientCert, caRootCert)

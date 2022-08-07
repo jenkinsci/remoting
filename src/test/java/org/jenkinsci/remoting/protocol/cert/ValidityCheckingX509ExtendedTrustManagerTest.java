@@ -41,8 +41,8 @@ public class ValidityCheckingX509ExtendedTrustManagerTest {
 
     public static RSAKeyPairRule key = new RSAKeyPairRule("main");
 
-    public static X509CertificateRule cert = new X509CertificateRule("main", key, key, -1, 1, TimeUnit.HOURS);
-    public static X509CertificateRule expired = new X509CertificateRule("main", key, key, -100, -99, TimeUnit.HOURS);
+    public static X509CertificateRule cert = new X509CertificateRule("main", key, key, null, -1, 1, TimeUnit.HOURS);
+    public static X509CertificateRule expired = new X509CertificateRule("main", key, key, null, -100, -99, TimeUnit.HOURS);
 
     @ClassRule
     public static RuleChain chain = RuleChain.outerRule(key)
