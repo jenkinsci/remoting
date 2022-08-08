@@ -68,7 +68,7 @@ THE SOFTWARE.
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.excludeFilterFile>${basedir}/src/spotbugs/excludeFilter.xml</spotbugs.excludeFilterFile>
     <spotbugs.threshold>Low</spotbugs.threshold>
-    <bc-version>1.70</bc-version>
+    <bc-version>1.71</bc-version>
   </properties>
 
   <dependencies>
@@ -147,13 +147,13 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcpkix-jdk15on</artifactId>
+      <artifactId>bcpkix-jdk18on</artifactId>
       <version>${bc-version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
-      <artifactId>bcprov-jdk15on</artifactId>
+      <artifactId>bcprov-jdk18on</artifactId>
       <version>${bc-version}</version>
       <scope>test</scope>
     </dependency>
