@@ -389,17 +389,6 @@ THE SOFTWARE.
 
   <profiles>
     <profile>
-      <id>all-tests</id>
-      <activation>
-        <property>
-          <name>!test</name>
-        </property>
-      </activation>
-      <properties>
-        <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
-      </properties>
-    </profile>
-    <profile>
       <id>jacoco</id>
       <build>
         <plugins>
