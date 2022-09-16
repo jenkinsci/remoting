@@ -1027,7 +1027,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         }
 
         final Future<UserRequest.ResponseToUserRequest<V, T>> f = new UserRequest<V, T>(this, callable).callAsync(this);
-        return new FutureAdapter<V, UserRequest.ResponseToUserRequest<V, T>>(f) {
+        return new FutureAdapter<>(f) {
             @Override
             protected V adapt(UserRequest.ResponseToUserRequest<V, T> r) throws ExecutionException {
                 try {

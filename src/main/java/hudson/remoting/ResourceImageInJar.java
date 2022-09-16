@@ -42,12 +42,12 @@ class ResourceImageInJar extends ResourceImageRef {
 
     @Override
     Future<byte[]> resolve(Channel channel, final String resourcePath) throws IOException, InterruptedException {
-        return new FutureAdapter<byte[],URL>(_resolveJarURL(channel)) {
+        return new FutureAdapter<>(_resolveJarURL(channel)) {
             @Override
             @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files.")
             protected byte[] adapt(URL jar) throws ExecutionException {
                 try {
-                    return Util.readFully(toResourceURL(jar,resourcePath).openStream());
+                    return Util.readFully(toResourceURL(jar, resourcePath).openStream());
                 } catch (IOException e) {
                     throw new ExecutionException(e);
                 }
@@ -57,7 +57,7 @@ class ResourceImageInJar extends ResourceImageRef {
 
     @Override
     Future<URLish> resolveURL(Channel channel, final String resourcePath) throws IOException, InterruptedException {
-        return new FutureAdapter<URLish,URL>(_resolveJarURL(channel)) {
+        return new FutureAdapter<>(_resolveJarURL(channel)) {
             @Override
             protected URLish adapt(URL jar) throws ExecutionException {
                 try {

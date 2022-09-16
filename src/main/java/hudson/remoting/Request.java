@@ -237,7 +237,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
         startTime = System.nanoTime();
         channel.send(this);
 
-        return new hudson.remoting.Future<RSP>() {
+        return new hudson.remoting.Future<>() {
 
             private volatile boolean cancelled;
 
@@ -264,23 +264,23 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
 
             @Override
             public boolean isDone() {
-                return isCancelled() || response!=null;
+                return isCancelled() || response != null;
             }
 
             @Override
             public RSP get() throws InterruptedException, ExecutionException {
-                synchronized(Request.this) {
+                synchronized (Request.this) {
                     String oldThreadName = Thread.currentThread().getName();
-                    Thread.currentThread().setName(oldThreadName+" for "+channel.getName()+" id="+id);
+                    Thread.currentThread().setName(oldThreadName + " for " + channel.getName() + " id=" + id);
                     try {
-                        while(response==null) {
+                        while (response == null) {
                             if (isCancelled()) {
                                 throw new CancellationException();
                             }
                             if (channel.isInClosed()) {
                                 throw new ExecutionException(new RequestAbortedException(null));
                             }
-                            Request.this.wait(30*1000); // wait until the response arrives
+                            Request.this.wait(30 * 1000); // wait until the response arrives
                         }
                     } catch (InterruptedException e) {
                         try {
@@ -293,7 +293,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                         Thread.currentThread().setName(oldThreadName);
                     }
 
-                    if(response.exception!=null)
+                    if (response.exception != null)
                         throw new ExecutionException(response.exception);
 
                     return response.returnValue;
@@ -314,7 +314,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                         if (channel.isInClosed()) {
                             throw new ExecutionException(new RequestAbortedException(null));
                         }
-                        Request.this.wait(Math.min(30*1000,Math.max(1, TimeUnit.NANOSECONDS.toMillis(end - now))));
+                        Request.this.wait(Math.min(30 * 1000, Math.max(1, TimeUnit.NANOSECONDS.toMillis(end - now))));
                         now = System.nanoTime();
                     }
                     if (response == null)
