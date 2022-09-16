@@ -2125,9 +2125,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          */
         @Override
         public String toString() {
-            return "Channel.Ref{" + "channel=" + channel +
-                    ",name=" + name +
-                    '}';
+            return "Channel.Ref{channel=" + channel + ",name=" + name + "}";
         }
     }
 }
