@@ -107,15 +107,13 @@ public class ClassFilterTest implements Serializable {
     @Test
     public void capabilityRead() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(baos));
-        oos.writeObject(new Security218("rifle"));
-        oos.close();
-
-        try {
-            Capability.read(new ByteArrayInputStream(baos.toByteArray()));
-        } catch (SecurityException e) {
-            assertEquals("Rejected: "+Security218.class.getName(), e.getMessage());
+        try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(baos))) {
+            oos.writeObject(new Security218("rifle"));
         }
+
+        final SecurityException e = assertThrows(SecurityException.class,
+                () -> Capability.read(new ByteArrayInputStream(baos.toByteArray())));
+        assertEquals("Rejected: " + Security218.class.getName(), e.getMessage());
     }
 
     /**
@@ -146,14 +144,10 @@ public class ClassFilterTest implements Serializable {
         clearRecord();
 
         // the test case that should be rejected by a filter.
-        try {
-            fire("napoleon", south);
-            fail("Expected call to fail");
-        } catch (IOException e) {
-            String msg = toString(e);
-            assertTrue(msg, msg.contains("Rejected: " + Security218.class.getName()));
-            assertEquals("", getAttack());
-        }
+        final IOException e = assertThrows(IOException.class, () -> fire("napoleon", south));
+        String msg = toString(e);
+        assertTrue(msg, msg.contains("Rejected: " + Security218.class.getName()));
+        assertEquals("", getAttack());
     }
 
     /**

@@ -59,7 +59,7 @@ public class LocalChannel implements VirtualChannel {
             }
         });
 
-        return new Future<V>() {
+        return new Future<>() {
             @Override
             public boolean cancel(boolean mayInterruptIfRunning) {
                 return f.cancel(mayInterruptIfRunning);
@@ -82,7 +82,7 @@ public class LocalChannel implements VirtualChannel {
 
             @Override
             public V get(long timeout, @NonNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                return f.get(timeout,unit);
+                return f.get(timeout, unit);
             }
         };
     }

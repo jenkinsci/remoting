@@ -39,9 +39,9 @@ public class DiagnosedStreamCorruptionExceptionTest {
             fail();
         } catch (DiagnosedStreamCorruptionException e) {
             StringWriter s = new StringWriter();
-            PrintWriter w = new PrintWriter(s);
-            e.printStackTrace(w);
-            w.close();
+            try (PrintWriter w = new PrintWriter(s)) {
+                e.printStackTrace(w);
+            }
 
             String msg = s.toString();
             assertTrue(msg,msg.contains("Read ahead: 0x02 0x03 0x04 0x05"));

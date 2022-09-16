@@ -187,7 +187,7 @@ public abstract class Command implements Serializable {
 
         @Override
         public String toString() {
-            return "Command "+Command.this.toString()+" created at";
+            return "Command " + Command.this + " created at";
         }
 
         private static final long serialVersionUID = 1L;

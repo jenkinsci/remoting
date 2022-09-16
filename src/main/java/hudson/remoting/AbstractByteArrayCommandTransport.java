@@ -78,9 +78,9 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
     @Override
     public final void write(Command cmd, boolean last) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(baos);
-        cmd.writeTo(channel,oos);
-        oos.close();
+        try (ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(baos)) {
+            cmd.writeTo(channel, oos);
+        }
         byte[] block = baos.toByteArray();
         channel.notifyWrite(cmd, block.length);
         writeBlock(channel, block);

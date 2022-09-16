@@ -140,7 +140,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         this.channel = channel == null ? null : channel.ref();
         this.oid = id;
         this.userProxy = userProxy;
-        this.origin = recordCreatedAt ? new Exception("Proxy " + toString() + " was created for " + proxyType) : null;
+        this.origin = recordCreatedAt ? new Exception("Proxy " + this + " was created for " + proxyType) : null;
         this.autoUnexportByCaller = autoUnexportByCaller;
         this.userSpace = userSpace;
         this.recordCreatedAt = recordCreatedAt;

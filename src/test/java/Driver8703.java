@@ -15,11 +15,6 @@ import java.util.concurrent.Future;
 public class Driver8703 {
     @Issue("JENKINS-8703")
     public static void main(String[] args) throws Throwable {
-//        int i=0;
-//        while (true) {
-//            System.out.println(i++);
-//            foo();
-//        }
 
         ExecutorService es = Executors.newCachedThreadPool();
         List<Future<Object>> flist = new ArrayList<>();

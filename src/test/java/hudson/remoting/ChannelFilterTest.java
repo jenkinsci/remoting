@@ -4,6 +4,8 @@ import org.jenkinsci.remoting.CallableDecorator;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 
+import static org.junit.Assert.assertThrows;
+
 /**
  * @author Kohsuke Kawaguchi
  */
@@ -58,13 +60,8 @@ public class ChannelFilterTest extends RmiTestBase {
         assertEquals("gun",channel.call(new GunImporter()));
 
         // the other direction should be rejected
-        try {
-            channel.call(new ReverseGunImporter());
-            fail("should have failed");
-        } catch (Exception e) {
-            assertEquals("Rejecting "+GunImporter.class.getName(), findSecurityException(e).getMessage());
-//            e.printStackTrace();
-        }
+        final IOException e = assertThrows(IOException.class, () -> channel.call(new ReverseGunImporter()));
+        assertEquals("Rejecting "+GunImporter.class.getName(), findSecurityException(e).getMessage());
     }
     private static SecurityException findSecurityException(Throwable x) {
         if (x instanceof SecurityException) {

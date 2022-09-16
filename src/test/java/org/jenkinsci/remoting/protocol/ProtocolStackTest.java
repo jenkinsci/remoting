@@ -45,7 +45,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 public class ProtocolStackTest {
 
@@ -179,97 +179,94 @@ public class ProtocolStackTest {
             logger.setLevel(Level.FINEST);
             assertThat(logger.isLoggable(Level.FINEST), is(true));
             final AtomicInteger state = new AtomicInteger();
-            try {
-                ProtocolStack.on(new NetworkLayer(selector) {
+            final IOException e = assertThrows(IOException.class, () -> ProtocolStack.on(new NetworkLayer(selector) {
 
-                    @Override
-                    protected void write(@NonNull ByteBuffer data) {
-                    }
+                @Override
+                protected void write(@NonNull ByteBuffer data) {
+                }
 
-                    @Override
-                    public void start() {
-                        state.compareAndSet(0, 1);
-                    }
+                @Override
+                public void start() {
+                    state.compareAndSet(0, 1);
+                }
 
-                    @Override
-                    public void doCloseSend() {
-                    }
+                @Override
+                public void doCloseSend() {
+                }
 
-                    @Override
-                    public void doCloseRecv() {
-                    }
-
-
-                    @Override
-                    public boolean isSendOpen() {
-                        return true;
-                    }
-
-                }).filter(new FilterLayer() {
-                    @Override
-                    public void start() throws IOException {
-                        state.compareAndSet(1, 2);
-                        throw new IOException("boom");
-                    }
-
-                    @Override
-                    public void onRecv(@NonNull ByteBuffer data) {
-                    }
-
-                    @Override
-                    public void doSend(@NonNull ByteBuffer data) {
-                    }
-
-                }).filter(new FilterLayer() {
-                    @Override
-                    public void start() {
-                        state.set(-2);
-                    }
-
-                    @Override
-                    public void onRecv(@NonNull ByteBuffer data) {
-                    }
-
-                    @Override
-                    public void doSend(@NonNull ByteBuffer data) {
-                    }
-
-                    @Override
-                    public void onRecvClosed(IOException cause) throws IOException {
-                        state.compareAndSet(2, 3);
-                        super.onRecvClosed(cause);
-                    }
-                }).named("initSeq").build(new ApplicationLayer<Void>() {
-                    @Override
-                    public Void get() {
-                        return null;
-                    }
-
-                    @Override
-                    public void onRead(@NonNull ByteBuffer data) {
-                    }
-
-                    @Override
-                    public void start() {
-                        state.set(-3);
-                    }
+                @Override
+                public void doCloseRecv() {
+                }
 
 
-                    @Override
-                    public void onReadClosed(IOException cause) {
-                        state.compareAndSet(3, 4);
-                    }
+                @Override
+                public boolean isSendOpen() {
+                    return true;
+                }
 
-                    @Override
-                    public boolean isReadOpen() {
-                        return true;
-                    }
+            }).filter(new FilterLayer() {
+                @Override
+                public void start() throws IOException {
+                    state.compareAndSet(1, 2);
+                    throw new IOException("boom");
+                }
 
-                });
-                fail("Expecting IOException");
-            } catch (IOException e) {
-                assertThat(e.getMessage(), is("boom"));
-            }
+                @Override
+                public void onRecv(@NonNull ByteBuffer data) {
+                }
+
+                @Override
+                public void doSend(@NonNull ByteBuffer data) {
+                }
+
+            }).filter(new FilterLayer() {
+                @Override
+                public void start() {
+                    state.set(-2);
+                }
+
+                @Override
+                public void onRecv(@NonNull ByteBuffer data) {
+                }
+
+                @Override
+                public void doSend(@NonNull ByteBuffer data) {
+                }
+
+                @Override
+                public void onRecvClosed(IOException cause) throws IOException {
+                    state.compareAndSet(2, 3);
+                    super.onRecvClosed(cause);
+                }
+            }).named("initSeq").build(new ApplicationLayer<Void>() {
+                @Override
+                public Void get() {
+                    return null;
+                }
+
+                @Override
+                public void onRead(@NonNull ByteBuffer data) {
+                }
+
+                @Override
+                public void start() {
+                    state.set(-3);
+                }
+
+
+                @Override
+                public void onReadClosed(IOException cause) {
+                    state.compareAndSet(3, 4);
+                }
+
+                @Override
+                public boolean isReadOpen() {
+                    return true;
+                }
+
+            }));
+            assertThat(e.getMessage(), is("boom"));
+
             assertThat(handler.logRecords, contains(
                     allOf(hasProperty("message", is("[{0}] Initializing")),
                             hasProperty("parameters", is(new Object[]{"initSeq"}))),

@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import org.jenkinsci.remoting.util.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -176,12 +177,7 @@ final class ProxyInputStream extends InputStream {
             }
             
             channel.unexport(oid,createdAt,false);
-            
-            try {
-                in.close();
-            } catch (IOException e) {
-                // ignore errors
-            }
+            IOUtils.closeQuietly(in);
         }
 
         @Override

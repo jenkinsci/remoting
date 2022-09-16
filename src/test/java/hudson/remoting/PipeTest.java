@@ -38,6 +38,10 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThrows;
+
 /**
  * Test {@link Pipe}.
  *
@@ -67,20 +71,12 @@ public class PipeTest extends RmiTestBase implements Serializable {
     public void testReaderCloseWhileWriterIsStillWriting() throws Exception {
         final Pipe p = Pipe.createRemoteToLocal();
         final Future<Void> f = channel.callAsync(new InfiniteWriter(p));
-        final InputStream in = p.getIn();
-        assertEquals(in.read(), 0);
-        in.close();
-
-        try {
-            f.get();
-            fail();
-        } catch (ExecutionException e) {
-            // should have resulted in an IOException
-            if (!(e.getCause() instanceof IOException)) {
-                e.printStackTrace();
-                fail();
-            }
+        try (InputStream in = p.getIn()) {
+            assertEquals(in.read(), 0);
         }
+
+        final ExecutionException e = assertThrows(ExecutionException.class, f::get);
+        assertThat(e.getCause(), instanceOf(IOException.class));
     }
 
     /**
@@ -244,13 +240,13 @@ public class PipeTest extends RmiTestBase implements Serializable {
     }
 
     private static void write(Pipe pipe) throws IOException {
-        OutputStream os = pipe.getOut();
-        byte[] buf = new byte[384];
-        for( int i=0; i<256; i++ ) {
-            Arrays.fill(buf,(byte)i);
-            os.write(buf,0,256);
+        try (OutputStream os = pipe.getOut()) {
+            byte[] buf = new byte[384];
+            for (int i = 0; i < 256; i++) {
+                Arrays.fill(buf, (byte) i);
+                os.write(buf, 0, 256);
+            }
         }
-        os.close();
     }
 
     private static void read(Pipe p) throws IOException, AssertionError {
@@ -264,11 +260,11 @@ public class PipeTest extends RmiTestBase implements Serializable {
 
 
     public void _testSendBigStuff() throws Exception {
-        OutputStream f = channel.call(new DevNullSink());
-
-        for (int i=0; i<1024*1024; i++)
-            f.write(new byte[8000]);
-        f.close();
+        try (OutputStream f = channel.call(new DevNullSink())) {
+            for (int i = 0; i < 1024 * 1024; i++) {
+                f.write(new byte[8000]);
+            }
+        }
     }
 
     /**
@@ -277,9 +273,9 @@ public class PipeTest extends RmiTestBase implements Serializable {
     public void testQuickBurstWrite() throws Exception {
         final Pipe p = Pipe.createLocalToRemote();
         Future<Integer> f = channel.callAsync(new QuickBurstCallable(p));
-        OutputStream os = p.getOut();
-        os.write(1);
-        os.close();
+        try (OutputStream os = p.getOut()) {
+            os.write(1);
+        }
 
         // at this point the async executable kicks in.
         // TODO: introduce a lock to ensure the ordering.

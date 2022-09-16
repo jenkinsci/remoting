@@ -36,7 +36,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 public class ConnectionHeadersTest {
 
@@ -202,12 +202,9 @@ public class ConnectionHeadersTest {
     public void utilityClass_2() throws Exception {
         Constructor<ConnectionHeaders> constructor = ConnectionHeaders.class.getDeclaredConstructor();
         constructor.setAccessible(true);
-        try {
-            constructor.newInstance();
-            fail();
-        } catch (InvocationTargetException e) {
-            assertThat(e.getCause(), instanceOf(IllegalAccessError.class));
-        }
+
+        final InvocationTargetException e = assertThrows(InvocationTargetException.class, constructor::newInstance);
+        assertThat(e.getCause(), instanceOf(IllegalAccessError.class));
     }
 
 }

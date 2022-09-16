@@ -6,6 +6,8 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
 
+import static org.junit.Assert.assertThrows;
+
 /**
  * @author Kohsuke Kawaguchi
  */
@@ -42,19 +44,18 @@ public class DeadRemoteOutputStreamTest extends RmiTestBase implements Serializa
             System.gc();
             Thread.sleep(1000);
 
-            try {
+
+            final IOException e = assertThrows(IOException.class, () -> {
                 for (int i=0; i<100; i++) {
                     os.write(0);
                     System.gc();
                     Thread.sleep(10);
                 }
-                fail("Expected to see the failure");
-            } catch (IOException e) {
-                StringWriter sw = new StringWriter();
-                e.printStackTrace(new PrintWriter(sw));
-                String whole = sw.toString();
-                assertTrue(whole, whole.contains(MESSAGE) && whole.contains("hudson.rem0ting.TestCallable"));
-            }
+            });
+            StringWriter sw = new StringWriter();
+            e.printStackTrace(new PrintWriter(sw));
+            String whole = sw.toString();
+            assertTrue(whole, whole.contains(MESSAGE) && whole.contains("hudson.rem0ting.TestCallable"));
             return null;
         }
         private static final long serialVersionUID = 1L;

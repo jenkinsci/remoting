@@ -29,6 +29,8 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static org.junit.Assert.assertThrows;
+
 /**
  * Testing the basic features.
  * 
@@ -57,23 +59,17 @@ public class SimpleTest extends RmiTestBase {
     }
 
 
-    public void test2() throws Exception {
-        try {
-            channel.call(new Callable2());
-            fail();
-        } catch (RuntimeException e) {
-            assertEquals(e.getMessage(),"foo");
-        }
+    public void test2() {
+        final RuntimeException e = assertThrows(RuntimeException.class, () -> channel.call(new Callable2()));
+        assertEquals(e.getMessage(),"foo");
     }
 
-    public void test2Async() throws Exception {
-        try {
+    public void test2Async() {
+        final ExecutionException e = assertThrows(ExecutionException.class, () -> {
             Future<Integer> r = channel.callAsync(new Callable2());
             r.get();
-            fail();
-        } catch (ExecutionException e) {
-            assertEquals(e.getCause().getMessage(),"foo");
-        }
+        });
+        assertEquals(e.getCause().getMessage(),"foo");
     }
 
     private static class Callable2 extends CallableBase<Integer, RuntimeException> {
@@ -120,12 +116,9 @@ public class SimpleTest extends RmiTestBase {
         Cancellable task = new Cancellable();
         Future<Integer> r = channel.callAsync(task);
         r.cancel(true);
-        try {
-            r.get();
-            fail("should not return normally");
-        } catch (CancellationException x) {
-            // right
-        }
+
+        assertThrows("should not return normally", CancellationException.class, r::get);
+
         assertTrue(r.isCancelled());
         assertFalse(task.ran);
         // TODO ought to also test various other aspects: cancelling before start, etc.

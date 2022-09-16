@@ -41,11 +41,10 @@ import java.util.Random;
 public class BinarySafeStreamTest extends TestCase {
     public void test1() throws IOException {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        OutputStream o = BinarySafeStream.wrap(buf);
         byte[] data = "Sending some data to make sure it's encoded".getBytes(StandardCharsets.UTF_8);
-
-        o.write(data);
-        o.close();
+        try (OutputStream o = BinarySafeStream.wrap(buf)) {
+            o.write(data);
+        }
 
         InputStream in = BinarySafeStream.wrap(new ByteArrayInputStream(buf.toByteArray()));
         for (byte b : data) {
@@ -60,9 +59,9 @@ public class BinarySafeStreamTest extends TestCase {
         String master = Base64.getEncoder().encodeToString(ds);
 
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        OutputStream o = BinarySafeStream.wrap(buf);
-        o.write(ds,0,ds.length);
-        o.close();
+        try (OutputStream o = BinarySafeStream.wrap(buf)) {
+            o.write(ds, 0, ds.length);
+        }
         assertEquals(buf.toString(),master);
     }
 
@@ -145,59 +144,66 @@ public class BinarySafeStreamTest extends TestCase {
     }
 
     private void randomCopy(Random r, InputStream in, OutputStream out, boolean randomFlash) throws IOException {
-        try {
-            while(true) {
-                switch(r.nextInt(3)) {
-                case 0:
-                    int ch = in.read();
-                    if(dump)
-                        System.out.println("read1("+ch+')');
-                    assertTrue(255>=ch && ch>=-1);  // make sure the range is [-1,255]
-                    if(ch==-1)
-                        return;
-                    out.write(ch);
-                    break;
+        try (out) {
+            while (true) {
+                switch (r.nextInt(3)) {
+                    case 0:
+                        int ch = in.read();
+                        if (dump) {
+                            System.out.println("read1(" + ch + ')');
+                        }
+                        assertTrue(255 >= ch && ch >= -1);  // make sure the range is [-1,255]
+                        if (ch == -1) {
+                            return;
+                        }
+                        out.write(ch);
+                        break;
 
-                case 1:
-                    int start = r.nextInt(16);
-                    int chunk = r.nextInt(16);
-                    int trail = r.nextInt(16);
+                    case 1:
+                        int start = r.nextInt(16);
+                        int chunk = r.nextInt(16);
+                        int trail = r.nextInt(16);
 
-                    byte[] tmp = new byte[start+chunk+trail];
-                    int len = in.read(tmp, start, chunk);
-                    if(dump)
-                        System.out.println("read2("+print(tmp,start,len)+",len="+len+",chunk="+chunk+")");
-                    if(len==-1)
-                        return;
+                        byte[] tmp = new byte[start + chunk + trail];
+                        int len = in.read(tmp, start, chunk);
+                        if (dump) {
+                            System.out.println("read2(" + print(tmp, start, len) + ",len=" + len + ",chunk=" + chunk + ")");
+                        }
+                        if (len == -1) {
+                            return;
+                        }
 
-                    // check extra data corruption
-                    for( int i=0; i<start; i++)
-                        assertEquals(tmp[i],0);
-                    for( int i=0; i<trail; i++)
-                        assertEquals(tmp[start+chunk+i],0);
+                        // check extra data corruption
+                        for (int i = 0; i < start; i++) {
+                            assertEquals(tmp[i], 0);
+                        }
+                        for (int i = 0; i < trail; i++) {
+                            assertEquals(tmp[start + chunk + i], 0);
+                        }
 
-                    out.write(tmp,start,len);
-                    break;
+                        out.write(tmp, start, len);
+                        break;
 
-                case 2:
-                    len = r.nextInt(16);
-                    tmp = new byte[len];
-                    len = in.read(tmp);
-                    if(dump)
-                        System.out.println("read3("+print(tmp,0,len)+",len="+len+')');
-                    if(len==-1)
-                        return;
+                    case 2:
+                        len = r.nextInt(16);
+                        tmp = new byte[len];
+                        len = in.read(tmp);
+                        if (dump) {
+                            System.out.println("read3(" + print(tmp, 0, len) + ",len=" + len + ')');
+                        }
+                        if (len == -1) {
+                            return;
+                        }
 
-                    // obtain the array of the exact size
-                    byte[] n = new byte[len];
-                    System.arraycopy(tmp,0,n,0,len);
-                    out.write(n);
+                        // obtain the array of the exact size
+                        byte[] n = new byte[len];
+                        System.arraycopy(tmp, 0, n, 0, len);
+                        out.write(n);
                 }
-                if(randomFlash && r.nextInt(8)==0)
+                if (randomFlash && r.nextInt(8) == 0) {
                     out.flush();
+                }
             }
-        } finally {
-            out.close();
         }
     }
 

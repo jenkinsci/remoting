@@ -41,7 +41,7 @@ public class FastByteBufferQueueInputStreamTest {
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
-        FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
+        FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue, 26);
 
         assertThat(read(instance), is(str));
     }
@@ -114,23 +114,22 @@ public class FastByteBufferQueueInputStreamTest {
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
-        FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
-
-        StringBuilder buf = new StringBuilder();
-        int b;
-        do {
-            if (instance.skip(1) != 1) {
-                b = -1;
-            } else {
-                b = instance.read();
-                if (b != -1) {
-                    buf.append((char) b);
+        try (FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26)) {
+            StringBuilder buf = new StringBuilder();
+            int b;
+            do {
+                if (instance.skip(1) != 1) {
+                    b = -1;
+                } else {
+                    b = instance.read();
+                    if (b != -1) {
+                        buf.append((char) b);
+                    }
                 }
-            }
-        } while (b != -1);
-        instance.close();
+            } while (b != -1);
 
-        assertThat(buf.toString(), is("bdfhjlnprtvxz"));
+            assertThat(buf.toString(), is("bdfhjlnprtvxz"));
+        }
     }
 
     @Test

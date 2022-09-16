@@ -254,9 +254,9 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
     private static final class Greedy extends Exception {
         public String print() {
             StringWriter sw = new StringWriter();
-            PrintWriter pw = new PrintWriter(sw);
-            printStackTrace(pw);
-            pw.close();
+            try (PrintWriter pw = new PrintWriter(sw)) {
+                printStackTrace(pw);
+            }
             return sw.toString();
         }
     }

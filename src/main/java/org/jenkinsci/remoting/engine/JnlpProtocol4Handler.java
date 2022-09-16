@@ -59,6 +59,7 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
 import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
+import org.jenkinsci.remoting.util.IOUtils;
 
 /**
  * Implements the JNLP4-connect protocol. This protocol uses {@link SSLEngine} to perform a TLS upgrade of the plaintext
@@ -359,11 +360,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
             }
             event.fireChannelClosed(cause);
             channel.removeListener(this);
-            try {
-                event.getSocket().close();
-            } catch (IOException e) {
-                // ignore
-            }
+            IOUtils.closeQuietly(event.getSocket());
         }
 
         /**
@@ -375,11 +372,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                 event.fireAfterDisconnect();
             } finally {
                 stack.removeListener(this);
-                try {
-                    event.getSocket().close();
-                } catch (IOException e) {
-                    // ignore
-                }
+                IOUtils.closeQuietly(event.getSocket());
             }
         }
     }

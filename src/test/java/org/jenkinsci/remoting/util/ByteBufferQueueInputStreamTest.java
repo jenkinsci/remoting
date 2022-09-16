@@ -75,16 +75,15 @@ public class ByteBufferQueueInputStreamTest {
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
-        ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue);
-
-        byte[] bytes = new byte[10];
-        assertThat(instance.read(bytes), is(10));
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("AbCdEfGhIj"));
-        assertThat(instance.read(bytes), is(10));
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("KlMnOpQrSt"));
-        assertThat(instance.read(bytes), is(6));
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("UvWxYzQrSt"));
-        instance.close();
+        try (ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue)) {
+            byte[] bytes = new byte[10];
+            assertThat(instance.read(bytes), is(10));
+            assertThat(new String(bytes, StandardCharsets.UTF_8), is("AbCdEfGhIj"));
+            assertThat(instance.read(bytes), is(10));
+            assertThat(new String(bytes, StandardCharsets.UTF_8), is("KlMnOpQrSt"));
+            assertThat(instance.read(bytes), is(6));
+            assertThat(new String(bytes, StandardCharsets.UTF_8), is("UvWxYzQrSt"));
+        }
     }
 
     @Test
@@ -93,20 +92,19 @@ public class ByteBufferQueueInputStreamTest {
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
-        ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue);
-
-        byte[] bytes = new byte[10];
-        assertThat(instance.read(bytes,5,3), is(3));
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("\u0000\u0000\u0000\u0000\u0000AbC\u0000\u0000"));
-        assertThat(instance.read(bytes, 0, 2), is(2));
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("dE\u0000\u0000\u0000AbC\u0000\u0000"));
-        assertThat(instance.read(bytes, 2, 8), is(8));
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEfGhIjKlM"));
-        assertThat(instance.read(bytes, 2, 8), is(8));
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEnOpQrStU"));
-        assertThat(instance.read(bytes, 2, 8), is(5));
-        assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEvWxYzStU"));
-        instance.close();
+        try (ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue)) {
+            byte[] bytes = new byte[10];
+            assertThat(instance.read(bytes, 5, 3), is(3));
+            assertThat(new String(bytes, StandardCharsets.UTF_8), is("\u0000\u0000\u0000\u0000\u0000AbC\u0000\u0000"));
+            assertThat(instance.read(bytes, 0, 2), is(2));
+            assertThat(new String(bytes, StandardCharsets.UTF_8), is("dE\u0000\u0000\u0000AbC\u0000\u0000"));
+            assertThat(instance.read(bytes, 2, 8), is(8));
+            assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEfGhIjKlM"));
+            assertThat(instance.read(bytes, 2, 8), is(8));
+            assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEnOpQrStU"));
+            assertThat(instance.read(bytes, 2, 8), is(5));
+            assertThat(new String(bytes, StandardCharsets.UTF_8), is("dEvWxYzStU"));
+        }
     }
 
     @Test
@@ -115,23 +113,22 @@ public class ByteBufferQueueInputStreamTest {
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
-        ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue);
-
-        StringBuilder buf = new StringBuilder();
-        int b;
-        do {
-            if (instance.skip(1) != 1) {
-                b = -1;
-            } else {
-                b = instance.read();
-                if (b != -1) {
-                    buf.append((char) b);
+        try (ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue) ) {
+            StringBuilder buf = new StringBuilder();
+            int b;
+            do {
+                if (instance.skip(1) != 1) {
+                    b = -1;
+                } else {
+                    b = instance.read();
+                    if (b != -1) {
+                        buf.append((char) b);
+                    }
                 }
-            }
-        } while (b != -1);
-        instance.close();
+            } while (b != -1);
 
-        assertThat(buf.toString(), is("bdfhjlnprtvxz"));
+            assertThat(buf.toString(), is("bdfhjlnprtvxz"));
+        }
     }
 
     @Test
