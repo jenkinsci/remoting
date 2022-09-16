@@ -60,7 +60,7 @@ public class ChannelFilterTest extends RmiTestBase {
         assertEquals("gun",channel.call(new GunImporter()));
 
         // the other direction should be rejected
-        final Exception e = assertThrows(Exception.class, () -> channel.call(new ReverseGunImporter()));
+        final IOException e = assertThrows(IOException.class, () -> channel.call(new ReverseGunImporter()));
         assertEquals("Rejecting "+GunImporter.class.getName(), findSecurityException(e).getMessage());
     }
     private static SecurityException findSecurityException(Throwable x) {
