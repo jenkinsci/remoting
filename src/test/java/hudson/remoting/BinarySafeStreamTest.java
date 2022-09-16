@@ -149,11 +149,13 @@ public class BinarySafeStreamTest extends TestCase {
                 switch (r.nextInt(3)) {
                     case 0:
                         int ch = in.read();
-                        if (dump)
+                        if (dump) {
                             System.out.println("read1(" + ch + ')');
+                        }
                         assertTrue(255 >= ch && ch >= -1);  // make sure the range is [-1,255]
-                        if (ch == -1)
+                        if (ch == -1) {
                             return;
+                        }
                         out.write(ch);
                         break;
 
@@ -164,16 +166,20 @@ public class BinarySafeStreamTest extends TestCase {
 
                         byte[] tmp = new byte[start + chunk + trail];
                         int len = in.read(tmp, start, chunk);
-                        if (dump)
+                        if (dump) {
                             System.out.println("read2(" + print(tmp, start, len) + ",len=" + len + ",chunk=" + chunk + ")");
-                        if (len == -1)
+                        }
+                        if (len == -1) {
                             return;
+                        }
 
                         // check extra data corruption
-                        for (int i = 0; i < start; i++)
+                        for (int i = 0; i < start; i++) {
                             assertEquals(tmp[i], 0);
-                        for (int i = 0; i < trail; i++)
+                        }
+                        for (int i = 0; i < trail; i++) {
                             assertEquals(tmp[start + chunk + i], 0);
+                        }
 
                         out.write(tmp, start, len);
                         break;
@@ -182,18 +188,21 @@ public class BinarySafeStreamTest extends TestCase {
                         len = r.nextInt(16);
                         tmp = new byte[len];
                         len = in.read(tmp);
-                        if (dump)
+                        if (dump) {
                             System.out.println("read3(" + print(tmp, 0, len) + ",len=" + len + ')');
-                        if (len == -1)
+                        }
+                        if (len == -1) {
                             return;
+                        }
 
                         // obtain the array of the exact size
                         byte[] n = new byte[len];
                         System.arraycopy(tmp, 0, n, 0, len);
                         out.write(n);
                 }
-                if (randomFlash && r.nextInt(8) == 0)
+                if (randomFlash && r.nextInt(8) == 0) {
                     out.flush();
+                }
             }
         }
     }

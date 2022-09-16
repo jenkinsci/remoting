@@ -293,8 +293,9 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                         Thread.currentThread().setName(oldThreadName);
                     }
 
-                    if (response.exception != null)
+                    if (response.exception != null) {
                         throw new ExecutionException(response.exception);
+                    }
 
                     return response.returnValue;
                 }

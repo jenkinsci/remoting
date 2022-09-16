@@ -261,8 +261,9 @@ public class PipeTest extends RmiTestBase implements Serializable {
 
     public void _testSendBigStuff() throws Exception {
         try (OutputStream f = channel.call(new DevNullSink())) {
-            for (int i = 0; i < 1024 * 1024; i++)
+            for (int i = 0; i < 1024 * 1024; i++) {
                 f.write(new byte[8000]);
+            }
         }
     }
 
