@@ -180,9 +180,9 @@ final class ExportTable {
         String dump() {
             try {
                 StringWriter sw = new StringWriter();
-                PrintWriter pw = new PrintWriter(sw);
-                dump(pw);
-                pw.close();
+                try (PrintWriter pw = new PrintWriter(sw)) {
+                    dump(pw);
+                }
                 return sw.toString();
             } catch (IOException e) {
                 throw new Error(e);   // impossible

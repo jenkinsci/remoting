@@ -107,9 +107,9 @@ public class ClassFilterTest implements Serializable {
     @Test
     public void capabilityRead() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(baos));
-        oos.writeObject(new Security218("rifle"));
-        oos.close();
+        try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(baos))) {
+            oos.writeObject(new Security218("rifle"));
+        }
 
         try {
             Capability.read(new ByteArrayInputStream(baos.toByteArray()));

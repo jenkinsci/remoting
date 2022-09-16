@@ -144,9 +144,9 @@ class DummyClassLoader extends ClassLoader {
             if (name.equals(e.logicalPath)) {
                 try {
                     File f = File.createTempFile("rmiTest", "class");
-                    OutputStream os = new FileOutputStream(f);
-                    os.write(e.loadTransformedClassImage());
-                    os.close();
+                    try (OutputStream os = new FileOutputStream(f)) {
+                        os.write(e.loadTransformedClassImage());
+                    }
                     f.deleteOnExit();
                     return f.toURI().toURL();
                 } catch (IOException x) {

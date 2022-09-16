@@ -14,10 +14,9 @@ import java.util.Set;
 public class OISInterception {
     public static void main(String[] args) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-
-        oos.writeObject(Set.of("foo"));
-        oos.close();
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos) ) {
+            oos.writeObject(Set.of("foo"));
+        }
 
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray())) {
             @Override

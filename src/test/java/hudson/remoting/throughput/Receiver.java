@@ -17,17 +17,18 @@ import java.util.concurrent.Executors;
  */
 public class Receiver {
     public static void main(String[] args) throws Exception {
-        ServerSocket ss = new ServerSocket(PORT);
-        while (true) {
-            System.out.println("Ready");
-            Socket s = ss.accept();
-            s.setTcpNoDelay(true);
-            System.out.println("Accepted");
-            Channel ch = new ChannelBuilder("bogus", Executors.newCachedThreadPool()).build(
-                    new BufferedInputStream(SocketChannelStream.in(s)),
-                    new BufferedOutputStream(SocketChannelStream.out(s)));
-            ch.join();
-            s.close();
+        try (ServerSocket ss = new ServerSocket(PORT)) {
+            while (true) {
+                System.out.println("Ready");
+                try (Socket s = ss.accept()) {
+                    s.setTcpNoDelay(true);
+                    System.out.println("Accepted");
+                    Channel ch = new ChannelBuilder("bogus", Executors.newCachedThreadPool()).build(
+                            new BufferedInputStream(SocketChannelStream.in(s)),
+                            new BufferedOutputStream(SocketChannelStream.out(s)));
+                    ch.join();
+                }
+            }
         }
     }
     public static final int PORT = 9532;

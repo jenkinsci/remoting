@@ -37,12 +37,10 @@ public class ByteBufferQueueOutputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue);
-
-        instance.write(str.getBytes(StandardCharsets.UTF_8));
-        instance.close();
-
-        assertThat(read(queue), is(str));
+        try (ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue)) {
+            instance.write(str.getBytes(StandardCharsets.UTF_8));
+            assertThat(read(queue), is(str));
+        }
     }
 
     @Test
@@ -50,11 +48,10 @@ public class ByteBufferQueueOutputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue);
-
-        instance.write(str.getBytes(StandardCharsets.UTF_8), 0, 10);
-        instance.close();
-        assertThat(read(queue), is("AbCdEfGhIj"));
+        try (ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue)) {
+            instance.write(str.getBytes(StandardCharsets.UTF_8), 0, 10);
+            assertThat(read(queue), is("AbCdEfGhIj"));
+        }
     }
 
     @Test
@@ -62,13 +59,12 @@ public class ByteBufferQueueOutputStreamTest {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
-        ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue);
-        for (int i = 1; i < str.length(); i += 2) {
-            instance.write(str.charAt(i));
+        try (ByteBufferQueueOutputStream instance = new ByteBufferQueueOutputStream(queue)) {
+            for (int i = 1; i < str.length(); i += 2) {
+                instance.write(str.charAt(i));
+            }
+            assertThat(read(queue), is("bdfhjlnprtvxz"));
         }
-        instance.close();
-
-        assertThat(read(queue), is("bdfhjlnprtvxz"));
     }
 
     private String read(ByteBufferQueue queue) {

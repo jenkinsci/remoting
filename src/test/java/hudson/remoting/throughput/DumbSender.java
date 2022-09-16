@@ -15,13 +15,12 @@ public class DumbSender {
         byte[] payload = getRandomSequence();
 
         for (int i=0; i<2; i++) {
-            Socket s = new Socket("127.0.0.2",DumbReceiver.PORT);
-
-            System.out.println("Started");
-            long start = System.nanoTime();
-            IOUtils.copy(new ByteArrayInputStream(payload), s.getOutputStream());
-            s.close();
-            System.out.println("Done: "+ TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start));
+            try (Socket s = new Socket("127.0.0.2",DumbReceiver.PORT)) {
+                System.out.println("Started");
+                long start = System.nanoTime();
+                IOUtils.copy(new ByteArrayInputStream(payload), s.getOutputStream());
+                System.out.println("Done: "+ TimeUnit.NANOSECONDS.toMillis(System.nanoTime()-start));
+            }
         }
     }
 

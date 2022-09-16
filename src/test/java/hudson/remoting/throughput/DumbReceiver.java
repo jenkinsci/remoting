@@ -14,10 +14,10 @@ public class DumbReceiver {
         ServerSocket ss = new ServerSocket(PORT);
         while (true) {
             System.out.println("Ready");
-            Socket s = ss.accept();
-            System.out.println("Accepted");
-            IOUtils.copy(s.getInputStream(), NullOutputStream.NULL_OUTPUT_STREAM);
-            s.close();
+            try (Socket s = ss.accept()) {
+                System.out.println("Accepted");
+                IOUtils.copy(s.getInputStream(), NullOutputStream.NULL_OUTPUT_STREAM);
+            }
         }
     }
     public static final int PORT = 9533;

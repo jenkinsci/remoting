@@ -51,13 +51,11 @@ public class Util {
     }
 
     public static void copy(InputStream in, OutputStream out) throws IOException {
-        try {
+        try (in) {
             byte[] buf = new byte[8192];
             int len;
-            while((len=in.read(buf))>0)
-                out.write(buf,0,len);
-        } finally {
-            in.close();
+            while ((len = in.read(buf)) > 0)
+                out.write(buf, 0, len);
         }
     }
 
