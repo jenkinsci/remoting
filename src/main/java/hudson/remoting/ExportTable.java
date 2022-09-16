@@ -178,15 +178,13 @@ final class ExportTable {
         }
 
         String dump() {
-            try {
-                StringWriter sw = new StringWriter();
-                try (PrintWriter pw = new PrintWriter(sw)) {
-                    dump(pw);
-                }
-                return sw.toString();
+            StringWriter sw = new StringWriter();
+            try (PrintWriter pw = new PrintWriter(sw)) {
+                dump(pw);
             } catch (IOException e) {
                 throw new Error(e);   // impossible
             }
+            return sw.toString();
         }
 
         synchronized Class<? super T>[] getInterfaces() {
