@@ -41,7 +41,7 @@ public class FastByteBufferQueueInputStreamTest {
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
-        FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue,26);
+        FastByteBufferQueueInputStream instance = new FastByteBufferQueueInputStream(queue, 26);
 
         assertThat(read(instance), is(str));
     }

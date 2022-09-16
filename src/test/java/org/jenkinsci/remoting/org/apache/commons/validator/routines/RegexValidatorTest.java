@@ -210,7 +210,7 @@ public class RegexValidatorTest extends TestCase {
         // Multiple Regular Expression - Null array
         {
             final IllegalArgumentException e = assertThrows("Null Array - expected IllegalArgumentException",
-                    IllegalArgumentException.class, () -> new RegexValidator((String[])null));
+                    IllegalArgumentException.class, () -> new RegexValidator((String[]) null));
             assertEquals("Null Array", "Regular expressions are missing", e.getMessage());
         }
 

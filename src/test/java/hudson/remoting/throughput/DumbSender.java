@@ -15,7 +15,7 @@ public class DumbSender {
         byte[] payload = getRandomSequence();
 
         for (int i=0; i<2; i++) {
-            try (Socket s = new Socket("127.0.0.2",DumbReceiver.PORT)) {
+            try (Socket s = new Socket("127.0.0.2", DumbReceiver.PORT)) {
                 System.out.println("Started");
                 long start = System.nanoTime();
                 IOUtils.copy(new ByteArrayInputStream(payload), s.getOutputStream());
