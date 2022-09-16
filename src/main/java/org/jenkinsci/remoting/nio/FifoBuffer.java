@@ -453,19 +453,6 @@ public class FifoBuffer implements Closeable {
             r = w = null;
     }
 
-//    /**
-//     * Returns a {@link ByteBuffer} for peeking into
-//     */
-//    public ByteBuffer peek(int max) {
-//        synchronized (lock) {
-//            if (closed) {
-//                releaseRing();
-//                return null;
-//            }
-//            return r.asBuffer(Math.min(max, readable()));
-//        }
-//    }
-
     /**
      * Peek the specified number of bytes ({@code len}) at the specified offset in this buffer ({@code offset})
      * and places it into the specified position ({@code start}) of the array ({@code data})
