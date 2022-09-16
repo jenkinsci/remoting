@@ -25,6 +25,8 @@ package hudson.remoting;
 
 import java.net.SocketException;
 
+import static org.junit.Assert.assertThrows;
+
 /**
  * @author Kohsuke Kawaguchi
  */
@@ -35,17 +37,14 @@ public class NonSerializableExceptionTest extends RmiTestBase {
      * HUDSON-1041.
      */
     public void test1() throws Throwable {
-        try {
-            channel.call(new Failure());
-        } catch (ProxyException p) {
-            // verify that we got the right kind of exception
-            assertTrue(p.getMessage().contains("NoneSerializableException"));
-            assertTrue(p.getMessage().contains("message1"));
-            ProxyException nested = p.getCause();
-            assertTrue(nested.getMessage().contains("SocketException"));
-            assertTrue(nested.getMessage().contains("message2"));
-            assertNull(nested.getCause());
-        }
+        final ProxyException p = assertThrows(ProxyException.class, () -> channel.call(new Failure()));
+        // verify that we got the right kind of exception
+        assertTrue(p.getMessage().contains("NoneSerializableException"));
+        assertTrue(p.getMessage().contains("message1"));
+        ProxyException nested = p.getCause();
+        assertTrue(nested.getMessage().contains("SocketException"));
+        assertTrue(nested.getMessage().contains("message2"));
+        assertNull(nested.getCause());
     }
 
     private static final class NoneSerializableException extends Exception {

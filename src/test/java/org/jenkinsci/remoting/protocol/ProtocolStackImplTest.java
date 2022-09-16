@@ -63,7 +63,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 public class ProtocolStackImplTest {
 
@@ -141,11 +141,8 @@ public class ProtocolStackImplTest {
         pipe.source().close();
         assertThat(pipe.source().isOpen(), is(false));
         assertThat(pipe.sink().isOpen(), is(true));
-        try {
-            pipe.sink().write(ByteBuffer.allocate(1));
-        } catch (IOException e) {
-            assertThat(e.getMessage(), containsString("Broken pipe"));
-        }
+        final IOException e = assertThrows(IOException.class, () -> pipe.sink().write(ByteBuffer.allocate(1)));
+        assertThat(e.getMessage(), containsString("Broken pipe"));
         assertThat("No detection of source closed", pipe.sink().isOpen(), is(true));
         Thread.sleep(1000);
         assertThat("No detection of source closed", pipe.sink().isOpen(), is(true));
@@ -613,19 +610,15 @@ public class ProtocolStackImplTest {
                         .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
-        try {
-            client.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
-        try {
-            server.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                    ClosedChannelException.class)));
-        }
+
+        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()));
+        assertThat(ce.getCause(), instanceOf(ConnectionRefusalException.class));
+
+        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()));
+        assertThat(se.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
+                ClosedChannelException.class)));
     }
 
     @Test
@@ -659,19 +652,15 @@ public class ProtocolStackImplTest {
                         .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
                                 headers -> {}))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
-        try {
-            client.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
-        try {
-            server.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                    ClosedChannelException.class)));
-        }
+
+        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()));
+        assertThat(ce.getCause(), instanceOf(ConnectionRefusalException.class));
+
+        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()));
+        assertThat(se.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
+                ClosedChannelException.class)));
     }
 
     @Test
@@ -704,19 +693,15 @@ public class ProtocolStackImplTest {
                                     throw new ConnectionRefusalException("I don't like you, Mr. Server");
                                 }))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
-        try {
-            client.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                    ClosedChannelException.class)));
-        }
-        try {
-            server.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
+
+        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()));
+        assertThat(ce.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
+                ClosedChannelException.class)));
+
+        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()));
+        assertThat(se.getCause(), instanceOf(ConnectionRefusalException.class));
     }
 
     @Test
@@ -750,19 +735,15 @@ public class ProtocolStackImplTest {
                                     throw new ConnectionRefusalException("I don't like you, Mr. Client");
                                 }))
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
-        try {
-            client.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                    ClosedChannelException.class)));
-        }
-        try {
-            server.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(ConnectionRefusalException.class));
-        }
+
+        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()));
+        assertThat(ce.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
+                ClosedChannelException.class)));
+
+        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()));
+        assertThat(se.getCause(), instanceOf(ConnectionRefusalException.class));
     }
 
     @Test
@@ -799,20 +780,16 @@ public class ProtocolStackImplTest {
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         clientHold.release();
         serverHold.release();
-        try {
-            client.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                    ClosedChannelException.class)));
-        }
-        try {
-            server.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                    ClosedChannelException.class)));
-        }
+
+        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()));
+        assertThat(ce.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
+                ClosedChannelException.class)));
+
+        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()));
+        assertThat(se.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
+                ClosedChannelException.class)));
     }
 
     @Test
@@ -850,20 +827,16 @@ public class ProtocolStackImplTest {
                         .build(new ChannelApplicationLayer(selector.executorService(), null));
         clientHold.release();
         serverHold.release();
-        try {
-            client.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                    ClosedChannelException.class)));
-        }
-        try {
-            server.get().get().call(new ProbeCallable());
-            fail("Expected Connection refusal");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                    ClosedChannelException.class)));
-        }
+
+        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()));
+        assertThat(ce.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
+                ClosedChannelException.class)));
+
+        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()));
+        assertThat(se.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
+                ClosedChannelException.class)));
     }
 
     private static class ProbeCallable implements Callable<String, IOException> {

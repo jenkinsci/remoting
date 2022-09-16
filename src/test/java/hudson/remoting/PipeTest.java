@@ -38,6 +38,10 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThrows;
+
 /**
  * Test {@link Pipe}.
  *
@@ -71,16 +75,8 @@ public class PipeTest extends RmiTestBase implements Serializable {
             assertEquals(in.read(), 0);
         }
 
-        try {
-            f.get();
-            fail();
-        } catch (ExecutionException e) {
-            // should have resulted in an IOException
-            if (!(e.getCause() instanceof IOException)) {
-                e.printStackTrace();
-                fail();
-            }
-        }
+        final ExecutionException e = assertThrows(ExecutionException.class, f::get);
+        assertThat(e.getCause(), instanceOf(IOException.class));
     }
 
     /**

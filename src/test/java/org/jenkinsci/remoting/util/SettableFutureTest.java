@@ -41,8 +41,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * @author Stephen Connolly
@@ -70,13 +70,8 @@ public class SettableFutureTest {
     }
 
     @Test
-    public void defaultState() throws Exception {
-        try {
-            future.get(5, TimeUnit.MILLISECONDS);
-            fail();
-        } catch (TimeoutException expected) {
-            assertTrue(true);
-        }
+    public void defaultState() {
+        assertThrows(TimeoutException.class, () -> future.get(5, TimeUnit.MILLISECONDS));
     }
 
     @Test
@@ -93,11 +88,7 @@ public class SettableFutureTest {
 
     @Test
     public void setFailureNull() throws Exception {
-        try {
-            future.setException(null);
-            fail();
-        } catch (NullPointerException expected) {
-        }
+        assertThrows(NullPointerException.class, () -> future.setException(null));
         assertFalse(future.isDone());
         assertTrue(future.setException(new Exception("failure")));
         assertFailedFuture("failure");
@@ -130,7 +121,7 @@ public class SettableFutureTest {
     }
 
     @Test
-    public void setException() throws Exception {
+    public void setException() {
         SettableFuture<Object> future = SettableFuture.create();
         Exception e = new Exception("foobarbaz");
         assertTrue(future.setException(e));
@@ -140,12 +131,9 @@ public class SettableFutureTest {
         // Check that the future has been set properly.
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
-        try {
-            future.get();
-            fail("Expected ExecutionException");
-        } catch (ExecutionException ee) {
-            assertSame(e, ee.getCause());
-        }
+
+        final ExecutionException ee = assertThrows(ExecutionException.class, future::get);
+        assertSame(e, ee.getCause());
     }
 
     @Test
@@ -176,11 +164,8 @@ public class SettableFutureTest {
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
-        try {
-            future.get();
-            fail("Future should throw CancellationException on cancel.");
-        } catch (CancellationException expected) {
-        }
+        assertThrows("Future should throw CancellationException on cancel.",
+                CancellationException.class, () -> future.get());
     }
 
     public void assertFailedFuture(@Nullable String message)
@@ -192,12 +177,9 @@ public class SettableFutureTest {
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
 
-        try {
-            future.get();
-            fail("Future should rethrow the exception.");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause().getMessage(), is(message));
-        }
+        final ExecutionException e = assertThrows("Future should rethrow the exception.",
+                ExecutionException.class, () -> future.get());
+        assertThat(e.getCause().getMessage(), is(message));
     }
 
 }

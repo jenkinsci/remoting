@@ -57,7 +57,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 @RunWith(Theories.class)
 public class ConnectionHeadersFilterLayerTest {
@@ -333,16 +333,15 @@ public class ConnectionHeadersFilterLayerTest {
         for (int i = 0; i < 64; i++) {
             clientExpectedHeaders.put(String.format("key-%d", i), bigString);
         }
-        try {
+
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
             ProtocolStack
                     .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                     .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders,
                             serverActualHeaders::complete))
                     .build(new IOBufferMatcherLayer());
-            fail("IllegalArgumentException expected");
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), containsString("less than 65536"));
-        }
+        });
+        assertThat(e.getMessage(), containsString("less than 65536"));
     }
 
 }

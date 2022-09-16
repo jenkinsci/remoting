@@ -11,7 +11,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 
@@ -28,40 +28,37 @@ public class LauncherTest {
     }
 
     @Test
-    public void loadDom_Lol() throws IOException, SAXException, ParserConfigurationException {
+    public void loadDom_Lol() throws IOException {
         // A JNLP containing the Billion Laughs DTD
         FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/lol.jnlp");
         shouldFailWithDoctype(jnlpFile);
     }
 
     @Test
-    public void loadDom_XxeFile() throws IOException, SAXException, ParserConfigurationException {
+    public void loadDom_XxeFile() throws IOException {
         // A JNLP containing an file-type XXE
         FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/xxe_file.jnlp");
         shouldFailWithDoctype(jnlpFile);
     }
 
     @Test
-    public void loadDom_XxeHttp() throws IOException, SAXException, ParserConfigurationException {
+    public void loadDom_XxeHttp() throws IOException {
         // A JNLP containing an http-type XXE
         FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/xxe_http.jnlp");
         shouldFailWithDoctype(jnlpFile);
     }
 
     @Test
-    public void loadDom_EmbeddedDoctype() throws IOException, SAXException, ParserConfigurationException {
+    public void loadDom_EmbeddedDoctype() throws IOException {
         // A JNLP containing an embedded doctype
         FileInputStream jnlpFile = new FileInputStream("src/test/resources/hudson/remoting/embedded_doctype.jnlp");
         shouldFailWithDoctype(jnlpFile);
     }
 
-    private void shouldFailWithDoctype(FileInputStream jnlpFile) throws ParserConfigurationException, SAXException, IOException {
-        try {
-            Launcher.loadDom(jnlpFile);
-            fail("Dom loading should have failed.");
-        } catch (SAXParseException spe) {
-            assertThat(spe.getMessage(), containsString("\"http://apache.org/xml/features/disallow-doctype-decl\""));
-        }
+    private void shouldFailWithDoctype(FileInputStream jnlpFile) {
+        final SAXParseException spe = assertThrows("Dom loading should have failed.", SAXParseException.class,
+                () -> Launcher.loadDom(jnlpFile));
+        assertThat(spe.getMessage(), containsString("\"http://apache.org/xml/features/disallow-doctype-decl\""));
     }
 
 }

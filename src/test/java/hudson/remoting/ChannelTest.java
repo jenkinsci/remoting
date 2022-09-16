@@ -22,6 +22,8 @@ import java.util.logging.Logger;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jvnet.hudson.test.Issue;
 
+import static org.junit.Assert.assertThrows;
+
 /**
  * @author Kohsuke Kawaguchi
  */
@@ -32,14 +34,9 @@ public class ChannelTest extends RmiTestBase {
 
     @Issue("JENKINS-9050")
     public void testFailureInDeserialization() throws Exception {
-        try {
-            channel.call(new CallableImpl());
-            fail();
-        } catch (IOException e) {
-//            e.printStackTrace();
-            assertEquals("foobar",e.getCause().getCause().getMessage());
-            assertTrue(e.getCause().getCause() instanceof ClassCastException);
-        }
+        final IOException e = assertThrows(IOException.class, () -> channel.call(new CallableImpl()));
+        assertEquals("foobar",e.getCause().getCause().getMessage());
+        assertTrue(e.getCause().getCause() instanceof ClassCastException);
     }
 
     private static class CallableImpl extends CallableBase<Object,IOException> {
@@ -194,22 +191,18 @@ public class ChannelTest extends RmiTestBase {
     }
 
     public void testCallSiteStacktrace() {
-        try {
-            failRemotelyToBeWrappedLocally();
-            fail();
-        } catch (Exception e) {
-            assertEquals("Local Nested", e.getMessage());
-            assertEquals(Exception.class, e.getClass());
-            Throwable cause = e.getCause();
-            assertEquals("Node Nested", cause.getMessage());
-            assertEquals(IOException.class, cause.getClass());
-            Throwable rootCause = cause.getCause();
-            assertEquals("Node says hello!", rootCause.getMessage());
-            assertEquals(RuntimeException.class, rootCause.getClass());
-            Throwable callSite = cause.getSuppressed()[0];
-            assertEquals("Remote call to north", callSite.getMessage());
-            assertEquals("hudson.remoting.Channel$CallSiteStackTrace", callSite.getClass().getName());
-        }
+        final Exception e = assertThrows(Exception.class, this::failRemotelyToBeWrappedLocally);
+        assertEquals("Local Nested", e.getMessage());
+        assertEquals(Exception.class, e.getClass());
+        Throwable cause = e.getCause();
+        assertEquals("Node Nested", cause.getMessage());
+        assertEquals(IOException.class, cause.getClass());
+        Throwable rootCause = cause.getCause();
+        assertEquals("Node says hello!", rootCause.getMessage());
+        assertEquals(RuntimeException.class, rootCause.getClass());
+        Throwable callSite = cause.getSuppressed()[0];
+        assertEquals("Remote call to north", callSite.getMessage());
+        assertEquals("hudson.remoting.Channel$CallSiteStackTrace", callSite.getClass().getName());
     }
 
     private void failRemotelyToBeWrappedLocally() throws Exception {

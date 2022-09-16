@@ -21,6 +21,8 @@ import org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils.SubnetInfo
 
 import junit.framework.TestCase;
 
+import static org.junit.Assert.assertThrows;
+
 @SuppressWarnings("deprecation") // deliberate use of deprecated methods
 public class SubnetUtilsTest extends TestCase {
 
@@ -195,12 +197,7 @@ public class SubnetUtilsTest extends TestCase {
     }
 
     public void testInvalidMasks() {
-        try {
-            new SubnetUtils("192.168.0.1/33");
-            fail("Should have thrown IllegalArgumentException");
-        } catch (IllegalArgumentException expected) {
-            // Ignored
-        }
+        assertThrows(IllegalArgumentException.class, () -> new SubnetUtils("192.168.0.1/33"));
     }
 
     public void testNET428_31() {
@@ -304,23 +301,13 @@ public class SubnetUtilsTest extends TestCase {
         info = utils.getInfo();
         assertEquals("0.0.0.0", info.getNetmask());
         assertEquals(4294967296L, info.getAddressCountLong());
-        try {
-            info.getAddressCount();
-            fail("Expected RuntimeException");
-        } catch (RuntimeException expected) {
-            // ignored
-        }
+        assertThrows(RuntimeException.class, info::getAddressCount);
         utils = new SubnetUtils("128.0.0.0/1");
         utils.setInclusiveHostCount(true);
         info = utils.getInfo();
         assertEquals("128.0.0.0", info.getNetmask());
         assertEquals(2147483648L, info.getAddressCountLong());
-        try {
-            info.getAddressCount();
-            fail("Expected RuntimeException");
-        } catch (RuntimeException expected) {
-            // ignored
-        }
+        assertThrows(RuntimeException.class, info::getAddressCount);
         // if we exclude the broadcast and network addresses, the count is less than Integer.MAX_VALUE
         utils.setInclusiveHostCount(false);
         info = utils.getInfo();

@@ -30,6 +30,8 @@ import org.jvnet.hudson.test.Issue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import static org.junit.Assert.assertThrows;
+
 /**
  * Remote class loading tests that don't work with the full set of test runners
  * specified in RmiTestBase for various reasons. These tests may not be valid in
@@ -106,12 +108,7 @@ public class ClassRemoting2Test extends RmiTestBase {
         RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptInvocation(3, 10);
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-        try {
-            f1.get();
-            fail("Should have timed out, exceeding the max retries.");
-        } catch (ExecutionException ex) {
-            // Expected when we exceed the retries.
-        }
+        assertThrows("Should have timed out, exceeding the max retries.", ExecutionException.class, f1::get);
     }
 
     @Issue("JENKINS-36991")
@@ -164,12 +161,7 @@ public class ClassRemoting2Test extends RmiTestBase {
 
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-        try {
-            f1.get();
-            fail("Should have timed out, exceeding the max retries.");
-        } catch (ExecutionException ex) {
-            // Expected when we exceed the retries.
-        }
+        assertThrows("Should have timed out, exceeding the max retries.", ExecutionException.class, f1::get);
     }
 
     @Issue("JENKINS-61103")
@@ -210,12 +202,7 @@ public class ClassRemoting2Test extends RmiTestBase {
         RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 10);
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-        try {
-            f1.get();
-            fail("Should have timed out, exceeding the max retries.");
-        } catch (ExecutionException ex) {
-            // Expected when we exceed the retries.
-        }
+        assertThrows("Should have timed out, exceeding the max retries.", ExecutionException.class, f1::get);
     }
 
     @Issue("JENKINS-61103")
@@ -256,12 +243,7 @@ public class ClassRemoting2Test extends RmiTestBase {
         RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 10);
         Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-        try {
-            f1.get();
-            fail("Should have timed out, exceeding the max retries.");
-        } catch (ExecutionException ex) {
-            // Expected when we exceed the retries.
-        }
+        assertThrows("Should have timed out, exceeding the max retries.", ExecutionException.class, f1::get);
     }
 
     private static class InterruptInvocation implements RemoteClassLoader.Interruptible {

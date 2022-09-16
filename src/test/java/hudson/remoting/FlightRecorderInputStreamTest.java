@@ -11,7 +11,7 @@ import java.io.StreamCorruptedException;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThrows;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -32,17 +32,14 @@ public class FlightRecorderInputStreamTest {
         assertEquals("abc", ois.readObject());
         fis.clear();
         assertEquals("def", ois.readObject());
-        try {
-            ois.readObject();
-            fail("Expecting a corruption");
-        } catch (StreamCorruptedException e) {
-            DiagnosedStreamCorruptionException t = fis.analyzeCrash(e, "test");
-            t.printStackTrace();
-            assertNull(t.getDiagnoseFailure());
-            // back buffer shouldn't contain 'abc' since the stream was reset
-            assertArrayEquals(new byte[]{TC_STRING, 0, 3, 'd', 'e', 'f', -1}, t.getReadBack());
-            assertArrayEquals(new byte[]{TC_STRING, 0, 3, 'g', 'h', 'i'}, t.getReadAhead());
-        }
+
+        final StreamCorruptedException e = assertThrows("Expecting a corruption", StreamCorruptedException.class, ois::readObject);
+        DiagnosedStreamCorruptionException t = fis.analyzeCrash(e, "test");
+        t.printStackTrace();
+        assertNull(t.getDiagnoseFailure());
+        // back buffer shouldn't contain 'abc' since the stream was reset
+        assertArrayEquals(new byte[]{TC_STRING, 0, 3, 'd', 'e', 'f', -1}, t.getReadBack());
+        assertArrayEquals(new byte[]{TC_STRING, 0, 3, 'g', 'h', 'i'}, t.getReadAhead());
     }
 
     @Test public void bounding() throws Exception {

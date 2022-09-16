@@ -45,6 +45,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
 public class ProtocolStackTest {
@@ -179,7 +180,7 @@ public class ProtocolStackTest {
             logger.setLevel(Level.FINEST);
             assertThat(logger.isLoggable(Level.FINEST), is(true));
             final AtomicInteger state = new AtomicInteger();
-            try {
+            final IOException e = assertThrows(IOException.class, () -> {
                 ProtocolStack.on(new NetworkLayer(selector) {
 
                     @Override
@@ -267,9 +268,9 @@ public class ProtocolStackTest {
 
                 });
                 fail("Expecting IOException");
-            } catch (IOException e) {
-                assertThat(e.getMessage(), is("boom"));
-            }
+            });
+            assertThat(e.getMessage(), is("boom"));
+
             assertThat(handler.logRecords, contains(
                     allOf(hasProperty("message", is("[{0}] Initializing")),
                             hasProperty("parameters", is(new Object[]{"initSeq"}))),
