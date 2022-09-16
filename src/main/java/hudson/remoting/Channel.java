@@ -2125,11 +2125,9 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
          */
         @Override
         public String toString() {
-            final StringBuilder sb = new StringBuilder("Channel.Ref{");
-            sb.append("channel=").append(channel);
-            sb.append(",name=").append(name);
-            sb.append('}');
-            return sb.toString();
+            return "Channel.Ref{" + "channel=" + channel +
+                    ",name=" + name +
+                    '}';
         }
     }
 }

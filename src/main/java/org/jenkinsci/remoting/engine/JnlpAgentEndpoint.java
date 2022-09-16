@@ -243,7 +243,7 @@ public class JnlpAgentEndpoint {
             }
             String suffix = "";
             if (isHttpProxy) {
-                suffix = " through proxy " + targetAddress.toString();
+                suffix = " through proxy " + targetAddress;
             }
             throw new IOException("Failed to connect to " + host + ':' + port + suffix, e);
         }

@@ -1195,7 +1195,7 @@ final class RemoteClassLoader extends URLClassLoader {
 
         @Override
         public String toString() {
-            return super.toString() + '[' + cl.toString() + ']';
+            return super.toString() + '[' + cl + ']';
         }
 
         /**
