@@ -309,7 +309,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 if (tunnel == null) {
                     if (!isPortVisible(host, port)) {
                         firstError = chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
-                                + " is not reachable"));
+                                + " is not reachable on host " + host));
                         continue;
                     } else {
                         LOGGER.log(Level.FINE, "TCP Agent Listener Port availability check passed");
