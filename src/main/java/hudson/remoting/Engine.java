@@ -625,13 +625,23 @@ public class Engine extends Thread {
                     @Override
                     public void onClose(Session session, CloseReason closeReason) {
                         LOGGER.fine(() -> "onClose: " + closeReason);
-                        transport.terminate(new ChannelClosedException(ch.get(), null));
+                        final Channel channel = ch.get();
+                        final IOException ex = new ChannelClosedException(channel, null);
+                        if (channel != null) {
+                            channel.terminate(ex);
+                        }
+                        transport.terminate(ex);
                     }
                     @Override
                     public void onError(Session session, Throwable x) {
                         // TODO or would events.error(x) be better?
                         LOGGER.log(Level.FINE, null, x);
-                        transport.terminate(new ChannelClosedException(ch.get(), x));
+                        final Channel channel = ch.get();
+                        final IOException ex = new ChannelClosedException(channel, x);
+                        if (channel != null) {
+                            channel.terminate(ex);
+                        }
+                        transport.terminate(ex);
                     }
 
                     class Transport extends AbstractByteBufferCommandTransport {
