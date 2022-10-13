@@ -1,7 +1,10 @@
 package hudson.remoting;
 
-import junit.framework.Test;
-import org.apache.commons.io.input.BrokenInputStream;
+import static hudson.remoting.RemoteInputStream.Flag.GREEDY;
+import static hudson.remoting.RemoteInputStream.Flag.NOT_GREEDY;
+import static java.util.Arrays.asList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -10,40 +13,47 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-
-import static hudson.remoting.RemoteInputStream.Flag.GREEDY;
-import static hudson.remoting.RemoteInputStream.Flag.NOT_GREEDY;
-import static java.util.Arrays.asList;
-import static org.junit.Assert.assertArrayEquals;
+import org.apache.commons.io.input.BrokenInputStream;
+import org.junit.Assert;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class RemoteInputStreamTest extends RmiTestBase {
+public class RemoteInputStreamTest {
     /**
      * Makes sure non-greedy RemoteInputStream is not completely dead on arrival.
      */
-    public void testNonGreedy() throws Exception {
-        ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
-        channel.call(new Read(new RemoteInputStream(in, NOT_GREEDY),toBytes("1234")));
-        assertArrayEquals(readFully(in, 4), "5678".getBytes());
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testNonGreedy(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
+            channel.call(new Read(new RemoteInputStream(in, NOT_GREEDY), toBytes("1234")));
+            Assert.assertArrayEquals(readFully(in, 4), "5678".getBytes());
+        });
     }
 
     /**
      * Makes sure greedy RemoteInputStream is not completely dead on arrival.
      */
-    public void testGreedy() throws Exception {
-        ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
-        channel.call(new Read(new RemoteInputStream(in, GREEDY),toBytes("1234")));
-        // not very reliable but the intention is to have it greedily read
-        Thread.sleep(100);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testGreedy(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
+            channel.call(new Read(new RemoteInputStream(in, GREEDY), toBytes("1234")));
+            // not very reliable but the intention is to have it greedily read
+            Thread.sleep(100);
 
-        if (channel.remoteCapability.supportsGreedyRemoteInputStream())
-            assertEquals(-1, in.read());
-        else {
-            // if we are dealing with version that doesn't support GREEDY, we should be reading '5'
-            assertEquals('5', in.read());
-        }
+            if (channel.remoteCapability.supportsGreedyRemoteInputStream())
+                assertEquals(-1, in.read());
+            else {
+                // if we are dealing with version that doesn't support GREEDY, we should be reading '5'
+                assertEquals('5', in.read());
+            }
+        });
     }
 
     /**
@@ -60,7 +70,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
 
         @Override
         public Object call() throws IOException {
-            assertArrayEquals(readFully(in, expected.length), expected);
+            Assert.assertArrayEquals(readFully(in, expected.length), expected);
             return null;
         }
         private static final long serialVersionUID = 1L;
@@ -70,12 +80,16 @@ public class RemoteInputStreamTest extends RmiTestBase {
     /**
      * Read in multiple chunks.
      */
-    public void testGreedy2() throws Exception {
-        ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
-        final RemoteInputStream i = new RemoteInputStream(in, GREEDY);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testGreedy2(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
+            final RemoteInputStream i = new RemoteInputStream(in, GREEDY);
 
-        channel.call(new TestGreedy2(i));
-        assertEquals(in.read(),-1);
+            channel.call(new TestGreedy2(i));
+            assertEquals(-1, in.read());
+        });
     }
 
     private static class TestGreedy2 extends CallableBase<Void,IOException> {
@@ -87,9 +101,9 @@ public class RemoteInputStreamTest extends RmiTestBase {
 
         @Override
         public Void call() throws IOException {
-            assertEquals(readFully(i, 4), toBytes("1234"));
-            assertEquals(readFully(i, 4), toBytes("5678"));
-            assertEquals(i.read(),-1);
+            assertArrayEquals(readFully(i, 4), toBytes("1234"));
+            assertArrayEquals(readFully(i, 4), toBytes("5678"));
+            assertEquals(-1, i.read());
             return null;
         }
         private static final long serialVersionUID = 1L;
@@ -99,16 +113,20 @@ public class RemoteInputStreamTest extends RmiTestBase {
     /**
      * Greedy {@link RemoteInputStream} should propagate error.
      */
-    public void testErrorPropagation() throws Exception {
-        for (RemoteInputStream.Flag f : asList(GREEDY, NOT_GREEDY)) {
-            InputStream in = new SequenceInputStream(
-                    new ByteArrayInputStream(toBytes("1234")),
-                    new BrokenInputStream(new SkyIsFalling())
-            );
-            final RemoteInputStream i = new RemoteInputStream(in, f);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testErrorPropagation(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            for (RemoteInputStream.Flag f : asList(GREEDY, NOT_GREEDY)) {
+                InputStream in = new SequenceInputStream(
+                        new ByteArrayInputStream(toBytes("1234")),
+                        new BrokenInputStream(new SkyIsFalling())
+                );
+                final RemoteInputStream i = new RemoteInputStream(in, f);
 
-            channel.call(new TestErrorPropagation(i));
-        }
+                channel.call(new TestErrorPropagation(i));
+            }
+        });
     }
 
     private static class SkyIsFalling extends IOException {private static final long serialVersionUID = 1L;}
@@ -122,7 +140,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
 
         @Override
         public Void call() throws IOException {
-            assertEquals(readFully(i, 4), toBytes("1234"));
+            assertArrayEquals(readFully(i, 4), toBytes("1234"));
             try {
                 i.read();
                 throw new AssertionError();
@@ -146,7 +164,7 @@ public class RemoteInputStreamTest extends RmiTestBase {
         return actual;
     }
 
-    private static void assertEquals(byte[] b1, byte[] b2) {
+    private static void assertArrayEquals(byte[] b1, byte[] b2) {
         if (!Arrays.equals(b1,b2)) {
             fail("Expected "+ HexDump.toHex(b1)+" but got "+ HexDump.toHex(b2));
         }
@@ -154,9 +172,5 @@ public class RemoteInputStreamTest extends RmiTestBase {
 
     private static byte[] toBytes(String s) {
         return s.getBytes(StandardCharsets.UTF_8);
-    }
-
-    public static Test suite() {
-        return buildSuite(RemoteInputStreamTest.class);
     }
 }

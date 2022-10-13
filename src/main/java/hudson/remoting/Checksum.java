@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Serializable;
 import java.net.URL;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
@@ -19,7 +20,7 @@ import java.security.NoSuchAlgorithmException;
  *
  * @author Kohsuke Kawaguchi
  */
-final class Checksum {
+final class Checksum implements Serializable {
     public final long sum1, sum2;
 
     Checksum(long sum1, long sum2) {

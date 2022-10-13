@@ -1,17 +1,19 @@
 package hudson.remoting;
 
-import junit.framework.TestCase;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.ExecutionException;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ExportTableTest extends TestCase {
+public class ExportTableTest {
+    @Test
     public void testDiagnosis() throws Exception {
         try {
             ExportTable.EXPORT_TRACES = true;

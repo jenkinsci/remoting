@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,30 +23,43 @@
  */
 package hudson.remoting;
 
-import junit.framework.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
-import static org.junit.Assert.assertThrows;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * Testing the basic features.
- * 
+ *
  * @author Kohsuke Kawaguchi
  */
-public class SimpleTest extends RmiTestBase {
-    public void test1() throws Exception {
-        int r = channel.call(new Callable1());
-        System.out.println("result=" + r);
-        assertEquals(5,r);
+public class SimpleTest {
+
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void test1(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            int r = channel.call(new Callable1());
+            System.out.println("result=" + r);
+            assertEquals(5, r);
+        });
     }
 
-    public void test1Async() throws Exception {
-        Future<Integer> r = channel.callAsync(new Callable1());
-        System.out.println("result="+r.get());
-        assertEquals(5,(int)r.get());
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void test1Async(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            Future<Integer> r = channel.callAsync(new Callable1());
+            System.out.println("result="+r.get());
+            assertEquals(5,(int)r.get());
+        });
     }
 
     private static class Callable1 extends CallableBase<Integer, RuntimeException> {
@@ -58,18 +71,25 @@ public class SimpleTest extends RmiTestBase {
         private static final long serialVersionUID = 1L;
     }
 
-
-    public void test2() {
-        final RuntimeException e = assertThrows(RuntimeException.class, () -> channel.call(new Callable2()));
-        assertEquals(e.getMessage(),"foo");
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void test2(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final RuntimeException e = assertThrows(RuntimeException.class, () -> channel.call(new Callable2()));
+            assertEquals(e.getMessage(),"foo");
+        });
     }
 
-    public void test2Async() {
-        final ExecutionException e = assertThrows(ExecutionException.class, () -> {
-            Future<Integer> r = channel.callAsync(new Callable2());
-            r.get();
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void test2Async(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final ExecutionException e = assertThrows(ExecutionException.class, () -> {
+                Future<Integer> r = channel.callAsync(new Callable2());
+                r.get();
+            });
+            assertEquals(e.getCause().getMessage(),"foo");
         });
-        assertEquals(e.getCause().getMessage(),"foo");
     }
 
     private static class Callable2 extends CallableBase<Integer, RuntimeException> {
@@ -83,11 +103,14 @@ public class SimpleTest extends RmiTestBase {
     /**
      * Makes sure that proxied object can be sent back to the origin and resolve correctly.
      */
-    public void test3() throws Exception {
-        Foo c = new Foo() {};
-
-        Foo r = channel.call(new Echo<>(channel.export(Foo.class, c)));
-        assertSame(c,r);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void test3(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            Foo c = new Foo() {};
+            Foo r = channel.call(new Echo<>(channel.export(Foo.class, c)));
+            assertSame(c,r);
+        });
     }
 
     public interface Foo {}
@@ -112,16 +135,20 @@ public class SimpleTest extends RmiTestBase {
      * (in turn used by MercurialSCM.joinWithTimeout when polling on remote host).
      */
     //@Bug(4611)
-    public void testCancellation() throws Exception {
-        Cancellable task = new Cancellable();
-        Future<Integer> r = channel.callAsync(task);
-        r.cancel(true);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testCancellation(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            Cancellable task = new Cancellable();
+            Future<Integer> r = channel.callAsync(task);
+            r.cancel(true);
 
-        assertThrows("should not return normally", CancellationException.class, r::get);
+            assertThrows(CancellationException.class, r::get, "should not return normally");
 
-        assertTrue(r.isCancelled());
-        assertFalse(task.ran);
-        // TODO ought to also test various other aspects: cancelling before start, etc.
+            assertTrue(r.isCancelled());
+            assertFalse(task.ran);
+            // TODO ought to also test various other aspects: cancelling before start, etc.
+        });
     }
     private static class Cancellable extends CallableBase<Integer, InterruptedException> {
         boolean ran;
@@ -134,7 +161,4 @@ public class SimpleTest extends RmiTestBase {
         private static final long serialVersionUID = 1L;
     }
 
-    public static Test suite() {
-        return buildSuite(SimpleTest.class);
-    }
 }

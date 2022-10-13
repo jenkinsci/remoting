@@ -13,27 +13,39 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.util.concurrent.ExecutionException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class PrefetchingTest extends RmiTestBase implements Serializable {
+public class PrefetchingTest implements Serializable {
     private transient URLClassLoader cl;
     private File dir;
 
     // checksum of the jar files to force loading
     private Checksum sum1,sum2;
 
-    @Override
-    protected void setUp() throws Exception {        
-        super.setUp();
+    <T extends Exception> void withChannel(ChannelRunner channelRunner, ChannelRunner.ConsumerThrowable<Channel, T> f) throws Exception {
+        channelRunner.withChannel(channel -> {
+            setUp(channel);
+            f.accept(channel);
+        });
+    }
 
+
+    protected void setUp(Channel channel) throws Exception {
         URL jar1 = getClass().getClassLoader().getResource("remoting-test-client.jar");
         URL jar2 = getClass().getClassLoader().getResource("remoting-test-client-tests.jar");
 
@@ -57,10 +69,12 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         }
     }
 
-    @Override
+    @AfterEach
     protected void tearDown() throws Exception {
-        cl.close();
-        super.tearDown();
+        if (cl != null) {
+            cl.close();
+            cl = null;
+        }
 
         if (Launcher.isWindows()) {
             // Current Resource loader implementation keep files open even if we close the classloader.
@@ -68,16 +82,18 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
             // TODO: Fix it as a part of JENKINS-38696
             return;
         }
-        
+
         // because the dir is used by FIleSystemJarCache to asynchronously load stuff
         // we might fail to shut it down right away
-        for (int i=0; ; i++) {
-            try {
-                FileUtils.deleteDirectory(dir);
-                return;
-            } catch (IOException e) {
-                if (i==3)   throw e;
-                Thread.sleep(1000);
+        if (dir != null) {
+            for (int i=0; ; i++) {
+                try {
+                    FileUtils.deleteDirectory(dir);
+                    return;
+                } catch (IOException e) {
+                    if (i==3)   throw e;
+                    Thread.sleep(1000);
+                }
             }
         }
     }
@@ -85,13 +101,19 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
     /**
      * This should cause the jar file to be sent to the other side
      */
-    public void testJarLoadingTest() throws Exception {
-        channel.call(new ForceJarLoad(sum1));
-        channel.call(new ForceJarLoad(sum2));
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testJarLoadingTest(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
+        withChannel(channelRunner, channel -> {
+            setUp(channel);
+            channel.call(new ForceJarLoad(sum1));
+            channel.call(new ForceJarLoad(sum2));
 
-        Callable<Void,IOException> sc = (Callable<Void, IOException>)cl.loadClass("test.ClassLoadingFromJarTester").getDeclaredConstructor().newInstance();
-        ((Function<Function<Object, Object>, Void>)sc).apply(new Verifier());
-        assertNull(channel.call(sc));
+            Callable<Void, IOException> sc = (Callable<Void, IOException>) cl.loadClass("test.ClassLoadingFromJarTester").getDeclaredConstructor().newInstance();
+            ((Function<Function<Object, Object>, Void>) sc).apply(new Verifier());
+            assertNull(channel.call(sc));
+        });
     }
 
     private static class Verifier implements Function<Object,Object>, Serializable {
@@ -101,7 +123,7 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
                 // verify that 'o' is loaded from a jar file
                 String loc = Which.classFileUrl(o.getClass()).toExternalForm();
                 System.out.println(loc);
-                assertTrue(loc, loc.startsWith("jar:"));
+                assertTrue(loc.startsWith("jar:"), loc);
                 return null;
             } catch (IOException e) {
                 throw new Error(e);
@@ -110,29 +132,42 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
         private static final long serialVersionUID = 1L;
     }
 
-    public void testGetResource() throws Exception {
-        channel.call(new ForceJarLoad(sum1));
-        channel.call(new ForceJarLoad(sum2));
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testGetResource(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
+        withChannel(channelRunner, channel -> {
+            channel.call(new ForceJarLoad(sum1));
+            channel.call(new ForceJarLoad(sum2));
 
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResource").getDeclaredConstructor().newInstance();
-        String v = channel.call(c);
-        System.out.println(v);
+            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResource").getDeclaredConstructor().newInstance();
+            String v = channel.call(c);
+            System.out.println(v);
 
-        verifyResource(v);
+            verifyResource(v);
+        });
     }
 
-    public void testGetResource_precache() throws Exception {
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResource").getDeclaredConstructor().newInstance();
-        String v = channel.call(c);
-        System.out.println(v);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testGetResource_precache(ChannelRunner channelRunner) throws Exception {
+        withChannel(channelRunner, channel -> {
+            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResource").getDeclaredConstructor().newInstance();
+            String v = channel.call(c);
+            System.out.println(v);
 
-        verifyResourcePrecache(v);
+            verifyResourcePrecache(v);
+        });
     }
 
-    public void testGetResourceAsStream() throws Exception {
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResourceAsStream").getDeclaredConstructor().newInstance();
-        String v = channel.call(c);
-        assertEquals("hello",v);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testGetResourceAsStream(ChannelRunner channelRunner) throws Exception {
+        withChannel(channelRunner, channel -> {
+            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResourceAsStream").getDeclaredConstructor().newInstance();
+            String v = channel.call(c);
+            assertEquals("hello", v);
+        });
     }
 
     /**
@@ -148,52 +183,66 @@ public class PrefetchingTest extends RmiTestBase implements Serializable {
      * Validates that the resource is coming from a file path.
      */
     private void verifyResourcePrecache(String v) {
-        assertTrue(v, v.startsWith("file:"));
-        assertTrue(v, v.endsWith("::hello"));
+        assertTrue(v.startsWith("file:"), v);
+        assertTrue(v.endsWith("::hello"), v);
     }
 
     /**
      * Once the jar files are cached, ClassLoader.getResources() should return jar URLs.
      */
-    public void testGetResources() throws Exception {
-        channel.call(new ForceJarLoad(sum1));
-        channel.call(new ForceJarLoad(sum2));
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testGetResources(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
+        withChannel(channelRunner, channel -> {
+            channel.call(new ForceJarLoad(sum1));
+            channel.call(new ForceJarLoad(sum2));
 
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResources").getDeclaredConstructor().newInstance();
-        String v = channel.call(c);
-        System.out.println(v);  // should find two resources
+            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResources").getDeclaredConstructor().newInstance();
+            String v = channel.call(c);
+            System.out.println(v);  // should find two resources
 
-        String[] lines = v.split("\n");
+            String[] lines = v.split("\n");
 
-        verifyResource(lines[0]);
+            verifyResource(lines[0]);
 
-        assertThat(lines[1], allOf(startsWith("jar:file:"), 
-                                          containsString(dir.toURI().getPath()), 
-                                          endsWith("::hello2")));
+            assertThat(lines[1], allOf(startsWith("jar:file:"),
+                    containsString(dir.toURI().getPath()),
+                    endsWith("::hello2")));
+        });
     }
 
     /**
-     * Unlike {@link #testGetResources()}, the URL should begin with file:... before the jar file gets cached
+     * Unlike {@link #testGetResources(ChannelRunner)}, the URL should begin with file:... before the jar file gets cached
      */
-    public void testGetResources_precache() throws Exception {
-        Callable<String,IOException> c = (Callable<String,IOException>)cl.loadClass("test.HelloGetResources").getDeclaredConstructor().newInstance();
-        String v = channel.call(c);
-        System.out.println(v);  // should find two resources
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testGetResources_precache(ChannelRunner channelRunner) throws Exception {
+        withChannel(channelRunner, channel -> {
+            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResources").getDeclaredConstructor().newInstance();
+            String v = channel.call(c);
+            System.out.println(v);  // should find two resources
 
-        String[] lines = v.split("\n");
+            String[] lines = v.split("\n");
 
-        assertTrue(lines[0], lines[0].startsWith("file:"));
-        assertTrue(lines[1], lines[1].startsWith("file:"));
-        assertTrue(lines[0], lines[0].endsWith("::hello"));
-        assertTrue(lines[1], lines[1].endsWith("::hello2"));
+            assertTrue(lines[0].startsWith("file:"), lines[0]);
+            assertTrue(lines[1].startsWith("file:"), lines[1]);
+            assertTrue(lines[0].endsWith("::hello"), lines[0]);
+            assertTrue(lines[1].endsWith("::hello2"), lines[1]);
+        });
     }
 
-    public void testInnerClass() throws Exception {
-        Echo<Object> e = new Echo<>();
-        e.value = cl.loadClass("test.Foo").getDeclaredConstructor().newInstance();
-        Object r = channel.call(e);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testInnerClass(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
+        withChannel(channelRunner, channel -> {
+            Echo<Object> e = new Echo<>();
+            e.value = cl.loadClass("test.Foo").getDeclaredConstructor().newInstance();
+            Object r = channel.call(e);
 
-        ((Predicate<Void>)r).apply(null); // this verifies that the object is still in a good state
+            ((Predicate<Void>) r).apply(null); // this verifies that the object is still in a good state
+        });
     }
 
     private static final class Echo<V> extends CallableBase<V,IOException> implements Serializable {

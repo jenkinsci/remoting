@@ -23,121 +23,151 @@
  */
 package hudson.remoting;
 
-import junit.framework.Test;
-import org.jvnet.hudson.test.Issue;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.jvnet.hudson.test.Issue;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 
 /**
  * Test class image forwarding.
  *
  * @author Kohsuke Kawaguchi
  */
-public class ClassRemotingTest extends RmiTestBase {
+public class ClassRemotingTest {
 
     static final String TESTCALLABLE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestCallable";
     static final String TESTLINKAGE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestLinkage";
 
-    public void test1() throws Throwable {
-        // call a class that's only available on DummyClassLoader, so that on the remote channel
-        // it will be fetched from this class loader and not from the system classloader.
-        Callable<Object, Exception> callable = (Callable<Object, Exception>) DummyClassLoader.apply(TestCallable.class);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void test1(ChannelRunner channelRunner) throws Throwable {
+        channelRunner.withChannel(channel -> {
+            // call a class that's only available on DummyClassLoader, so that on the remote channel
+            // it will be fetched from this class loader and not from the system classloader.
+            Callable<Object, Exception> callable = (Callable<Object, Exception>) DummyClassLoader.apply(TestCallable.class);
 
-        Object[] result = (Object[]) channel.call(callable);
+            Object[] result = (Object[]) channel.call(callable);
 
-        assertTestCallableResults(result);
-        assertEquals(TESTCALLABLE_TRANSFORMED_CLASSNAME, callable.getClass().getName());
+            assertTestCallableResults(result);
+            assertEquals(TESTCALLABLE_TRANSFORMED_CLASSNAME, callable.getClass().getName());
+        });
     }
 
     /**
      * Tests the use of user-defined classes in remote property access
      */
-    public void testRemoteProperty() throws Exception {
-        // this test cannot run in the compatibility mode without the multi-classloader serialization support,
-        // because it uses the class loader specified during proxy construction.
-        if (channelRunner instanceof InProcessCompatibilityRunner) {
-            return;
-        }
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testRemoteProperty(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner,"this test cannot run in the compatibility mode without the multi-classloader serialization support," +
+                "because it uses the class loader specified during proxy construction.");
+        channelRunner.withChannel(channel -> {
+            DummyClassLoader cl = new DummyClassLoader(TestCallable.class);
+            Callable<Object, Exception> c = (Callable<Object, Exception>) cl.load(TestCallable.class);
+            assertSame(c.getClass().getClassLoader(), cl);
 
-        DummyClassLoader cl = new DummyClassLoader(TestCallable.class);
-        Callable<Object, Exception> c = (Callable<Object, Exception>) cl.load(TestCallable.class);
-        assertSame(c.getClass().getClassLoader(), cl);
+            channel.setProperty("test",c);
 
-        channel.setProperty("test",c);
-
-        channel.call(new RemotePropertyVerifier());
+            channel.call(new RemotePropertyVerifier());
+        });
     }
 
     @Issue("JENKINS-6604")
-    public void testRaceCondition() throws Throwable {
-        DummyClassLoader parent = new DummyClassLoader(TestCallable.class);
-        DummyClassLoader child1 = new DummyClassLoader(parent, TestCallable.Sub.class);
-        final Callable<Object,Exception> c1 = (Callable<Object, Exception>) child1.load(TestCallable.Sub.class);
-        assertEquals(child1, c1.getClass().getClassLoader());
-        assertEquals(parent, c1.getClass().getSuperclass().getClassLoader());
-        DummyClassLoader child2 = new DummyClassLoader(parent, TestCallable.Sub.class);
-        final Callable<Object,Exception> c2 = (Callable<Object, Exception>) child2.load(TestCallable.Sub.class);
-        assertEquals(child2, c2.getClass().getClassLoader());
-        assertEquals(parent, c2.getClass().getSuperclass().getClassLoader());
-        ExecutorService svc = Executors.newFixedThreadPool(2);
-        RemoteClassLoader.TESTING_CLASS_LOAD = () -> Thread.sleep(1000);
-        java.util.concurrent.Future<Object> f1 = svc.submit(() -> channel.call(c1));
-        java.util.concurrent.Future<Object> f2 = svc.submit(() -> channel.call(c2));
-        Object result1 = f1.get();
-        Object result2 = f2.get();
-        assertTestCallableResults((Object[])result1);
-        assertTestCallableResults((Object[])result2);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testRaceCondition(ChannelRunner channelRunner) throws Throwable {
+        channelRunner.withChannel(channel -> {
+            DummyClassLoader parent = new DummyClassLoader(TestCallable.class);
+            DummyClassLoader child1 = new DummyClassLoader(parent, TestCallable.Sub.class);
+            final Callable<Object,Exception> c1 = (Callable<Object, Exception>) child1.load(TestCallable.Sub.class);
+            assertEquals(child1, c1.getClass().getClassLoader());
+            assertEquals(parent, c1.getClass().getSuperclass().getClassLoader());
+            DummyClassLoader child2 = new DummyClassLoader(parent, TestCallable.Sub.class);
+            final Callable<Object,Exception> c2 = (Callable<Object, Exception>) child2.load(TestCallable.Sub.class);
+            assertEquals(child2, c2.getClass().getClassLoader());
+            assertEquals(parent, c2.getClass().getSuperclass().getClassLoader());
+            ExecutorService svc = Executors.newFixedThreadPool(2);
+            RemoteClassLoader.TESTING_CLASS_LOAD = () -> Thread.sleep(1000);
+            java.util.concurrent.Future<Object> f1 = svc.submit(() -> channel.call(c1));
+            java.util.concurrent.Future<Object> f2 = svc.submit(() -> channel.call(c2));
+            Object result1 = f1.get();
+            Object result2 = f2.get();
+            assertTestCallableResults((Object[])result1);
+            assertTestCallableResults((Object[])result2);
+        });
     }
 
-    public void testClassCreation_TestCallable() throws Exception {
-        DummyClassLoader dummyClassLoader = new DummyClassLoader(TestCallable.class);
-        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dummyClassLoader.load(TestCallable.class);
-        java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(channel, callable);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testClassCreation_TestCallable(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            DummyClassLoader dummyClassLoader = new DummyClassLoader(TestCallable.class);
+            final Callable<Object, Exception> callable = (Callable<Object, Exception>) dummyClassLoader.load(TestCallable.class);
+            java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(channel, callable);
 
-        Object result = f1.get();
+            Object result = f1.get();
 
-        assertTestCallableResults((Object[])result);
-        Object loadResult = dummyClassLoader.load(TestCallable.class);
-        assertEquals(TESTCALLABLE_TRANSFORMED_CLASSNAME, loadResult.getClass().getName());
+            assertTestCallableResults((Object[])result);
+            Object loadResult = dummyClassLoader.load(TestCallable.class);
+            assertEquals(TESTCALLABLE_TRANSFORMED_CLASSNAME, loadResult.getClass().getName());
+        });
     }
 
-    public void testClassCreation_TestLinkage() throws Exception {
-        DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
-        final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
-        final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
-        final Callable<Object, Exception> callable = (Callable<Object, Exception>) child2.load(TestLinkage.class);
-        assertEquals(child2, callable.getClass().getClassLoader());
-        java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(channel, callable);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testClassCreation_TestLinkage(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
+            final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
+            final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
+            final Callable<Object, Exception> callable = (Callable<Object, Exception>) child2.load(TestLinkage.class);
+            assertEquals(child2, callable.getClass().getClassLoader());
+            java.util.concurrent.Future<Object> f1 = scheduleCallableLoad(channel, callable);
 
-        Object result = f1.get();
+            Object result = f1.get();
 
-        assertTestLinkageResults(channel, parent, child1, child2, callable, result);
+            assertTestLinkageResults(channel, parent, child1, child2, callable, result);
+        });
     }
 
     @Issue("JENKINS-61103")
-    public void testClassCreation_TestStaticResourceReference() throws Exception {
-        final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
-        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
-        Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testClassCreation_TestStaticResourceReference(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
+            final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
+            Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-        Object result = f1.get();
-        assertTestStaticResourceReferenceResults(channel, callable, result);
+            Object result = f1.get();
+            assertTestStaticResourceReferenceResults(channel, callable, result);
+        });
     }
 
     @Issue("JENKINS-61103")
-    public void testClassCreation_TestFindResources() throws Exception {
-        final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
-        final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
-        Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testClassCreation_TestFindResources(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
+            final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
+            Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-        Object result = f1.get();
-        assertTestStaticResourceReferenceResults(channel, callable, result);
+            Object result = f1.get();
+            assertTestStaticResourceReferenceResults(channel, callable, result);
+        });
     }
 
     static void assertTestStaticResourceReferenceResults(Channel channel, Callable<Object, Exception> callable, Object result) throws Exception {
@@ -161,7 +191,7 @@ public class ClassRemotingTest extends RmiTestBase {
         assertEquals(TESTLINKAGE_TRANSFORMED_CLASSNAME, loadResult.getClass().getName());
     }
 
-    private void assertTestCallableResults(Object[] result) {
+    private static void assertTestCallableResults(Object[] result) {
         assertTrue(result[0].toString().startsWith("hudson.remoting.RemoteClassLoader@"));
 
         // make sure the bytes are what we are expecting
@@ -178,10 +208,6 @@ public class ClassRemotingTest extends RmiTestBase {
         public EmptyVisitor() {
             super(Opcodes.ASM7);
         }
-    }
-
-    public static Test suite() {
-        return buildSuite(ClassRemotingTest.class);
     }
 
     private static class RemotePropertyVerifier extends CallableBase<Object, IOException> {

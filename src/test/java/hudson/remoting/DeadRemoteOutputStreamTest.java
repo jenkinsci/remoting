@@ -1,32 +1,41 @@
 package hudson.remoting;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-
-import static org.junit.Assert.assertThrows;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class DeadRemoteOutputStreamTest extends RmiTestBase implements Serializable {
+public class DeadRemoteOutputStreamTest implements Serializable {
 
     /**
      * If the remote writing end reports {@link IOException}, then the writing end shall
      * eventually see it.
      */
-    public void testDeadWriterNotification() throws Exception {
-        final OutputStream os = new RemoteOutputStream(new OutputStream() {
-            @Override
-            public void write(int b) throws IOException {
-                System.gc();
-                throw new IOException(MESSAGE, (Exception) DummyClassLoader.apply(TestCallable.class));
-            }
-        });
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testDeadWriterNotification(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
+        channelRunner.withChannel(channel -> {
+            final OutputStream os = new RemoteOutputStream(new OutputStream() {
+                @Override
+                public void write(int b) throws IOException {
+                    System.gc();
+                    throw new IOException(MESSAGE, (Exception) DummyClassLoader.apply(TestCallable.class));
+                }
+            });
 
-        channel.call(new DeadWriterCallable(os));
+            channel.call(new DeadWriterCallable(os));
+        });
     }
 
     public static final String MESSAGE = "dead man walking";
@@ -55,7 +64,7 @@ public class DeadRemoteOutputStreamTest extends RmiTestBase implements Serializa
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
             String whole = sw.toString();
-            assertTrue(whole, whole.contains(MESSAGE) && whole.contains("hudson.rem0ting.TestCallable"));
+            assertTrue(whole.contains(MESSAGE) && whole.contains("hudson.rem0ting.TestCallable"), whole);
             return null;
         }
         private static final long serialVersionUID = 1L;

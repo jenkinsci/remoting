@@ -1,32 +1,48 @@
 package hudson.remoting;
 
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.ObjectStreamException;
 import java.io.Serializable;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-public class RemoteInvocationHandlerTest extends RmiTestBase {
+public class RemoteInvocationHandlerTest {
 
-    public void testMethodSelection() throws Exception {
-        final Impl i = new Impl();
-        channel.call(new Task(i));
-        assertEquals("value", i.arg);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testMethodSelection(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final Impl i = new Impl();
+            channel.call(new Task(i));
+            assertEquals("value", i.arg);
+        });
     }
 
-    public void testExportPrimary() throws Exception {
-        final Impl i = new Impl();
-        Contract2 c2 = channel.export(Contract2.class, i);
-        Contract c = channel.export(Contract.class, i);
-        channel.call(new Task2(c2));
-        assertEquals("value", i.arg);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testExportPrimary(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final Impl i = new Impl();
+            Contract2 c2 = channel.export(Contract2.class, i);
+            Contract c = channel.export(Contract.class, i);
+            channel.call(new Task2(c2));
+            assertEquals("value", i.arg);
+        });
     }
 
-    public void testExportSecondary() throws Exception {
-        final Impl i = new Impl();
-        Contract c1 = channel.export(Contract.class, i);
-        Contract2 c2 = channel.export(Contract2.class, i);
-        channel.call(new Task2(c2));
-        assertEquals("value", i.arg);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testExportSecondary(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final Impl i = new Impl();
+            Contract c1 = channel.export(Contract.class, i);
+            Contract2 c2 = channel.export(Contract2.class, i);
+            channel.call(new Task2(c2));
+            assertEquals("value", i.arg);
+        });
     }
 
     public interface Contract {
@@ -82,19 +98,22 @@ public class RemoteInvocationHandlerTest extends RmiTestBase {
         private static final long serialVersionUID = 1L;
     }
 
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testAsyncCall(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final AsyncImpl i = new AsyncImpl();
+            AsyncContract c = channel.export(AsyncContract.class, i);
 
-    public void testAsyncCall() throws Exception {
-        final AsyncImpl i = new AsyncImpl();
-        AsyncContract c = channel.export(AsyncContract.class, i);
+            synchronized (i) {
+                channel.call(new AsyncTask(c));
+                assertNull(i.arg);  // async call should be blocking
 
-        synchronized (i) {
-            channel.call(new AsyncTask(c));
-            assertNull(i.arg);  // async call should be blocking
-
-            while (i.arg==null)
-                i.wait();
-            assertEquals("value", i.arg);  // once we let the call complete, we should see 'value'
-        }
+                while (i.arg == null)
+                    i.wait();
+                assertEquals("value", i.arg);  // once we let the call complete, we should see 'value'
+            }
+        });
     }
 
     public interface AsyncContract {

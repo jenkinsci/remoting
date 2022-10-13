@@ -1,14 +1,20 @@
 package hudson.remoting;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.Serializable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWriterTestChecker {
+public class PipeWriterTest implements Serializable, PipeWriterTestChecker {
     /**
      * {@link OutputStream} that is slow to act.
      */
@@ -19,12 +25,11 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
      * Proxy that can be used from the other side to verify the state.
      */
     PipeWriterTestChecker checker;
-
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-        // Checker operates using the user-space RMI
-        checker = channel.export(PipeWriterTestChecker.class, this, false, true, true);
+    <T extends Exception> void withChannel(ChannelRunner channelRunner, ChannelRunner.ConsumerThrowable<Channel, T> f) throws Exception {
+        channelRunner.withChannel(channel -> {
+            checker = channel.export(PipeWriterTestChecker.class, this, false, true, true);
+            f.accept(channel);
+        });
     }
 
     /**
@@ -76,26 +81,41 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
      * Verifies that I/O that happens during closure execution and return of closure is
      * coordinated.
      */
-    public void testResponseIoCoord() throws Exception {
-        channel.call(new ResponseCallableWriter());
-        // but I/O should be complete before the call returns.
-        assertTrue(slow.written);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testResponseIoCoord(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
+        withChannel(channelRunner, channel -> {
+            channel.call(new ResponseCallableWriter());
+            // but I/O should be complete before the call returns.
+            assertTrue(slow.written);
+        });
     }
 
     /**
      * Ditto for {@link OutputStream#flush()}
      */
-    public void testResponseIoCoordFlush() throws Exception {
-        channel.call(new ResponseCallableFlusher());
-        assertTrue(slow.flushed);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testResponseIoCoordFlush(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
+        withChannel(channelRunner, channel -> {
+            channel.call(new ResponseCallableFlusher());
+            assertTrue(slow.flushed);
+        });
     }
 
     /**
      * Ditto for {@link OutputStream#close()}
      */
-    public void testResponseIoCoordClose() throws Exception {
-        channel.call(new ResponseCallableCloser());
-        assertTrue(slow.closed);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testResponseIoCoordClose(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
+        withChannel(channelRunner, channel -> {
+            channel.call(new ResponseCallableCloser());
+            assertTrue(slow.closed);
+        });
     }
 
 
@@ -122,19 +142,31 @@ public class PipeWriterTest extends RmiTestBase implements Serializable, PipeWri
         private static final long serialVersionUID = 1L;
     }
 
-    public void testRequestIoCoord() throws Exception {
-        channel.call(new RequestCallableWriter());
-        assertSlowStreamTouched();
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testRequestIoCoord(ChannelRunner channelRunner) throws Exception {
+        withChannel(channelRunner, channel -> {
+            channel.call(new RequestCallableWriter());
+            assertSlowStreamTouched();
+        });
     }
 
-    public void testRequestIoCoordFlush() throws Exception {
-        channel.call(new RequestCallableFlusher());
-        assertSlowStreamTouched();
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testRequestIoCoordFlush(ChannelRunner channelRunner) throws Exception {
+        withChannel(channelRunner, channel -> {
+            channel.call(new RequestCallableFlusher());
+            assertSlowStreamTouched();
+        });
     }
 
-    public void testRequestIoCoordClose() throws Exception {
-        channel.call(new RequestCallableCloser());
-        assertSlowStreamTouched();
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testRequestIoCoordClose(ChannelRunner channelRunner) throws Exception {
+        withChannel(channelRunner, channel -> {
+            channel.call(new RequestCallableCloser());
+            assertSlowStreamTouched();
+        });
     }
 
     @Override

@@ -45,4 +45,18 @@ public interface ChannelRunner {
      * Human readable name for this channel runner. Used to annotate test reports.
      */
     String getName();
+
+    default <T extends Exception> void withChannel(ConsumerThrowable<Channel, T> f) throws Exception {
+        Channel channel = start();
+        try {
+            f.accept(channel);
+        } finally {
+            stop(channel);
+        }
+    }
+
+    @FunctionalInterface
+    interface ConsumerThrowable<C, T extends Throwable> {
+        void accept(C c) throws T;
+    }
 }
