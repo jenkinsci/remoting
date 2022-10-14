@@ -8,7 +8,7 @@ public final class ChannelRunners {
     private ChannelRunners() {}
 
     @SuppressWarnings("unused") // used by JUnit
-    static Stream<ChannelRunner> provider() {
+    public static Stream<ChannelRunner> provider() {
         return Stream.of(
                 new InProcessRunner(),
                 new NioSocketRunner(),
