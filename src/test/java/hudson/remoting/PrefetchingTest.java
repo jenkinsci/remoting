@@ -14,6 +14,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -37,11 +38,8 @@ public class PrefetchingTest implements Serializable {
     // checksum of the jar files to force loading
     private Checksum sum1,sum2;
 
-    <T extends Exception> void withChannel(ChannelRunner channelRunner, ChannelRunner.ConsumerThrowable<Channel, T> f) throws Exception {
-        channelRunner.withChannel(channel -> {
-            setUp(channel);
-            f.accept(channel);
-        });
+    void withChannel(ChannelRunner channelRunner, ChannelRunner.ConsumerThrowable<Channel, Exception> f) throws Exception {
+        channelRunner.withChannel(((ChannelRunner.ConsumerThrowable<Channel, Exception>) this::setUp).andThen(f));
     }
 
 
@@ -106,7 +104,6 @@ public class PrefetchingTest implements Serializable {
     public void testJarLoadingTest(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
         withChannel(channelRunner, channel -> {
-            setUp(channel);
             channel.call(new ForceJarLoad(sum1));
             channel.call(new ForceJarLoad(sum2));
 

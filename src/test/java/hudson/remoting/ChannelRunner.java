@@ -23,6 +23,9 @@
  */
 package hudson.remoting;
 
+import java.util.Objects;
+import java.util.function.Consumer;
+
 /**
  * Hides the logic of starting/stopping a channel for test,
  * and where/how the other side is running.
@@ -58,5 +61,24 @@ public interface ChannelRunner {
     @FunctionalInterface
     interface ConsumerThrowable<C, T extends Throwable> {
         void accept(C c) throws T;
+        /**
+         * Returns a composed {@code Consumer} that performs, in sequence, this
+         * operation followed by the {@code after} operation. If performing either
+         * operation throws an exception, it is relayed to the caller of the
+         * composed operation.  If performing this operation throws an exception,
+         * the {@code after} operation will not be performed.
+         *
+         * @param after the operation to perform after this operation
+         * @return a composed {@code Consumer} that performs in sequence this
+         * operation followed by the {@code after} operation
+         * @throws NullPointerException if {@code after} is null
+         */
+        default ConsumerThrowable<C, T> andThen(ConsumerThrowable<C, T> after) throws T {
+            Objects.requireNonNull(after);
+            return (C c) -> {
+                accept(c);
+                after.accept(c);
+            };
+        }
     }
 }

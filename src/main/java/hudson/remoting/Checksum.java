@@ -20,7 +20,7 @@ import java.security.NoSuchAlgorithmException;
  *
  * @author Kohsuke Kawaguchi
  */
-final class Checksum implements Serializable {
+final class Checksum {
     public final long sum1, sum2;
 
     Checksum(long sum1, long sum2) {
