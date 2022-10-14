@@ -1,7 +1,9 @@
 package hudson.remoting;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.IOException;
@@ -64,7 +66,7 @@ public class DeadRemoteOutputStreamTest implements Serializable {
             StringWriter sw = new StringWriter();
             e.printStackTrace(new PrintWriter(sw));
             String whole = sw.toString();
-            assertTrue(whole.contains(MESSAGE) && whole.contains("hudson.rem0ting.TestCallable"), whole);
+            assertThat(whole, allOf(containsString(MESSAGE), containsString("hudson.rem0ting.TestCallable")));
             return null;
         }
         private static final long serialVersionUID = 1L;
