@@ -26,10 +26,8 @@ public class PipeWriterTest implements Serializable, PipeWriterTestChecker {
      */
     PipeWriterTestChecker checker;
     <T extends Exception> void withChannel(ChannelRunner channelRunner, ChannelRunner.ConsumerThrowable<Channel, T> f) throws Exception {
-        channelRunner.withChannel(channel -> {
-            checker = channel.export(PipeWriterTestChecker.class, this, false, true, true);
-            f.accept(channel);
-        });
+        // Checker operates using the user-space RMI
+        channelRunner.withChannel(((ChannelRunner.ConsumerThrowable<Channel, T>) channel -> checker = channel.export(PipeWriterTestChecker.class, PipeWriterTest.this, false, true, true)).andThen(f));
     }
 
     /**
