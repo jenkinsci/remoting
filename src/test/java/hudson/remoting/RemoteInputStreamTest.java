@@ -14,7 +14,6 @@ import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import org.apache.commons.io.input.BrokenInputStream;
-import org.junit.Assert;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -31,7 +30,7 @@ public class RemoteInputStreamTest {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
             channel.call(new Read(new RemoteInputStream(in, NOT_GREEDY), toBytes("1234")));
-            Assert.assertArrayEquals(readFully(in, 4), "5678".getBytes());
+            assertArrayEquals(readFully(in, 4), "5678".getBytes());
         });
     }
 
@@ -70,7 +69,7 @@ public class RemoteInputStreamTest {
 
         @Override
         public Object call() throws IOException {
-            Assert.assertArrayEquals(readFully(in, expected.length), expected);
+            assertArrayEquals(readFully(in, expected.length), expected);
             return null;
         }
         private static final long serialVersionUID = 1L;
