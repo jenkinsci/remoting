@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.remoting.Channel.Mode;
 
@@ -35,7 +36,7 @@ import java.io.StreamCorruptedException;
      */
     private final OutputStream rawOut;
 
-    /*package*/ ClassicCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, FlightRecorderInputStream rawIn, OutputStream rawOut, Capability remoteCapability) {
+    /*package*/ ClassicCommandTransport(ObjectInputStream ois, ObjectOutputStream oos, @CheckForNull FlightRecorderInputStream rawIn, OutputStream rawOut, Capability remoteCapability) {
         this.ois = ois;
         this.oos = oos;
         this.rawIn= rawIn;

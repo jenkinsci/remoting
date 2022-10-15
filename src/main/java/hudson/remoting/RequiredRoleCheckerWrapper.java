@@ -23,6 +23,7 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.RoleSensitive;
@@ -42,19 +43,19 @@ import java.util.Collection;
     }
 
     @Override
-    public void check(RoleSensitive subject, Role... expected) throws SecurityException {
+    public void check(@NonNull RoleSensitive subject, Role... expected) throws SecurityException {
         checked = true;
         roleChecker.check(subject, expected);
     }
 
     @Override
-    public void check(RoleSensitive subject, Role expected) throws SecurityException {
+    public void check(@NonNull RoleSensitive subject, @NonNull Role expected) throws SecurityException {
         checked = true;
         roleChecker.check(subject, expected);
     }
 
     @Override
-    public void check(RoleSensitive subject, Collection<Role> expected) throws SecurityException {
+    public void check(@NonNull RoleSensitive subject, @NonNull Collection<Role> expected) throws SecurityException {
         checked = true;
         roleChecker.check(subject, expected);
     }
