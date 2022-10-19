@@ -625,7 +625,9 @@ public class Engine extends Thread {
                     @Override
                     public void onClose(Session session, CloseReason closeReason) {
                         LOGGER.fine(() -> "onClose: " + closeReason);
-                        transport.terminate(new ChannelClosedException(ch.get(), null));
+                        // making this call async to avoid potential deadlocks when some thread is holding a lock on the
+                        // channel object while this thread is trying to acquire it to call Transport#terminate
+                        ch.get().executor.submit(() -> transport.terminate(new ChannelClosedException(ch.get(), null)));
                     }
                     @Override
                     public void onError(Session session, Throwable x) {
