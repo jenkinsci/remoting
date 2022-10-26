@@ -633,8 +633,7 @@ public class Engine extends Thread {
                     public void onError(Session session, Throwable x) {
                         // TODO or would events.error(x) be better?
                         LOGGER.log(Level.FINE, null, x);
-                        // making this call async to avoid potential deadlocks when some thread is holding a lock on the
-                        // channel object while this thread is trying to acquire it to call Transport#terminate
+                        // as above
                         ch.get().executor.submit(() -> transport.terminate(new ChannelClosedException(ch.get(), x)));
                     }
 
