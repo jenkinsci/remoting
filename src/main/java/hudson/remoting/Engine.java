@@ -623,15 +623,22 @@ public class Engine extends Thread {
                         }
                     }
                     @Override
+                    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+                            justification = "We want the transport.terminate method to run asynchronously and don't want to wait for its status.")
                     public void onClose(Session session, CloseReason closeReason) {
                         LOGGER.fine(() -> "onClose: " + closeReason);
-                        transport.terminate(new ChannelClosedException(ch.get(), null));
+                        // making this call async to avoid potential deadlocks when some thread is holding a lock on the
+                        // channel object while this thread is trying to acquire it to call Transport#terminate
+                        ch.get().executor.submit(() -> transport.terminate(new ChannelClosedException(ch.get(), null)));
                     }
                     @Override
+                    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+                            justification = "We want the transport.terminate method to run asynchronously and don't want to wait for its status.")
                     public void onError(Session session, Throwable x) {
                         // TODO or would events.error(x) be better?
                         LOGGER.log(Level.FINE, null, x);
-                        transport.terminate(new ChannelClosedException(ch.get(), x));
+                        // as above
+                        ch.get().executor.submit(() -> transport.terminate(new ChannelClosedException(ch.get(), x)));
                     }
 
                     class Transport extends AbstractByteBufferCommandTransport {
