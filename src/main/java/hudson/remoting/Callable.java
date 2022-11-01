@@ -78,12 +78,12 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
      * In such case the requests will be likely failed by {@linkplain UserRequest} logic anyway, but it is better to fail fast.
      *
      * @return Channel instance
-     * @throws ChannelStateException The channel is closing down or has been closed.
+     * @throws ChannelClosedException The channel is closing down or has been closed.
      *          Also happens if the channel is not associated with the thread at all.
      * @since 3.15
      */
     @NonNull
-    default Channel getOpenChannelOrFail() throws ChannelStateException {
+    default Channel getOpenChannelOrFail() throws ChannelClosedException {
         final Channel ch = getChannelOrFail();
         if (ch.isClosingOrClosed()) {
             throw new ChannelClosedException(ch, "The associated channel " + ch + " is closing down or has closed down", ch.getCloseRequestCause());
