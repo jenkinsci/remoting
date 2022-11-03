@@ -37,66 +37,6 @@
     <Confidence value="2"/>
     <Or>
       <And>
-        <Bug pattern="EI_EXPOSE_REP"/>
-        <Or>
-          <Class name="hudson.remoting.Channel"/>
-          <Class name="hudson.remoting.ChannelBuilder"/>
-          <Class name="hudson.remoting.ClassLoaderHolder"/>
-          <Class name="hudson.remoting.Command"/>
-          <Class name="hudson.remoting.DiagnosedStreamCorruptionException"/>
-          <Class name="hudson.remoting.Pipe"/>
-          <Class name="hudson.remoting.Response"/>
-          <Class name="org.jenkinsci.remoting.ChannelStateException"/>
-          <Class name="org.jenkinsci.remoting.engine.Jnlp4ConnectionState"/>
-          <Class name="org.jenkinsci.remoting.engine.JnlpAgentEndpoint"/>
-          <Class name="org.jenkinsci.remoting.engine.JnlpConnectionState"/>
-          <Class name="org.jenkinsci.remoting.nio.FifoBuffer"/>
-          <Class name="org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer"/>
-          <Class name="org.jenkinsci.remoting.protocol.NetworkLayer"/>
-          <Class name="org.jenkinsci.remoting.protocol.ProtocolStack$Ptr"/>
-        </Or>
-      </And>
-      <And>
-        <Bug pattern="EI_EXPOSE_REP2"/>
-        <Or>
-          <Class name="hudson.remoting.AbstractByteArrayCommandTransport"/>
-          <Class name="hudson.remoting.AbstractByteBufferCommandTransport"/>
-          <Class name="hudson.remoting.AsyncFutureImpl"/>
-          <Class name="hudson.remoting.Channel"/>
-          <Class name="hudson.remoting.ChannelBuilder"/>
-          <Class name="hudson.remoting.ClassLoaderHolder"/>
-          <Class name="hudson.remoting.Engine"/>
-          <Class name="hudson.remoting.ObjectInputStreamEx"/>
-          <Class name="hudson.remoting.PingThread"/>
-          <Class name="hudson.remoting.RemoteOutputStream"/>
-          <Class name="hudson.remoting.RemoteWriter"/>
-          <Class name="hudson.remoting.SocketInputStream"/>
-          <Class name="hudson.remoting.SocketOutputStream"/>
-          <Class name="hudson.remoting.StandardOutputStream"/>
-          <Class name="hudson.remoting.SynchronousCommandTransport"/>
-          <Class name="hudson.remoting.TeeOutputStream"/>
-          <Class name="org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator"/>
-          <Class name="org.jenkinsci.remoting.engine.JnlpConnectionState"/>
-          <Class name="org.jenkinsci.remoting.engine.JnlpProtocol4Handler"/>
-          <Class name="org.jenkinsci.remoting.engine.JnlpProtocolHandlerFactory"/>
-          <Class name="org.jenkinsci.remoting.protocol.ApplicationLayer"/>
-          <Class name="org.jenkinsci.remoting.protocol.FilterLayer"/>
-          <Class name="org.jenkinsci.remoting.protocol.impl.BIONetworkLayer"/>
-          <Class name="org.jenkinsci.remoting.protocol.impl.NIONetworkLayer"/>
-          <Class name="org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer"/>
-          <Class name="org.jenkinsci.remoting.protocol.NetworkLayer"/>
-          <Class name="org.jenkinsci.remoting.util.ByteBufferQueueInputStream"/>
-          <Class name="org.jenkinsci.remoting.util.ByteBufferQueueOutputStream"/>
-          <Class name="org.jenkinsci.remoting.util.FastByteBufferQueueInputStream"/>
-          <Class name="org.jenkinsci.remoting.util.LoggingChannelListener"/>
-          <Class name="org.jenkinsci.remoting.util.SettableFuture"/>
-        </Or>
-      </And>
-      <And>
-        <Bug pattern="MS_EXPOSE_REP"/>
-        <Class name="org.jenkinsci.remoting.engine.WorkDirManager"/>
-      </And>
-      <And>
         <Bug pattern="NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"/>
         <Class name="hudson.remoting.ClassFilter"/>
       </And>
