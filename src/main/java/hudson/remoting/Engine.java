@@ -685,6 +685,7 @@ public class Engine extends Thread {
                 }
                 events.onDisconnect();
                 while (true) {
+                    TimeUnit.SECONDS.sleep(10);
                     // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
                     URL ping = new URL(hudsonUrl, "login");
                     try {
@@ -699,7 +700,6 @@ public class Engine extends Thread {
                     } catch (IOException x) {
                         events.status(ping + " is not ready", x);
                     }
-                    TimeUnit.SECONDS.sleep(10);
                 }
                 reconnect();
             }
