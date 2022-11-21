@@ -44,65 +44,6 @@
         <Bug pattern="SE_BAD_FIELD"/>
         <Class name="hudson.remoting.JarLoaderImpl"/>
       </And>
-      <And>
-        <Bug pattern="SSD_DO_NOT_USE_INSTANCE_LOCK_ON_SHARED_STATIC_DATA"/>
-        <Or>
-          <Class name="hudson.remoting.Request"/>
-          <Class name="hudson.remoting.UserRequest"/>
-        </Or>
-      </And>
-      <And>
-        <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
-        <Or>
-          <Class name="hudson.remoting.CallableDecoratorAdapter"/>
-          <Class name="hudson.remoting.CallableDecoratorList"/>
-          <Class name="hudson.remoting.CallableFilter"/>
-          <Class name="hudson.remoting.Engine"/>
-          <Class name="hudson.remoting.InitializeJarCacheMain"/>
-          <Class name="hudson.remoting.InterceptingExecutorService"/>
-          <Class name="hudson.remoting.Launcher"/>
-          <Class name="hudson.remoting.LocalChannel"/>
-          <Class name="org.jenkinsci.remoting.CallableDecorator"/>
-          <Class name="org.jenkinsci.remoting.nio.NioChannelHub$NioTransport"/>
-        </Or>
-      </And>
-      <And>
-        <Bug pattern="THROWS_METHOD_THROWS_CLAUSE_THROWABLE"/>
-        <Or>
-          <Class name="hudson.remoting.Callable"/>
-          <Class name="hudson.remoting.Channel"/>
-          <Class name="hudson.remoting.Channel$SetMaximumBytecodeLevel"/>
-          <Class name="hudson.remoting.FastPipedInputStream"/>
-          <Class name="hudson.remoting.FastPipedOutputStream"/>
-          <Class name="hudson.remoting.forward.ForwarderFactory$ForwarderCallable"/>
-          <Class name="hudson.remoting.forward.PortForwarder$ListeningPortCallable"/>
-          <Class name="hudson.remoting.LocalChannel"/>
-          <Class name="hudson.remoting.PingThread$Ping"/>
-          <Class name="hudson.remoting.PreloadJarTask"/>
-          <Class name="hudson.remoting.ProxyInputStream$Chunk"/>
-          <Class name="hudson.remoting.ProxyOutputStream"/>
-          <Class name="hudson.remoting.ProxyWriter"/>
-          <Class name="hudson.remoting.RemoteInvocationHandler"/>
-          <Class name="hudson.remoting.RemoteInvocationHandler$RPCRequest"/>
-          <Class name="hudson.remoting.Request"/>
-          <Class name="hudson.remoting.UserRequest"/>
-          <Class name="hudson.remoting.UserRequest$ExceptionResponse"/>
-          <Class name="hudson.remoting.UserRequest$ResponseToUserRequest"/>
-          <Class name="hudson.remoting.UserResponse"/>
-          <Class name="hudson.remoting.VirtualChannel"/>
-          <Class name="org.jenkinsci.remoting.nio.NioChannelHub$CallableRemotingWrapper"/>
-        </Or>
-      </And>
-      <And>
-        <Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
-        <Or>
-          <Class name="org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils$SubnetInfo"/>
-          <Class name="org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer"/>
-          <Class name="org.jenkinsci.remoting.util.VersionNumber$IntegerItem"/>
-          <Class name="org.jenkinsci.remoting.util.VersionNumber$ListItem"/>
-          <Class name="org.jenkinsci.remoting.util.VersionNumber$StringItem"/>
-        </Or>
-      </And>
     </Or>
   </Match>
   <Match>
