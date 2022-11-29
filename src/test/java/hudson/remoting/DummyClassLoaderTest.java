@@ -23,12 +23,15 @@
  */
 package hudson.remoting;
 
-import junit.framework.TestCase;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class DummyClassLoaderTest extends TestCase {
+public class DummyClassLoaderTest {
+    @Test
     public void testLoad() throws Throwable {
         Callable<Object, Throwable> c = (Callable<Object, Throwable>) DummyClassLoader.apply(TestCallable.class);
         System.out.println(c.call());

@@ -70,4 +70,8 @@ public class ForkRunner implements ChannelRunner {
         return buf.toString();
     }
 
+    @Override
+    public String toString() {
+        return getName();
+    }
 }

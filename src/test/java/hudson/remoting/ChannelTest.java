@@ -1,9 +1,15 @@
 package hudson.remoting;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.util.GCTask;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectStreamException;
@@ -18,25 +24,34 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.Issue;
-
-import static org.junit.Assert.assertThrows;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ChannelTest extends RmiTestBase {
-    public void testCapability() {
-        assertTrue(channel.remoteCapability.supportsMultiClassLoaderRPC());
+public class ChannelTest {
+    private static final Logger LOGGER = Logger.getLogger(ChannelTest.class.getName());
+
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testCapability(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner, "In-process runner does not support multi-classloader RPC");
+        channelRunner.withChannel(channel -> assertTrue(channel.remoteCapability.supportsMultiClassLoaderRPC()));
     }
 
     @Issue("JENKINS-9050")
-    public void testFailureInDeserialization() throws Exception {
-        final IOException e = assertThrows(IOException.class, () -> channel.call(new CallableImpl()));
-        assertEquals("foobar",e.getCause().getCause().getMessage());
-        assertTrue(e.getCause().getCause() instanceof ClassCastException);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testFailureInDeserialization(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final IOException e = assertThrows(IOException.class, () -> channel.call(new CallableImpl()));
+            assertEquals("foobar", e.getCause().getCause().getMessage());
+            assertTrue(e.getCause().getCause() instanceof ClassCastException);
+        });
     }
 
     private static class CallableImpl extends CallableBase<Object,IOException> {
@@ -55,66 +70,82 @@ public class ChannelTest extends RmiTestBase {
      * Objects exported during the request arg capturing is subject to caller auto-deallocation.
      */
     @Issue("JENKINS-10424")
-    public void testExportCallerDeallocation() throws Exception {
-        for (int i=0; i<100; i++) {
-            final GreeterImpl g = new GreeterImpl();
-            channel.call(new GreetingTask(g));
-            assertEquals(g.name,"Kohsuke");
-            assertFalse("in this scenario, auto-unexport by the caller should kick in.", channel.exportedObjects.isExported(g));
-        }
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testExportCallerDeallocation(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            for (int i = 0; i < 100; i++) {
+                final GreeterImpl g = new GreeterImpl();
+                channel.call(new GreetingTask(g));
+                assertEquals(g.name, "Kohsuke");
+                assertFalse(channel.exportedObjects.isExported(g), "in this scenario, auto-unexport by the caller should kick in.");
+            }
+        });
     }
 
     /**
      * Objects exported outside the request context should be deallocated by the callee.
      */
     @Issue("JENKINS-10424")
-    public void testExportCalleeDeallocation() throws Exception {
-        for (int j=0; j<10; j++) {
-            final GreeterImpl g = new GreeterImpl();
-            channel.call(new GreetingTask(channel.export(Greeter.class,g)));
-            assertEquals(g.name,"Kohsuke");
-            boolean isExported = channel.exportedObjects.isExported(g);
-            if (!isExported) {
-                // it is unlikely but possible that GC happens on remote node
-                // and 'g' gets unexported before we get to execute the above line
-                // if so, try again. if we kept failing after a number of retries,
-                // then it's highly suspicious that the caller is doing the deallocation,
-                // which is a bug.
-                System.out.println("Bitten by over-eager GC, will retry test");
-                continue;
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testExportCalleeDeallocation(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            for (int j = 0; j < 10; j++) {
+                final GreeterImpl g = new GreeterImpl();
+                channel.call(new GreetingTask(channel.export(Greeter.class, g)));
+                assertEquals(g.name, "Kohsuke");
+                boolean isExported = channel.exportedObjects.isExported(g);
+                if (!isExported) {
+                    // it is unlikely but possible that GC happens on remote node
+                    // and 'g' gets unexported before we get to execute the above line
+                    // if so, try again. if we kept failing after a number of retries,
+                    // then it's highly suspicious that the caller is doing the deallocation,
+                    // which is a bug.
+                    System.out.println("Bitten by over-eager GC, will retry test");
+                    continue;
+                }
+
+                // now we verify that 'g' gets eventually unexported by remote.
+                // to do so, we keep calling System.gc().
+                for (int i = 0; i < 30 && channel.exportedObjects.isExported(g); i++) {
+                    System.out.println("Attempting to force GC on remote end");
+                    channel.call(new GCTask(true));
+                    Thread.sleep(100);
+                }
+
+                assertFalse(channel.exportedObjects.isExported(g), "Object isn't getting unexported by remote");
+
+                return;
             }
 
-            // now we verify that 'g' gets eventually unexported by remote.
-            // to do so, we keep calling System.gc().
-            for (int i=0; i<30 && channel.exportedObjects.isExported(g); i++) {
-                System.out.println("Attempting to force GC on remote end");
-                channel.call(new GCTask(true));
-                Thread.sleep(100);
-            }
-
-            assertFalse("Object isn't getting unexported by remote", channel.exportedObjects.isExported(g));
-
-            return;
-        }
-
-        fail("in this scenario, remote will unexport this");
+            fail("in this scenario, remote will unexport this");
+        });
     }
 
-    public void testGetSetProperty() throws Exception {
-        channel.setProperty("foo","bar");
-        assertEquals("bar", channel.getProperty("foo"));
-        assertEquals("bar",channel.waitForProperty("foo"));
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testGetSetProperty(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            channel.setProperty("foo", "bar");
+            assertEquals("bar", channel.getProperty("foo"));
+            assertEquals("bar", channel.waitForProperty("foo"));
 
-        ChannelProperty<?> typedProp = new ChannelProperty<>(Class.class, "a type-safe property");
-        channel.setProperty(typedProp, Void.class);
-        assertEquals(Void.class, channel.getProperty(typedProp));
-        assertEquals(Void.class, channel.waitForProperty(typedProp));
+            ChannelProperty<?> typedProp = new ChannelProperty<>(Class.class, "a type-safe property");
+            channel.setProperty(typedProp, Void.class);
+            assertEquals(Void.class, channel.getProperty(typedProp));
+            assertEquals(Void.class, channel.waitForProperty(typedProp));
+        });
     }
 
-    public void testWaitForRemoteProperty() throws Exception {
-        Future<Void> f = channel.callAsync(new WaitForRemotePropertyCallable());
-        assertEquals("bar", channel.waitForRemoteProperty("foo"));
-        f.get(1, TimeUnit.SECONDS);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testWaitForRemoteProperty(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            Future<Void> f = channel.callAsync(new WaitForRemotePropertyCallable());
+            assertEquals("bar", channel.waitForRemoteProperty("foo"));
+            f.get(1, TimeUnit.SECONDS);
+        });
     }
 
     private static class WaitForRemotePropertyCallable extends CallableBase<Void, Exception> {
@@ -159,10 +190,14 @@ public class ChannelTest extends RmiTestBase {
     }
 
 
-    public void testClassLoaderHolder() throws Exception {
-        URLClassLoader ucl = new URLClassLoader(new URL[0]);
-        ClassLoaderHolder h = channel.call(new Echo<>(new ClassLoaderHolder(ucl)));
-        assertSame(ucl,h.get());
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testClassLoaderHolder(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            URLClassLoader ucl = new URLClassLoader(new URL[0]);
+            ClassLoaderHolder h = channel.call(new Echo<>(new ClassLoaderHolder(ucl)));
+            assertSame(ucl, h.get());
+        });
     }
 
     private static class Echo<T> extends CallableBase<T,RuntimeException> {
@@ -180,32 +215,41 @@ public class ChannelTest extends RmiTestBase {
     }
 
     @Issue("JENKINS-39150")
-    public void testDiagnostics() {
-        StringWriter sw = new StringWriter();
-        Channel.dumpDiagnosticsForAll(new PrintWriter(sw));
-        System.out.println(sw);
-        assertTrue(sw.toString().contains("Channel north"));
-        assertTrue(sw.toString().contains("Channel south"));
-        assertTrue(sw.toString().contains("Commands sent=0"));
-        assertTrue(sw.toString().contains("Commands received=0"));
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testDiagnostics(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof ForkRunner, "Can't call diagnostics on forked runners");
+        channelRunner.withChannel(channel -> {
+            StringWriter sw = new StringWriter();
+            Channel.dumpDiagnosticsForAll(new PrintWriter(sw));
+            System.out.println(sw);
+            assertTrue(sw.toString().contains("Channel north"));
+            assertTrue(sw.toString().contains("Channel south"));
+            assertTrue(sw.toString().contains("Commands sent=0"));
+            assertTrue(sw.toString().contains("Commands received=0"));
+        });
     }
 
-    public void testCallSiteStacktrace() {
-        final Exception e = assertThrows(Exception.class, this::failRemotelyToBeWrappedLocally);
-        assertEquals("Local Nested", e.getMessage());
-        assertEquals(Exception.class, e.getClass());
-        Throwable cause = e.getCause();
-        assertEquals("Node Nested", cause.getMessage());
-        assertEquals(IOException.class, cause.getClass());
-        Throwable rootCause = cause.getCause();
-        assertEquals("Node says hello!", rootCause.getMessage());
-        assertEquals(RuntimeException.class, rootCause.getClass());
-        Throwable callSite = cause.getSuppressed()[0];
-        assertEquals("Remote call to north", callSite.getMessage());
-        assertEquals("hudson.remoting.Channel$CallSiteStackTrace", callSite.getClass().getName());
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testCallSiteStacktrace(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final Exception e = assertThrows(Exception.class, () -> this.failRemotelyToBeWrappedLocally(channel));
+            assertEquals("Local Nested", e.getMessage());
+            assertEquals(Exception.class, e.getClass());
+            Throwable cause = e.getCause();
+            assertEquals("Node Nested", cause.getMessage());
+            assertEquals(IOException.class, cause.getClass());
+            Throwable rootCause = cause.getCause();
+            assertEquals("Node says hello!", rootCause.getMessage());
+            assertEquals(RuntimeException.class, rootCause.getClass());
+            Throwable callSite = cause.getSuppressed()[0];
+            assertEquals("Remote call to north", callSite.getMessage());
+            assertEquals("hudson.remoting.Channel$CallSiteStackTrace", callSite.getClass().getName());
+        });
     }
 
-    private void failRemotelyToBeWrappedLocally() throws Exception {
+    private void failRemotelyToBeWrappedLocally(Channel channel) throws Exception {
         try {
             channel.call(new ThrowingCallable());
         } catch (IOException e) {
@@ -225,22 +269,25 @@ public class ChannelTest extends RmiTestBase {
      * @throws Exception Test Error
      */
     @Issue("JENKINS-45023")
-    public void testShouldNotAcceptUserRequestsWhenIsBeingClosed() throws Exception {
-        
-        // Create a sample request to the channel
-        final Callable<Void, Exception> testPayload = new NeverEverCallable();
-        UserRequest<Void, Exception> delayedRequest = new UserRequest<>(channel, testPayload);
-        
-        try (ChannelCloseLock lock = new ChannelCloseLock(channel)) {
-            // Call Async
-            assertFailsWithChannelClosedException(TestRunnable.forChannel_call(testPayload));
-            assertFailsWithChannelClosedException(TestRunnable.forChannel_callAsync(testPayload));
-            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_constructor(testPayload));
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testShouldNotAcceptUserRequestsWhenIsBeingClosed(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            // Create a sample request to the channel
+            final Callable<Void, Exception> testPayload = new NeverEverCallable();
+            UserRequest<Void, Exception> delayedRequest = new UserRequest<>(channel, testPayload);
 
-            // Check if the previously created command also fails to execute
-            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_call(delayedRequest));
-            assertFailsWithChannelClosedException(TestRunnable.forUserRequest_callAsync(delayedRequest));
-        }
+            try (ChannelCloseLock ignored = new ChannelCloseLock(channel)) {
+                // Call Async
+                assertFailsWithChannelClosedException(channel, TestRunnable.forChannel_call(testPayload));
+                assertFailsWithChannelClosedException(channel, TestRunnable.forChannel_callAsync(testPayload));
+                assertFailsWithChannelClosedException(channel, TestRunnable.forUserRequest_constructor(testPayload));
+
+                // Check if the previously created command also fails to execute
+                assertFailsWithChannelClosedException(channel, TestRunnable.forUserRequest_call(delayedRequest));
+                assertFailsWithChannelClosedException(channel, TestRunnable.forUserRequest_callAsync(delayedRequest));
+            }
+        });
     }
 
     /**
@@ -248,25 +295,29 @@ public class ChannelTest extends RmiTestBase {
      * @throws Exception Test Error
      */
     @Issue("JENKINS-45294")
-    public void testShouldNotAcceptUserRPCRequestsWhenIsBeingClosed() throws Exception {
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testShouldNotAcceptUserRPCRequestsWhenIsBeingClosed(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
 
-        Collection<String> src = new ArrayList<>();
-        src.add("Hello");
-        src.add("World");
+            Collection<String> src = new ArrayList<>();
+            src.add("Hello");
+            src.add("World");
 
-        //TODO: System request will just hang. Once JENKINS-44785 is implemented, all system requests
-        // in Remoting codebase must have a timeout.
-        final Collection<String> remoteList = channel.call(new RMIObjectExportedCallable<>(src, Collection.class, true));
+            //TODO: System request will just hang. Once JENKINS-44785 is implemented, all system requests
+            // in Remoting codebase must have a timeout.
+            final Collection<String> remoteList = channel.call(new RMIObjectExportedCallable<>(src, Collection.class, true));
 
-        try (ChannelCloseLock lock = new ChannelCloseLock(channel)) {
-            // Call Async
-            assertFailsWithChannelClosedException(new TestRunnable() {
-                @Override
-                public void run(Channel channel) throws AssertionError {
-                    remoteList.size();
-                }
-            });
-        }
+            try (ChannelCloseLock ignored = new ChannelCloseLock(channel)) {
+                // Call Async
+                assertFailsWithChannelClosedException(channel, new TestRunnable() {
+                    @Override
+                    public void run(Channel channel) throws AssertionError {
+                        remoteList.size();
+                    }
+                });
+            }
+        });
     }
 
     private static class RMIObjectExportedCallable<TInterface> implements Callable<TInterface, Exception> {
@@ -343,8 +394,8 @@ public class ChannelTest extends RmiTestBase {
             // Check the state
             Thread.sleep(1000);
             System.out.println("Running the tests");
-            assertTrue("Channel should be closing", channel.isClosingOrClosed());
-            assertFalse("Channel should not be closed due to the lock", channel.isOutClosed());
+            assertTrue(channel.isClosingOrClosed(), "Channel should be closing");
+            assertFalse(channel.isOutClosed(), "Channel should not be closed due to the lock");
         }
         
         @Override
@@ -403,11 +454,11 @@ public class ChannelTest extends RmiTestBase {
         }
     }
     
-    private void assertFailsWithChannelClosedException(TestRunnable call) throws AssertionError {
+    private void assertFailsWithChannelClosedException(Channel channel, TestRunnable call) throws AssertionError {
         try {
             call.run(channel);
         } catch(Exception ex) {
-            Logger.getLogger(ChannelTest.class.getName()).log(Level.WARNING, "Call execution failed with exception", ex);
+            LOGGER.log(Level.WARNING, "Call execution failed with exception", ex);
             Throwable cause = ex instanceof RemotingSystemException ? ex.getCause() : ex;
             if (cause instanceof ChannelClosedException) {
                 // Fine
