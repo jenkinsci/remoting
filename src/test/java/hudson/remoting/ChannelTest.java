@@ -39,7 +39,7 @@ public class ChannelTest {
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testCapability(ChannelRunner channelRunner) throws Exception {
-        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner, "In-process runner does not support multi classloader rp");
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner, "In-process runner does not support multi-classloader RPC");
         channelRunner.withChannel(channel -> assertTrue(channel.remoteCapability.supportsMultiClassLoaderRPC()));
     }
 
