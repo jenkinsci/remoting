@@ -60,16 +60,18 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.logging.Level.INFO;
 import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
@@ -112,7 +114,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         this(jenkinsUrls, null, null, null, null, false);
     }
 
-    public JnlpAgentEndpointResolver(List<String> jenkinsUrls, String credentials, String proxyCredentials,
+    public JnlpAgentEndpointResolver(@NonNull List<String> jenkinsUrls, String credentials, String proxyCredentials,
                                      String tunnel, SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) {
         this.jenkinsUrls = new ArrayList<>(jenkinsUrls);
         this.credentials = credentials;
@@ -221,7 +223,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 }
 
                 // Check if current version of agent is supported
-                String minimumSupportedVersionHeader = first(header(con, Engine.REMOTING_MINIMUM_VERSION_HEADER));
+                String minimumSupportedVersionHeader = con.getHeaderField(Engine.REMOTING_MINIMUM_VERSION_HEADER);
                 if (minimumSupportedVersionHeader != null) {
                     VersionNumber minimumSupportedVersion = new VersionNumber(minimumSupportedVersionHeader);
                     VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
@@ -233,24 +235,17 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     }
                 }
 
-                String host;
-                String portStr;
                 Set<String> agentProtocolNames = null;
 
-                portStr = first(header(con, "X-Jenkins-JNLP-Port", "X-Hudson-JNLP-Port"));
-                host = defaultString(first(header(con, "X-Jenkins-JNLP-Host")), salURL.getHost());
-                List<String> protocols = header(con, "X-Jenkins-Agent-Protocols");
+                String portStr = Optional.ofNullable(con.getHeaderField("X-Jenkins-JNLP-Port")).orElse(con.getHeaderField("X-Hudson-JNLP-Port"));
+                String host = Optional.ofNullable(con.getHeaderField("X-Jenkins-JNLP-Host")).orElse(salURL.getHost());
+                String protocols = con.getHeaderField("X-Jenkins-Agent-Protocols");
                 if (protocols != null) {
                     // Take the list of protocols to try from the headers
-                    agentProtocolNames = new HashSet<>();
-                    for (String names : protocols) {
-                        for (String name : names.split(",")) {
-                            name = name.trim();
-                            if (!name.isEmpty()) {
-                                agentProtocolNames.add(name);
-                            }
-                        }
-                    }
+                    agentProtocolNames = Stream.of(protocols.split(","))
+                            .map(String::trim)
+                            .filter(Predicate.not(String::isEmpty))
+                            .collect(Collectors.toSet());
 
                     if (agentProtocolNames.isEmpty()) {
                         LOGGER.log(Level.WARNING, "Received the empty list of supported protocols from the server. " +
@@ -265,18 +260,15 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
                 if (PROTOCOL_NAMES_TO_TRY != null) {
                     // Take a list of protocols to try from the system property
-                    agentProtocolNames = new HashSet<>();
                     LOGGER.log(Level.INFO, "Ignoring the list of supported remoting protocols provided by the server, because the " +
                         "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' property is defined. Will try {0}", PROTOCOL_NAMES_TO_TRY);
-                    for (String name : PROTOCOL_NAMES_TO_TRY.split(",")) {
-                        name = name.trim();
-                        if (!name.isEmpty()) {
-                            agentProtocolNames.add(name);
-                        }
-                    }
+                    agentProtocolNames = Stream.of(PROTOCOL_NAMES_TO_TRY.split(","))
+                            .map(String::trim)
+                            .filter(Predicate.not(String::isEmpty))
+                            .collect(Collectors.toSet());
                 }
 
-                String idHeader = first(header(con, "X-Instance-Identity"));
+                String idHeader = con.getHeaderField("X-Instance-Identity");
                 RSAPublicKey identity;
                 try {
                     identity = getIdentity(idHeader);
@@ -309,7 +301,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 if (tunnel == null) {
                     if (!isPortVisible(host, port)) {
                         firstError = chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
-                                + " is not reachable"));
+                                + " is not reachable on host " + host));
                         continue;
                     } else {
                         LOGGER.log(Level.FINE, "TCP Agent Listener Port availability check passed");
@@ -390,12 +382,11 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 try {
                     // Jenkins top page might be read-protected. see http://www.nabble
                     // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
-                    final String firstUrl = first(jenkinsUrls);
-                    if (firstUrl == null) {
+                    if (jenkinsUrls.isEmpty()) {
                         // returning here will cause the whole loop to be broken and all the urls to be tried again
                         return;
                     }
-                    URL url = toAgentListenerURL(firstUrl);
+                    URL url = toAgentListenerURL(jenkinsUrls.get(0));
 
                     retries++;
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
@@ -564,34 +555,5 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
     static boolean inNoProxyEnvVar(String host) {
         return !NoProxyEvaluator.shouldProxy(host);
-    }
-
-    @CheckForNull
-    private static List<String> header(@NonNull HttpURLConnection connection, String... headerNames) {
-        Map<String, List<String>> headerFields = connection.getHeaderFields();
-        for (String headerName : headerNames) {
-            for (Map.Entry<String, List<String>> entry: headerFields.entrySet()) {
-                final String headerField = entry.getKey();
-                if (isMatchingHeader(headerName, headerField)) {
-                    return entry.getValue();
-                }
-            }
-        }
-        return null;
-    }
-
-    @SuppressFBWarnings(value = "IMPROPER_UNICODE", justification = "Header fields are provided by controller and header names are hardcoded.")
-    private static boolean isMatchingHeader(String headerName, String headerField) {
-        return headerField != null && headerField.equalsIgnoreCase(headerName);
-    }
-
-    @CheckForNull
-    private static String first(@CheckForNull List<String> values) {
-        return values == null || values.isEmpty() ? null : values.get(0);
-    }
-
-    @NonNull
-    private static String defaultString(@CheckForNull String value, @NonNull String defaultValue) {
-        return value == null ? defaultValue : value;
     }
 }

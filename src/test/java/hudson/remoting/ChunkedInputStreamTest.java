@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.pipe.RandomWorkload;
 import hudson.remoting.pipe.Workload;
 import org.jenkinsci.remoting.nio.FifoBuffer;
@@ -111,7 +112,7 @@ public class ChunkedInputStreamTest extends Assert {
         }
 
         @Override
-        public void write(byte[] b, int off, int len) throws IOException {
+        public void write(@NonNull byte[] b, int off, int len) throws IOException {
             out.write(b, off, len);
             ((ChunkedOutputStream)out).sendBreak();
         }

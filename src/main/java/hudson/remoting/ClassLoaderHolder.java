@@ -20,7 +20,7 @@ public class ClassLoaderHolder implements SerializableOnlyOverRemoting {
     @CheckForNull
     private transient ClassLoader classLoader;
 
-    public ClassLoaderHolder(ClassLoader classLoader) {
+    public ClassLoaderHolder(@CheckForNull ClassLoader classLoader) {
         this.classLoader = classLoader;
     }
 

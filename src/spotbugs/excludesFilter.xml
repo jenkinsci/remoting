@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+  <!--
+    Exclusions in this section have been triaged and determined to be false positives.
+  -->
+  <Match>
+    <Or>
+      <!-- We don't care about this behavior -->
+      <Bug pattern="CRLF_INJECTION_LOGS"/>
+      <!-- Pending https://github.com/spotbugs/spotbugs/issues/1515 -->
+      <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
+      <Bug pattern="DP_DO_INSIDE_DO_PRIVILEGED"/>
+    </Or>
+  </Match>
+  <!--
+    Here lies technical debt. Exclusions in this section have not yet been triaged. When working on
+    on this section, pick an exclusion to triage, then:
+    - If it is a false positive, add a @SuppressFBWarnings(value = "[…]", justification = "[…]")
+      annotation indicating the reason why it is a false positive, then remove the exclusion from
+      this section.
+    - If it is not a false positive, fix the bug, then remove the exclusion from this section.
+   -->
+  <Match>
+    <Confidence value="1"/>
+    <Or>
+      <And>
+        <Bug pattern="DM_GC"/>
+        <Class name="hudson.remoting.GCCommand"/>
+      </And>
+      <And>
+        <Bug pattern="DMI_COLLECTION_OF_URLS"/>
+        <Class name="hudson.remoting.JarLoaderImpl"/>
+      </And>
+    </Or>
+  </Match>
+  <Match>
+    <Confidence value="2"/>
+    <Or>
+      <And>
+        <Bug pattern="NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"/>
+        <Class name="hudson.remoting.ClassFilter"/>
+      </And>
+      <And>
+        <Bug pattern="SE_BAD_FIELD"/>
+        <Class name="hudson.remoting.JarLoaderImpl"/>
+      </And>
+    </Or>
+  </Match>
+  <Match>
+    <Confidence value="3"/>
+    <Or>
+      <And>
+        <Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"/>
+        <Or>
+          <Class name="hudson.remoting.Channel"/>
+          <Class name="hudson.remoting.Engine"/>
+          <Class name="hudson.remoting.forward.PortForwarder"/>
+          <Class name="hudson.remoting.forward.PortForwarder$1"/>
+          <Class name="hudson.remoting.RemoteInputStream$1"/>
+          <Class name="org.jenkinsci.remoting.protocol.impl.NIONetworkLayer"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="PZLA_PREFER_ZERO_LENGTH_ARRAYS"/>
+        <Class name="org.jenkinsci.remoting.org.apache.commons.validator.routines.RegexValidator"/>
+      </And>
+      <And>
+        <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
+        <Or>
+          <Class name="hudson.remoting.AbstractByteArrayCommandTransport"/>
+          <Class name="hudson.remoting.Capability"/>
+          <Class name="hudson.remoting.ChannelBuilder"/>
+          <Class name="hudson.remoting.LocalChannel"/>
+          <Class name="hudson.remoting.RemoteInputStream"/>
+        </Or>
+      </And>
+    </Or>
+  </Match>
+</FindBugsFilter>

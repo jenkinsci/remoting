@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.88</version>
+    <version>1.92</version>
     <relativePath />
   </parent>
 
@@ -63,7 +63,6 @@ THE SOFTWARE.
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <build.type>private</build.type>
     <spotbugs.effort>Max</spotbugs.effort>
-    <spotbugs.excludeFilterFile>${basedir}/src/spotbugs/excludeFilter.xml</spotbugs.excludeFilterFile>
     <spotbugs.threshold>Low</spotbugs.threshold>
     <bc-version>1.72</bc-version>
   </properties>
@@ -78,7 +77,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.glassfish.tyrus.bundles</groupId>
       <artifactId>tyrus-standalone-client-jdk</artifactId>
-      <version>2.1.1</version>
+      <version>2.1.2</version>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -166,8 +165,7 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest</artifactId>
-      <version>2.2</version>
+      <artifactId>hamcrest-core</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -219,7 +217,7 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>3.4.1</version>
         <executions>
           <execution>
             <goals>
