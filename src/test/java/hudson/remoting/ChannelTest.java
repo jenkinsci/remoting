@@ -26,7 +26,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.Issue;
@@ -34,7 +33,6 @@ import org.jvnet.hudson.test.Issue;
 /**
  * @author Kohsuke Kawaguchi
  */
-@Timeout(value = 1, unit = TimeUnit.MINUTES)
 public class ChannelTest {
     private static final Logger LOGGER = Logger.getLogger(ChannelTest.class.getName());
 

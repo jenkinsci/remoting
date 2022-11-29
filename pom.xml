@@ -386,6 +386,14 @@ THE SOFTWARE.
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <rerunFailingTestsCount>4</rerunFailingTestsCount>
+          <properties>
+            <!-- https://junit.org/junit5/docs/snapshot/user-guide/#writing-tests-declarative-timeouts -->
+            <configurationParameters>
+              junit.jupiter.execution.timeout.default=15s
+              junit.jupiter.execution.timeout.mode=disabled_on_debug
+              junit.jupiter.execution.timeout.thread.mode.default=SEPARATE_THREAD
+            </configurationParameters>
+          </properties>
         </configuration>
       </plugin>
       <plugin>
