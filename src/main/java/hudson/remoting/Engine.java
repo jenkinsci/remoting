@@ -113,6 +113,8 @@ public class Engine extends Thread {
      */
     public static final String WEBSOCKET_COOKIE_HEADER = "Connection-Cookie";
 
+    static boolean nonFatalJnlpAgentResolutionExceptions = Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions");
+
     /**
      * Thread pool that sets {@link #CURRENT}.
      */
@@ -750,12 +752,12 @@ public class Engine extends Thread {
                 try {
                     endpoint = resolver.resolve();
                 } catch (Exception e) {
-                    if (Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
+                    if (nonFatalJnlpAgentResolutionExceptions) {
                         events.status("Could not resolve JNLP agent endpoint", e);
                     } else {
                         events.error(e);
                     }
-                    return;
+                    continue;
                 }
                 if (endpoint == null) {
                     events.status("Could not resolve server among " + candidateUrls);
