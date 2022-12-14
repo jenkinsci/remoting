@@ -13,10 +13,9 @@ For additional information about Jenkins agents see [Distributed builds](https:/
 ## Launch mechanisms
 Part of the agent status page for inbound agents looks something like this:
 
-![Tcp agent status UI](tcpAgentStatus.jpg)
+![Tcp agent status UI](tcpAgentStatus.png)
 
-This shows a couple of launch methods, but there are other mechanisms.
-If you use a different mechanism than clicking the "Launch" button, this page contains parameters that you will need. 
+This page contains parameters that you will need to launch an agent.
 The long string of hex digits is a secret key that the client needs to establish the connection. 
 This key is based on the agent name and a per-controller secret.
 Depending on how you connect you may also need the agent name, "AgentName" in this example, or the (misnamed) jnlpUrl, "https://myjenkins.example.com/computer/AgentName/jenkins-agent.jnlp".
