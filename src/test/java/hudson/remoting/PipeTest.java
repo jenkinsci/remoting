@@ -38,7 +38,6 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
 import org.junit.jupiter.api.Disabled;
@@ -87,7 +86,7 @@ public class PipeTest implements Serializable {
                 assertEquals(in.read(), 0);
             }
 
-            final ExecutionException e = assertThrows(ExecutionException.class, () -> f.get(2, TimeUnit.SECONDS));
+            final ExecutionException e = assertThrows(ExecutionException.class, () -> f.get());
             assertThat(e.getCause(), instanceOf(IOException.class));
         });
     }
