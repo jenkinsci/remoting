@@ -40,13 +40,12 @@ public class JarLoaderImplTest implements Serializable {
     }
 
 
+
     protected void setUp(Channel channel) throws Exception {
         jar1 = getClass().getClassLoader().getResource("remoting-test-client.jar");
         jar2 = getClass().getClassLoader().getResource("remoting-test-client-tests.jar");
 
         cl = new URLClassLoader(new URL[]{toFile(jar1).toURI().toURL(), toFile(jar2).toURI().toURL()}, this.getClass().getClassLoader());
-
-        dir = Files.createTempDirectory("remoting-cache").toFile();
 
         channel.setJarCache(new FileSystemJarCache(dir, true));
         channel.call(new JarCacherCallable());
@@ -101,18 +100,21 @@ public class JarLoaderImplTest implements Serializable {
     public void testJarLoadingTest(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
 
+        dir = Files.createTempDirectory("remoting-cache").toFile();
+
         withChannel(channelRunner, channel -> {
             sum1 = channel.jarLoader.calcChecksum(jar1);
             sum2 = channel.jarLoader.calcChecksum(jar2);
             System.out.println("Channel "+ channel.getName());
             JarLoaderCache.showInfo();
         });
-//        withChannel(channelRunner, channel -> {
-//            sum1 = channel.jarLoader.calcChecksum(jar1);
-//            sum2 = channel.jarLoader.calcChecksum(jar2);
-//            System.out.println("Channel "+ channel.getName());
-//            JarLoaderCache.showInfo();
-//        });
+
+        withChannel(channelRunner, channel -> {
+            sum1 = channel.jarLoader.calcChecksum(jar1);
+            sum2 = channel.jarLoader.calcChecksum(jar2);
+            System.out.println("Channel "+ channel.getName());
+            JarLoaderCache.showInfo();
+        });
     }
 
 
