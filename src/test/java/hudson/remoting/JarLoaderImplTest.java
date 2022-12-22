@@ -107,12 +107,12 @@ public class JarLoaderImplTest implements Serializable {
             System.out.println("Channel "+ channel.getName());
             JarLoaderCache.showInfo();
         });
-        withChannel(channelRunner, channel -> {
-            sum1 = channel.jarLoader.calcChecksum(jar1);
-            sum2 = channel.jarLoader.calcChecksum(jar2);
-            System.out.println("Channel "+ channel.getName());
-            JarLoaderCache.showInfo();
-        });
+//        withChannel(channelRunner, channel -> {
+//            sum1 = channel.jarLoader.calcChecksum(jar1);
+//            sum2 = channel.jarLoader.calcChecksum(jar2);
+//            System.out.println("Channel "+ channel.getName());
+//            JarLoaderCache.showInfo();
+//        });
     }
 
 
