@@ -12,4 +12,8 @@ public class JarLoaderCache {
 
     static final AtomicInteger checksumsHits = new AtomicInteger(0);
 
+    static public void showInfo(){
+        System.out.println(" KnownJar Hits " + knownJarsHits.get());
+        System.out.println(" Checksum Hits " + checksumsHits.get());
+    }
 }

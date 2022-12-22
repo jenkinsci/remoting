@@ -100,41 +100,27 @@ public class JarLoaderImplTest implements Serializable {
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testJarLoadingTest(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
+
         withChannel(channelRunner, channel -> {
             sum1 = channel.jarLoader.calcChecksum(jar1);
             sum2 = channel.jarLoader.calcChecksum(jar2);
-
+            System.out.println("Channel "+ channel.getName());
+            JarLoaderCache.showInfo();
+        });
+        withChannel(channelRunner, channel -> {
+            sum1 = channel.jarLoader.calcChecksum(jar1);
+            sum2 = channel.jarLoader.calcChecksum(jar2);
+            System.out.println("Channel "+ channel.getName());
+            JarLoaderCache.showInfo();
         });
     }
 
-    private static class Verifier implements Function<Object, Object>, Serializable {
-        @Override
-        public Object apply(Object o) {
-            try {
-                // verify that 'o' is loaded from a jar file
-                String loc = Which.classFileUrl(o.getClass()).toExternalForm();
-                System.out.println(loc);
-                assertTrue(loc.startsWith("jar:"), loc);
-                return null;
-            } catch (IOException e) {
-                throw new Error(e);
-            }
-        }
 
-        private static final long serialVersionUID = 1L;
-    }
 
     private void verifyResource(String v) {
         assertThat(v, allOf(startsWith("jar:file:"), containsString(dir.toURI().getPath()), endsWith("::hello")));
     }
 
-    /**
-     * Validates that the resource is coming from a file path.
-     */
-    private void verifyResourcePrecache(String v) {
-        assertTrue(v.startsWith("file:"), v);
-        assertTrue(v.endsWith("::hello"), v);
-    }
 
     /**
      * Once the jar files are cached, ClassLoader.getResources() should return jar URLs.
@@ -159,49 +145,8 @@ public class JarLoaderImplTest implements Serializable {
         });
     }
 
-    /**
-     * Unlike {@link #testGetResources(ChannelRunner)}, the URL should begin with file:... before the jar file gets cached
-     */
-    @ParameterizedTest
-    @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testGetResources_precache(ChannelRunner channelRunner) throws Exception {
-        withChannel(channelRunner, channel -> {
-            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResources").getDeclaredConstructor().newInstance();
-            String v = channel.call(c);
-            System.out.println(v);  // should find two resources
 
-            String[] lines = v.split("\n");
 
-            assertTrue(lines[0].startsWith("file:"), lines[0]);
-            assertTrue(lines[1].startsWith("file:"), lines[1]);
-            assertTrue(lines[0].endsWith("::hello"), lines[0]);
-            assertTrue(lines[1].endsWith("::hello2"), lines[1]);
-        });
-    }
-
-    @ParameterizedTest
-    @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testInnerClass(ChannelRunner channelRunner) throws Exception {
-        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
-        withChannel(channelRunner, channel -> {
-            Echo<Object> e = new Echo<>();
-            e.value = cl.loadClass("test.Foo").getDeclaredConstructor().newInstance();
-            Object r = channel.call(e);
-
-            ((Predicate<Void>) r).apply(null); // this verifies that the object is still in a good state
-        });
-    }
-
-    private static final class Echo<V> extends CallableBase<V, IOException> implements Serializable {
-        V value;
-
-        @Override
-        public V call() {
-            return value;
-        }
-
-        private static final long serialVersionUID = 1L;
-    }
 
     /**
      * Force the remote side to fetch the retrieval of the specific jar file.
