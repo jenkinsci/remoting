@@ -1,0 +1,24 @@
+digraph g {
+	rankdir=LR;
+	node [shape=record];
+	null1 [label="null"];
+	network [label="<f0> nextRecv|<f1> BIONetworkLayer|<f2> nextSend"];
+	filter1 [label="<f0> nextRecv|<f1> AgentProtocolClientFilterLayer|<f2> nextSend"];
+	filter2 [label="<f0> nextRecv|<f1> AckFilterLayer|<f2> nextSend"];
+	filter3 [label="<f0> nextRecv|<f1> SSLEngineFilterLayer|<f2> nextSend"];
+	filter4 [label="<f0> nextRecv|<f1> ConnectionHeadersFilterLayer|<f2> nextSend"];
+	application [label="<f0> nextRecv|<f1> ChannelApplicationLayer|<f2> nextSend"];
+	null2 [label="null"];
+	network:f2 -> null1;
+	network:f0 -> filter1:f1;
+	filter1:f0 -> filter2:f1;
+	filter1:f2 -> network:f1;
+	filter2:f0 -> filter3:f1;
+	filter2:f2 -> filter1:f1;
+	filter3:f0 -> filter4:f1;
+	filter3:f2 -> filter2:f1;
+	filter4:f0 -> application:f1;
+	filter4:f2 -> filter3:f1;
+	application:f0 -> null2;
+	application:f2 -> filter4:f1;
+}
