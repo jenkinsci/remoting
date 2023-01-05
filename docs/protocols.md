@@ -29,7 +29,7 @@ Protocol uses non-blocking I/O wherever possible which removes the performance b
 The protocol stack starts with the network layer, proceeds to an arbitrary number of filter layers, and ends with the application layer.
 It is represented as a doubly-linked list:
 
-![Protocol Stack](protocol-stack.png)
+![Protocol Stack](protocol-stack.svg)
 
 ### WebSocket
 
