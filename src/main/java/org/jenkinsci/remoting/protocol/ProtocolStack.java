@@ -606,6 +606,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         /**
          * Flag to track this {@link ProtocolLayer} as removed from the stack.
          */
+        @GuardedBy("ProtocolStack.stackLock")
         private boolean removed;
 
         /**
@@ -760,7 +761,12 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          * Requests removal of this {@link ProtocolLayer} from the {@link ProtocolStack}
          */
         public void remove() {
-            removed = true;
+            stackLock.writeLock().lock();
+            try {
+                removed = true;
+            } finally {
+                stackLock.writeLock().unlock();
+            }
         }
 
         /**
@@ -838,6 +844,21 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         }
 
         /**
+         * Gets the {@link Ptr} for the next layer down the stack, skipping any removed {@link Ptr}
+         * instances and leaving the update to a later call.
+         *
+         * @return the {@link Ptr} for the next layer down the stack
+         */
+        @Nullable
+        private Ptr getNextSendImpl() {
+            Ptr nextSend = this.nextSend;
+            while (nextSend != null && nextSend.removed && nextSend.nextSend != null) {
+                nextSend = nextSend.nextSend;
+            }
+            return nextSend;
+        }
+
+        /**
          * Gets the {@link Ptr} for the next layer down the stack (processing the send half of any intermediary
          * {@link #removed} flags if possible, if not possible it skips the removed {@link Ptr} instances anyway,
          * leaving the update to a later call)
@@ -846,37 +867,39 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          */
         @Nullable
         private Ptr getNextSend() {
-            Ptr nextSend;
-            stackLock.readLock().lock();
-            try {
-                nextSend = this.nextSend;
-                while (nextSend != null && nextSend.removed && nextSend.nextSend != null) {
-                    nextSend = nextSend.nextSend;
-                }
-                if (nextSend == this.nextSend) {
-                    return nextSend;
-                }
-            } finally {
-                stackLock.readLock().unlock();
-            }
             if (stackLock.writeLock().tryLock()) {
                 // we only need to unwind ourselves eventually, if we cannot do it now ok to do it later
                 try {
+                    Ptr nextSend = getNextSendImpl();
+                    if (nextSend == this.nextSend) {
+                        return nextSend;
+                    }
                     while (this.nextSend != nextSend && this.nextSend != null && this.nextSend.removed) {
                         assert this.nextSend.layer instanceof FilterLayer
                                 : "this is the layer before and there is a layer after nextSend thus nextSend "
                                 + "*must* be a FilterLayer";
-                        ((FilterLayer) this.nextSend.layer).onSendRemoved();
+                        ((FilterLayer) this.nextSend.layer).onRemoved();
                         // remove this.nextSend from the stack as it has set it's removed flag
-                        Ptr tmp = this.nextSend.nextSend;
-                        this.nextSend.nextSend = null;
-                        this.nextSend = tmp;
+                        Ptr prev = this.nextSend.nextSend;
+                        Ptr removed = this.nextSend;
+                        Ptr next = this;
+                        prev.nextRecv = next;
+                        next.nextSend = prev;
+                        removed.nextSend = null;
+                        removed.nextRecv = null;
                     }
+                    return nextSend;
                 } finally {
                     stackLock.writeLock().unlock();
                 }
+            } else {
+                stackLock.readLock().lock();
+                try {
+                    return getNextSendImpl();
+                } finally {
+                    stackLock.readLock().unlock();
+                }
             }
-            return nextSend;
         }
 
         /**
@@ -891,6 +914,21 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         }
 
         /**
+         * Gets the {@link Ptr} for the next layer up the stack, skipping any removed {@link Ptr}
+         * instances and leaving the update to a later call.
+         *
+         * @return the {@link Ptr} for the next layer up the stack
+         */
+        @Nullable
+        private Ptr getNextRecvImpl() {
+            Ptr nextRecv = this.nextRecv;
+            while (nextRecv != null && nextRecv.removed && nextRecv.nextRecv != null) {
+                nextRecv = nextRecv.nextRecv;
+            }
+            return nextRecv;
+        }
+
+        /**
          * Gets the {@link Ptr} for the next layer up the stack (processing the receive half of any intermediary
          * {@link #removed} flags if possible, if not possible it skips the removed {@link Ptr} instances anyway,
          * leaving the update to a later call)
@@ -899,37 +937,39 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          */
         @Nullable
         private Ptr getNextRecv() {
-            Ptr nextRecv;
-            stackLock.readLock().lock();
-            try {
-                nextRecv = this.nextRecv;
-                while (nextRecv != null && nextRecv.removed && nextRecv.nextRecv != null) {
-                    nextRecv = nextRecv.nextRecv;
-                }
-                if (nextRecv == this.nextRecv) {
-                    return this.nextRecv;
-                }
-            } finally {
-                stackLock.readLock().unlock();
-            }
             if (stackLock.writeLock().tryLock()) {
                 // we only need to unwind ourselves eventually, if we cannot do it now ok to do it later
                 try {
+                    Ptr nextRecv = getNextRecvImpl();
+                    if (nextRecv == this.nextRecv) {
+                        return this.nextRecv;
+                    }
                     while (this.nextRecv != nextRecv && this.nextRecv != null && this.nextRecv.removed) {
                         assert this.nextRecv.layer instanceof FilterLayer
                                 : "this is the layer before and there is a layer after nextRecv thus nextRecv "
                                 + "*must* be a FilterLayer";
-                        ((FilterLayer) this.nextRecv.layer).onRecvRemoved();
+                        ((FilterLayer) this.nextRecv.layer).onRemoved();
                         // remove this.nextRecv from the stack as it has set it's removed flag
-                        Ptr tmp = this.nextRecv.nextRecv;
-                        this.nextRecv.nextRecv = null;
-                        this.nextRecv = tmp;
+                        Ptr prev = this;
+                        Ptr removed = this.nextRecv;
+                        Ptr next = this.nextRecv.nextRecv;
+                        prev.nextRecv = next;
+                        next.nextSend = prev;
+                        removed.nextSend = null;
+                        removed.nextRecv = null;
                     }
+                    return nextRecv;
                 } finally {
                     stackLock.writeLock().unlock();
                 }
+            } else {
+                stackLock.readLock().lock();
+                try {
+                    return getNextRecvImpl();
+                } finally {
+                    stackLock.readLock().unlock();
+                }
             }
-            return nextRecv;
         }
 
     }
