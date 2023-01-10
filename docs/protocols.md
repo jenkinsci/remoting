@@ -26,6 +26,11 @@ If stronger algorithms are needed (for example, AES with 256-bit keys), the [JCE
 
 Protocol uses non-blocking I/O wherever possible which removes the performance bottleneck of the <code>JNLP3-connect</code> protocol.
 
+The protocol stack starts with the network layer, proceeds to an arbitrary number of filter layers, and ends with the application layer.
+It is represented as a doubly-linked list:
+
+![Protocol Stack](protocol-stack.svg)
+
 ### WebSocket
 
 * Introduced in: Remoting version 4.0, [JEP-222](https://jenkins.io/jep/222)
