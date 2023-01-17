@@ -230,8 +230,21 @@ THE SOFTWARE.
                 <filter>
                   <artifact>args4j:args4j</artifact>
                   <excludes>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
                     <exclude>OSGI-OPT/**/*.html</exclude>
                     <exclude>OSGI-OPT/**/*.java</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>org.glassfish.tyrus.bundles:tyrus-standalone-client-jdk</artifact>
+                  <excludes>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>org.jenkins-ci:constant-pool-scanner</artifact>
+                  <excludes>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
                   </excludes>
                 </filter>
               </filters>
