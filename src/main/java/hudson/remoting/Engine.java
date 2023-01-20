@@ -648,9 +648,18 @@ public class Engine extends Thread {
                         }
                         @Override
                         protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
-                            LOGGER.finest(() -> "sending message of length + " + ChunkHeader.length(ChunkHeader.peek(header)));
-                            session.getBasicRemote().sendBinary(header, false);
-                            session.getBasicRemote().sendBinary(data, true);
+                            LOGGER.finest(() -> "sending message of length " + ChunkHeader.length(ChunkHeader.peek(header)));
+                            // RemoteEndpoint.Async seems to lack isLast overloads
+                            // adapted from https://stackoverflow.com/a/42170003/12916
+                            ByteBuffer headerAndData = ByteBuffer.allocate(header.remaining() + data.remaining());
+                            headerAndData.put(header.duplicate());
+                            headerAndData.put(data.duplicate());
+                            headerAndData.rewind();
+                            try {
+                                session.getAsyncRemote().sendBinary(headerAndData).get(5, TimeUnit.MINUTES);
+                            } catch (Exception x) {
+                                throw new IOException(x);
+                            }
                         }
 
                         @Override
