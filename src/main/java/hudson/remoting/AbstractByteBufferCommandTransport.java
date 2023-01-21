@@ -152,8 +152,6 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * Write the packet.
      *
      * @param headerAndData the header and data to write.
-     * @param header the header to write.
-     * @param data   the data to write.
      * @throws IOException if the data could not be written.
      */
     protected void write(ByteBuffer headerAndData) throws IOException {
