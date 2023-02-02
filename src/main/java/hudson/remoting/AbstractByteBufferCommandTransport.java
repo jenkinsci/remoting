@@ -132,9 +132,9 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         if (combineBuffers) {
             writeChunkHeader = null;
             writeChunkBody = null;
-            writeChunkCombined = ByteBuffer.allocate(transportFrameSize + 2);
+            writeChunkCombined = ByteBuffer.allocate(transportFrameSize + ChunkHeader.SIZE);
         } else { // deprecated
-            writeChunkHeader = ByteBuffer.allocate(2);
+            writeChunkHeader = ByteBuffer.allocate(ChunkHeader.SIZE);
             writeChunkBody = ByteBuffer.allocate(transportFrameSize);
             writeChunkCombined = null;
         }
@@ -172,7 +172,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         while (data.hasRemaining() || readState == READ_STATE_COMMAND_READY) {
             switch (readState) {
                 case READ_STATE_NEED_HEADER:
-                    if (data.remaining() >= 2) {
+                    if (data.remaining() >= ChunkHeader.SIZE) {
                         // jump straight to state 2
                         readFrameHeader = ChunkHeader.read(data);
                         readFrameRemaining = ChunkHeader.length(readFrameHeader);
@@ -277,7 +277,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         this.transportFrameSize = transportFrameSize;
         // this is the only one that matters when it comes to sizing as we have to accept any frame size on receive
         if (writeChunkHeader == null) {
-            writeChunkCombined = ByteBuffer.allocate(transportFrameSize + 2);
+            writeChunkCombined = ByteBuffer.allocate(transportFrameSize + ChunkHeader.SIZE);
         } else {
             writeChunkBody = ByteBuffer.allocate(transportFrameSize);
         }
@@ -328,7 +328,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
                     : (int) remaining; // # of bytes we send in this chunk
             if (writeChunkHeader == null) {
                 ((Buffer) writeChunkCombined).clear();
-                ((Buffer) writeChunkCombined).limit(frame + 2);
+                ((Buffer) writeChunkCombined).limit(frame + ChunkHeader.SIZE);
                 ChunkHeader.write(writeChunkCombined, frame, remaining > transportFrameSize);
                 sendStaging.get(writeChunkCombined);
                 ((Buffer) writeChunkCombined).flip();
