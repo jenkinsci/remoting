@@ -649,7 +649,7 @@ public class Engine extends Thread {
                         }
                         @Override
                         protected void write(ByteBuffer headerAndData) throws IOException {
-                            LOGGER.finest(() -> "sending message of length " + (headerAndData.remaining() - 2));
+                            LOGGER.finest(() -> "sending message of length " + (headerAndData.remaining() - ChunkHeader.SIZE));
                             try {
                                 session.getAsyncRemote().sendBinary(headerAndData).get(5, TimeUnit.MINUTES);
                             } catch (Exception x) {
