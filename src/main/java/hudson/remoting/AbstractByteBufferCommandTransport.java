@@ -328,8 +328,8 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
                     : (int) remaining; // # of bytes we send in this chunk
             if (writeChunkHeader == null) {
                 ((Buffer) writeChunkCombined).clear();
-                ChunkHeader.write(writeChunkCombined, frame, remaining > transportFrameSize);
                 ((Buffer) writeChunkCombined).limit(frame + 2);
+                ChunkHeader.write(writeChunkCombined, frame, remaining > transportFrameSize);
                 sendStaging.get(writeChunkCombined);
                 ((Buffer) writeChunkCombined).flip();
                 write(writeChunkCombined);
