@@ -313,6 +313,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          * @param remoteCapability the remote capability
          */
         public ByteBufferCommandTransport(Capability remoteCapability) {
+            super(true);
             this.remoteCapability = remoteCapability;
         }
 
@@ -320,12 +321,11 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          * {@inheritDoc}
          */
         @Override
-        protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
+        protected void write(ByteBuffer headerAndData) throws IOException {
             //TODO: Any way to get channel information here
             if (isWriteOpen()) {
                 try {
-                    ChannelApplicationLayer.this.write(header);
-                    ChannelApplicationLayer.this.write(data);
+                    ChannelApplicationLayer.this.write(headerAndData);
                 } catch (ClosedChannelException e) {
                     // Probably it should be another exception type at all
                     throw new ChannelClosedException(null, "Protocol stack cannot write data anymore. ChannelApplicationLayer reports that the NIO Channel is closed", e);

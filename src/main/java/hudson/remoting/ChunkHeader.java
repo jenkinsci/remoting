@@ -7,13 +7,16 @@ import org.jenkinsci.remoting.util.ByteBufferQueue;
  * Parsing of the chunk header.
  *
  * <p>
- * The header is 2 bytes, in the network order. The first bit designates whether this chunk
+ * The header is {@link #SIZE} bytes, in the network order. The first bit designates whether this chunk
  * is the last chunk (0 if this is the last chunk), and the remaining 15 bits designate the
  * length of the chunk as unsigned number.
  *
  * @author Kohsuke Kawaguchi
  */
 public class ChunkHeader {
+
+    public static final int SIZE = 2;
+
     public static int read(ByteBuffer buf) {
         return parse(buf.get(), buf.get());
     }
@@ -57,7 +60,7 @@ public class ChunkHeader {
     }
 
     public static byte[] pack(int length, boolean hasMore) {
-        byte[] header = new byte[2];
+        byte[] header = new byte[SIZE];
         header[0] = (byte)((hasMore?0x80:0)|(length>>8));
         header[1] = (byte)(length);
         return header;
