@@ -39,6 +39,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -125,6 +126,95 @@ public class EngineTest {
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         assertThat(engine.getAgentName(), is(AGENT_NAME));
     }
+
+    @Test
+    public void shouldNotReconnect() {
+        EngineListener l = new TestEngineListener() {
+            @Override
+            public void error(Throwable t) {
+                throw new NoReconnectException();
+            }
+        };
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        assertThrows(NoReconnectException.class, () -> engine.run());
+    }
+
+    private static class NoReconnectException extends RuntimeException {}
+
+    @Test
+    public void shouldReconnectOnJnlpAgentEndpointResolutionExceptions() {
+        EngineListener l = new TestEngineListener() {
+            private int count;
+
+            @Override
+            public void status(String msg, Throwable t) {
+                System.err.println("Status: " + msg);
+                if (msg.startsWith("Could not resolve JNLP agent endpoint")) {
+                    count++;
+                }
+                if (count == 2) {
+                    throw new ExpectedException();
+                }
+            }
+
+            @Override
+            public void error(Throwable t) {
+                if (t instanceof RuntimeException) {
+                    throw (RuntimeException) t;
+                }
+            }
+        };
+        Engine.nonFatalJnlpAgentResolutionExceptions = true;
+        try {
+            Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+            assertThrows("Should have tried at least twice", ExpectedException.class, () -> engine.run());
+        } finally {
+            // reinstate the static value
+            Engine.nonFatalJnlpAgentResolutionExceptions = false;
+        }
+    }
+
+    @Test
+    public void shouldReconnectOnJnlpAgentEndpointResolutionExceptionsMaxRetries() {
+        EngineListener l = new TestEngineListener() {
+            private int count;
+
+            @Override
+            public void status(String msg, Throwable t) {
+                System.err.println("Status: " + msg);
+                if (msg.startsWith("Could not resolve JNLP agent endpoint")) {
+                    count++;
+                }
+                if (count == 5) {
+                    throw new ExpectedException();
+                }
+            }
+
+            @Override
+            public void error(Throwable t) {
+                if (t instanceof RuntimeException) {
+                    throw (RuntimeException) t;
+                }
+            }
+        };
+
+        int currentMaxRetries = Engine.nonFatalJnlpAgentResolutionExceptionsMaxRetries;
+        int currentIntervalInSeconds = Engine.nonFatalJnlpAgentResolutionExceptionsIntervalInMillis;
+        try {
+            Engine.nonFatalJnlpAgentResolutionExceptions = true;
+            Engine.nonFatalJnlpAgentResolutionExceptionsMaxRetries = 5;
+            Engine.nonFatalJnlpAgentResolutionExceptionsIntervalInMillis = 100;
+            Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+            assertThrows("Should have tried at least five times", ExpectedException.class, () -> engine.run());
+        } finally {
+            // reinstate the static values
+            Engine.nonFatalJnlpAgentResolutionExceptions = false;
+            Engine.nonFatalJnlpAgentResolutionExceptionsMaxRetries = currentMaxRetries;
+            Engine.nonFatalJnlpAgentResolutionExceptionsIntervalInMillis = currentIntervalInSeconds;
+        }
+    }
+
+    private static class ExpectedException extends RuntimeException {}
 
     private static class TestEngineListener implements EngineListener {
 
