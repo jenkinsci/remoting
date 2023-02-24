@@ -746,7 +746,6 @@ public class Engine extends Thread {
         JnlpEndpointResolver resolver = createEndpointResolver(jenkinsUrls);
 
         try {
-            boolean first = true;
             int connectionAttempts = 0;
             while(true) {
                 if (connectionAttempts > 0 && noReconnect) {
