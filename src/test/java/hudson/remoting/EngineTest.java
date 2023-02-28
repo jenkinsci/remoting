@@ -142,17 +142,12 @@ public class EngineTest {
     private static class NoReconnectException extends RuntimeException {}
 
     @Test
-    public void shouldReconnectOnJnlpAgentEndpointResolutionExceptions() {
+    public void shouldNotReconnectOnJnlpAgentEndpointResolutionExceptionsButWithStatus() {
         EngineListener l = new TestEngineListener() {
-            private int count;
-
             @Override
             public void status(String msg, Throwable t) {
                 System.err.println("Status: " + msg);
                 if (msg.startsWith("Could not resolve JNLP agent endpoint")) {
-                    count++;
-                }
-                if (count == 2) {
                     throw new ExpectedException();
                 }
             }
@@ -167,7 +162,7 @@ public class EngineTest {
         Engine.nonFatalJnlpAgentResolutionExceptions = true;
         try {
             Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
-            assertThrows("Should have tried at least twice", ExpectedException.class, () -> engine.run());
+            assertThrows("Message should have started with 'Could not resolve...'", ExpectedException.class, () -> engine.run());
         } finally {
             // reinstate the static value
             Engine.nonFatalJnlpAgentResolutionExceptions = false;
