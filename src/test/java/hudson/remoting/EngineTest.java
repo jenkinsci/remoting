@@ -159,13 +159,13 @@ public class EngineTest {
                 }
             }
         };
-        Engine.nonFatalJnlpAgentResolutionExceptions = true;
+        Engine.nonFatalJnlpAgentEndpointResolutionExceptions = true;
         try {
             Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
             assertThrows("Message should have started with 'Could not resolve...'", ExpectedException.class, () -> engine.run());
         } finally {
             // reinstate the static value
-            Engine.nonFatalJnlpAgentResolutionExceptions = false;
+            Engine.nonFatalJnlpAgentEndpointResolutionExceptions = false;
         }
     }
 
@@ -193,19 +193,19 @@ public class EngineTest {
             }
         };
 
-        int currentMaxRetries = Engine.nonFatalJnlpAgentResolutionExceptionsMaxRetries;
-        int currentIntervalInSeconds = Engine.nonFatalJnlpAgentResolutionExceptionsIntervalInMillis;
+        int currentMaxRetries = Engine.nonFatalJnlpAgentEndpointResolutionExceptionsMaxRetries;
+        int currentIntervalInSeconds = Engine.nonFatalJnlpAgentEndpointResolutionExceptionsIntervalInMillis;
         try {
-            Engine.nonFatalJnlpAgentResolutionExceptions = true;
-            Engine.nonFatalJnlpAgentResolutionExceptionsMaxRetries = 5;
-            Engine.nonFatalJnlpAgentResolutionExceptionsIntervalInMillis = 100;
+            Engine.nonFatalJnlpAgentEndpointResolutionExceptions = true;
+            Engine.nonFatalJnlpAgentEndpointResolutionExceptionsMaxRetries = 5;
+            Engine.nonFatalJnlpAgentEndpointResolutionExceptionsIntervalInMillis = 100;
             Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
             assertThrows("Should have tried at least five times", ExpectedException.class, () -> engine.run());
         } finally {
             // reinstate the static values
-            Engine.nonFatalJnlpAgentResolutionExceptions = false;
-            Engine.nonFatalJnlpAgentResolutionExceptionsMaxRetries = currentMaxRetries;
-            Engine.nonFatalJnlpAgentResolutionExceptionsIntervalInMillis = currentIntervalInSeconds;
+            Engine.nonFatalJnlpAgentEndpointResolutionExceptions = false;
+            Engine.nonFatalJnlpAgentEndpointResolutionExceptionsMaxRetries = currentMaxRetries;
+            Engine.nonFatalJnlpAgentEndpointResolutionExceptionsIntervalInMillis = currentIntervalInSeconds;
         }
     }
 

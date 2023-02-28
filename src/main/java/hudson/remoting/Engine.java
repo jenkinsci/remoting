@@ -113,12 +113,12 @@ public class Engine extends Thread {
      */
     public static final String WEBSOCKET_COOKIE_HEADER = "Connection-Cookie";
 
-    static boolean nonFatalJnlpAgentResolutionExceptions = Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions");
+    static boolean nonFatalJnlpAgentEndpointResolutionExceptions = Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions");
 
     // defaulting to 0 retries in keeping with the behaviour for other consumers such as the swarm plugin
-    static int nonFatalJnlpAgentResolutionExceptionsMaxRetries = Integer.getInteger(Engine.class.getName() + ".nonFatalJnlpAgentResolutionExceptionsMaxRetries", 0);
+    static int nonFatalJnlpAgentEndpointResolutionExceptionsMaxRetries = Integer.getInteger(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptionsMaxRetries", 0);
 
-    static int nonFatalJnlpAgentResolutionExceptionsIntervalInMillis = Integer.getInteger(Engine.class.getName() + ".nonFatalJnlpAgentResolutionExceptionsIntervalInMillis", 5000);
+    static int nonFatalJnlpAgentEndpointResolutionExceptionsIntervalInMillis = Integer.getInteger(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptionsIntervalInMillis", 5000);
 
     /**
      * Thread pool that sets {@link #CURRENT}.
@@ -759,14 +759,14 @@ public class Engine extends Thread {
                 try {
                     endpoint = resolver.resolve();
                 } catch (Exception e) {
-                    if (nonFatalJnlpAgentResolutionExceptions) {
-                        if (connectionAttempts > nonFatalJnlpAgentResolutionExceptionsMaxRetries) {
+                    if (nonFatalJnlpAgentEndpointResolutionExceptions) {
+                        if (connectionAttempts > nonFatalJnlpAgentEndpointResolutionExceptionsMaxRetries) {
                             events.status("Could not resolve JNLP agent endpoint. Max number of retries reached. Attempt #" + connectionAttempts, e);
                         } else {
                             events.status("Could not resolve JNLP agent endpoint. Attempt #" + connectionAttempts, e);
                             try {
-                                if (nonFatalJnlpAgentResolutionExceptionsIntervalInMillis > 0) {
-                                    Thread.sleep(nonFatalJnlpAgentResolutionExceptionsIntervalInMillis);
+                                if (nonFatalJnlpAgentEndpointResolutionExceptionsIntervalInMillis > 0) {
+                                    Thread.sleep(nonFatalJnlpAgentEndpointResolutionExceptionsIntervalInMillis);
                                 }
                             } catch (InterruptedException ignored) {
                                 // Not much to do if we can't sleep. Run through the tries more quickly.
