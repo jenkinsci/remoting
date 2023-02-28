@@ -115,7 +115,8 @@ public class Engine extends Thread {
 
     static boolean nonFatalJnlpAgentResolutionExceptions = Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions");
 
-    static int nonFatalJnlpAgentResolutionExceptionsMaxRetries = Integer.getInteger(Engine.class.getName() + ".nonFatalJnlpAgentResolutionExceptionsMaxRetries", 2);
+    // defaulting to -1 (infinite retries) keeping the behaviour for other consumers such as the swarm plugin
+    static int nonFatalJnlpAgentResolutionExceptionsMaxRetries = Integer.getInteger(Engine.class.getName() + ".nonFatalJnlpAgentResolutionExceptionsMaxRetries", -1);
 
     static int nonFatalJnlpAgentResolutionExceptionsIntervalInMillis = Integer.getInteger(Engine.class.getName() + ".nonFatalJnlpAgentResolutionExceptionsIntervalInMillis", 5000);
 
@@ -759,7 +760,10 @@ public class Engine extends Thread {
                     endpoint = resolver.resolve();
                 } catch (Exception e) {
                     if (nonFatalJnlpAgentResolutionExceptions) {
-                        if (connectionAttempts > nonFatalJnlpAgentResolutionExceptionsMaxRetries) {
+                        if (nonFatalJnlpAgentResolutionExceptionsMaxRetries < 0) {
+                            events.status("Could not resolve JNLP agent endpoint. Unlimited retries. Attempt #" + connectionAttempts, e);
+                            continue;
+                        } else if (connectionAttempts > nonFatalJnlpAgentResolutionExceptionsMaxRetries) {
                             events.status("Could not resolve JNLP agent endpoint. Max number of retries reached. Attempt #" + connectionAttempts, e);
                         } else {
                             events.status("Could not resolve JNLP agent endpoint. Attempt #" + connectionAttempts, e);
