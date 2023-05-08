@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import org.junit.jupiter.api.Disabled;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -212,6 +213,7 @@ public class PrefetchingTest implements Serializable {
     /**
      * Unlike {@link #testGetResources(ChannelRunner)}, the URL should begin with file:... before the jar file gets cached
      */
+    @Disabled("TODO flakes: jar:file:/tmp/remoting-cache….jar!/test/hello.txt::hello ==> expected: <true> but was: <false>")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testGetResources_precache(ChannelRunner channelRunner) throws Exception {

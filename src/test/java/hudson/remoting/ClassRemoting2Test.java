@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import org.junit.After;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.Issue;
@@ -200,6 +201,7 @@ public class ClassRemoting2Test {
         });
     }
 
+    @Disabled("TODO first call consistently flakes: Remote call on north failed")
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
