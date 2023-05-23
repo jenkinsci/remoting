@@ -19,10 +19,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.AllOf.allOf;
-import static org.hamcrest.core.StringContains.containsString;
-import static org.hamcrest.core.StringEndsWith.endsWith;
-import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
