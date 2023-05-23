@@ -11,7 +11,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThrows;
 import static org.hamcrest.MatcherAssert.assertThat;
 
