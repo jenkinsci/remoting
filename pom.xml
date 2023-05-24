@@ -34,7 +34,7 @@ THE SOFTWARE.
 
   <groupId>org.jenkins-ci.main</groupId>
   <artifactId>remoting</artifactId>
-  <version>${changelist}</version>
+  <version>3107.${changelist}</version>
 
   <name>Jenkins remoting layer</name>
   <description>Contains the bootstrap code to bridge separate JVMs into a single semi-shared space. Reusable outside Jenkins.</description>
