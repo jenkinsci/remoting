@@ -587,8 +587,13 @@ public class Engine extends Thread {
                             } else {
                                 addedHeaders.remove(Engine.WEBSOCKET_COOKIE_HEADER);
                             }
-                            remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
-                            LOGGER.fine(() -> "received " + remoteCapability);
+                            List<String> advertisedCapability = hr.getHeaders().get(Capability.KEY);
+                            if (advertisedCapability == null) {
+                                LOGGER.warning("Did not receive " + Capability.KEY + " header");
+                            } else {
+                                remoteCapability = Capability.fromASCII(advertisedCapability.get(0));
+                                LOGGER.fine(() -> "received " + remoteCapability);
+                            }
                         } catch (IOException x) {
                             events.error(x);
                         }
