@@ -26,6 +26,9 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Used when the exception thrown by the remoted code cannot be serialized.
@@ -38,15 +41,23 @@ import java.io.IOException;
  */
 public class ProxyException extends IOException {
     public ProxyException(@NonNull Throwable cause) {
+        this(cause, new HashSet<>(List.of(cause)));
+    }
+
+    private ProxyException(@NonNull Throwable cause, @NonNull Set<Throwable> visited) {
         super(cause.toString()); // use toString() to capture the class name and error message
         setStackTrace(cause.getStackTrace());
 
         // wrap all the chained exceptions
-        if(cause.getCause()!=null)
-            initCause(new ProxyException(cause.getCause()));
+        Throwable causeOfCause = cause.getCause();
+        if (causeOfCause != null && visited.add(causeOfCause)) {
+            initCause(new ProxyException(causeOfCause, visited));
+        }
 
         for (Throwable suppressed : cause.getSuppressed()) {
-            addSuppressed(new ProxyException(suppressed));
+            if (visited.add(suppressed)) {
+                addSuppressed(new ProxyException(suppressed, visited));
+            }
         }
     }
 
