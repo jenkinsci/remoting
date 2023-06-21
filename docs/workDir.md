@@ -1,7 +1,7 @@
 Remoting Work directory
 ===
 
-In Remoting work directory is an internal data storage, which may be used by Remoting to store caches, logs and other metadata.
+The Remoting work directory is an internal data storage, which may be used by Remoting to store caches, logs and other metadata.
 
 Remoting work directory is available starting from Remoting `3.8`, which is available in [Jenkins 2.68](https://jenkins.io/changelog/#v2.68)).
 Before this version there was no working directory concept in the library itself;
