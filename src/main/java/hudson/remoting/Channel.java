@@ -40,6 +40,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import java.io.Closeable;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,6 +50,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.net.URL;
+import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Date;
@@ -66,6 +68,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -1905,6 +1908,25 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 }
             }
             processedCount++;
+        }
+    }
+
+    /**
+     * Checks whether an exception seems to be related to a closed channel.
+     * Detects {@link ChannelClosedException}, {@link ClosedChannelException}, and {@link EOFException}
+     * anywhere in the exception or suppressed exception chain.
+     */
+    public static boolean isClosedChannelException(@CheckForNull Throwable t) {
+        if (t instanceof ClosedChannelException) {
+            return true;
+        } else if (t instanceof ChannelClosedException) {
+            return true;
+        } else if (t instanceof EOFException) {
+            return true;
+        } else if (t == null) {
+            return false;
+        } else {
+            return isClosedChannelException(t.getCause()) || Stream.of(t.getSuppressed()).anyMatch(Channel::isClosedChannelException);
         }
     }
 
