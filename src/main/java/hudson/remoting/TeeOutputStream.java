@@ -24,7 +24,6 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-
 /**
  * @deprecated Use instead {@link org.apache.commons.io.output.TeeOutputStream}
  * 
