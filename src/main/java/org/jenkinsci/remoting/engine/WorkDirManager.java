@@ -28,7 +28,7 @@ package org.jenkinsci.remoting.engine;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.TeeOutputStream;
+import org.apache.commons.io.output.TeeOutputStream;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
