@@ -24,13 +24,17 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+
 /**
+ * @deprecated Use instead {@link org.apache.commons.io.output.TeeOutputStream}
+ * 
  * Classic splitter of OutputStream. Named after the unix 'tee'
  * command. It allows a stream to be branched off so there
  * are now two streams.
  *
  * @version $Id: TeeOutputStream.java 610010 2008-01-08 14:50:59Z niallp $
  */
+@Deprecated
 @Restricted(NoExternalUse.class)
 public class TeeOutputStream extends FilterOutputStream {
 
