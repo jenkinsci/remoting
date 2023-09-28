@@ -52,22 +52,6 @@ public class RegexValidatorTest extends TestCase {
     }
 
     /**
-     * Set Up.
-     */
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-    }
-
-    /**
-     * Tear Down.
-     */
-    @Override
-    protected void tearDown() throws Exception {
-        super.tearDown();
-    }
-
-    /**
      * Test instance methods with single regular expression.
      */
     public void testSingle() {
@@ -282,7 +266,7 @@ public class RegexValidatorTest extends TestCase {
 
         // Check Values
         for (int i = 0; i < expect.length; i++) {
-            assertEquals(label +" value[" + i + "]", expect[i], result[i]);
+            assertEquals(label + " value[" + i + "]", expect[i], result[i]);
         }
     }
 

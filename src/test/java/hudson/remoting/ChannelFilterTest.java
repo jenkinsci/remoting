@@ -3,31 +3,38 @@ package hudson.remoting;
 import org.jenkinsci.remoting.CallableDecorator;
 import java.io.IOException;
 import java.util.concurrent.Callable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ChannelFilterTest extends RmiTestBase {
-    public void testFilter() throws Exception {
-        channel.addLocalExecutionInterceptor(new CallableDecorator() {
-            @Override
-            public <V> V call(Callable<V> callable) throws Exception {
-                Object old = STORE.get();
-                STORE.set("x");
-                try {
-                    return callable.call();
-                } finally {
-                    STORE.set(old);
+public class ChannelFilterTest {
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testFilter(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            channel.addLocalExecutionInterceptor(new CallableDecorator() {
+                @Override
+                public <V> V call(Callable<V> callable) throws Exception {
+                    Object old = STORE.get();
+                    STORE.set("x");
+                    try {
+                        return callable.call();
+                    } finally {
+                        STORE.set(old);
+                    }
                 }
-            }
-        });
+            });
 
-        Callable<Object> t = STORE::get;
-        final Callable<Object> c = channel.export(Callable.class, t);
-        
-        assertEquals("x", channel.call(new CallableCallable(c)));
+            Callable<Object> t = STORE::get;
+            final Callable<Object> c = channel.export(Callable.class, t);
+
+            assertEquals("x", channel.call(new CallableCallable(c)));
+        });
     }
     
     private final ThreadLocal<Object> STORE = new ThreadLocal<>();
@@ -46,22 +53,27 @@ public class ChannelFilterTest extends RmiTestBase {
         private static final long serialVersionUID = 1L;
     }
 
-    public void testBlacklisting() throws Exception {
-        channel.addLocalExecutionInterceptor(new CallableDecorator() {
-            @Override
-            public <V, T extends Throwable> hudson.remoting.Callable<V, T> userRequest(hudson.remoting.Callable<V, T> op, hudson.remoting.Callable<V, T> stem) {
-                if (op instanceof ShadyBusiness)
-                    throw new SecurityException("Rejecting "+op.getClass().getName());
-                return stem;
-            }
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testBlacklisting(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            channel.addLocalExecutionInterceptor(new CallableDecorator() {
+                @Override
+                public <V, T extends Throwable> hudson.remoting.Callable<V, T> userRequest(hudson.remoting.Callable<V, T> op, hudson.remoting.Callable<V, T> stem) {
+                    if (op instanceof ShadyBusiness)
+                        throw new SecurityException("Rejecting " + op.getClass().getName());
+                    return stem;
+                }
+            });
+
+            // this direction is unrestricted
+            assertEquals("gun", channel.call(new GunImporter()));
+
+
+            // the other direction should be rejected
+            final IOException e = assertThrows(IOException.class, () -> channel.call(new ReverseGunImporter()));
+            assertEquals("Rejecting " + GunImporter.class.getName(), findSecurityException(e).getMessage());
         });
-
-        // this direction is unrestricted
-        assertEquals("gun",channel.call(new GunImporter()));
-
-        // the other direction should be rejected
-        final IOException e = assertThrows(IOException.class, () -> channel.call(new ReverseGunImporter()));
-        assertEquals("Rejecting "+GunImporter.class.getName(), findSecurityException(e).getMessage());
     }
     private static SecurityException findSecurityException(Throwable x) {
         if (x instanceof SecurityException) {

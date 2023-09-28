@@ -23,7 +23,11 @@
  */
 package hudson.remoting;
 
-import org.junit.Ignore;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.objectweb.asm.ClassReader;
 
 import java.io.IOException;
@@ -31,14 +35,17 @@ import java.io.IOException;
 /**
  * @author Kohsuke Kawaguchi
  */
-@Ignore
-public class PrefetchTest extends RmiTestBase {
-    public void testPrefetch() throws Exception {
-        VerifyTask vt = new VerifyTask();
-        assertTrue( channel.preloadJar(vt,ClassReader.class));
-        assertFalse(channel.preloadJar(vt,ClassReader.class));
-        // TODO: how can I do a meaningful test of this feature?
-        System.out.println(channel.call(vt));
+public class PrefetchTest {
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testPrefetch(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            VerifyTask vt = new VerifyTask();
+            assertTrue(channel.preloadJar(vt, ClassReader.class));
+            assertFalse(channel.preloadJar(vt, ClassReader.class));
+            // TODO: how can I do a meaningful test of this feature?
+            System.out.println(channel.call(vt));
+        });
     }
 
     private static class VerifyTask extends CallableBase<String,IOException> {

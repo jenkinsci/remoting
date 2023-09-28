@@ -91,4 +91,9 @@ public class InProcessRunner implements DualSideChannelRunner {
     protected Capability createCapability() {
         return new Capability();
     }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
 }

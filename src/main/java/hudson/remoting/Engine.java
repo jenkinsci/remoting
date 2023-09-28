@@ -587,8 +587,13 @@ public class Engine extends Thread {
                             } else {
                                 addedHeaders.remove(Engine.WEBSOCKET_COOKIE_HEADER);
                             }
-                            remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
-                            LOGGER.fine(() -> "received " + remoteCapability);
+                            List<String> advertisedCapability = hr.getHeaders().get(Capability.KEY);
+                            if (advertisedCapability == null) {
+                                LOGGER.warning("Did not receive " + Capability.KEY + " header");
+                            } else {
+                                remoteCapability = Capability.fromASCII(advertisedCapability.get(0));
+                                LOGGER.fine(() -> "received " + remoteCapability);
+                            }
                         } catch (IOException x) {
                             events.error(x);
                         }
@@ -644,13 +649,17 @@ public class Engine extends Thread {
                     class Transport extends AbstractByteBufferCommandTransport {
                         final Session session;
                         Transport(Session session) {
+                            super(true);
                             this.session = session;
                         }
                         @Override
-                        protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
-                            LOGGER.finest(() -> "sending message of length + " + ChunkHeader.length(ChunkHeader.peek(header)));
-                            session.getBasicRemote().sendBinary(header, false);
-                            session.getBasicRemote().sendBinary(data, true);
+                        protected void write(ByteBuffer headerAndData) throws IOException {
+                            LOGGER.finest(() -> "sending message of length " + (headerAndData.remaining() - ChunkHeader.SIZE));
+                            try {
+                                session.getAsyncRemote().sendBinary(headerAndData).get(5, TimeUnit.MINUTES);
+                            } catch (Exception x) {
+                                throw new IOException(x);
+                            }
                         }
 
                         @Override
@@ -685,6 +694,7 @@ public class Engine extends Thread {
                 }
                 events.onDisconnect();
                 while (true) {
+                    TimeUnit.SECONDS.sleep(10);
                     // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
                     URL ping = new URL(hudsonUrl, "login");
                     try {
@@ -699,7 +709,6 @@ public class Engine extends Thread {
                     } catch (IOException x) {
                         events.status(ping + " is not ready", x);
                     }
-                    TimeUnit.SECONDS.sleep(10);
                 }
                 reconnect();
             }

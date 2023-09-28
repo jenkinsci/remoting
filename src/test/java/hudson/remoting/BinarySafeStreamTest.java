@@ -23,7 +23,9 @@
  */
 package hudson.remoting;
 
-import junit.framework.TestCase;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -34,11 +36,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Random;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class BinarySafeStreamTest extends TestCase {
+public class BinarySafeStreamTest {
+    @Test
     public void test1() throws IOException {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         byte[] data = "Sending some data to make sure it's encoded".getBytes(StandardCharsets.UTF_8);
@@ -54,6 +58,7 @@ public class BinarySafeStreamTest extends TestCase {
         assertEquals(-1,in.read());
     }
 
+    @Test
     public void testSingleWrite() throws IOException {
         byte[] ds = getDataSet(65536);
         String master = Base64.getEncoder().encodeToString(ds);
@@ -65,6 +70,7 @@ public class BinarySafeStreamTest extends TestCase {
         assertEquals(buf.toString(),master);
     }
 
+    @Test
     public void testChunkedWrites() throws IOException {
         byte[] ds = getDataSet(65536);
         String master = Base64.getEncoder().encodeToString(ds);
@@ -78,10 +84,12 @@ public class BinarySafeStreamTest extends TestCase {
         }
     }
 
+    @Test
     public void testRoundtripNoFlush() throws IOException {
         _testRoundtrip(false);
     }
 
+    @Test
     public void testRoundtripFlush() throws IOException {
         _testRoundtrip(true);
     }
@@ -108,7 +116,7 @@ public class BinarySafeStreamTest extends TestCase {
             if(!Arrays.equals(dataSet, result)) {
                 String msg = print(result, 0, result.length);
                 for( int j=0; j<result.length; j++ )
-                    assertEquals("offset "+j+" at "+msg,result[j],dataSet[j]);
+                    assertEquals(result[j],dataSet[j], "offset "+j+" at "+msg);
                 fail(msg);
             }
 

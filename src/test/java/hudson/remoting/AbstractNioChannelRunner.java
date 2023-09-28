@@ -43,4 +43,9 @@ public abstract class AbstractNioChannelRunner implements DualSideChannelRunner 
     public Channel getOtherSide() {
         return south;
     }
+
+    @Override
+    public String toString() {
+        return getName();
+    }
 }

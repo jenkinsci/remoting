@@ -54,6 +54,7 @@ import java.util.logging.Logger;
 import static hudson.remoting.Util.getBaseName;
 import static hudson.remoting.Util.makeResource;
 import static hudson.remoting.Util.readFully;
+import java.io.InvalidObjectException;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 
@@ -1278,12 +1279,62 @@ final class RemoteClassLoader extends URLClassLoader {
             try {
                 return getChannelForSerialization().getExportedObject(oid);
             } catch (ExecutionException ex) {
-                //TODO: Implement something better?
-                throw new IllegalStateException("Cannot resolve remoting classloader", ex);
+                return new BrokenIClassLoader(ex);
             }
         }
 
         private static final long serialVersionUID = 1L;
+    }
+
+    private static final class BrokenIClassLoader implements IClassLoader, SerializableOnlyOverRemoting {
+
+        private static final long serialVersionUID = 1L;
+        private final ExecutionException cause;
+
+        BrokenIClassLoader(ExecutionException cause) {
+            this.cause = cause;
+        }
+
+        @Override
+        public byte[] fetch(String className) throws ClassNotFoundException {
+            throw new ClassNotFoundException(className, cause);
+        }
+
+        @Override
+        public ClassFile fetch2(String className) throws ClassNotFoundException {
+            throw new ClassNotFoundException(className, cause);
+        }
+
+        @Override
+        public Map<String, ClassFile2> fetch3(String className) throws ClassNotFoundException {
+            throw new ClassNotFoundException(className, cause);
+        }
+
+        @Override
+        public byte[] fetchJar(URL url) throws IOException {
+            throw new IOException("Cannot fetch " + url, cause);
+        }
+
+        @Override
+        public byte[] getResource(String name) throws IOException {
+            throw new IOException("Cannot get " + name, cause);
+        }
+
+        @Override
+        public byte[][] getResources(String name) throws IOException {
+            throw new IOException("Cannot get " + name, cause);
+        }
+
+        @Override
+        public ResourceFile getResource2(String name) throws IOException {
+            throw new IOException("Cannot get " + name, cause);
+        }
+
+        @Override
+        public ResourceFile[] getResources2(String name) throws IOException {
+            throw new IOException("Cannot get " + name, cause);
+        }
+
     }
 
     private static Iterable<String> analyze(InputStream bytecode) {

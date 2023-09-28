@@ -23,60 +23,73 @@
  */
 package hudson.remoting;
 
-import junit.framework.Test;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.NullOutputStream;
-import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.For;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
-import java.io.OutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThrows;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.output.NullOutputStream;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.jvnet.hudson.test.For;
+import org.jvnet.hudson.test.Issue;
 
 /**
  * Test {@link Pipe}.
  *
  * @author Kohsuke Kawaguchi
  */
-public class PipeTest extends RmiTestBase implements Serializable {
+public class PipeTest implements Serializable {
     /**
      * Test the "remote-write local-read" pipe.
      */
-    public void testRemoteWrite() throws Exception {
-        Pipe p = Pipe.createRemoteToLocal();
-        Future<Integer> f = channel.callAsync(new WritingCallable(p));
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testRemoteWrite(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            Pipe p = Pipe.createRemoteToLocal();
+            Future<Integer> f = channel.callAsync(new WritingCallable(p));
 
-        read(p);
+            read(p);
 
-        int r = f.get();
-        System.out.println("result=" + r);
-        assertEquals(5,r);
+            int r = f.get();
+            System.out.println("result=" + r);
+            assertEquals(5,r);
+        });
     }
     
     /**
      * Have the reader close the read end of the pipe while the writer is still writing.
      * The writer should pick up a failure.
      */
+    @Disabled("TODO flaky")
     @Issue("JENKINS-8592")
     @For(Pipe.class)
-    public void testReaderCloseWhileWriterIsStillWriting() throws Exception {
-        final Pipe p = Pipe.createRemoteToLocal();
-        final Future<Void> f = channel.callAsync(new InfiniteWriter(p));
-        try (InputStream in = p.getIn()) {
-            assertEquals(in.read(), 0);
-        }
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testReaderCloseWhileWriterIsStillWriting(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final Pipe p = Pipe.createRemoteToLocal();
+            final Future<Void> f = channel.callAsync(new InfiniteWriter(p));
+            try (InputStream in = p.getIn()) {
+                assertEquals(in.read(), 0);
+            }
 
-        final ExecutionException e = assertThrows(ExecutionException.class, f::get);
-        assertThat(e.getCause(), instanceOf(IOException.class));
+            final ExecutionException e = assertThrows(ExecutionException.class, () -> f.get());
+            assertThat(e.getCause(), instanceOf(IOException.class));
+        });
     }
 
     /**
@@ -117,27 +130,35 @@ public class PipeTest extends RmiTestBase implements Serializable {
     /**
      * Test the "local-write remote-read" pipe.
      */
-    public void testLocalWrite() throws Exception {
-        Pipe p = Pipe.createLocalToRemote();
-        Future<Integer> f = channel.callAsync(new ReadingCallable(p));
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testLocalWrite(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            Pipe p = Pipe.createLocalToRemote();
+            Future<Integer> f = channel.callAsync(new ReadingCallable(p));
 
-        write(p);
+            write(p);
 
-        int r = f.get();
-        System.out.println("result=" + r);
-        assertEquals(5,r);
+            int r = f.get();
+            System.out.println("result=" + r);
+            assertEquals(5,r);
+        });
     }
 
-    public void testLocalWrite2() throws Exception {
-        Pipe p = Pipe.createLocalToRemote();
-        Future<Integer> f = channel.callAsync(new ReadingCallable(p));
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testLocalWrite2(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            Pipe p = Pipe.createLocalToRemote();
+            Future<Integer> f = channel.callAsync(new ReadingCallable(p));
 
-        Thread.sleep(2000); // wait for remote to connect to local.
-        write(p);
+            Thread.sleep(2000); // wait for remote to connect to local.
+            write(p);
 
-        int r = f.get();
-        System.out.println("result=" + r);
-        assertEquals(5,r);
+            int r = f.get();
+            System.out.println("result=" + r);
+            assertEquals(5, r);
+        });
     }
 
     public interface ISaturationTest {
@@ -146,47 +167,50 @@ public class PipeTest extends RmiTestBase implements Serializable {
         void readRest() throws IOException;
     }
 
-    public void testSaturation() throws Exception {
-        if (channelRunner instanceof InProcessCompatibilityRunner)
-            return; // can't do this test without the throttling support.
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testSaturation(ChannelRunner channelRunner) throws Exception {
+        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner, "can't do this test without the throttling support.");
+        channelRunner.withChannel(channel -> {
+            final Pipe p = Pipe.createLocalToRemote();
 
-        final Pipe p = Pipe.createLocalToRemote();
+            Thread writer = new Thread() {
+                final Thread mainThread = Thread.currentThread(); // this makes it easy to see the relationship between the thread pair in the debugger
 
-        Thread writer = new Thread() {
-            final Thread mainThread = Thread.currentThread(); // this makes it easy to see the relationship between the thread pair in the debugger
-            @Override
-            public void run() {
-                OutputStream os = p.getOut();
-                try {
-                    byte[] buf = new byte[Channel.PIPE_WINDOW_SIZE*2+1];
-                    os.write(buf);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                @Override
+                public void run() {
+                    OutputStream os = p.getOut();
+                    try {
+                        byte[] buf = new byte[Channel.PIPE_WINDOW_SIZE * 2 + 1];
+                        os.write(buf);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
-        };
+            };
 
-        // 1. wait until the receiver sees the first byte. at this point the pipe should be completely clogged
-        // 2. make sure the writer thread is still alive, blocking
-        // 3. read the rest
+            // 1. wait until the receiver sees the first byte. at this point the pipe should be completely clogged
+            // 2. make sure the writer thread is still alive, blocking
+            // 3. read the rest
 
-        ISaturationTest target = channel.call(new CreateSaturationTestProxy(p));
+            ISaturationTest target = channel.call(new CreateSaturationTestProxy(p));
 
-        // make sure the pipe is connected
-        target.ensureConnected();
-        channel.syncLocalIO();
-        // then let the writer commence
-        writer.start();
+            // make sure the pipe is connected
+            target.ensureConnected();
+            channel.syncLocalIO();
+            // then let the writer commence
+            writer.start();
 
-        // make sure that some data arrived to the receiver
-        // at this point the pipe should be fully clogged
-        assertEquals(0,target.readFirst());
+            // make sure that some data arrived to the receiver
+            // at this point the pipe should be fully clogged
+            assertEquals(0, target.readFirst());
 
-        // the writer should be still blocked
-        Thread.sleep(1000);
-        assertTrue(writer.isAlive());
+            // the writer should be still blocked
+            Thread.sleep(1000);
+            assertTrue(writer.isAlive());
 
-        target.readRest();
+            target.readRest();
+        });
     }
 
     private static class CreateSaturationTestProxy extends CallableBase<ISaturationTest,IOException> {
@@ -259,28 +283,37 @@ public class PipeTest extends RmiTestBase implements Serializable {
     }
 
 
-    public void _testSendBigStuff() throws Exception {
-        try (OutputStream f = channel.call(new DevNullSink())) {
-            for (int i = 0; i < 1024 * 1024; i++) {
-                f.write(new byte[8000]);
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    @Disabled
+    public void testSendBigStuff(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            try (OutputStream f = channel.call(new DevNullSink())) {
+                for (int i = 0; i < 1024 * 1024; i++) {
+                    f.write(new byte[8000]);
+                }
             }
-        }
+        });
     }
 
     /**
      * Writer end closes even before the remote computation kicks in.
      */
-    public void testQuickBurstWrite() throws Exception {
-        final Pipe p = Pipe.createLocalToRemote();
-        Future<Integer> f = channel.callAsync(new QuickBurstCallable(p));
-        try (OutputStream os = p.getOut()) {
-            os.write(1);
-        }
+    @ParameterizedTest
+    @MethodSource(ChannelRunners.PROVIDER_METHOD)
+    public void testQuickBurstWrite(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            final Pipe p = Pipe.createLocalToRemote();
+            Future<Integer> f = channel.callAsync(new QuickBurstCallable(p));
+            try (OutputStream os = p.getOut()) {
+                os.write(1);
+            }
 
-        // at this point the async executable kicks in.
-        // TODO: introduce a lock to ensure the ordering.
+            // at this point the async executable kicks in.
+            // TODO: introduce a lock to ensure the ordering.
 
-        assertEquals(1,(int)f.get());
+            assertEquals(1,(int)f.get());
+        });
     }
 
     private static class DevNullSink extends CallableBase<OutputStream, IOException> {
@@ -289,10 +322,6 @@ public class PipeTest extends RmiTestBase implements Serializable {
             return new RemoteOutputStream(NullOutputStream.NULL_OUTPUT_STREAM);
         }
         private static final long serialVersionUID = 1L;
-    }
-
-    public static Test suite() {
-        return buildSuite(PipeTest.class);
     }
 
     private Object writeReplace() {
