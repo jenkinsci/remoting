@@ -319,7 +319,7 @@ public class PipeTest implements Serializable {
     private static class DevNullSink extends CallableBase<OutputStream, IOException> {
         @Override
         public OutputStream call() {
-            return new RemoteOutputStream(NullOutputStream.NULL_OUTPUT_STREAM);
+            return new RemoteOutputStream(NullOutputStream.INSTANCE);
         }
         private static final long serialVersionUID = 1L;
     }
