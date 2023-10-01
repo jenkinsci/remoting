@@ -16,7 +16,7 @@ public class DumbReceiver {
             System.out.println("Ready");
             try (Socket s = ss.accept()) {
                 System.out.println("Accepted");
-                IOUtils.copy(s.getInputStream(), NullOutputStream.NULL_OUTPUT_STREAM);
+                IOUtils.copy(s.getInputStream(), NullOutputStream.INSTANCE);
             }
         }
     }
