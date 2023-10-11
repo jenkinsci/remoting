@@ -694,6 +694,7 @@ public class Engine extends Thread {
                 }
                 events.onDisconnect();
                 while (true) {
+                    // TODO refactor various sleep statements into a common method
                     TimeUnit.SECONDS.sleep(10);
                     // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
                     URL ping = new URL(hudsonUrl, "login");
@@ -758,11 +759,18 @@ public class Engine extends Thread {
                 final JnlpAgentEndpoint endpoint;
                 try {
                     endpoint = resolver.resolve();
-                } catch (Exception e) {
-                    if (Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
-                        events.status("Could not resolve JNLP agent endpoint", e);
+                } catch (IOException e) {
+                    if (!noReconnect) {
+                        events.status("Could not locate server among " + candidateUrls + "; waiting 10 seconds before retry", e);
+                        // TODO refactor various sleep statements into a common method
+                        TimeUnit.SECONDS.sleep(10);
+                        continue;
                     } else {
-                        events.error(e);
+                        if (Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
+                            events.status("Could not resolve JNLP agent endpoint", e);
+                        } else {
+                            events.error(e);
+                        }
                     }
                     return;
                 }
@@ -891,6 +899,7 @@ public class Engine extends Thread {
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
         events.status("reconnect rejected, sleeping 10s: ", new Exception("The server rejected the connection: " + greeting));
+        // TODO refactor various sleep statements into a common method
         TimeUnit.SECONDS.sleep(10);
     }
 
@@ -913,6 +922,7 @@ public class Engine extends Thread {
                 if(retry++>10) {
                     throw e;
                 }
+                // TODO refactor various sleep statements into a common method
                 TimeUnit.SECONDS.sleep(10);
                 events.status(msg+" (retrying:"+retry+")",e);
             }

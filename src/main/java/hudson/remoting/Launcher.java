@@ -569,6 +569,7 @@ public class Launcher {
                 System.err.println("Failed to obtain "+ agentJnlpURL);
                 e.printStackTrace(System.err);
                 System.err.println("Waiting 10 seconds before retry");
+                // TODO refactor various sleep statements into a common method
                 TimeUnit.SECONDS.sleep(10);
                 // retry
             } finally {
