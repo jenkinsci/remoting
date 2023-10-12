@@ -380,6 +380,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         try {
             int retries = 0;
             while (true) {
+                // TODO refactor various sleep statements into a common method
                 Thread.sleep(1000 * 10);
                 try {
                     // Jenkins top page might be read-protected. see http://www.nabble
