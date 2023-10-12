@@ -136,6 +136,7 @@ public class EngineTest {
             }
         };
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        engine.setNoReconnect(true);
         assertThrows(NoReconnectException.class, () -> engine.run());
     }
 
@@ -148,8 +149,7 @@ public class EngineTest {
 
             @Override
             public void status(String msg, Throwable t) {
-                System.err.println("Status: " + msg);
-                if (msg.startsWith("Could not resolve JNLP agent endpoint")) {
+                if (msg.startsWith("Could not locate server among")) {
                     count++;
                 }
                 if (count == 2) {
@@ -164,7 +164,6 @@ public class EngineTest {
                 }
             }
         };
-        Engine.nonFatalJnlpAgentResolutionExceptions = true;
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         assertThrows("Should have tried at least twice", ExpectedException.class, () -> engine.run());
     }

@@ -44,6 +44,7 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.NoRouteToHostException;
 import java.net.Proxy;
+import java.net.Proxy.Type;
 import java.net.ProxySelector;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -345,7 +346,8 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         Socket s = null;
 
         try {
-            s = new Socket();
+            InetSocketAddress proxyToUse = getResolvedHttpProxyAddress(hostname,port);
+            s = proxyToUse == null ? new Socket() : new Socket(new Proxy(Type.HTTP, proxyToUse)); 
             s.setReuseAddress(true);
             SocketAddress sa = new InetSocketAddress(hostname, port);
             s.connect(sa, 5000);
@@ -378,6 +380,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         try {
             int retries = 0;
             while (true) {
+                // TODO refactor various sleep statements into a common method
                 Thread.sleep(1000 * 10);
                 try {
                     // Jenkins top page might be read-protected. see http://www.nabble

@@ -14,19 +14,19 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.AllOf.allOf;
-import static org.hamcrest.core.StringContains.containsString;
-import static org.hamcrest.core.StringEndsWith.endsWith;
-import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import org.junit.jupiter.api.Disabled;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -212,6 +212,7 @@ public class PrefetchingTest implements Serializable {
     /**
      * Unlike {@link #testGetResources(ChannelRunner)}, the URL should begin with file:... before the jar file gets cached
      */
+    @Disabled("TODO flakes: jar:file:/tmp/remoting-cache….jar!/test/hello.txt::hello ==> expected: <true> but was: <false>")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testGetResources_precache(ChannelRunner channelRunner) throws Exception {

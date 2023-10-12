@@ -59,7 +59,7 @@ public class Sender {
     }
 
     private static byte[] digest(InputStream in) throws NoSuchAlgorithmException, IOException {
-        DigestOutputStream dos = new DigestOutputStream(NullOutputStream.NULL_OUTPUT_STREAM, MessageDigest.getInstance("MD5"));
+        DigestOutputStream dos = new DigestOutputStream(NullOutputStream.INSTANCE, MessageDigest.getInstance("MD5"));
         IOUtils.copy(in, dos);
         return dos.getMessageDigest().digest();
     }

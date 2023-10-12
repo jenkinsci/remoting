@@ -113,8 +113,6 @@ public class Engine extends Thread {
      */
     public static final String WEBSOCKET_COOKIE_HEADER = "Connection-Cookie";
 
-    static boolean nonFatalJnlpAgentResolutionExceptions = Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions");
-
     /**
      * Thread pool that sets {@link #CURRENT}.
      */
@@ -589,8 +587,13 @@ public class Engine extends Thread {
                             } else {
                                 addedHeaders.remove(Engine.WEBSOCKET_COOKIE_HEADER);
                             }
-                            remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
-                            LOGGER.fine(() -> "received " + remoteCapability);
+                            List<String> advertisedCapability = hr.getHeaders().get(Capability.KEY);
+                            if (advertisedCapability == null) {
+                                LOGGER.warning("Did not receive " + Capability.KEY + " header");
+                            } else {
+                                remoteCapability = Capability.fromASCII(advertisedCapability.get(0));
+                                LOGGER.fine(() -> "received " + remoteCapability);
+                            }
                         } catch (IOException x) {
                             events.error(x);
                         }
@@ -646,13 +649,17 @@ public class Engine extends Thread {
                     class Transport extends AbstractByteBufferCommandTransport {
                         final Session session;
                         Transport(Session session) {
+                            super(true);
                             this.session = session;
                         }
                         @Override
-                        protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
-                            LOGGER.finest(() -> "sending message of length + " + ChunkHeader.length(ChunkHeader.peek(header)));
-                            session.getBasicRemote().sendBinary(header, false);
-                            session.getBasicRemote().sendBinary(data, true);
+                        protected void write(ByteBuffer headerAndData) throws IOException {
+                            LOGGER.finest(() -> "sending message of length " + (headerAndData.remaining() - ChunkHeader.SIZE));
+                            try {
+                                session.getAsyncRemote().sendBinary(headerAndData).get(5, TimeUnit.MINUTES);
+                            } catch (Exception x) {
+                                throw new IOException(x);
+                            }
                         }
 
                         @Override
@@ -687,6 +694,7 @@ public class Engine extends Thread {
                 }
                 events.onDisconnect();
                 while (true) {
+                    // TODO refactor various sleep statements into a common method
                     TimeUnit.SECONDS.sleep(10);
                     // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
                     URL ping = new URL(hudsonUrl, "login");
@@ -751,13 +759,20 @@ public class Engine extends Thread {
                 final JnlpAgentEndpoint endpoint;
                 try {
                     endpoint = resolver.resolve();
-                } catch (Exception e) {
-                    if (nonFatalJnlpAgentResolutionExceptions) {
-                        events.status("Could not resolve JNLP agent endpoint", e);
+                } catch (IOException e) {
+                    if (!noReconnect) {
+                        events.status("Could not locate server among " + candidateUrls + "; waiting 10 seconds before retry", e);
+                        // TODO refactor various sleep statements into a common method
+                        TimeUnit.SECONDS.sleep(10);
+                        continue;
                     } else {
-                        events.error(e);
+                        if (Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
+                            events.status("Could not resolve JNLP agent endpoint", e);
+                        } else {
+                            events.error(e);
+                        }
                     }
-                    continue;
+                    return;
                 }
                 if (endpoint == null) {
                     events.status("Could not resolve server among " + candidateUrls);
@@ -884,6 +899,7 @@ public class Engine extends Thread {
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
         events.status("reconnect rejected, sleeping 10s: ", new Exception("The server rejected the connection: " + greeting));
+        // TODO refactor various sleep statements into a common method
         TimeUnit.SECONDS.sleep(10);
     }
 
@@ -906,6 +922,7 @@ public class Engine extends Thread {
                 if(retry++>10) {
                     throw e;
                 }
+                // TODO refactor various sleep statements into a common method
                 TimeUnit.SECONDS.sleep(10);
                 events.status(msg+" (retrying:"+retry+")",e);
             }

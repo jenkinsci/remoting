@@ -24,7 +24,6 @@
 package hudson.remoting;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
 /**
  * Hides the logic of starting/stopping a channel for test,
