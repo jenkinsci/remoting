@@ -53,7 +53,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.Console;
 import java.io.File;
@@ -521,7 +520,7 @@ public class Launcher {
                 String expectedContentType = secret == null ? "application/x-java-jnlp-file" : "application/octet-stream";
                 InputStream input = con.getInputStream();
                 if (secret != null) {
-                    byte[] payload = toByteArray(input);
+                    byte[] payload = input.readAllBytes();
                     // the first 16 bytes (128bit) are initialization vector
 
                     try {
@@ -579,15 +578,6 @@ public class Launcher {
                 }
             }
         }
-    }
-
-    private byte[] toByteArray(InputStream input) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        int c;
-        while ((c = input.read()) != -1) {
-            baos.write(c);
-        }
-        return baos.toByteArray();
     }
 
     // from hudson.Util
