@@ -32,9 +32,9 @@ import java.util.Locale;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
-import org.junit.jupiter.api.Disabled;
+import org.junit.Ignore;
 
-@Disabled("This is not a test just a benchmark and is here for ease of running")
+@Ignore("This is not a test just a benchmark and is here for ease of running")
 public class RegExpBenchmark {
     
     final Pattern p1 = Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*");

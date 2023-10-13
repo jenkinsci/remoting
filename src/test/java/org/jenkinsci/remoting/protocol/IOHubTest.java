@@ -49,7 +49,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
-import org.junit.jupiter.api.Disabled;
+import org.junit.Ignore;
 
 public class IOHubTest {
 
@@ -205,7 +205,7 @@ public class IOHubTest {
         }
     }
 
-    @Disabled("TODO flakes: Read timed out; or expected java.net.SocketTimeoutException to be thrown, but nothing was thrown")
+    @Ignore("TODO flakes: Read timed out; or expected java.net.SocketTimeoutException to be thrown, but nothing was thrown")
     @Test
     public void noReadyCallbackIfInterestRemoved() throws Exception {
         final ServerSocketChannel srv = ServerSocketChannel.open();
