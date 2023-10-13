@@ -64,7 +64,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
-import org.junit.jupiter.api.Disabled;
+import org.junit.Ignore;
 
 public class ProtocolStackImplTest {
 
@@ -747,7 +747,7 @@ public class ProtocolStackImplTest {
         assertThat(se.getCause(), instanceOf(ConnectionRefusalException.class));
     }
 
-    @Disabled("TODO flake: ConnectionRefusal Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
+    @Ignore("TODO flake: ConnectionRefusal Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
     @Test
     @Repeat(16)
     public void pipeChannelFullProtocolNIO_invalidAck() throws Exception {
@@ -794,7 +794,7 @@ public class ProtocolStackImplTest {
                 ClosedChannelException.class)));
     }
 
-    @Disabled("TODO flake: ConnectionRefusalException: Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
+    @Ignore("TODO flake: ConnectionRefusalException: Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
     @Test
     @Repeat(16)
     public void socketChannelFullProtocolNIO_invalidAck() throws Exception {

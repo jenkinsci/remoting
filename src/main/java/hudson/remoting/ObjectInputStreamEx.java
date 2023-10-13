@@ -41,6 +41,7 @@ public class ObjectInputStreamEx extends ObjectInputStream {
     /**
      * @deprecated as of 2.53
      */
+    @Deprecated
     public ObjectInputStreamEx(InputStream in, ClassLoader cl) throws IOException {
         this(in,cl,ClassFilter.DEFAULT);
     }
