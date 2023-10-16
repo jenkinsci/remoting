@@ -382,14 +382,15 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             while (true) {
                 // TODO refactor various sleep statements into a common method
                 Thread.sleep(1000 * 10);
+                // Jenkins top page might be read-protected. see http://www.nabble
+                // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
+                if (jenkinsUrls.isEmpty()) {
+                    // returning here will cause the whole loop to be broken and all the urls to be tried again
+                    return;
+                }
+                String firstUrl = jenkinsUrls.get(0);
                 try {
-                    // Jenkins top page might be read-protected. see http://www.nabble
-                    // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
-                    if (jenkinsUrls.isEmpty()) {
-                        // returning here will cause the whole loop to be broken and all the urls to be tried again
-                        return;
-                    }
-                    URL url = toAgentListenerURL(jenkinsUrls.get(0));
+                    URL url = toAgentListenerURL(firstUrl);
 
                     retries++;
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
@@ -406,11 +407,11 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                             "Controller isn''t ready to talk to us on {0}. Will try again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
                 } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
-                    LOGGER.log(INFO, "Failed to connect to the controller. Will try again: {0} {1}",
-                            new String[] { e.getClass().getName(), e.getMessage() });
+                    LOGGER.log(INFO, "Failed to connect to {0}. Will try again: {1} {2}",
+                            new String[] {firstUrl, e.getClass().getName(), e.getMessage()});
                 } catch (IOException e) {
                     // report the failure
-                    LOGGER.log(INFO, "Failed to connect to the controller. Will try again", e);
+                    LOGGER.log(INFO, "Failed to connect to " + firstUrl + ". Will try again", e);
                 }
             }
         } finally {
