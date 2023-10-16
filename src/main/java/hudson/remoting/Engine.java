@@ -743,7 +743,7 @@ public class Engine extends Thread {
         for (URL url: candidateUrls) {
             jenkinsUrls.add(url.toExternalForm());
         }
-        JnlpEndpointResolver resolver = createEndpointResolver(jenkinsUrls);
+        JnlpEndpointResolver resolver = createEndpointResolver(jenkinsUrls, agentName);
 
         try {
             boolean first = true;
@@ -880,7 +880,7 @@ public class Engine extends Thread {
         }
     }
 
-    private JnlpEndpointResolver createEndpointResolver(List<String> jenkinsUrls) {
+    private JnlpEndpointResolver createEndpointResolver(List<String> jenkinsUrls, String agentName) {
         JnlpEndpointResolver resolver;
         if (directConnection == null) {
             SSLSocketFactory sslSocketFactory = null;
@@ -890,7 +890,7 @@ public class Engine extends Thread {
                 events.error(e);
             }
             resolver = new JnlpAgentEndpointResolver(jenkinsUrls, credentials, proxyCredentials, tunnel,
-                    sslSocketFactory, disableHttpsCertValidation);
+                    sslSocketFactory, disableHttpsCertValidation, agentName);
         } else {
             resolver = new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols);
         }
