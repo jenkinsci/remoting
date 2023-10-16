@@ -94,6 +94,8 @@ import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustMa
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Agent engine that proactively connects to Jenkins controller.
@@ -169,7 +171,7 @@ public class Engine extends Thread {
     private String proxyCredentials = System.getProperty("proxyCredentials");
 
     /**
-     * See {@link hudson.remoting.jnlp.Main#tunnel} for the documentation.
+     * See {@link Launcher#tunnel} for the documentation.
      */
     @CheckForNull
     private String tunnel;
@@ -885,7 +887,7 @@ public class Engine extends Thread {
         if (directConnection == null) {
             SSLSocketFactory sslSocketFactory = null;
             try {
-                sslSocketFactory = getSSLSocketFactory();
+                sslSocketFactory = getSSLSocketFactory(candidateCertificates);
             } catch (Exception e) {
                 events.error(e);
             }
@@ -1034,16 +1036,18 @@ public class Engine extends Thread {
         });
     }
 
-    private SSLSocketFactory getSSLSocketFactory()
+    @CheckForNull
+    @Restricted(NoExternalUse.class)
+    static SSLSocketFactory getSSLSocketFactory(List<X509Certificate> x509Certificates)
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException, KeyManagementException {
         SSLSocketFactory sslSocketFactory = null;
-        if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+        if (x509Certificates != null && !x509Certificates.isEmpty()) {
             KeyStore keyStore = getCacertsKeyStore();
             // load the keystore
             keyStore.load(null, null);
             int i = 0;
-            for (X509Certificate c : candidateCertificates) {
+            for (X509Certificate c : x509Certificates) {
                 keyStore.setCertificateEntry(String.format("alias-%d", i++), c);
             }
             // prepare the trust manager

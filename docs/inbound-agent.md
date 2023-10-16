@@ -78,7 +78,7 @@ This mechanism requires a download of the `agent.jar`, as described for "Downloa
 
 Once all the prerequisite files and data have been obtained, the agent can be launched with a command like this
 ```
-java -cp agent.jar hudson.remoting.jnlp.Main \
+java -jar agent.jar \
   -workDir <work directory> \
   -direct <HOST:PORT> \
   -protocols JNLP4-connect \
@@ -102,7 +102,7 @@ Additional descriptions of configuring this mechanism are located at [Installing
 
 There are a number of different launch parameters that control how the agent connects and behaves. 
 The parameters available and the default behavior may vary depending upon the entry point. 
-You can obtain usage information by executing `java -cp agent.jar hudson.remoting.jnlp.Main` or `java -jar agent.jar --help`. 
+You can obtain usage information by executing `java -jar agent.jar --help`. 
 Not all parameters work together and some parameters require the use of others.
 
 There are also system or environment variables that control some advanced behaviors documented at [Remoting Configuration](https://github.com/jenkinsci/remoting/blob/master/docs/configuration.md). 

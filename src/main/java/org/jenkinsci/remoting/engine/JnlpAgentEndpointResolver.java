@@ -32,6 +32,8 @@ import hudson.remoting.NoProxyEvaluator;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -499,8 +501,9 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      * FIXME: similar to hudson.remoting.Util.openURLConnection which is still used in hudson.remoting.Launcher
      */
+    @Restricted(NoExternalUse.class)
     @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent for retrieving connection info from the server.")
-    static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
+    public static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
                                            SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
@@ -550,8 +553,6 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
             } else if (sslSocketFactory != null) {
                 httpsConnection.setSSLSocketFactory(sslSocketFactory);
-                //FIXME: Is it really required in this path? Seems like a bug
-                httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
             }
         }
         return con;
