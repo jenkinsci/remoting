@@ -25,9 +25,10 @@ package org.jenkinsci.remoting.protocol.impl;
 
 /**
  * An exception to flag that the connection has been rejected and no further connection attempts should be made.
- *
+ * @deprecated Does not actually do what it claims; only affects logging levels.
  * @since 3.0
  */
+@Deprecated
 public class PermanentConnectionRefusalException extends ConnectionRefusalException {
     /**
      * {@inheritDoc}
