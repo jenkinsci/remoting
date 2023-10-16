@@ -411,7 +411,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                             new String[] {firstUrl, e.getClass().getName(), e.getMessage()});
                 } catch (IOException e) {
                     // report the failure
-                    LOGGER.log(INFO, "Failed to connect to " + firstUrl + ". Will try again", e);
+                    LOGGER.log(INFO, e, () -> "Failed to connect to " + firstUrl + ". Will try again");
                 }
             }
         } finally {
