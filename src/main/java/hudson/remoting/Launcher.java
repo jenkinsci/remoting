@@ -84,7 +84,6 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
@@ -491,19 +490,7 @@ public class Launcher {
         while (true) {
             URLConnection con = null;
             try {
-                con = Util.openURLConnection(agentJnlpURL);
-                if (con instanceof HttpURLConnection) {
-                    HttpURLConnection http = (HttpURLConnection) con;
-                    if  (agentJnlpCredentials != null) {
-                        String userPassword = agentJnlpCredentials;
-                        String encoding = Base64.getEncoder().encodeToString(userPassword.getBytes(StandardCharsets.UTF_8));
-                        http.setRequestProperty("Authorization", "Basic " + encoding);
-                    }
-                    if (System.getProperty("proxyCredentials", proxyCredentials) != null) {
-                        String encoding = Base64.getEncoder().encodeToString(System.getProperty("proxyCredentials", proxyCredentials).getBytes(StandardCharsets.UTF_8));
-                        http.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
-                    }
-                }
+                con = Util.openURLConnection(agentJnlpURL, agentJnlpCredentials, System.getProperty("proxyCredentials", proxyCredentials));
                 con.connect();
 
                 if (con instanceof HttpURLConnection) {

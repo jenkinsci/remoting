@@ -6,8 +6,6 @@ import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,6 +25,8 @@ import java.util.Base64;
 import java.util.Enumeration;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Misc. I/O utilities
@@ -35,6 +35,9 @@ import java.util.jar.Manifest;
  */
 @Restricted(NoExternalUse.class)
 public class Util {
+
+    private static final Logger LOGGER = Logger.getLogger(Util.class.getName());
+
     /**
      * Gets the file name portion from a qualified '/'-separate resource path name.
      *
@@ -45,6 +48,7 @@ public class Util {
     }
 
     static byte[] readFully(InputStream in) throws IOException {
+        // TODO perhaps replace by in.readAllBytes() after checking close behavior
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         copy(in,baos);
         return baos.toByteArray();
@@ -105,8 +109,8 @@ public class Util {
      * If http_proxy environment variable exists,  the connection uses the proxy.
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      */
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used for retrieving the connection info from the server. We should cleanup the other, unused references.")
-    static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials, SSLSocketFactory sslSocketFactory) throws IOException {
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used for retrieving the connection info from the server.")
+    public static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
         if (System.getProperty("http.proxyHost") == null) {
@@ -120,7 +124,7 @@ public class Util {
                 Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
                 con = url.openConnection(proxy);
             } catch (MalformedURLException e) {
-                System.err.println("Not use http_proxy property or environment variable which is invalid: "+e.getMessage());
+                LOGGER.log(Level.WARNING, "Not using http.proxyHost property or http_proxy environment variable which is invalid.", e);
                 con = url.openConnection();
             }
         } else {
@@ -134,36 +138,7 @@ public class Util {
             String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
-        if (con instanceof HttpsURLConnection && sslSocketFactory != null) {
-            ((HttpsURLConnection) con).setSSLSocketFactory(sslSocketFactory);
-        }
         return con;
-    }
-
-    /**
-     * Gets URL connection.
-     * If http_proxy environment variable exists,  the connection uses the proxy.
-     * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
-     */
-    static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials) throws IOException {
-        return openURLConnection(url, credentials, proxyCredentials, null);
-    }
-
-    /**
-     * Gets URL connection.
-     * If http_proxy environment variable exists,  the connection uses the proxy.
-     */
-    static URLConnection openURLConnection(URL url) throws IOException {
-        return openURLConnection(url, null, null, null);
-    }
-
-    /**
-     * @deprecated Use {@link Files#createDirectories(java.nio.file.Path, java.nio.file.attribute.FileAttribute...)} instead.
-     */
-    @Deprecated
-    static void mkdirs(@NonNull File file) throws IOException {
-        if (file.isDirectory()) return;
-        Files.createDirectories(PathUtils.fileToPath(file));
     }
 
     static public String getVersion() {
@@ -187,4 +162,8 @@ public class Util {
         }
         return version;
     }
+
+    private Util() {
+    }
+
 }

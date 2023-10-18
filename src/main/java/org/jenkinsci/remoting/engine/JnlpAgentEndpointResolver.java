@@ -29,6 +29,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
+import hudson.remoting.Util;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
@@ -52,7 +53,6 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -60,7 +60,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -481,7 +480,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         }
         if (targetAddress == null) {
             String httpProxy = System.getenv("http_proxy");
-            if (httpProxy != null && !inNoProxyEnvVar(host)) {
+            if (httpProxy != null && NoProxyEvaluator.shouldProxy(host)) {
                 try {
                     URL url = new URL(httpProxy);
                     targetAddress = new InetSocketAddress(url.getHost(), url.getPort());
@@ -502,34 +501,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent for retrieving connection info from the server.")
     static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
                                            SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
-        String httpProxy = null;
-        // If http.proxyHost property exists, openConnection() uses it.
-        if (System.getProperty("http.proxyHost") == null) {
-            httpProxy = System.getenv("http_proxy");
-        }
-        URLConnection con;
-        if (httpProxy != null && "http".equals(url.getProtocol()) && !inNoProxyEnvVar(url.getHost())) {
-            try {
-                URL proxyUrl = new URL(httpProxy);
-                SocketAddress addr = new InetSocketAddress(proxyUrl.getHost(), proxyUrl.getPort());
-                Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
-                con = url.openConnection(proxy);
-            } catch (MalformedURLException e) {
-                LOGGER.log(Level.WARNING, "Not using http_proxy environment variable which is invalid.", e);
-                con = url.openConnection();
-            }
-        } else {
-            con = url.openConnection();
-        }
-        if (credentials != null) {
-            String encoding = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
-            con.setRequestProperty("Authorization", "Basic " + encoding);
-        }
-        if (proxyCredentials != null) {
-            String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
-            con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
-        }
-
+        URLConnection con = Util.openURLConnection(url, credentials, proxyCredentials);
         if (con instanceof HttpsURLConnection) {
             final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
             if (disableHttpsCertValidation) {
@@ -557,7 +529,4 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         return con;
     }
 
-    static boolean inNoProxyEnvVar(String host) {
-        return !NoProxyEvaluator.shouldProxy(host);
-    }
 }
