@@ -134,7 +134,7 @@ public class Launcher {
     @Option(name="-credentials",metaVar="USER:PASSWORD",aliases="-jnlpCredentials",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String agentJnlpCredentials = null;
 
-    @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret to use instead of -jnlpCredentials.")
+    @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret.")
     public String secret;
 
     @Option(name="-name", usage="Name of the agent.")
