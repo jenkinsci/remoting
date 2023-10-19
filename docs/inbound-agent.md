@@ -83,7 +83,8 @@ java -jar agent.jar \
   -direct <HOST:PORT> \
   -protocols JNLP4-connect \
   -instanceIdentity <instance identity> \
-  <secretString> <agentName>
+  -secret <secretString> \
+  -name <agentName>
 ```
 The "-protocols" parameter is optional, but is useful to limit the agent to protocols the server supports. 
 The only currently supported and recommended protocol is "JNLP4-connect".
