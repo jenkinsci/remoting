@@ -323,7 +323,7 @@ public class Launcher {
 
     /**
      * The controller's instance identity.
-     * @see <a href="https://wiki.jenkins.io/display/JENKINS/Instance+Identity">Instance Identity</a>
+     * @see <a href="https://plugins.jenkins.io/instance-identity/">Instance Identity</a>
      * @since 3.34
      */
     @Option(name = "-instanceIdentity",
