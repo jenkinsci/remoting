@@ -141,7 +141,7 @@ public class Launcher {
     public String name;
 
     @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
-    public String proxyCredentials = null;
+    public String proxyCredentials = System.getProperty("proxyCredentials");
 
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader. (DEPRECATED)")

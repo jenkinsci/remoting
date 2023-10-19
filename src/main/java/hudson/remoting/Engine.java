@@ -168,7 +168,7 @@ public class Engine extends Thread {
     private Map<String, String> webSocketHeaders;
     private String credentials;
     private String protocolName;
-    private String proxyCredentials = System.getProperty("proxyCredentials");
+    private String proxyCredentials;
 
     /**
      * See {@link Launcher#tunnel} for the documentation.
