@@ -221,7 +221,7 @@ public class Launcher {
      *
      * @param ignored
      *      This is ignored.
-     * @deprecated {use {@link #noCertificateCheck}
+     * @deprecated use {@link #noCertificateCheck}
      */
     @Deprecated
     public void setNoCertificateCheck(boolean ignored) throws NoSuchAlgorithmException, KeyManagementException {
