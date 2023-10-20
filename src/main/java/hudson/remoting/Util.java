@@ -36,6 +36,7 @@ public class Util {
     }
 
     static byte[] readFully(InputStream in) throws IOException {
+        // TODO perhaps replace by in.readAllBytes() after checking close behavior
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         copy(in,baos);
         return baos.toByteArray();
@@ -91,15 +92,6 @@ public class Util {
         return "    " + s.trim().replace("\n", "\n    ");
     }
 
-    /**
-     * @deprecated Use {@link Files#createDirectories(java.nio.file.Path, java.nio.file.attribute.FileAttribute...)} instead.
-     */
-    @Deprecated
-    static void mkdirs(@NonNull File file) throws IOException {
-        if (file.isDirectory()) return;
-        Files.createDirectories(PathUtils.fileToPath(file));
-    }
-
     static public String getVersion() {
         String version = "unknown";
         try {
@@ -121,4 +113,8 @@ public class Util {
         }
         return version;
     }
+
+    private Util() {
+    }
+
 }

@@ -477,7 +477,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         }
         if (targetAddress == null) {
             String httpProxy = System.getenv("http_proxy");
-            if (httpProxy != null && !inNoProxyEnvVar(host)) {
+            if (httpProxy != null && NoProxyEvaluator.shouldProxy(host)) {
                 try {
                     URL url = new URL(httpProxy);
                     targetAddress = new InetSocketAddress(url.getHost(), url.getPort());
@@ -506,7 +506,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             httpProxy = System.getenv("http_proxy");
         }
         URLConnection con;
-        if (httpProxy != null && "http".equals(url.getProtocol()) && !inNoProxyEnvVar(url.getHost())) {
+        if (httpProxy != null && "http".equals(url.getProtocol()) && NoProxyEvaluator.shouldProxy(url.getHost())) {
             try {
                 URL proxyUrl = new URL(httpProxy);
                 SocketAddress addr = new InetSocketAddress(proxyUrl.getHost(), proxyUrl.getPort());
@@ -556,7 +556,4 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         return con;
     }
 
-    static boolean inNoProxyEnvVar(String host) {
-        return !NoProxyEvaluator.shouldProxy(host);
-    }
 }
