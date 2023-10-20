@@ -63,7 +63,6 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
@@ -102,6 +101,8 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
     private boolean disableHttpsCertValidation;
 
+    private final String agentName;
+
     /**
      * If specified, only the protocols from the list will be tried during the connection.
      * The option provides protocol names, but the order of the check is defined internally and cannot be changed.
@@ -111,22 +112,15 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     private static String PROTOCOL_NAMES_TO_TRY =
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
 
-    public JnlpAgentEndpointResolver(String... jenkinsUrls) {
-        this.jenkinsUrls = new ArrayList<>(Arrays.asList(jenkinsUrls));
-    }
-
-    public JnlpAgentEndpointResolver(@NonNull List<String> jenkinsUrls) {
-        this(jenkinsUrls, null, null, null, null, false);
-    }
-
     public JnlpAgentEndpointResolver(@NonNull List<String> jenkinsUrls, String credentials, String proxyCredentials,
-                                     String tunnel, SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) {
+                                     String tunnel, SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation, String agentName) {
         this.jenkinsUrls = new ArrayList<>(jenkinsUrls);
         this.credentials = credentials;
         this.proxyCredentials = proxyCredentials;
         this.tunnel = tunnel;
         this.sslSocketFactory = sslSocketFactory;
         this.disableHttpsCertValidation = disableHttpsCertValidation;
+        this.agentName = agentName;
     }
 
     public SSLSocketFactory getSslSocketFactory() {
@@ -210,7 +204,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
             // find out the TCP port
             HttpURLConnection con =
-                    (HttpURLConnection) openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation);
+                    (HttpURLConnection) openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation, agentName);
             try {
                 try {
                     con.setConnectTimeout(30000);
@@ -422,7 +416,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
 
                     HttpURLConnection con =
-                            (HttpURLConnection) openURLConnection(url, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation);
+                            (HttpURLConnection) openURLConnection(url, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation, agentName);
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
@@ -528,7 +522,8 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     @Restricted(NoExternalUse.class)
     @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent for retrieving connection info from the server.")
     public static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
-                                           SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
+                                           SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation,
+                                           @CheckForNull String agentName) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
         if (System.getProperty("http.proxyHost") == null) {
@@ -555,6 +550,9 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         if (proxyCredentials != null) {
             String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+        }
+        if (agentName != null) {
+            con.setRequestProperty(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
         }
 
         if (con instanceof HttpsURLConnection) {
