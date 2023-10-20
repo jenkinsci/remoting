@@ -894,7 +894,7 @@ public class Engine extends Thread {
             resolver = new JnlpAgentEndpointResolver(jenkinsUrls, credentials, proxyCredentials, tunnel,
                     sslSocketFactory, disableHttpsCertValidation);
         } else {
-            resolver = new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols);
+            resolver = new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols, proxyCredentials);
         }
         return resolver;
     }
