@@ -636,7 +636,7 @@ public class Launcher {
         while (true) {
             URLConnection con = null;
             try {
-                con = JnlpAgentEndpointResolver.openURLConnection(agentJnlpURL, agentJnlpCredentials, proxyCredentials, sslSocketFactory, noCertificateCheck);
+                con = JnlpAgentEndpointResolver.openURLConnection(agentJnlpURL, agentJnlpCredentials, proxyCredentials, sslSocketFactory, noCertificateCheck, null);
                 con.connect();
 
                 if (con instanceof HttpURLConnection) {
