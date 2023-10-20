@@ -27,10 +27,10 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
+import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.PathUtils;
-import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
-import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -41,12 +41,8 @@ import org.xml.sax.SAXException;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -62,10 +58,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
-import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
-import java.net.PasswordAuthentication;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
@@ -75,17 +69,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -114,6 +108,7 @@ public class Launcher {
      * Specifies a destination for error logs.
      * If specified, this option overrides the default destination within {@link #workDir}.
      * If both this options and {@link #workDir} is not set, the log will not be generated.
+     * @since 3.8
      */
     @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
     @CheckForNull
@@ -126,19 +121,27 @@ public class Launcher {
         System.out.println("Running in "+mode.name().toLowerCase(Locale.ENGLISH)+" mode");
     }
 
+    /**
+     * @deprecated use {@link #secret}, {@link #name}, {@link #urls}, {@link #webSocket}, {@link #tunnel},
+     * {@link #workDir}, {@link #internalDir}, and/or {@link #failIfWorkDirIsMissing} directly.
+     */
     @Option(name="-jnlpUrl",usage="instead of talking to the controller via stdin/stdout, " +
             "emulate a JNLP client by making a TCP connection to the controller. " +
-            "Connection parameters are obtained by parsing the JNLP file.")
+            "Connection parameters are obtained by parsing the JNLP file.", forbids = {"-direct", "-name", "-tunnel", "-url", "-webSocket"})
+    @Deprecated
     public URL agentJnlpURL = null;
 
-    @Option(name="-jnlpCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
+    @Option(name="-credentials",metaVar="USER:PASSWORD",aliases="-jnlpCredentials",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String agentJnlpCredentials = null;
 
-    @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret to use instead of -jnlpCredentials.")
+    @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret.")
     public String secret;
 
+    @Option(name="-name", usage="Name of the agent.")
+    public String name;
+
     @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
-    public String proxyCredentials = null;
+    public String proxyCredentials = System.getProperty("proxyCredentials");
 
     @Option(name="-cp",aliases="-classpath",metaVar="PATH",
             usage="add the given classpath elements to the system classloader. (DEPRECATED)")
@@ -162,8 +165,11 @@ public class Launcher {
             "then wait for the controller to connect to that port.")
     public File tcpPortFile=null;
 
-
-    @Option(name="-auth",metaVar="user:pass",usage="If your Jenkins is security-enabled, specify a valid user name and password.")
+    /**
+     * @deprecated use {@link #agentJnlpCredentials} or {@link #proxyCredentials}
+     */
+    @Deprecated
+    @Option(name="-auth",metaVar="user:pass",usage="(deprecated) unused; use -credentials or -proxyCredentials")
     public String auth = null;
 
     /**
@@ -187,10 +193,15 @@ public class Launcher {
                     "certificate file to read.", forbids = "-noCertificateCheck")
     public List<String> candidateCertificates;
 
+    private List<X509Certificate> x509Certificates;
+
+    private SSLSocketFactory sslSocketFactory;
+
     /**
      * Disables HTTPs Certificate validation of the server when using {@link org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver}.
      * This option is managed by the {@code -noCertificateCheck} option.
      */
+    @Option(name="-noCertificateCheck", aliases = "-disableHttpsCertValidation", forbids = "-cert", usage="Ignore SSL validation errors - use as a last resort only.")
     private boolean noCertificateCheck = false;
 
     public InetSocketAddress connectionTarget = null;
@@ -210,20 +221,16 @@ public class Launcher {
      *
      * @param ignored
      *      This is ignored.
+     * @deprecated use {@link #noCertificateCheck}
      */
-    @Option(name="-noCertificateCheck", forbids = "-cert")
+    @Deprecated
     public void setNoCertificateCheck(boolean ignored) throws NoSuchAlgorithmException, KeyManagementException {
         System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
 
         this.noCertificateCheck = true;
-        SSLContext context = SSLContext.getInstance("TLS");
-        context.init(null, new TrustManager[]{new NoCheckTrustManager()}, new java.security.SecureRandom());
-        HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
-        // bypass host name check, too.
-        HttpsURLConnection.setDefaultHostnameVerifier(new NoCheckHostnameVerifier());
     }
 
-    @Option(name="-noReconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
+    @Option(name="-noReconnect",aliases="-noreconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
     public boolean noReconnect = false;
 
     @Option(name = "-noKeepAlive",
@@ -268,6 +275,73 @@ public class Launcher {
             depends = "-workDir")
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
     
+    @Option(name = "-tunnel",
+            metaVar = "HOST:PORT",
+            usage = "Connect to the specified host and port, instead of connecting directly to Jenkins. "
+                    + "Useful when connection to Jenkins needs to be tunneled. Can be also HOST: or :PORT, "
+                    + "in which case the missing portion will be auto-configured like the default behavior.")
+    public String tunnel;
+
+    @Deprecated
+    @Option(name = "-headless", usage = "(deprecated; now always headless)")
+    public boolean headlessMode;
+
+    @Option(name = "-url", usage = "Specify the Jenkins root URLs to connect to.")
+    public List<URL> urls = new ArrayList<>();
+
+    @Option(name = "-webSocket",
+            usage = "Make a WebSocket connection to Jenkins rather than using the TCP port.",
+            depends = "-url",
+            forbids = {
+                "-direct",
+                "-tunnel",
+                "-credentials",
+                "-proxyCredentials",
+                "-cert",
+                "-noCertificateCheck",
+                "-noKeepAlive"
+            })
+    public boolean webSocket;
+
+    @Option(name = "-webSocketHeader",
+            usage = "Additional WebSocket header to set, eg for authenticating with reverse proxies. To specify multiple headers, call this flag multiple times, one with each header",
+            metaVar = "NAME=VALUE",
+            depends = "-webSocket")
+    public Map<String, String> webSocketHeaders;
+
+    /**
+     * Connect directly to the TCP port specified, skipping the HTTP(S) connection parameter download.
+     * @since 3.34
+     */
+    @Option(name = "-direct",
+            metaVar = "HOST:PORT",
+            aliases = "-directConnection",
+            depends = "-instanceIdentity",
+            forbids = {"-jnlpUrl", "-url", "-tunnel"},
+            usage = "Connect directly to this TCP agent port, skipping the HTTP(S) connection parameter download. For example, \"myjenkins:50000\".")
+    public String directConnection;
+
+    /**
+     * The controller's instance identity.
+     * @see <a href="https://plugins.jenkins.io/instance-identity/">Instance Identity</a>
+     * @since 3.34
+     */
+    @Option(name = "-instanceIdentity",
+            depends = "-direct",
+            usage = "The base64 encoded InstanceIdentity byte array of the Jenkins controller. When this is set, the agent skips connecting to an HTTP(S) port for connection info.")
+    public String instanceIdentity;
+
+    /**
+     * When {@link #instanceIdentity} is set, the agent skips connecting via http(s) where it normally
+     * obtains the configured protocols. When no protocols are given the agent tries all protocols
+     * it knows. Use this to limit the protocol list.
+     * @since 3.34
+     */
+    @Option(name = "-protocols",
+            depends = {"-direct"},
+            usage = "Specify the remoting protocols to attempt when instanceIdentity is provided.")
+    public List<String> protocols = new ArrayList<>();
+
     /**
      * Shows help message and then exits
      * @since 3.36
@@ -282,12 +356,20 @@ public class Launcher {
     @Option(name="-version",usage="Shows the version of the remoting jar and then exits")
     public boolean showVersion = false;
 
+    /**
+     * The original calling convention takes two positional arguments: secret key and agent name.
+     * @deprecated use {@link #secret} and {@link #name}
+     */
+    @Argument
+    @Deprecated
+    public List<String> args = new ArrayList<>();
 
-    public static void main(String... args) throws Exception {
+    public static void main(String... args) throws IOException, InterruptedException {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
         try {
             parser.parseArgument(args);
+            normalizeArguments(launcher);
             if (launcher.showHelp && !launcher.showVersion) {
                 parser.printUsage(System.out);
                 return;
@@ -302,7 +384,7 @@ public class Launcher {
     }
 
     @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "log file, just like console output, should be in platform default encoding")
-    public void run() throws Exception {
+    public void run() throws CmdLineException, IOException, InterruptedException {
         if (showVersion) {
             String version = Util.getVersion();
             if(version != null) {
@@ -325,84 +407,30 @@ public class Launcher {
         }
         workDirManager.setupLogging(internalDirPath, agentLog != null ? PathUtils.fileToPath(agentLog) : null);
 
-        if(auth!=null) {
-            final int idx = auth.indexOf(':');
-            if(idx<0)   throw new CmdLineException(null, "No ':' in the -auth option", null);
-            Authenticator.setDefault(new Authenticator() {
-                @Override public PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(auth.substring(0,idx), auth.substring(idx+1).toCharArray());
-                }
-            });
-        }
-        if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
-            HttpsURLConnection.setDefaultSSLSocketFactory(getSSLSocketFactory());
+        createX509Certificates();
+        try {
+            sslSocketFactory = Engine.getSSLSocketFactory(x509Certificates);
+        } catch (GeneralSecurityException | PrivilegedActionException e) {
+            throw new RuntimeException(e);
         }
         if(connectionTarget!=null) {
             runAsTcpClient();
         } else
-        if(agentJnlpURL !=null) {
-            List<String> jnlpArgs = parseJnlpArguments();
-            if (jarCache != null) {
-              jnlpArgs.add("-jar-cache");
-              jnlpArgs.add(jarCache.getPath());
+        if (agentJnlpURL != null || !urls.isEmpty()) {
+            if (agentJnlpURL != null) {
+                bootstrapInboundAgent();
             }
-            if (this.noReconnect) {
-                jnlpArgs.add("-noreconnect");
-            }
-            if (this.noKeepAlive) {
-                jnlpArgs.add("-noKeepAlive");
-            }
-            if (agentLog != null) {
-                jnlpArgs.add("-agentLog");
-                jnlpArgs.add(agentLog.getPath());
-            }
-            if (loggingConfigFilePath != null) {
-                jnlpArgs.add("-loggingConfig");
-                jnlpArgs.add(loggingConfigFilePath.getAbsolutePath());
-            }
-            if (this.workDir != null) {
-                jnlpArgs.add("-workDir");
-                jnlpArgs.add(workDir.getAbsolutePath());
-                jnlpArgs.add("-internalDir");
-                jnlpArgs.add(internalDir);
-                if (failIfWorkDirIsMissing) {
-                    jnlpArgs.add("-failIfWorkDirIsMissing");
-                }
-            }
-            if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
-                for (String c: candidateCertificates) {
-                    jnlpArgs.add("-cert");
-                    jnlpArgs.add(c);
-                }
-            }
-            if (noCertificateCheck) {
-                // Generally it is not required since the default settings have been changed anyway.
-                // But we set it up just in case there are overrides somewhere in the logic
-                jnlpArgs.add("-disableHttpsCertValidation");
-            }
-            try {
-                hudson.remoting.jnlp.Main._main(jnlpArgs.toArray(new String[0]));
-            } catch (CmdLineException e) {
-                System.err.println("JNLP file "+ agentJnlpURL +" has invalid arguments: "+jnlpArgs);
-                System.err.println("Most likely a configuration error in the controller");
-                System.err.println(e.getMessage());
-                System.exit(1);
-            }
+            runAsInboundAgent();
         } else
         if(tcpPortFile!=null) {
             runAsTcpServer();
         } else {
             runWithStdinStdout();
         }
-        System.exit(0);
     }
 
-    @CheckForNull
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
-    private SSLSocketFactory getSSLSocketFactory()
-            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-            NoSuchAlgorithmException, IOException, KeyManagementException {
-        SSLSocketFactory sslSocketFactory = null;
+    private void createX509Certificates() {
         if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
             CertificateFactory factory;
             try {
@@ -410,10 +438,7 @@ public class Launcher {
             } catch (CertificateException e) {
                 throw new IllegalStateException("Java platform specification mandates support for X.509", e);
             }
-            KeyStore keyStore = Engine.getCacertsKeyStore();
-            // load the keystore
-            keyStore.load(null, null);
-            int i = 0;
+            x509Certificates = new ArrayList<>();
             for (String certOrAtFilename : candidateCertificates) {
                 certOrAtFilename = certOrAtFilename.trim();
                 byte[] cert;
@@ -455,25 +480,146 @@ public class Launcher {
                     cert = certOrAtFilename.getBytes(StandardCharsets.US_ASCII);
                 }
                 try {
-                    keyStore.setCertificateEntry(String.format("alias-%d", i++),
-                            factory.generateCertificate(new ByteArrayInputStream(cert)));
+                    x509Certificates.add((X509Certificate) factory.generateCertificate(new ByteArrayInputStream(cert)));
                 } catch (ClassCastException e) {
                     LOGGER.log(Level.WARNING, "Expected X.509 certificate from " + certOrAtFilename, e);
                 } catch (CertificateException e) {
                     LOGGER.log(Level.WARNING, "Could not parse X.509 certificate from " + certOrAtFilename, e);
                 }
             }
-            // prepare the trust manager
-            TrustManagerFactory trustManagerFactory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            trustManagerFactory.init(keyStore);
-            // prepare the SSL context
-            SSLContext ctx = SSLContext.getInstance("TLS");
-            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
-            // now we have our custom socket factory
-            sslSocketFactory = ctx.getSocketFactory();
         }
-        return sslSocketFactory;
+    }
+
+    private void bootstrapInboundAgent() throws CmdLineException, IOException, InterruptedException {
+        List<String> jnlpArgs;
+        try {
+            jnlpArgs = parseJnlpArguments();
+        } catch (ParserConfigurationException | SAXException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Set any arguments that are needed for validation of the server's values.
+        if (directConnection != null) {
+            jnlpArgs.add("-direct");
+            jnlpArgs.add(directConnection);
+        }
+        if (tunnel != null) {
+            jnlpArgs.add("-tunnel");
+            jnlpArgs.add(tunnel);
+        }
+        if (agentJnlpCredentials != null) {
+            jnlpArgs.add("-credentials");
+            jnlpArgs.add(agentJnlpCredentials);
+        }
+        if (proxyCredentials != null) {
+            jnlpArgs.add("-proxyCredentials");
+            jnlpArgs.add(proxyCredentials);
+        }
+        if (noKeepAlive) {
+            jnlpArgs.add("-noKeepAlive");
+        }
+        if (workDir != null) {
+            jnlpArgs.add("-workDir");
+            jnlpArgs.add(workDir.getAbsolutePath());
+            jnlpArgs.add("-internalDir");
+            jnlpArgs.add(internalDir);
+            if (failIfWorkDirIsMissing) {
+                jnlpArgs.add("-failIfWorkDirIsMissing");
+            }
+        }
+        if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+            for (String c : candidateCertificates) {
+                jnlpArgs.add("-cert");
+                jnlpArgs.add(c);
+            }
+        }
+        if (noCertificateCheck) {
+            jnlpArgs.add("-noCertificateCheck");
+        }
+
+        // Parse the server's pseudo-JNLP output
+        Launcher bootstrap = new Launcher();
+        CmdLineParser parser = new CmdLineParser(bootstrap);
+        parser.parseArgument(jnlpArgs.toArray(new String[0]));
+        normalizeArguments(bootstrap);
+        validateInboundAgentArgs(bootstrap);
+
+        // Apply the results
+        assert urls.isEmpty();
+        urls.addAll(bootstrap.urls);
+        if (bootstrap.secret != null) {
+            secret = bootstrap.secret;
+        }
+        if (bootstrap.name != null) {
+            name = bootstrap.name;
+        }
+        if (bootstrap.webSocket) {
+            webSocket = true;
+        }
+        if (bootstrap.tunnel != null) {
+            tunnel = bootstrap.tunnel;
+        }
+        if (bootstrap.workDir != null) {
+            workDir = bootstrap.workDir;
+        }
+        if (!WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation().equals(bootstrap.internalDir)) {
+            internalDir = bootstrap.internalDir;
+        }
+        if (bootstrap.failIfWorkDirIsMissing != WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING) {
+            failIfWorkDirIsMissing = bootstrap.failIfWorkDirIsMissing;
+        }
+    }
+
+    private static void normalizeArguments(Launcher launcher) throws CmdLineException {
+        if (!launcher.args.isEmpty()) {
+            if (launcher.args.size() != 2) {
+                throw new CmdLineException(null, "Two arguments required, but got " + launcher.args);
+            }
+            if (launcher.secret == null) {
+                launcher.secret = launcher.args.get(0);
+            } else {
+                throw new CmdLineException(null, "Cannot provide secret via both named and positional arguments");
+            }
+            if (launcher.name == null) {
+                launcher.name = launcher.args.get(1);
+            } else {
+                throw new CmdLineException(null, "Cannot provide name via both named and positional arguments");
+            }
+            launcher.args.clear();
+        }
+    }
+
+    private static void validateInboundAgentArgs(Launcher launcher) throws CmdLineException {
+        assert launcher.args.isEmpty() : "should have been normalized previously";
+        if (launcher.secret == null) {
+            throw new CmdLineException(null, "Secret is required for inbound agents");
+        }
+        if (launcher.name == null) {
+            throw new CmdLineException(null, "Name is required for inbound agents");
+        }
+        if (launcher.urls.isEmpty() && launcher.directConnection == null) {
+            throw new CmdLineException(null, "At least one URL is required for inbound agents");
+        }
+        if (launcher.webSocket) {
+            assert !launcher.urls.isEmpty(); // depends = "-url"
+            if (launcher.urls.size() > 1) {
+                throw new CmdLineException(null, "Only a single URL is supported for WebSocket agents");
+            }
+        }
+    }
+
+    private void runAsInboundAgent() throws CmdLineException, IOException, InterruptedException {
+        validateInboundAgentArgs(this);
+        Engine engine = createEngine();
+        engine.startEngine();
+        try {
+            engine.join();
+            LOGGER.fine("Engine has died");
+        } finally {
+            // if we are programmatically driven by other code, allow them to interrupt our blocking main thread to kill
+            // the on-going connection to Jenkins
+            engine.interrupt();
+        }
     }
 
     /**
@@ -490,7 +636,7 @@ public class Launcher {
         while (true) {
             URLConnection con = null;
             try {
-                con = Util.openURLConnection(agentJnlpURL, agentJnlpCredentials, System.getProperty("proxyCredentials", proxyCredentials));
+                con = JnlpAgentEndpointResolver.openURLConnection(agentJnlpURL, agentJnlpCredentials, proxyCredentials, sslSocketFactory, noCertificateCheck);
                 con.connect();
 
                 if (con instanceof HttpURLConnection) {
@@ -537,10 +683,6 @@ public class Launcher {
                 List<String> jnlpArgs = new ArrayList<>();
                 for( int i=0; i<argElements.getLength(); i++ )
                         jnlpArgs.add(argElements.item(i).getTextContent());
-                if (agentJnlpCredentials != null) {
-                    jnlpArgs.add("-credentials");
-                    jnlpArgs.add(agentJnlpCredentials);
-                }
                 return jnlpArgs;
             } catch (SSLHandshakeException e) {
                 if(e.getMessage().contains("PKIX path building failed")) {
@@ -761,6 +903,7 @@ public class Launcher {
         }
         channel.join();
         System.err.println("channel stopped");
+        System.exit(0);
     }
 
     public static boolean isWindows() {
@@ -804,6 +947,105 @@ public class Launcher {
         } catch (IOException ex) {
             LOGGER.log(Level.WARNING, "Cannot close the resource file " + name, ex);
         }
+    }
+
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
+    private Engine createEngine() {
+        LOGGER.log(Level.INFO, "Setting up agent: {0}", name);
+        Engine engine = new Engine(
+                new CuiListener(),
+                urls,
+                secret,
+                name,
+                directConnection,
+                instanceIdentity,
+                new HashSet<>(protocols));
+        engine.setWebSocket(webSocket);
+        if (webSocketHeaders != null) {
+            engine.setWebSocketHeaders(webSocketHeaders);
+        }
+        if (tunnel != null) {
+            engine.setTunnel(tunnel);
+        }
+        if (agentJnlpCredentials != null) {
+            engine.setCredentials(agentJnlpCredentials);
+        }
+        if (proxyCredentials != null) {
+            engine.setProxyCredentials(proxyCredentials);
+        }
+        if (jarCache != null) {
+            engine.setJarCache(new FileSystemJarCache(jarCache, true));
+        }
+        engine.setNoReconnect(noReconnect);
+        engine.setKeepAlive(!noKeepAlive);
+
+        if (noCertificateCheck) {
+            LOGGER.log(Level.WARNING, "Certificate validation for HTTPs endpoints is disabled");
+        }
+        engine.setDisableHttpsCertValidation(noCertificateCheck);
+
+        // TODO: ideally logging should be initialized before the "Setting up agent" entry
+        if (agentLog != null) {
+            try {
+                engine.setAgentLog(PathUtils.fileToPath(agentLog));
+            } catch (IOException ex) {
+                throw new IllegalStateException("Cannot retrieve custom log destination", ex);
+            }
+        }
+        if (loggingConfigFilePath != null) {
+            try {
+                engine.setLoggingConfigFile(PathUtils.fileToPath(loggingConfigFilePath));
+            } catch (IOException ex) {
+                throw new IllegalStateException("Logging config file is invalid", ex);
+            }
+        }
+
+        if (x509Certificates != null && !x509Certificates.isEmpty()) {
+            engine.setCandidateCertificates(x509Certificates);
+        }
+
+        // Working directory settings
+        if (workDir != null) {
+            try {
+                engine.setWorkDir(PathUtils.fileToPath(workDir));
+            } catch (IOException ex) {
+                throw new IllegalStateException("Work directory path is invalid", ex);
+            }
+        }
+        engine.setInternalDir(internalDir);
+        engine.setFailIfWorkDirIsMissing(failIfWorkDirIsMissing);
+
+        return engine;
+    }
+
+    /**
+     * {@link EngineListener} implementation that sends output to {@link Logger}.
+     */
+    private static final class CuiListener implements EngineListener {
+        @Override
+        public void status(String msg, Throwable t) {
+            LOGGER.log(Level.INFO, msg, t);
+        }
+
+        @Override
+        public void status(String msg) {
+            status(msg, null);
+        }
+
+        @Override
+        @SuppressFBWarnings(
+                value = "DM_EXIT",
+                justification = "Yes, we really want to exit in the case of severe error")
+        public void error(Throwable t) {
+            LOGGER.log(Level.SEVERE, t.getMessage(), t);
+            System.exit(-1);
+        }
+
+        @Override
+        public void onDisconnect() {}
+
+        @Override
+        public void onReconnect() {}
     }
 
     private static String communicationProtocolName;

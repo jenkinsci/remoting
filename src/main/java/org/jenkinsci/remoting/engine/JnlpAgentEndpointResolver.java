@@ -29,10 +29,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
-import hudson.remoting.Util;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -53,6 +54,7 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -60,6 +62,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -498,10 +501,38 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      * FIXME: similar to hudson.remoting.Util.openURLConnection which is still used in hudson.remoting.Launcher
      */
+    @Restricted(NoExternalUse.class)
     @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent for retrieving connection info from the server.")
-    static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
+    public static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
                                            SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) throws IOException {
-        URLConnection con = Util.openURLConnection(url, credentials, proxyCredentials);
+        String httpProxy = null;
+        // If http.proxyHost property exists, openConnection() uses it.
+        if (System.getProperty("http.proxyHost") == null) {
+            httpProxy = System.getenv("http_proxy");
+        }
+        URLConnection con;
+        if (httpProxy != null && "http".equals(url.getProtocol()) && NoProxyEvaluator.shouldProxy(url.getHost())) {
+            try {
+                URL proxyUrl = new URL(httpProxy);
+                SocketAddress addr = new InetSocketAddress(proxyUrl.getHost(), proxyUrl.getPort());
+                Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
+                con = url.openConnection(proxy);
+            } catch (MalformedURLException e) {
+                LOGGER.log(Level.WARNING, "Not using http_proxy environment variable which is invalid.", e);
+                con = url.openConnection();
+            }
+        } else {
+            con = url.openConnection();
+        }
+        if (credentials != null) {
+            String encoding = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+            con.setRequestProperty("Authorization", "Basic " + encoding);
+        }
+        if (proxyCredentials != null) {
+            String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
+            con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
+        }
+
         if (con instanceof HttpsURLConnection) {
             final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
             if (disableHttpsCertValidation) {
@@ -522,8 +553,6 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
             } else if (sslSocketFactory != null) {
                 httpsConnection.setSSLSocketFactory(sslSocketFactory);
-                //FIXME: Is it really required in this path? Seems like a bug
-                httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
             }
         }
         return con;

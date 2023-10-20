@@ -12,21 +12,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
-import java.net.Proxy;
-import java.net.SocketAddress;
 import java.net.URL;
-import java.net.URLConnection;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Base64;
 import java.util.Enumeration;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Misc. I/O utilities
@@ -35,9 +26,6 @@ import java.util.logging.Logger;
  */
 @Restricted(NoExternalUse.class)
 public class Util {
-
-    private static final Logger LOGGER = Logger.getLogger(Util.class.getName());
-
     /**
      * Gets the file name portion from a qualified '/'-separate resource path name.
      *
@@ -102,43 +90,6 @@ public class Util {
 
     static String indent(String s) {
         return "    " + s.trim().replace("\n", "\n    ");
-    }
-
-    /**
-     * Gets URL connection.
-     * If http_proxy environment variable exists,  the connection uses the proxy.
-     * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
-     */
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used for retrieving the connection info from the server.")
-    public static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials) throws IOException {
-        String httpProxy = null;
-        // If http.proxyHost property exists, openConnection() uses it.
-        if (System.getProperty("http.proxyHost") == null) {
-            httpProxy = System.getenv("http_proxy");
-        }
-        URLConnection con;
-        if (httpProxy != null && "http".equals(url.getProtocol()) && NoProxyEvaluator.shouldProxy(url.getHost())) {
-            try {
-                URL proxyUrl = new URL(httpProxy);
-                SocketAddress addr = new InetSocketAddress(proxyUrl.getHost(), proxyUrl.getPort());
-                Proxy proxy = new Proxy(Proxy.Type.HTTP, addr);
-                con = url.openConnection(proxy);
-            } catch (MalformedURLException e) {
-                LOGGER.log(Level.WARNING, "Not using http.proxyHost property or http_proxy environment variable which is invalid.", e);
-                con = url.openConnection();
-            }
-        } else {
-            con = url.openConnection();
-        }
-        if (credentials != null) {
-            String encoding = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
-            con.setRequestProperty("Authorization", "Basic " + encoding);
-        }
-        if (proxyCredentials != null) {
-            String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
-            con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
-        }
-        return con;
     }
 
     static public String getVersion() {
