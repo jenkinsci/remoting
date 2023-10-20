@@ -40,11 +40,13 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import java.io.IOException;
+import java.net.Authenticator;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.NoRouteToHostException;
+import java.net.PasswordAuthentication;
 import java.net.Proxy;
 import java.net.Proxy.Type;
 import java.net.ProxySelector;
@@ -325,7 +327,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 }
 
                 //TODO: all the checks above do not make much sense if tunneling is enabled (JENKINS-52246)
-                return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames, selectedJenkinsURL);
+                return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames, selectedJenkinsURL, proxyCredentials);
             } finally {
                 con.disconnect();
             }
@@ -337,11 +339,30 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     }
 
     @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This just verifies connection to the port. No data is transmitted.")
-    private boolean isPortVisible(String hostname, int port) {
+    private synchronized boolean isPortVisible(String hostname, int port) {
         boolean exitStatus = false;
         Socket s = null;
 
+        Authenticator orig = null;
         try {
+            if (proxyCredentials != null) {
+                final int index = proxyCredentials.indexOf(':');
+                if (index < 0) {
+                    throw new IllegalArgumentException("Invalid credential");
+                }
+                orig = Authenticator.getDefault();
+                // Using Authenticator.setDefault is a bit ugly, but there is no other way to control the authenticator
+                // on the HTTPURLConnection object created internally by Socket.
+                Authenticator.setDefault(new Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        if (getRequestorType().equals(RequestorType.PROXY)) {
+                            return new PasswordAuthentication(proxyCredentials.substring(0, index), proxyCredentials.substring(index + 1).toCharArray());
+                        }
+                        return super.getPasswordAuthentication();
+                    }
+                });
+            }
             InetSocketAddress proxyToUse = getResolvedHttpProxyAddress(hostname,port);
             s = proxyToUse == null ? new Socket() : new Socket(new Proxy(Type.HTTP, proxyToUse)); 
             s.setReuseAddress(true);
@@ -359,6 +380,9 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 } catch (IOException e) {
                     LOGGER.warning(e.getMessage());
                 }
+            }
+            if (orig != null) {
+                Authenticator.setDefault(orig);
             }
         }
         return exitStatus;
