@@ -32,6 +32,8 @@ import hudson.remoting.NoProxyEvaluator;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -493,9 +495,11 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      * Credentials can be passed e.g. to support running Jenkins behind a (reverse) proxy requiring authorization
      * FIXME: similar to hudson.remoting.Util.openURLConnection which is still used in hudson.remoting.Launcher
      */
+    @Restricted(NoExternalUse.class)
     @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent for retrieving connection info from the server.")
-    private static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
-                                           SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation, String agentName) throws IOException {
+    public static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
+                                           SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation,
+                                           @CheckForNull String agentName) throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
         if (System.getProperty("http.proxyHost") == null) {
@@ -523,7 +527,9 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
-        con.setRequestProperty(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
+        if (agentName != null) {
+            con.setRequestProperty(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
+        }
 
         if (con instanceof HttpsURLConnection) {
             final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
@@ -545,8 +551,6 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
             } else if (sslSocketFactory != null) {
                 httpsConnection.setSSLSocketFactory(sslSocketFactory);
-                //FIXME: Is it really required in this path? Seems like a bug
-                httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
             }
         }
         return con;
