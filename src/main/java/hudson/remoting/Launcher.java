@@ -416,7 +416,7 @@ public class Launcher {
         if(connectionTarget!=null) {
             runAsTcpClient();
         } else
-        if (agentJnlpURL != null || !urls.isEmpty()) {
+        if (agentJnlpURL != null || !urls.isEmpty() || directConnection != null) {
             if (agentJnlpURL != null) {
                 bootstrapInboundAgent();
             }
