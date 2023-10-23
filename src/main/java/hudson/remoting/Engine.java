@@ -37,6 +37,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -52,6 +53,7 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +78,10 @@ import jakarta.websocket.Endpoint;
 import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.Session;
+import jakarta.websocket.WebSocketContainer;
 import net.jcip.annotations.NotThreadSafe;
+import org.glassfish.tyrus.client.ClientManager;
+import org.glassfish.tyrus.client.ClientProperties;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
@@ -682,7 +687,26 @@ public class Engine extends Thread {
                 }
                 hudsonUrl = candidateUrls.get(0);
                 String wsUrl = hudsonUrl.toString().replaceFirst("^http", "ws");
-                ContainerProvider.getWebSocketContainer().connectToServer(new AgentEndpoint(),
+                WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+                if (container instanceof ClientManager) {
+                    ClientManager client = (ClientManager) container;
+
+                    String proxyHost = System.getProperty("http.proxyHost", System.getenv("proxy_host"));
+                    String proxyPort = System.getProperty("http.proxyPort");
+                    if (proxyHost != null && "http".equals(hudsonUrl.getProtocol()) && NoProxyEvaluator.shouldProxy(hudsonUrl.getHost())) {
+                        URI proxyUri;
+                        if (proxyPort != null) {
+                            proxyUri = URI.create(String.format("http://%s:%s", proxyHost, proxyPort));
+                        } else {
+                            proxyUri = URI.create(String.format("http://%s", proxyHost));
+                        }
+                        client.getProperties().put(ClientProperties.PROXY_URI, proxyUri);
+                        if (proxyCredentials != null) {
+                            client.getProperties().put(ClientProperties.PROXY_HEADERS, Map.of("Proxy-Authorization", "Basic " + Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8))));
+                        }
+                    }
+                }
+                container.connectToServer(new AgentEndpoint(),
                     ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(wsUrl + "wsagents/"));
                 while (ch.get() == null) {
                     Thread.sleep(100);
