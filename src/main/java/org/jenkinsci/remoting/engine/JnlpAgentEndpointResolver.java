@@ -34,6 +34,7 @@ import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
@@ -85,7 +86,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     @NonNull
     private final List<String> jenkinsUrls;
 
-    private SSLSocketFactory sslSocketFactory;
+    private final String agentName;
 
     private String credentials;
 
@@ -93,9 +94,11 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
     private String tunnel;
 
+    private SSLSocketFactory sslSocketFactory;
+
     private boolean disableHttpsCertValidation;
 
-    private final String agentName;
+    private HostnameVerifier hostnameVerifier;
 
     /**
      * If specified, only the protocols from the list will be tried during the connection.
@@ -106,15 +109,15 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     private static String PROTOCOL_NAMES_TO_TRY =
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
 
-    public JnlpAgentEndpointResolver(@NonNull List<String> jenkinsUrls, String credentials, String proxyCredentials,
-                                     String tunnel, SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation, String agentName) {
+    public JnlpAgentEndpointResolver(@NonNull List<String> jenkinsUrls, String agentName, String credentials, String proxyCredentials,
+                                     String tunnel, SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) {
         this.jenkinsUrls = new ArrayList<>(jenkinsUrls);
+        this.agentName = agentName;
         this.credentials = credentials;
         this.proxyCredentials = proxyCredentials;
         this.tunnel = tunnel;
         this.sslSocketFactory = sslSocketFactory;
-        this.disableHttpsCertValidation = disableHttpsCertValidation;
-        this.agentName = agentName;
+        setDisableHttpsCertValidation(disableHttpsCertValidation);
     }
 
     public SSLSocketFactory getSslSocketFactory() {
@@ -175,6 +178,11 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      */
     public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
         this.disableHttpsCertValidation = disableHttpsCertValidation;
+        if (disableHttpsCertValidation) {
+            this.hostnameVerifier = new NoCheckHostnameVerifier();
+        } else {
+            this.hostnameVerifier = null;
+        }
     }
 
     @CheckForNull
@@ -198,7 +206,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
             // find out the TCP port
             HttpURLConnection con =
-                    (HttpURLConnection) openURLConnection(salURL, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation, agentName);
+                    (HttpURLConnection) openURLConnection(salURL, agentName, credentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
             try {
                 try {
                     con.setConnectTimeout(30000);
@@ -410,7 +418,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
 
                     HttpURLConnection con =
-                            (HttpURLConnection) openURLConnection(url, credentials, proxyCredentials, sslSocketFactory, disableHttpsCertValidation, agentName);
+                            (HttpURLConnection) openURLConnection(url, agentName, credentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
@@ -515,9 +523,14 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      */
     @Restricted(NoExternalUse.class)
     @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent for retrieving connection info from the server.")
-    public static URLConnection openURLConnection(URL url, String credentials, String proxyCredentials,
-                                           SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation,
-                                           @CheckForNull String agentName) throws IOException {
+    public static URLConnection openURLConnection(
+            URL url,
+            @CheckForNull String agentName,
+            @CheckForNull String credentials,
+            @CheckForNull String proxyCredentials,
+            @CheckForNull SSLSocketFactory sslSocketFactory,
+            @CheckForNull HostnameVerifier hostnameVerifier)
+            throws IOException {
         String httpProxy = null;
         // If http.proxyHost property exists, openConnection() uses it.
         if (System.getProperty("http.proxyHost") == null) {
@@ -537,6 +550,9 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         } else {
             con = url.openConnection();
         }
+        if (agentName != null) {
+            con.setRequestProperty(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
+        }
         if (credentials != null) {
             String encoding = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
             con.setRequestProperty("Authorization", "Basic " + encoding);
@@ -545,18 +561,13 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
             con.setRequestProperty("Proxy-Authorization", "Basic " + encoding);
         }
-        if (agentName != null) {
-            con.setRequestProperty(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
-        }
-
         if (con instanceof HttpsURLConnection) {
             final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
             if (sslSocketFactory != null) {
                 httpsConnection.setSSLSocketFactory(sslSocketFactory);
             }
-            if (disableHttpsCertValidation) {
-                LOGGER.log(Level.WARNING, "HTTPs certificate check is disabled for the endpoint.");
-                httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
+            if (hostnameVerifier != null) {
+                httpsConnection.setHostnameVerifier(hostnameVerifier);
             }
         }
         return con;

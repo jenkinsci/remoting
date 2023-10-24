@@ -30,6 +30,7 @@ import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.PathUtils;
+import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -41,6 +42,7 @@ import org.xml.sax.SAXException;
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLHandshakeException;
 import javax.net.ssl.SSLSocketFactory;
 import javax.xml.parsers.DocumentBuilder;
@@ -204,6 +206,8 @@ public class Launcher {
     @Option(name="-noCertificateCheck", aliases = "-disableHttpsCertValidation", forbids = "-cert", usage="Ignore SSL validation errors - use as a last resort only.")
     public boolean noCertificateCheck = false;
 
+    private HostnameVerifier hostnameVerifier;
+
     public InetSocketAddress connectionTarget = null;
 
     @Option(name="-connectTo",usage="make a TCP connection to the given host and port, then start communication.",metaVar="HOST:PORT")
@@ -361,6 +365,8 @@ public class Launcher {
     @Deprecated
     public List<String> args = new ArrayList<>();
 
+    private boolean initialized = false;
+
     public static void main(String... args) throws IOException, InterruptedException {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
@@ -390,6 +396,27 @@ public class Launcher {
             return;
         }
 
+        initialize();
+
+        if (connectionTarget != null) {
+            runAsTcpClient();
+        } else if (agentJnlpURL != null || !urls.isEmpty() || directConnection != null) {
+            if (agentJnlpURL != null) {
+                bootstrapInboundAgent();
+            }
+            runAsInboundAgent();
+        } else if (tcpPortFile != null) {
+            runAsTcpServer();
+        } else {
+            runWithStdinStdout();
+        }
+    }
+
+    private synchronized void initialize() throws IOException {
+        if (initialized) {
+            return;
+        }
+
         // Create and verify working directory and logging
         // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this parameter in
         // consideration for other modes (TcpServer, TcpClient, etc.) to retain the legacy behavior.
@@ -404,26 +431,18 @@ public class Launcher {
         }
         workDirManager.setupLogging(internalDirPath, agentLog != null ? PathUtils.fileToPath(agentLog) : null);
 
+        // Initialize certificates
         createX509Certificates();
         try {
             sslSocketFactory = Engine.getSSLSocketFactory(x509Certificates, noCertificateCheck);
         } catch (GeneralSecurityException | PrivilegedActionException e) {
             throw new RuntimeException(e);
         }
-        if(connectionTarget!=null) {
-            runAsTcpClient();
-        } else
-        if (agentJnlpURL != null || !urls.isEmpty() || directConnection != null) {
-            if (agentJnlpURL != null) {
-                bootstrapInboundAgent();
-            }
-            runAsInboundAgent();
-        } else
-        if(tcpPortFile!=null) {
-            runAsTcpServer();
-        } else {
-            runWithStdinStdout();
+        if (noCertificateCheck) {
+            hostnameVerifier = new NoCheckHostnameVerifier();
         }
+
+        initialized = true;
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
@@ -624,6 +643,7 @@ public class Launcher {
      */
     @SuppressFBWarnings(value = {"CIPHER_INTEGRITY", "STATIC_IV"}, justification = "Integrity not needed here. IV used for decryption only, loaded from encryptor.")
     public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
+        initialize();  // For Swarm, or anyone else who invokes this public method directly rather than going through main() or run()
         if (secret != null) {
             agentJnlpURL = new URL(agentJnlpURL + "?encrypt=true");
             if (agentJnlpCredentials != null) {
@@ -633,7 +653,7 @@ public class Launcher {
         while (true) {
             URLConnection con = null;
             try {
-                con = JnlpAgentEndpointResolver.openURLConnection(agentJnlpURL, agentJnlpCredentials, proxyCredentials, sslSocketFactory, noCertificateCheck, null);
+                con = JnlpAgentEndpointResolver.openURLConnection(agentJnlpURL, null, agentJnlpCredentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
                 con.connect();
 
                 if (con instanceof HttpURLConnection) {

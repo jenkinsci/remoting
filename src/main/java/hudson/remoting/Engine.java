@@ -67,6 +67,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -186,6 +187,9 @@ public class Engine extends Thread {
     private String tunnel;
 
     private boolean disableHttpsCertValidation = false;
+
+    @CheckForNull
+    private HostnameVerifier hostnameVerifier;
 
     private boolean noReconnect = false;
 
@@ -424,6 +428,11 @@ public class Engine extends Thread {
      */
     public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
         this.disableHttpsCertValidation = disableHttpsCertValidation;
+        if (disableHttpsCertValidation) {
+            this.hostnameVerifier = new NoCheckHostnameVerifier();
+        } else {
+            this.hostnameVerifier = null;
+        }
     }
 
     /**
@@ -713,8 +722,8 @@ public class Engine extends Thread {
                     SSLContext sslContext = getSSLContext(candidateCertificates, disableHttpsCertValidation);
                     if (sslContext != null) {
                         SslEngineConfigurator sslEngineConfigurator = new SslEngineConfigurator(sslContext);
-                        if (disableHttpsCertValidation) {
-                            sslEngineConfigurator.setHostnameVerifier(new NoCheckHostnameVerifier());
+                        if (hostnameVerifier != null) {
+                            sslEngineConfigurator.setHostnameVerifier(hostnameVerifier);
                         }
                         client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
                     }
@@ -928,8 +937,8 @@ public class Engine extends Thread {
             } catch (Exception e) {
                 events.error(e);
             }
-            resolver = new JnlpAgentEndpointResolver(jenkinsUrls, credentials, proxyCredentials, tunnel,
-                    sslSocketFactory, disableHttpsCertValidation, agentName);
+            resolver = new JnlpAgentEndpointResolver(jenkinsUrls, agentName, credentials, proxyCredentials, tunnel,
+                    sslSocketFactory, disableHttpsCertValidation);
         } else {
             resolver = new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols, proxyCredentials);
         }
@@ -1107,7 +1116,7 @@ public class Engine extends Thread {
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException, KeyManagementException {
         SSLContext sslContext = getSSLContext(x509Certificates, noCertificateCheck);
-        return sslContext == null ? null : sslContext.getSocketFactory();
+        return sslContext != null ? sslContext.getSocketFactory() : null;
     }
 
     /**
