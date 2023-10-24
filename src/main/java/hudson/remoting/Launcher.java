@@ -365,8 +365,6 @@ public class Launcher {
     @Deprecated
     public List<String> args = new ArrayList<>();
 
-    private boolean initialized = false;
-
     public static void main(String... args) throws IOException, InterruptedException {
         Launcher launcher = new Launcher();
         CmdLineParser parser = new CmdLineParser(launcher);
@@ -413,10 +411,6 @@ public class Launcher {
     }
 
     private synchronized void initialize() throws IOException {
-        if (initialized) {
-            return;
-        }
-
         // Create and verify working directory and logging
         // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this parameter in
         // consideration for other modes (TcpServer, TcpClient, etc.) to retain the legacy behavior.
@@ -441,8 +435,6 @@ public class Launcher {
         if (noCertificateCheck) {
             hostnameVerifier = new NoCheckHostnameVerifier();
         }
-
-        initialized = true;
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
