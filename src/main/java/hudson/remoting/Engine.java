@@ -37,6 +37,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -53,6 +54,7 @@ import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -692,6 +694,22 @@ public class Engine extends Thread {
                 WebSocketContainer container = ContainerProvider.getWebSocketContainer();
                 if (container instanceof ClientManager) {
                     ClientManager client = (ClientManager) container;
+
+                    String proxyHost = System.getProperty("http.proxyHost", System.getenv("proxy_host"));
+                    String proxyPort = System.getProperty("http.proxyPort");
+                    if (proxyHost != null && "http".equals(hudsonUrl.getProtocol()) && NoProxyEvaluator.shouldProxy(hudsonUrl.getHost())) {
+                        URI proxyUri;
+                        if (proxyPort != null) {
+                            proxyUri = URI.create(String.format("http://%s:%s", proxyHost, proxyPort));
+                        } else {
+                            proxyUri = URI.create(String.format("http://%s", proxyHost));
+                        }
+                        client.getProperties().put(ClientProperties.PROXY_URI, proxyUri);
+                        if (proxyCredentials != null) {
+                            client.getProperties().put(ClientProperties.PROXY_HEADERS, Map.of("Proxy-Authorization", "Basic " + Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8))));
+                        }
+                    }
+
                     SSLContext sslContext = getSSLContext(candidateCertificates, disableHttpsCertValidation);
                     if (sslContext != null) {
                         SslEngineConfigurator sslEngineConfigurator = new SslEngineConfigurator(sslContext);

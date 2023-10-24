@@ -296,7 +296,6 @@ public class Launcher {
                 "-direct",
                 "-tunnel",
                 "-credentials",
-                "-proxyCredentials",
                 "-noKeepAlive"
             })
     public boolean webSocket;
