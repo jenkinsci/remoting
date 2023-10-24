@@ -394,23 +394,26 @@ public class Launcher {
             return;
         }
 
-        initialize();
-
         if (connectionTarget != null) {
+            initialize();
             runAsTcpClient();
         } else if (agentJnlpURL != null || !urls.isEmpty() || directConnection != null) {
             if (agentJnlpURL != null) {
-                bootstrapInboundAgent();
+                bootstrapInboundAgent(); // calls initialize() internally
+            } else {
+                initialize();
             }
             runAsInboundAgent();
         } else if (tcpPortFile != null) {
+            initialize();
             runAsTcpServer();
         } else {
+            initialize();
             runWithStdinStdout();
         }
     }
 
-    private synchronized void initialize() throws IOException {
+    private void initialize() throws IOException {
         // Create and verify working directory and logging
         // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this parameter in
         // consideration for other modes (TcpServer, TcpClient, etc.) to retain the legacy behavior.
