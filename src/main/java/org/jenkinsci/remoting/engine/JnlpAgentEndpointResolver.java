@@ -31,14 +31,11 @@ import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
-import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.ConnectException;
@@ -57,9 +54,6 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
@@ -557,24 +551,12 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
         if (con instanceof HttpsURLConnection) {
             final HttpsURLConnection httpsConnection = (HttpsURLConnection) con;
+            if (sslSocketFactory != null) {
+                httpsConnection.setSSLSocketFactory(sslSocketFactory);
+            }
             if (disableHttpsCertValidation) {
                 LOGGER.log(Level.WARNING, "HTTPs certificate check is disabled for the endpoint.");
-
-                try {
-                    SSLContext ctx = SSLContext.getInstance("TLS");
-                    ctx.init(null, new TrustManager[]{new NoCheckTrustManager()}, new SecureRandom());
-                    sslSocketFactory = ctx.getSocketFactory();
-
-                    httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
-                    httpsConnection.setSSLSocketFactory(sslSocketFactory);
-                } catch (KeyManagementException | NoSuchAlgorithmException ex) {
-                    // We could just suppress it, but the exception will unlikely happen.
-                    // So let's just propagate the error and fail the resolution
-                    throw new IOException("Cannot initialize the insecure HTTPs mode", ex);
-                }
-
-            } else if (sslSocketFactory != null) {
-                httpsConnection.setSSLSocketFactory(sslSocketFactory);
+                httpsConnection.setHostnameVerifier(new NoCheckHostnameVerifier());
             }
         }
         return con;

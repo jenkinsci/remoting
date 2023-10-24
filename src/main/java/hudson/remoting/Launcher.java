@@ -297,8 +297,6 @@ public class Launcher {
                 "-tunnel",
                 "-credentials",
                 "-proxyCredentials",
-                "-cert",
-                "-noCertificateCheck",
                 "-noKeepAlive"
             })
     public boolean webSocket;
@@ -409,7 +407,7 @@ public class Launcher {
 
         createX509Certificates();
         try {
-            sslSocketFactory = Engine.getSSLSocketFactory(x509Certificates);
+            sslSocketFactory = Engine.getSSLSocketFactory(x509Certificates, noCertificateCheck);
         } catch (GeneralSecurityException | PrivilegedActionException e) {
             throw new RuntimeException(e);
         }
