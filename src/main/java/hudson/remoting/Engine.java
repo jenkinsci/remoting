@@ -47,6 +47,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -82,6 +83,7 @@ import jakarta.websocket.WebSocketContainer;
 import net.jcip.annotations.NotThreadSafe;
 import org.glassfish.tyrus.client.ClientManager;
 import org.glassfish.tyrus.client.ClientProperties;
+import org.glassfish.tyrus.client.SslEngineConfigurator;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
@@ -99,6 +101,8 @@ import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustMa
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
+import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
+import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -705,6 +709,15 @@ public class Engine extends Thread {
                             client.getProperties().put(ClientProperties.PROXY_HEADERS, Map.of("Proxy-Authorization", "Basic " + Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8))));
                         }
                     }
+
+                    SSLContext sslContext = getSSLContext(candidateCertificates, disableHttpsCertValidation);
+                    if (sslContext != null) {
+                        SslEngineConfigurator sslEngineConfigurator = new SslEngineConfigurator(sslContext);
+                        if (disableHttpsCertValidation) {
+                            sslEngineConfigurator.setHostnameVerifier(new NoCheckHostnameVerifier());
+                        }
+                        client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
+                    }
                 }
                 container.connectToServer(new AgentEndpoint(),
                     ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(wsUrl + "wsagents/"));
@@ -911,7 +924,7 @@ public class Engine extends Thread {
         if (directConnection == null) {
             SSLSocketFactory sslSocketFactory = null;
             try {
-                sslSocketFactory = getSSLSocketFactory(candidateCertificates);
+                sslSocketFactory = getSSLSocketFactory(candidateCertificates, disableHttpsCertValidation);
             } catch (Exception e) {
                 events.error(e);
             }
@@ -1061,12 +1074,14 @@ public class Engine extends Thread {
     }
 
     @CheckForNull
-    @Restricted(NoExternalUse.class)
-    static SSLSocketFactory getSSLSocketFactory(List<X509Certificate> x509Certificates)
+    private static SSLContext getSSLContext(List<X509Certificate> x509Certificates, boolean noCertificateCheck)
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException, KeyManagementException {
-        SSLSocketFactory sslSocketFactory = null;
-        if (x509Certificates != null && !x509Certificates.isEmpty()) {
+        SSLContext sslContext = null;
+        if (noCertificateCheck) {
+            sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[]{new NoCheckTrustManager()}, new SecureRandom());
+        } else if (x509Certificates != null && !x509Certificates.isEmpty()) {
             KeyStore keyStore = getCacertsKeyStore();
             // load the keystore
             keyStore.load(null, null);
@@ -1082,11 +1097,19 @@ public class Engine extends Thread {
             SSLContext ctx = SSLContext.getInstance("TLS");
             // now we have our custom socket factory
             ctx.init(null, trustManagerFactory.getTrustManagers(), null);
-            sslSocketFactory = ctx.getSocketFactory();
         }
-        return sslSocketFactory;
+        return sslContext;
     }
     
+    @CheckForNull
+    @Restricted(NoExternalUse.class)
+    static SSLSocketFactory getSSLSocketFactory(List<X509Certificate> x509Certificates, boolean noCertificateCheck)
+            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
+            NoSuchAlgorithmException, IOException, KeyManagementException {
+        SSLContext sslContext = getSSLContext(x509Certificates, noCertificateCheck);
+        return sslContext == null ? null : sslContext.getSocketFactory();
+    }
+
     /**
      * Socket read timeout.
      * A {@link SocketInputStream#read()} call associated with underlying Socket will block for only this amount of time

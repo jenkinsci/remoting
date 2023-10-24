@@ -202,7 +202,7 @@ public class Launcher {
      * This option is managed by the {@code -noCertificateCheck} option.
      */
     @Option(name="-noCertificateCheck", aliases = "-disableHttpsCertValidation", forbids = "-cert", usage="Ignore SSL validation errors - use as a last resort only.")
-    private boolean noCertificateCheck = false;
+    public boolean noCertificateCheck = false;
 
     public InetSocketAddress connectionTarget = null;
 
@@ -296,8 +296,6 @@ public class Launcher {
                 "-direct",
                 "-tunnel",
                 "-credentials",
-                "-cert",
-                "-noCertificateCheck",
                 "-noKeepAlive"
             })
     public boolean webSocket;
@@ -408,7 +406,7 @@ public class Launcher {
 
         createX509Certificates();
         try {
-            sslSocketFactory = Engine.getSSLSocketFactory(x509Certificates);
+            sslSocketFactory = Engine.getSSLSocketFactory(x509Certificates, noCertificateCheck);
         } catch (GeneralSecurityException | PrivilegedActionException e) {
             throw new RuntimeException(e);
         }
