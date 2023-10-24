@@ -202,7 +202,7 @@ public class Launcher {
      * This option is managed by the {@code -noCertificateCheck} option.
      */
     @Option(name="-noCertificateCheck", aliases = "-disableHttpsCertValidation", forbids = "-cert", usage="Ignore SSL validation errors - use as a last resort only.")
-    private boolean noCertificateCheck = false;
+    public boolean noCertificateCheck = false;
 
     public InetSocketAddress connectionTarget = null;
 
