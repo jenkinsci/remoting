@@ -52,6 +52,7 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -101,6 +102,7 @@ import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
+import org.jenkinsci.remoting.util.RetryUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
@@ -192,6 +194,12 @@ public class Engine extends Thread {
     private HostnameVerifier hostnameVerifier;
 
     private boolean noReconnect = false;
+
+    private int delay = 10;
+
+    private double jitterFactor = 0;
+
+    private int jitter = 0;
 
     /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
@@ -410,6 +418,21 @@ public class Engine extends Thread {
 
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;
+    }
+
+    @Restricted(NoExternalUse.class)
+    public void setDelay(int delay) {
+        this.delay = delay;
+    }
+
+    @Restricted(NoExternalUse.class)
+    public void setJitterFactor(double jitterFactor) {
+        this.jitterFactor = jitterFactor;
+    }
+
+    @Restricted(NoExternalUse.class)
+    public void setJitter(int jitter) {
+        this.jitter = jitter;
     }
 
     /**
@@ -742,8 +765,8 @@ public class Engine extends Thread {
                 }
                 events.onDisconnect();
                 while (true) {
-                    // TODO refactor various sleep statements into a common method
-                    TimeUnit.SECONDS.sleep(10);
+                    Duration duration = RetryUtils.getDuration(delay, jitterFactor, jitter);
+                    Thread.sleep(duration.toMillis());
                     // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
                     URL ping = new URL(hudsonUrl, "login");
                     try {
@@ -809,9 +832,9 @@ public class Engine extends Thread {
                     endpoint = resolver.resolve();
                 } catch (IOException e) {
                     if (!noReconnect) {
-                        events.status("Could not locate server among " + candidateUrls + "; waiting 10 seconds before retry", e);
-                        // TODO refactor various sleep statements into a common method
-                        TimeUnit.SECONDS.sleep(10);
+                        Duration duration = RetryUtils.getDuration(delay, jitterFactor, jitter);
+                        events.status("Could not locate server among " + candidateUrls + "; waiting " + RetryUtils.formatDuration(duration) + " seconds before retry", e);
+                        Thread.sleep(duration.toMillis());
                         continue;
                     } else {
                         if (Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
@@ -929,7 +952,6 @@ public class Engine extends Thread {
     }
 
     private JnlpEndpointResolver createEndpointResolver(List<String> jenkinsUrls, String agentName) {
-        JnlpEndpointResolver resolver;
         if (directConnection == null) {
             SSLSocketFactory sslSocketFactory = null;
             try {
@@ -937,18 +959,28 @@ public class Engine extends Thread {
             } catch (Exception e) {
                 events.error(e);
             }
-            resolver = new JnlpAgentEndpointResolver(jenkinsUrls, agentName, credentials, proxyCredentials, tunnel,
-                    sslSocketFactory, disableHttpsCertValidation);
+            JnlpAgentEndpointResolver jnlpAgentEndpointResolver =
+                    new JnlpAgentEndpointResolver(
+                            jenkinsUrls,
+                            agentName,
+                            credentials,
+                            proxyCredentials,
+                            tunnel,
+                            sslSocketFactory,
+                            disableHttpsCertValidation);
+            jnlpAgentEndpointResolver.setDelay(delay);
+            jnlpAgentEndpointResolver.setJitterFactor(jitterFactor);
+            jnlpAgentEndpointResolver.setJitter(jitter);
+            return jnlpAgentEndpointResolver;
         } else {
-            resolver = new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols, proxyCredentials);
+            return new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols, proxyCredentials);
         }
-        return resolver;
     }
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
-        events.status("reconnect rejected, sleeping 10s: ", new Exception("The server rejected the connection: " + greeting));
-        // TODO refactor various sleep statements into a common method
-        TimeUnit.SECONDS.sleep(10);
+        Duration duration = RetryUtils.getDuration(delay, jitterFactor, jitter);
+        events.status("reconnect rejected, sleeping " + RetryUtils.formatDuration(duration) + "s: ", new Exception("The server rejected the connection: " + greeting));
+        Thread.sleep(duration.toMillis());
     }
 
     /**
@@ -970,8 +1002,8 @@ public class Engine extends Thread {
                 if(retry++>10) {
                     throw e;
                 }
-                // TODO refactor various sleep statements into a common method
-                TimeUnit.SECONDS.sleep(10);
+                Duration duration = RetryUtils.getDuration(delay, jitterFactor, jitter);
+                Thread.sleep(duration.toMillis());
                 events.status(msg+" (retrying:"+retry+")",e);
             }
         }
