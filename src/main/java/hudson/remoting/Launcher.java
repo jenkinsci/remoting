@@ -68,8 +68,6 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedActionException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
@@ -199,20 +197,6 @@ public class Launcher {
             System.exit(1);
         }
         connectionTarget = new InetSocketAddress(tokens[0],Integer.parseInt(tokens[1]));
-    }
-
-    /**
-     * Bypass HTTPS security check by using free-for-all trust manager.
-     *
-     * @param ignored
-     *      This is ignored.
-     * @deprecated use {@link #noCertificateCheck}
-     */
-    @Deprecated
-    public void setNoCertificateCheck(boolean ignored) throws NoSuchAlgorithmException, KeyManagementException {
-        System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
-
-        this.noCertificateCheck = true;
     }
 
     @Option(name="-noReconnect",aliases="-noreconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
