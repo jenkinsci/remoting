@@ -933,7 +933,7 @@ public class Launcher {
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
-    private Engine createEngine() {
+    private Engine createEngine() throws IOException {
         LOGGER.log(Level.INFO, "Setting up agent: {0}", name);
         Engine engine = new Engine(
                 new CuiListener(),
@@ -969,18 +969,10 @@ public class Launcher {
 
         // TODO: ideally logging should be initialized before the "Setting up agent" entry
         if (agentLog != null) {
-            try {
-                engine.setAgentLog(PathUtils.fileToPath(agentLog));
-            } catch (IOException ex) {
-                throw new IllegalStateException("Cannot retrieve custom log destination", ex);
-            }
+            engine.setAgentLog(PathUtils.fileToPath(agentLog));
         }
         if (loggingConfigFilePath != null) {
-            try {
-                engine.setLoggingConfigFile(PathUtils.fileToPath(loggingConfigFilePath));
-            } catch (IOException ex) {
-                throw new IllegalStateException("Logging config file is invalid", ex);
-            }
+            engine.setLoggingConfigFile(PathUtils.fileToPath(loggingConfigFilePath));
         }
 
         if (x509Certificates != null && !x509Certificates.isEmpty()) {
@@ -989,11 +981,7 @@ public class Launcher {
 
         // Working directory settings
         if (workDir != null) {
-            try {
-                engine.setWorkDir(PathUtils.fileToPath(workDir));
-            } catch (IOException ex) {
-                throw new IllegalStateException("Work directory path is invalid", ex);
-            }
+            engine.setWorkDir(PathUtils.fileToPath(workDir));
         }
         engine.setInternalDir(internalDir);
         engine.setFailIfWorkDirIsMissing(failIfWorkDirIsMissing);
