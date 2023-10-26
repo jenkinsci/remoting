@@ -60,19 +60,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Method;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedActionException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
@@ -146,23 +142,6 @@ public class Launcher {
     @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
     public String proxyCredentials = System.getProperty("proxyCredentials");
 
-    @Option(name="-cp",aliases="-classpath",metaVar="PATH",
-            usage="add the given classpath elements to the system classloader. (DEPRECATED)")
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
-    public void addClasspath(String pathList) throws Exception {
-        LOGGER.warning("[JENKINS-64831] Passing -cp to hudson.remoting.Launcher is deprecated and may not work at all on Java 9+");
-        Method $addURL = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
-        $addURL.setAccessible(true);
-
-        for(String token : pathList.split(File.pathSeparator))
-            $addURL.invoke(ClassLoader.getSystemClassLoader(),new File(token).toURI().toURL());
-
-        // fix up the system.class.path to pretend that those jar files
-        // are given through CLASSPATH or something.
-        // some tools like JAX-WS RI and Hadoop relies on this.
-        System.setProperty("java.class.path",System.getProperty("java.class.path")+File.pathSeparatorChar+pathList);
-    }
-
     @Option(name="-tcp",usage="instead of talking to the controller via stdin/stdout, " +
             "listens to a random local port, write that port number to the given file, " +
             "then wait for the controller to connect to that port.")
@@ -219,20 +198,6 @@ public class Launcher {
             System.exit(1);
         }
         connectionTarget = new InetSocketAddress(tokens[0],Integer.parseInt(tokens[1]));
-    }
-
-    /**
-     * Bypass HTTPS security check by using free-for-all trust manager.
-     *
-     * @param ignored
-     *      This is ignored.
-     * @deprecated use {@link #noCertificateCheck}
-     */
-    @Deprecated
-    public void setNoCertificateCheck(boolean ignored) throws NoSuchAlgorithmException, KeyManagementException {
-        System.out.println("Skipping HTTPS certificate checks altogether. Note that this is not secure at all.");
-
-        this.noCertificateCheck = true;
     }
 
     @Option(name="-noReconnect",aliases="-noreconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")

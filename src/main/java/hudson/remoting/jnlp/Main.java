@@ -24,6 +24,11 @@
 package hudson.remoting.jnlp;
 
 import hudson.remoting.Launcher;
+import java.io.IOException;
+import java.util.List;
+import javax.xml.parsers.ParserConfigurationException;
+import org.kohsuke.args4j.CmdLineException;
+import org.xml.sax.SAXException;
 
 /**
  * Previous entry point to pseudo-JNLP agent.
@@ -34,4 +39,34 @@ import hudson.remoting.Launcher;
  * @deprecated use {@link Launcher}
  */
 @Deprecated
-public class Main extends Launcher {}
+public class Main extends Launcher {
+
+    private static volatile boolean deprecationWarningLogged;
+
+    public static void main(String... args) throws IOException, InterruptedException {
+        logDeprecation();
+        Launcher.main(args);
+    }
+
+    @Override
+    public void run() throws CmdLineException, IOException, InterruptedException {
+        logDeprecation();
+        super.run();
+    }
+
+    @Override
+    public List<String> parseJnlpArguments()
+            throws ParserConfigurationException, SAXException, IOException, InterruptedException {
+        logDeprecation();
+        return super.parseJnlpArguments();
+    }
+
+    private static void logDeprecation() {
+        if (deprecationWarningLogged) {
+            return;
+        }
+        System.err.println(
+                "WARNING: Using deprecated entrypoint \"java -cp agent.jar hudson.remoting.jnlp.Main\". Use \"java -jar agent.jar\" instead.");
+        deprecationWarningLogged = true;
+    }
+}
