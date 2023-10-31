@@ -99,8 +99,10 @@ import java.util.logging.Logger;
 public class Launcher {
     public Mode mode = Mode.BINARY;
 
-    // no-op, but left for backward compatibility
-    @Option(name="-ping")
+    /**
+     * @deprecated removed without replacement
+     */
+    @Deprecated
     public boolean ping = true;
 
     /**
@@ -118,6 +120,17 @@ public class Launcher {
     public void setTextMode(boolean b) {
         mode = b?Mode.TEXT:Mode.BINARY;
         System.out.println("Running in "+mode.name().toLowerCase(Locale.ENGLISH)+" mode");
+    }
+
+    /**
+     * @deprecated removed without replacement
+     */
+    @Deprecated
+    @Option(name = "-ping", usage = "(deprecated; now always pings)")
+    public void setPing(boolean ping) {
+        this.ping = ping;
+        System.err.println(
+                "WARNING: The \"-ping\" argument is deprecated and will be removed without replacement in a future release.");
     }
 
     /**
@@ -142,17 +155,41 @@ public class Launcher {
     @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
     public String proxyCredentials = System.getProperty("proxyCredentials");
 
-    @Option(name="-tcp",usage="instead of talking to the controller via stdin/stdout, " +
+    /**
+     * @deprecated removed without replacement
+     */
+    @Deprecated
+    public File tcpPortFile = null;
+
+    /**
+     * @deprecated removed without replacement
+     */
+    @Deprecated
+    @Option(name="-tcp",usage="(deprecated) instead of talking to the controller via stdin/stdout, " +
             "listens to a random local port, write that port number to the given file, " +
             "then wait for the controller to connect to that port.")
-    public File tcpPortFile=null;
+    public void setTcpPortFile(File tcpPortFile) {
+        this.tcpPortFile = tcpPortFile;
+        System.err.println(
+                "WARNING: The \"-tcp\" argument is deprecated and will be removed without replacement in a future release.");
+    }
 
     /**
      * @deprecated use {@link #agentJnlpCredentials} or {@link #proxyCredentials}
      */
     @Deprecated
-    @Option(name="-auth",metaVar="user:pass",usage="(deprecated) unused; use -credentials or -proxyCredentials")
     public String auth = null;
+
+    /**
+     * @deprecated use {@link #agentJnlpCredentials} or {@link #proxyCredentials}
+     */
+    @Deprecated
+    @Option(name = "-auth", metaVar = "user:pass", usage = "(deprecated) unused; use -credentials or -proxyCredentials")
+    public void setAuth(String auth) {
+        this.auth = auth;
+        System.err.println(
+                "WARNING: The \"-auth\" argument is deprecated and will be removed in a future release; use \"-credentials\" or \"-proxyCredentials\" instead.");
+    }
 
     /**
      * @since 2.24
@@ -188,9 +225,17 @@ public class Launcher {
 
     private HostnameVerifier hostnameVerifier;
 
+    /**
+     * @deprecated removed without replacement
+     */
+    @Deprecated
     public InetSocketAddress connectionTarget = null;
 
-    @Option(name="-connectTo",usage="make a TCP connection to the given host and port, then start communication.",metaVar="HOST:PORT")
+    /**
+     * @deprecated removed without replacement
+     */
+    @Deprecated
+    @Option(name="-connectTo",usage="(deprecated) make a TCP connection to the given host and port, then start communication.",metaVar="HOST:PORT")
     public void setConnectTo(String target) {
         String[] tokens = target.split(":");
         if(tokens.length!=2) {
@@ -198,6 +243,8 @@ public class Launcher {
             System.exit(1);
         }
         connectionTarget = new InetSocketAddress(tokens[0],Integer.parseInt(tokens[1]));
+        System.err.println(
+                "WARNING: The \"-connectTo\" argument is deprecated and will be removed without replacement in a future release.");
     }
 
     @Option(name="-noReconnect",aliases="-noreconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
@@ -271,9 +318,22 @@ public class Launcher {
                     + "in which case the missing portion will be auto-configured like the default behavior.")
     public String tunnel;
 
+    /**
+     * @deprecated removed without replacement
+     */
+    @Deprecated
+    public boolean headlessMode;
+
+    /**
+     * @deprecated removed without replacement
+     */
     @Deprecated
     @Option(name = "-headless", usage = "(deprecated; now always headless)")
-    public boolean headlessMode;
+    public void setHeadlessMode(boolean headlessMode) {
+        this.headlessMode = headlessMode;
+        System.err.println(
+                "WARNING: The \"-headless\" argument is deprecated and will be removed without replacement in a future release.");
+    }
 
     @Option(name = "-url", usage = "Specify the Jenkins root URLs to connect to.")
     public List<URL> urls = new ArrayList<>();
@@ -357,6 +417,10 @@ public class Launcher {
         CmdLineParser parser = new CmdLineParser(launcher);
         try {
             parser.parseArgument(args);
+            if (launcher.args.size() == 2) {
+                System.err.println(
+                        "WARNING: Providing the secret and agent name as positional arguments is deprecated; use \"-secret\" and \"-name\" instead.");
+            }
             normalizeArguments(launcher);
             if (launcher.showHelp && !launcher.showVersion) {
                 parser.printUsage(System.out);
@@ -967,7 +1031,7 @@ public class Launcher {
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
-    private Engine createEngine() {
+    private Engine createEngine() throws IOException {
         LOGGER.log(Level.INFO, "Setting up agent: {0}", name);
         Engine engine = new Engine(
                 new CuiListener(),
@@ -1003,18 +1067,10 @@ public class Launcher {
 
         // TODO: ideally logging should be initialized before the "Setting up agent" entry
         if (agentLog != null) {
-            try {
-                engine.setAgentLog(PathUtils.fileToPath(agentLog));
-            } catch (IOException ex) {
-                throw new IllegalStateException("Cannot retrieve custom log destination", ex);
-            }
+            engine.setAgentLog(PathUtils.fileToPath(agentLog));
         }
         if (loggingConfigFilePath != null) {
-            try {
-                engine.setLoggingConfigFile(PathUtils.fileToPath(loggingConfigFilePath));
-            } catch (IOException ex) {
-                throw new IllegalStateException("Logging config file is invalid", ex);
-            }
+            engine.setLoggingConfigFile(PathUtils.fileToPath(loggingConfigFilePath));
         }
 
         if (x509Certificates != null && !x509Certificates.isEmpty()) {
@@ -1023,11 +1079,7 @@ public class Launcher {
 
         // Working directory settings
         if (workDir != null) {
-            try {
-                engine.setWorkDir(PathUtils.fileToPath(workDir));
-            } catch (IOException ex) {
-                throw new IllegalStateException("Work directory path is invalid", ex);
-            }
+            engine.setWorkDir(PathUtils.fileToPath(workDir));
         }
         engine.setInternalDir(internalDir);
         engine.setFailIfWorkDirIsMissing(failIfWorkDirIsMissing);
