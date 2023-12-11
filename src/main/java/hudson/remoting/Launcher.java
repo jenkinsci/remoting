@@ -430,6 +430,8 @@ public class Launcher {
             runAsTcpClient();
         } else if (agentJnlpURL != null || !urls.isEmpty() || directConnection != null) {
             if (agentJnlpURL != null) {
+                System.err.println(
+                        "WARNING: The \"-jnlpUrl\" argument is deprecated. Use \"-url\" and \"-name\" instead, potentially also passing in \"-webSocket\", \"-tunnel\", and/or work directory options as needed.");
                 bootstrapInboundAgent(); // calls initialize() internally
             } else {
                 initialize();
