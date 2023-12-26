@@ -5,11 +5,13 @@ import java.net.URL;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils;
+
+import edu.umd.cs.findbugs.annotations.NonNull;
 
 /**
  * Default partial implementation of {@link JarCache}.
@@ -18,6 +20,10 @@ import org.jenkinsci.remoting.util.ExecutorServiceUtils;
  * @since 2.24
  */
 public abstract class JarCacheSupport extends JarCache {
+    private static int PENDING_THREAD_THRESHOLD = Integer.getInteger(RemoteClassLoader.class.getName() + "pendingThreadThreshold", 5);
+  
+    private final Semaphore semaphore = new Semaphore(PENDING_THREAD_THRESHOLD);
+    
     /**
      * Remember in-progress jar file resolution to avoid retrieving the same jar file twice.
      */
@@ -62,11 +68,15 @@ public abstract class JarCacheSupport extends JarCache {
             } else {
                 // we are going to resolve this ourselves and publish the result in 'promise' for others
                 try {
-                    final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<>();
-                    ExecutorServiceUtils.submitAsync(downloader, new  DownloadRunnable(channel, sum1, sum2, key, promise));
-                    // Now we are sure that the task has been accepted to the queue, hence we cache the promise
-                    // if nobody else caches it before.
-                    inprogress.putIfAbsent(key, promise);
+                    semaphore.acquire();
+                    cur = inprogress.get(key);
+                    if (cur == null) {
+                        final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<>();
+                        ExecutorServiceUtils.submitAsync(downloader, new  DownloadRunnable(channel, sum1, sum2, key, promise));
+                        // Now we are sure that the task has been accepted to the queue, hence we cache the promise
+                        // if nobody else caches it before.
+                        inprogress.putIfAbsent(key, promise);
+                    }
                 } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
                     final String message = "Downloader executor service has rejected the download command for checksum " + key;
                     LOGGER.log(Level.SEVERE, message, ex);
@@ -105,7 +115,9 @@ public abstract class JarCacheSupport extends JarCache {
                 // Deduplication: There is a risk that multiple downloadables get scheduled, hence we check if
                 // the promise is actually in the queue
                 Future<URL> inprogressDownload = inprogress.get(key);
-                if (promise != inprogressDownload) {
+                if (promise != inprogressDownload && inprogressDownload != null) {
+                    // check if inprogressDownload null or not, 
+                    //if it is null, will return a promise without any value which hangs there when caller call promise.get
                     // Duplicated entry due to the race condition, do nothing
                     return;
                 }
@@ -131,6 +143,8 @@ public abstract class JarCacheSupport extends JarCache {
                     promise.set(e);
                     LOGGER.log(Level.WARNING, String.format("Failed to resolve a jar %016x%016x", sum1, sum2), e);
                 }
+            } finally {
+                semaphore.release();
             }
         }
 
