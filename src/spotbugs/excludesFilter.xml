@@ -12,6 +12,54 @@
       <Bug pattern="DP_DO_INSIDE_DO_PRIVILEGED"/>
     </Or>
   </Match>
+  <Match>
+    <Bug pattern="PA_PUBLIC_MUTABLE_OBJECT_ATTRIBUTE"/>
+    <Class name="hudson.remoting.Channel"/>
+    <Or>
+      <Field name="classLoadingCount"/>
+      <Field name="classLoadingPrefetchCacheCount"/>
+      <Field name="classLoadingTime"/>
+      <Field name="resourceLoadingCount"/>
+      <Field name="resourceLoadingTime"/>
+    </Or>
+  </Match>
+  <Match>
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="hudson.remoting.Engine"/>
+    <Or>
+      <Field name="failIfWorkDirIsMissing"/>
+      <Field name="internalDir"/>
+      <Field name="workDir"/>
+    </Or>
+  </Match>
+  <Match>
+    <Bug pattern="PA_PUBLIC_MUTABLE_OBJECT_ATTRIBUTE"/>
+    <Class name="hudson.remoting.Launcher"/>
+    <Or>
+      <Field name="args"/>
+      <Field name="urls"/>
+    </Or>
+  </Match>
+  <Match>
+    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
+    <Class name="hudson.remoting.Launcher"/>
+    <Or>
+      <Field name="agentJnlpURL"/>
+      <Field name="auth"/>
+      <Field name="connectionTarget"/>
+      <Field name="failIfWorkDirIsMissing"/>
+      <Field name="headlessMode"/>
+      <Field name="internalDir"/>
+      <Field name="mode"/>
+      <Field name="name"/>
+      <Field name="ping"/>
+      <Field name="secret"/>
+      <Field name="tcpPortFile"/>
+      <Field name="tunnel"/>
+      <Field name="webSocket"/>
+      <Field name="workDir"/>
+    </Or>
+  </Match>
   <!--
     Here lies technical debt. Exclusions in this section have not yet been triaged. When working on
     on this section, pick an exclusion to triage, then:
@@ -75,5 +123,37 @@
         </Or>
       </And>
     </Or>
+  </Match>
+  <Match>
+    <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+    <Class name="hudson.remoting.Launcher"/>
+    <Or>
+      <Field name="auth"/>
+      <Field name="headlessMode"/>
+    </Or>
+  </Match>
+  <Match>
+    <Bug pattern="UWF_UNWRITTEN_FIELD"/>
+    <Class name="hudson.remoting.RemoteClassLoader"/>
+    <Or>
+      <Field name="TESTING_CLASS_LOAD"/>
+      <Field name="TESTING_CLASS_REFERENCE_LOAD"/>
+      <Field name="TESTING_RESOURCE_LOAD"/>
+    </Or>
+  </Match>
+  <Match>
+    <Bug pattern="AA_ASSERTION_OF_ARGUMENTS"/>
+    <Class name="org.jenkinsci.remoting.nio.NioChannelHub"/>
+    <Method name="setFrameSize"/>
+  </Match>
+  <Match>
+    <Bug pattern="AA_ASSERTION_OF_ARGUMENTS"/>
+    <Class name="org.jenkinsci.remoting.protocol.ProtocolStack"/>
+    <Method name="toString"/>
+  </Match>
+  <Match>
+    <Bug pattern="SS_SHOULD_BE_STATIC"/>
+    <Class name="org.jenkinsci.remoting.protocol.ProtocolStack"/>
+    <Field name="handshakingTimeout"/>
   </Match>
 </FindBugsFilter>
