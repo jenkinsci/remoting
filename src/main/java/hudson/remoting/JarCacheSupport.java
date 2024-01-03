@@ -76,6 +76,8 @@ public abstract class JarCacheSupport extends JarCache {
                         // Now we are sure that the task has been accepted to the queue, hence we cache the promise
                         // if nobody else caches it before.
                         inprogress.putIfAbsent(key, promise);
+                    }else{
+                        semaphore.release();
                     }
                 } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
                     final String message = "Downloader executor service has rejected the download command for checksum " + key;
