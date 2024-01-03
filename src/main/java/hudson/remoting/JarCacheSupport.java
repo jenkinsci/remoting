@@ -80,6 +80,7 @@ public abstract class JarCacheSupport extends JarCache {
                         semaphore.release();
                     }
                 } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
+                    semaphore.release();
                     final String message = "Downloader executor service has rejected the download command for checksum " + key;
                     LOGGER.log(Level.SEVERE, message, ex);
                     // Retry the submission after 100 ms if the error is not fatal
