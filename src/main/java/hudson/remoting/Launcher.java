@@ -674,8 +674,8 @@ public class Launcher {
      * Parses the connection arguments from JNLP file given in the URL.
      */
     @SuppressFBWarnings(value = {"CIPHER_INTEGRITY", "STATIC_IV"}, justification = "Integrity not needed here. IV used for decryption only, loaded from encryptor.")
-    public List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
-        initialize();  // For Swarm, or anyone else who invokes this public method directly rather than going through main() or run()
+    private List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
+        initialize();
         if (secret != null) {
             agentJnlpURL = new URL(agentJnlpURL + "?encrypt=true");
             if (agentJnlpCredentials != null) {
