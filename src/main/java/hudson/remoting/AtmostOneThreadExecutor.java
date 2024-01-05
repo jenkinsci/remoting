@@ -99,6 +99,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
                 throw new FatalRejectedExecutionException("This executor has been shutdown.");
             }
             q.add(command);
+            q.notifyAll(); // notify the worker thread that a task has been added
             if (!isAlive()) {
                 worker = factory.newThread(new Worker());
                 worker.start();
@@ -112,9 +113,13 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
             while (true) {
                 Runnable task;
                 synchronized (q) {
-                    if (q.isEmpty()) {// no more work
-                        worker = null;
-                        return;
+                    while (q.isEmpty()) { // no more work
+                        try {
+                            q.wait(); // wait until a task is added to q
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt(); // restore interrupt status
+                            return;
+                        }
                     }
                     task = q.remove();
                 }
