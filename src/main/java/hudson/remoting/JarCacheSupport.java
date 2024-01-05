@@ -9,7 +9,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.util.ExecutorServiceUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Default partial implementation of {@link JarCache}.
@@ -52,35 +52,16 @@ public abstract class JarCacheSupport extends JarCache {
             return new AsyncFutureImpl<>(jar);
         }
 
-        while (true) {// might have to try a few times before we get successfully resolve
+        final Checksum key = new Checksum(sum1, sum2);
+        return inprogress.computeIfAbsent(key, unused -> submitDownload(channel, sum1, sum2, key));
+    }
 
-            final Checksum key = new Checksum(sum1,sum2);        
-            Future<URL> cur = inprogress.get(key);
-            if (cur!=null) {
-                // this computation is already in progress. piggy back on that one
-                return cur;
-            } else {
-                // we are going to resolve this ourselves and publish the result in 'promise' for others
-                try {
-                    final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<>();
-                    ExecutorServiceUtils.submitAsync(downloader, new  DownloadRunnable(channel, sum1, sum2, key, promise));
-                    // Now we are sure that the task has been accepted to the queue, hence we cache the promise
-                    // if nobody else caches it before.
-                    inprogress.putIfAbsent(key, promise);
-                } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
-                    final String message = "Downloader executor service has rejected the download command for checksum " + key;
-                    LOGGER.log(Level.SEVERE, message, ex);
-                    // Retry the submission after 100 ms if the error is not fatal
-                    if (ex.isFatal()) {
-                        // downloader won't accept anything else, do not even try
-                        throw new IOException(message, ex);
-                    } else {
-                        //TODO: should we just fail? unrealistic case for the current AtmostOneThreadExecutor implementation anyway
-                        Thread.sleep(100);
-                    }
-                }
-            }
-        }
+    @NonNull
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", justification = "API compatibility")
+    private Future<URL> submitDownload(Channel channel, long sum1, long sum2, Checksum key) {
+        final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<>();
+        downloader.submit(new DownloadRunnable(channel, sum1, sum2, key, promise));
+        return promise;
     }
     
     private class DownloadRunnable implements Runnable {
@@ -102,14 +83,6 @@ public abstract class JarCacheSupport extends JarCache {
         @Override
         public void run() {
             try {
-                // Deduplication: There is a risk that multiple downloadables get scheduled, hence we check if
-                // the promise is actually in the queue
-                Future<URL> inprogressDownload = inprogress.get(key);
-                if (promise != inprogressDownload) {
-                    // Duplicated entry due to the race condition, do nothing
-                    return;
-                }
-                
                 URL url = retrieve(channel, sum1, sum2);
                 inprogress.remove(key);
                 promise.set(url);
