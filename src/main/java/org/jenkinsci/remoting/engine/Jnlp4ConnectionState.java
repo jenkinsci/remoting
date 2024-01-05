@@ -45,7 +45,10 @@ public class Jnlp4ConnectionState extends JnlpConnectionState {
     private X509Certificate certificate;
 
     /**
-     * {@inheritDoc}
+     * Constructor.
+     *
+     * @param socket    the {@link Socket}.
+     * @param listeners the {@link JnlpConnectionStateListener} instances.
      */
     protected Jnlp4ConnectionState(@NonNull Socket socket,
                                    List<? extends JnlpConnectionStateListener> listeners) {
