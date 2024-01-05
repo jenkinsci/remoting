@@ -25,10 +25,7 @@ package hudson.remoting.jnlp;
 
 import hudson.remoting.Launcher;
 import java.io.IOException;
-import java.util.List;
-import javax.xml.parsers.ParserConfigurationException;
 import org.kohsuke.args4j.CmdLineException;
-import org.xml.sax.SAXException;
 
 /**
  * Previous entry point to pseudo-JNLP agent.
@@ -52,13 +49,6 @@ public class Main extends Launcher {
     public void run() throws CmdLineException, IOException, InterruptedException {
         logDeprecation();
         super.run();
-    }
-
-    @Override
-    public List<String> parseJnlpArguments()
-            throws ParserConfigurationException, SAXException, IOException, InterruptedException {
-        logDeprecation();
-        return super.parseJnlpArguments();
     }
 
     private static void logDeprecation() {
