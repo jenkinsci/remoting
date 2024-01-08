@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -21,7 +22,7 @@ public abstract class JarCacheSupport extends JarCache {
     /**
      * Remember in-progress jar file resolution to avoid retrieving the same jar file twice.
      */
-    private final ConcurrentMap<Checksum,Future<URL>> inprogress = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Checksum,CompletableFuture<URL>> inprogress = new ConcurrentHashMap<>();
 
     /**
      * Look up the local cache and return URL if found.
@@ -45,11 +46,11 @@ public abstract class JarCacheSupport extends JarCache {
 
     @Override
     @NonNull
-    public Future<URL> resolve(@NonNull final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
+    public CompletableFuture<URL> resolve(@NonNull final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
         URL jar = lookInCache(channel,sum1, sum2);
         if (jar!=null) {
             // already in the cache
-            return new AsyncFutureImpl<>(jar);
+            return CompletableFuture.completedFuture(jar);
         }
 
         final Checksum key = new Checksum(sum1, sum2);
@@ -58,8 +59,8 @@ public abstract class JarCacheSupport extends JarCache {
 
     @NonNull
     @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", justification = "API compatibility")
-    private Future<URL> submitDownload(Channel channel, long sum1, long sum2, Checksum key) {
-        final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<>();
+    private CompletableFuture<URL> submitDownload(Channel channel, long sum1, long sum2, Checksum key) {
+        final CompletableFuture<URL> promise = new CompletableFuture<>();
         downloader.submit(new DownloadRunnable(channel, sum1, sum2, key, promise));
         return promise;
     }
@@ -70,9 +71,9 @@ public abstract class JarCacheSupport extends JarCache {
         final long sum1;
         final long sum2;
         final Checksum key;
-        final AsyncFutureImpl<URL> promise;
+        final CompletableFuture<URL> promise;
 
-        public DownloadRunnable(Channel channel, long sum1, long sum2, Checksum key, AsyncFutureImpl<URL> promise) {
+        public DownloadRunnable(Channel channel, long sum1, long sum2, Checksum key, CompletableFuture<URL> promise) {
             this.channel = channel;
             this.sum1 = sum1;
             this.sum2 = sum2;
@@ -85,7 +86,7 @@ public abstract class JarCacheSupport extends JarCache {
             try {
                 URL url = retrieve(channel, sum1, sum2);
                 inprogress.remove(key);
-                promise.set(url);
+                promise.complete(url);
             } catch (ChannelClosedException | RequestAbortedException e) {
                 // the connection was killed while we were still resolving the file
                 bailout(e);
@@ -101,7 +102,7 @@ public abstract class JarCacheSupport extends JarCache {
                 } else {
                     // in other general failures, we aren't retrying
                     // TODO: or should we?
-                    promise.set(e);
+                    promise.completeExceptionally(e);
                     LOGGER.log(Level.WARNING, String.format("Failed to resolve a jar %016x%016x", sum1, sum2), e);
                 }
             }
@@ -112,7 +113,7 @@ public abstract class JarCacheSupport extends JarCache {
          */
         private void bailout(Throwable e) {
             inprogress.remove(key);     // this lets another thread to retry later
-            promise.set(e);             // then tell those who are waiting that we aborted
+            promise.completeExceptionally(e);             // then tell those who are waiting that we aborted
         }
     }
 
