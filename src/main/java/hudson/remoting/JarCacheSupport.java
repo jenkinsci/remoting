@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -9,7 +10,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.util.ExecutorServiceUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Default partial implementation of {@link JarCache}.
@@ -21,7 +22,7 @@ public abstract class JarCacheSupport extends JarCache {
     /**
      * Remember in-progress jar file resolution to avoid retrieving the same jar file twice.
      */
-    private final ConcurrentMap<Checksum,Future<URL>> inprogress = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Checksum,CompletableFuture<URL>> inprogress = new ConcurrentHashMap<>();
 
     /**
      * Look up the local cache and return URL if found.
@@ -45,42 +46,23 @@ public abstract class JarCacheSupport extends JarCache {
 
     @Override
     @NonNull
-    public Future<URL> resolve(@NonNull final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
+    public CompletableFuture<URL> resolve(@NonNull final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
         URL jar = lookInCache(channel,sum1, sum2);
         if (jar!=null) {
             // already in the cache
-            return new AsyncFutureImpl<>(jar);
+            return CompletableFuture.completedFuture(jar);
         }
 
-        while (true) {// might have to try a few times before we get successfully resolve
+        final Checksum key = new Checksum(sum1, sum2);
+        return inprogress.computeIfAbsent(key, unused -> submitDownload(channel, sum1, sum2, key));
+    }
 
-            final Checksum key = new Checksum(sum1,sum2);        
-            Future<URL> cur = inprogress.get(key);
-            if (cur!=null) {
-                // this computation is already in progress. piggy back on that one
-                return cur;
-            } else {
-                // we are going to resolve this ourselves and publish the result in 'promise' for others
-                try {
-                    final AsyncFutureImpl<URL> promise = new AsyncFutureImpl<>();
-                    ExecutorServiceUtils.submitAsync(downloader, new  DownloadRunnable(channel, sum1, sum2, key, promise));
-                    // Now we are sure that the task has been accepted to the queue, hence we cache the promise
-                    // if nobody else caches it before.
-                    inprogress.putIfAbsent(key, promise);
-                } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
-                    final String message = "Downloader executor service has rejected the download command for checksum " + key;
-                    LOGGER.log(Level.SEVERE, message, ex);
-                    // Retry the submission after 100 ms if the error is not fatal
-                    if (ex.isFatal()) {
-                        // downloader won't accept anything else, do not even try
-                        throw new IOException(message, ex);
-                    } else {
-                        //TODO: should we just fail? unrealistic case for the current AtmostOneThreadExecutor implementation anyway
-                        Thread.sleep(100);
-                    }
-                }
-            }
-        }
+    @NonNull
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", justification = "API compatibility")
+    private CompletableFuture<URL> submitDownload(Channel channel, long sum1, long sum2, Checksum key) {
+        final CompletableFuture<URL> promise = new CompletableFuture<>();
+        downloader.submit(new DownloadRunnable(channel, sum1, sum2, key, promise));
+        return promise;
     }
     
     private class DownloadRunnable implements Runnable {
@@ -89,9 +71,9 @@ public abstract class JarCacheSupport extends JarCache {
         final long sum1;
         final long sum2;
         final Checksum key;
-        final AsyncFutureImpl<URL> promise;
+        final CompletableFuture<URL> promise;
 
-        public DownloadRunnable(Channel channel, long sum1, long sum2, Checksum key, AsyncFutureImpl<URL> promise) {
+        public DownloadRunnable(Channel channel, long sum1, long sum2, Checksum key, CompletableFuture<URL> promise) {
             this.channel = channel;
             this.sum1 = sum1;
             this.sum2 = sum2;
@@ -102,17 +84,9 @@ public abstract class JarCacheSupport extends JarCache {
         @Override
         public void run() {
             try {
-                // Deduplication: There is a risk that multiple downloadables get scheduled, hence we check if
-                // the promise is actually in the queue
-                Future<URL> inprogressDownload = inprogress.get(key);
-                if (promise != inprogressDownload) {
-                    // Duplicated entry due to the race condition, do nothing
-                    return;
-                }
-                
                 URL url = retrieve(channel, sum1, sum2);
                 inprogress.remove(key);
-                promise.set(url);
+                promise.complete(url);
             } catch (ChannelClosedException | RequestAbortedException e) {
                 // the connection was killed while we were still resolving the file
                 bailout(e);
@@ -128,7 +102,7 @@ public abstract class JarCacheSupport extends JarCache {
                 } else {
                     // in other general failures, we aren't retrying
                     // TODO: or should we?
-                    promise.set(e);
+                    promise.completeExceptionally(e);
                     LOGGER.log(Level.WARNING, String.format("Failed to resolve a jar %016x%016x", sum1, sum2), e);
                 }
             }
@@ -139,7 +113,7 @@ public abstract class JarCacheSupport extends JarCache {
          */
         private void bailout(Throwable e) {
             inprogress.remove(key);     // this lets another thread to retry later
-            promise.set(e);             // then tell those who are waiting that we aborted
+            promise.completeExceptionally(e);             // then tell those who are waiting that we aborted
         }
     }
 

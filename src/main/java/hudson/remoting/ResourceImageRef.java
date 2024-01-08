@@ -4,6 +4,7 @@ import hudson.remoting.RemoteClassLoader.ClassReference;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.concurrent.Future;
 
 /**
  * Wire protocol data representation that encapsulates the access to a resource inside a {@link ClassLoader}.

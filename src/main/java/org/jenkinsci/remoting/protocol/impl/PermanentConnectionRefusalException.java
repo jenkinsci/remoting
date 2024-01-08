@@ -30,44 +30,26 @@ package org.jenkinsci.remoting.protocol.impl;
  */
 @Deprecated
 public class PermanentConnectionRefusalException extends ConnectionRefusalException {
-    /**
-     * {@inheritDoc}
-     */
     public PermanentConnectionRefusalException() {
         super();
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public PermanentConnectionRefusalException(String message) {
         super(message);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public PermanentConnectionRefusalException(String message, Object... args) {
         super(message, args);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public PermanentConnectionRefusalException(Throwable cause, String message, Object... args) {
         super(cause, message, args);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public PermanentConnectionRefusalException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public PermanentConnectionRefusalException(Throwable cause) {
         super(cause);
     }

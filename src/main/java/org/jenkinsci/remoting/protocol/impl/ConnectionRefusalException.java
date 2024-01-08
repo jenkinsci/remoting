@@ -35,15 +35,9 @@ import java.io.IOException;
  */
 public class ConnectionRefusalException extends IOException {
 
-    /**
-     * {@inheritDoc}
-     */
     public ConnectionRefusalException() {
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public ConnectionRefusalException(String message) {
         super(message);
     }
@@ -85,16 +79,10 @@ public class ConnectionRefusalException extends IOException {
         super(String.format(message, args), cause);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public ConnectionRefusalException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public ConnectionRefusalException(Throwable cause) {
         super(cause);
     }

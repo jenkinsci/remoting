@@ -4,6 +4,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,12 +37,12 @@ class ResourceImageDirect extends ResourceImageRef {
     @Override
     Future<byte[]> resolve(Channel channel, String resourcePath) throws IOException, InterruptedException {
         LOGGER.log(Level.FINE, resourcePath+" image is direct");
-        return new AsyncFutureImpl<>(payload);
+        return CompletableFuture.completedFuture(payload);
     }
 
     @Override
     Future<URLish> resolveURL(Channel channel, String resourcePath) throws IOException, InterruptedException {
-        return new AsyncFutureImpl<>(URLish.from(makeResource(resourcePath, payload)));
+        return CompletableFuture.completedFuture(URLish.from(makeResource(resourcePath, payload)));
     }
 
     private static final Logger LOGGER = Logger.getLogger(ResourceImageDirect.class.getName());
