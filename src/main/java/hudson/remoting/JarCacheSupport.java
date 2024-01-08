@@ -6,6 +6,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,9 +44,16 @@ public abstract class JarCacheSupport extends JarCache {
     /**
      * Throttle the jar downloading activity so that it won't eat up all the channel bandwidth.
      */
-    private final ExecutorService downloader = new AtmostOneThreadExecutor(
+    private final ExecutorService downloader = newCachingSingleThreadExecutor(
             new NamingThreadFactory(new DaemonThreadFactory(), JarCacheSupport.class.getSimpleName())
     );
+
+    private static ExecutorService newCachingSingleThreadExecutor(ThreadFactory threadFactory) {
+        ThreadPoolExecutor threadPoolExecutor =
+                new ThreadPoolExecutor(1, 1, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(), threadFactory);
+        threadPoolExecutor.allowCoreThreadTimeOut(true);
+        return threadPoolExecutor;
+    }
 
     @Override
     @NonNull
