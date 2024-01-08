@@ -85,8 +85,11 @@ public abstract class JarCacheSupport extends JarCache {
         public void run() {
             try {
                 URL url = retrieve(channel, sum1, sum2);
-                inprogress.remove(key);
-                promise.complete(url);
+                if (inprogress.remove(key, promise)) {
+                    promise.complete(url);
+                } else {
+                    promise.completeExceptionally(new IllegalStateException("Download is (unexpectedly) no longer in progress"));
+                }
             } catch (ChannelClosedException | RequestAbortedException e) {
                 // the connection was killed while we were still resolving the file
                 bailout(e);
@@ -112,7 +115,7 @@ public abstract class JarCacheSupport extends JarCache {
          * Report a failure of the retrieval and allows another thread to retry.
          */
         private void bailout(Throwable e) {
-            inprogress.remove(key);     // this lets another thread to retry later
+            inprogress.remove(key, promise);     // this lets another thread to retry later
             promise.completeExceptionally(e);             // then tell those who are waiting that we aborted
         }
     }
