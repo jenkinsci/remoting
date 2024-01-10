@@ -62,10 +62,6 @@ THE SOFTWARE.
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <build.type>private</build.type>
-    <!-- TODO: Remove when parent pom is using this version or newer -->
-    <!-- https://github.com/jenkinsci/pom/pull/510 -->
-    <spotbugs-maven-plugin.version>4.8.2.0</spotbugs-maven-plugin.version>
-    <spotbugs.omitVisitors>FindReturnRef,ConstructorThrow</spotbugs.omitVisitors>
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.threshold>Low</spotbugs.threshold>
     <bc-version>1.77</bc-version>
