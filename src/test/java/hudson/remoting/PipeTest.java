@@ -39,7 +39,6 @@ import java.io.Serializable;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.NullOutputStream;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -319,7 +318,7 @@ public class PipeTest implements Serializable {
     private static class DevNullSink extends CallableBase<OutputStream, IOException> {
         @Override
         public OutputStream call() {
-            return new RemoteOutputStream(NullOutputStream.INSTANCE);
+            return new RemoteOutputStream(OutputStream.nullOutputStream());
         }
         private static final long serialVersionUID = 1L;
     }

@@ -1,8 +1,8 @@
 package hudson.remoting.throughput;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.NullOutputStream;
 
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -16,7 +16,7 @@ public class DumbReceiver {
             System.out.println("Ready");
             try (Socket s = ss.accept()) {
                 System.out.println("Accepted");
-                IOUtils.copy(s.getInputStream(), NullOutputStream.INSTANCE);
+                IOUtils.copy(s.getInputStream(), OutputStream.nullOutputStream());
             }
         }
     }
