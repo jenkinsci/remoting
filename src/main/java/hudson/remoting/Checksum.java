@@ -1,6 +1,5 @@
 package hudson.remoting;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.ByteArrayInputStream;
@@ -79,26 +78,12 @@ final class Checksum {
     static Checksum forURL(URL url) throws IOException {
         try {
             MessageDigest md = MessageDigest.getInstance(JarLoaderImpl.DIGEST_ALGORITHM);
-            try(InputStream istream = url.openStream(); OutputStream ostream = new DigestOutputStream(new NullOutputStream(), md)) {
+            try(InputStream istream = url.openStream(); OutputStream ostream = new DigestOutputStream(OutputStream.nullOutputStream(), md)) {
                 Util.copy(istream, ostream);
                 return new Checksum(md.digest(), md.getDigestLength() / 8);
             }
         } catch (NoSuchAlgorithmException e) {
             throw new AssertionError(e);
-        }
-    }
-
-    private static class NullOutputStream extends OutputStream {
-        @Override
-        public void write(int b) {
-        }
-
-        @Override
-        public void write(@NonNull byte[] b) {
-        }
-
-        @Override
-        public void write(@NonNull byte[] b, int off, int len) {
         }
     }
 }
