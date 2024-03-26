@@ -1,8 +1,5 @@
 package hudson.remoting;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -13,6 +10,8 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -239,7 +238,7 @@ public class PrefetchingTest implements Serializable {
             e.value = cl.loadClass("test.Foo").getDeclaredConstructor().newInstance();
             Object r = channel.call(e);
 
-            ((Predicate<Void>) r).apply(null); // this verifies that the object is still in a good state
+            ((Predicate<Void>) r).test(null); // this verifies that the object is still in a good state
         });
     }
 
