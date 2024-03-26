@@ -306,14 +306,14 @@ THE SOFTWARE.
                 <artifactItem>
                   <groupId>org.jenkins-ci</groupId>
                   <artifactId>remoting-test-client</artifactId>
-                  <version>1.0</version>
+                  <version>1.3</version>
                   <outputDirectory>target/test-classes</outputDirectory>
                   <destFileName>remoting-test-client.jar</destFileName>
                 </artifactItem>
                 <artifactItem>
                   <groupId>org.jenkins-ci</groupId>
                   <artifactId>remoting-test-client</artifactId>
-                  <version>1.0</version>
+                  <version>1.3</version>
                   <classifier>tests</classifier>
                   <outputDirectory>target/test-classes</outputDirectory>
                   <destFileName>remoting-test-client-tests.jar</destFileName>
