@@ -30,6 +30,7 @@ import hudson.remoting.Channel.Mode;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.PathUtils;
+import org.jenkinsci.remoting.util.RetryUtils;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
@@ -73,6 +74,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -81,7 +83,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -248,6 +249,25 @@ public class Launcher {
 
     @Option(name="-noReconnect",aliases="-noreconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
     public boolean noReconnect = false;
+
+    @Option(name = "-retryDelay",
+            usage = "The fixed delay to occur between retries. Default is 10 seconds.")
+    public int delay = 10;
+
+    @Option(name = "-retryJitterFactor",
+            usage = "The jitter factor to randomly vary retry delays by. For each retry delay, a"
+                + " random portion of the delay multiplied by the jitter factor will be"
+                + " added or subtracted to the delay. For example: a retry delay of 10"
+                + " seconds and a jitter factor of .25 will result in a random retry delay"
+                + " between 7.5 and 12.5 seconds.")
+    public double jitterFactor = 0;
+
+    @Option(name = "-retryJitter",
+            usage = "The jitter to randomly vary retry delays by. For each retry delay, a random"
+                + " portion of the jitter will be added or subtracted to the delay. For"
+                + " example: a jitter of 5 seconds will randomly add between -5 and 5"
+                + " seconds to each retry delay.")
+    public int jitter = 0;
 
     @Option(name = "-noKeepAlive",
             usage = "Disable TCP socket keep alive on connection to the controller.")
@@ -450,6 +470,20 @@ public class Launcher {
         if (initialized) {
             throw new IllegalStateException("double initialization");
         }
+
+        if (jitterFactor != 0 && jitter != 0) {
+            throw new IllegalArgumentException("Jitter factor and jitter are mutually exclusive");
+        }
+        if (jitterFactor < 0 || jitterFactor > 1) {
+            throw new IllegalArgumentException("Jitter factor must be >= 0 and <= 1");
+        }
+        if (jitter < 0) {
+            throw new IllegalArgumentException("Jitter must be >= 0");
+        }
+        if (jitter > 0 && jitter >= delay) {
+            throw new IllegalArgumentException("Jitter must be < delay");
+        }
+
         // Create and verify working directory and logging
         // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this parameter in
         // consideration for other modes (TcpServer, TcpClient, etc.) to retain the legacy behavior.
@@ -745,9 +779,9 @@ public class Launcher {
 
                 System.err.println("Failed to obtain "+ agentJnlpURL);
                 e.printStackTrace(System.err);
-                System.err.println("Waiting 10 seconds before retry");
-                // TODO refactor various sleep statements into a common method
-                TimeUnit.SECONDS.sleep(10);
+                Duration duration = RetryUtils.getDuration(delay, jitterFactor, jitter);
+                System.err.println("Waiting " + RetryUtils.formatDuration(duration) + " seconds before retry");
+                Thread.sleep(duration.toMillis());
                 // retry
             } finally {
                 if (con instanceof HttpURLConnection) {

@@ -29,6 +29,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
+import org.jenkinsci.remoting.util.RetryUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.accmod.Restricted;
@@ -57,6 +58,7 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
@@ -99,6 +101,12 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     private boolean disableHttpsCertValidation;
 
     private HostnameVerifier hostnameVerifier;
+
+    private int delay = 10;
+
+    private double jitterFactor = 0;
+
+    private int jitter = 0;
 
     /**
      * If specified, only the protocols from the list will be tried during the connection.
@@ -183,6 +191,21 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         } else {
             this.hostnameVerifier = null;
         }
+    }
+
+    @Restricted(NoExternalUse.class)
+    public void setDelay(int delay) {
+        this.delay = delay;
+    }
+
+    @Restricted(NoExternalUse.class)
+    public void setJitterFactor(double jitterFactor) {
+        this.jitterFactor = jitterFactor;
+    }
+
+    @Restricted(NoExternalUse.class)
+    public void setJitter(int jitter) {
+        this.jitter = jitter;
     }
 
     @CheckForNull
@@ -402,8 +425,8 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         try {
             int retries = 0;
             while (true) {
-                // TODO refactor various sleep statements into a common method
-                Thread.sleep(1000 * 10);
+                Duration duration = RetryUtils.getDuration(delay, jitterFactor, jitter);
+                Thread.sleep(duration.toMillis());
                 // Jenkins top page might be read-protected. see http://www.nabble
                 // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
                 if (jenkinsUrls.isEmpty()) {
