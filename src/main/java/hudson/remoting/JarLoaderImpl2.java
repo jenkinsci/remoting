@@ -1,9 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.concurrent.atomic.AtomicInteger;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.NotSerializableException;
@@ -13,24 +10,24 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+
+import static hudson.remoting.JarLoaderCache.checksums;
+import static hudson.remoting.JarLoaderCache.checksumsHits;
+import static hudson.remoting.JarLoaderCache.knownJars;
+import static hudson.remoting.JarLoaderCache.knownJarsHits;
+
 
 /**
  * Implements {@link JarLoader} to be called from the other side.
  *
  * @author Kohsuke Kawaguchi
  */
-class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
+class JarLoaderImpl2 implements JarLoader, SerializableOnlyOverRemoting {
 
-    private static final Logger LOGGER = Logger.getLogger(JarLoaderImpl.class.getName());
-
-    private final ConcurrentMap<Checksum,URL> knownJars = new ConcurrentHashMap<>();
-
-    private final ConcurrentMap<URL,Checksum> checksums = new ConcurrentHashMap<>();
-    private final AtomicInteger checksumsHits = new AtomicInteger(0);
+    private static final Logger LOGGER = Logger.getLogger(JarLoaderImpl2.class.getName());
 
     private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<>());
 
@@ -41,7 +38,7 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
         URL url = knownJars.get(k);
         if (url==null)
             throw new IOException("Unadvertised jar file "+k);
-
+        knownJarsHits.incrementAndGet();
         Channel channel = Channel.current();
         if (channel != null) {
             if (url.getProtocol().equals("file")) {
@@ -106,12 +103,10 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
         return getChannelForSerialization().export(JarLoader.class, this);
     }
 
-    public static final String DIGEST_ALGORITHM = System.getProperty(JarLoaderImpl.class.getName()+".algorithm","SHA-256");
+    public static final String DIGEST_ALGORITHM = System.getProperty(JarLoaderImpl2.class.getName()+".algorithm","SHA-256");
 
     private static final long serialVersionUID = 1L;
-
     public void showInfo() {
-        System.out.println(" Checksum Hits " + checksumsHits.get());
-
+        JarLoaderCache.showInfo();
     }
 }
