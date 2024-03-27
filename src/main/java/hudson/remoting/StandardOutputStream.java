@@ -53,8 +53,8 @@ public class StandardOutputStream extends OutputStream {
     private OutputStream out;
     private boolean swapped;
 
-    public StandardOutputStream() {
-        this.out = System.out;
+    public StandardOutputStream() throws IOException {
+        this.out = ZosSshInOutStreamWrapper.wrapper.out(System.out);
     }
 
     /**
