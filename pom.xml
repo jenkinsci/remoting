@@ -64,7 +64,7 @@ THE SOFTWARE.
     <build.type>private</build.type>
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.threshold>Low</spotbugs.threshold>
-    <bc-version>1.77</bc-version>
+    <bc-version>1.78</bc-version>
   </properties>
 
   <dependencies>
