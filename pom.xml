@@ -28,7 +28,7 @@ THE SOFTWARE.
   <parent>
     <groupId>org.jenkins-ci</groupId>
     <artifactId>jenkins</artifactId>
-    <version>1.93</version>
+    <version>1.113</version>
     <relativePath />
   </parent>
 
@@ -64,7 +64,7 @@ THE SOFTWARE.
     <build.type>private</build.type>
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.threshold>Low</spotbugs.threshold>
-    <bc-version>1.72</bc-version>
+    <bc-version>1.78</bc-version>
   </properties>
 
   <dependencies>
@@ -77,7 +77,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.glassfish.tyrus.bundles</groupId>
       <artifactId>tyrus-standalone-client-jdk</artifactId>
-      <version>2.1.2</version>
+      <version>2.1.5</version>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -101,7 +101,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>jakarta.websocket</groupId>
       <artifactId>jakarta.websocket-client-api</artifactId>
-      <version>2.1.0</version>
+      <version>2.1.1</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -114,7 +114,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.kohsuke</groupId>
       <artifactId>access-modifier-annotation</artifactId>
-      <version>1.30</version>
+      <version>1.33</version>
       <scope>provided</scope>
       <optional>true</optional>
     </dependency>
@@ -127,7 +127,7 @@ THE SOFTWARE.
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-      <version>2.11.0</version>
+      <version>2.16.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -146,12 +146,6 @@ THE SOFTWARE.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.ant</groupId>
-      <artifactId>ant</artifactId>
-      <version>1.10.12</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk18on</artifactId>
       <version>${bc-version}</version>
@@ -165,7 +159,7 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-core</artifactId>
+      <artifactId>hamcrest</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -175,13 +169,13 @@ THE SOFTWARE.
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-inline</artifactId>
+      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
-      <version>9.4</version>
+      <version>9.7</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -217,7 +211,7 @@ THE SOFTWARE.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.4.1</version>
+        <version>3.5.2</version>
         <executions>
           <execution>
             <goals>
@@ -230,8 +224,21 @@ THE SOFTWARE.
                 <filter>
                   <artifact>args4j:args4j</artifact>
                   <excludes>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
                     <exclude>OSGI-OPT/**/*.html</exclude>
                     <exclude>OSGI-OPT/**/*.java</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>org.glassfish.tyrus.bundles:tyrus-standalone-client-jdk</artifact>
+                  <excludes>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                  </excludes>
+                </filter>
+                <filter>
+                  <artifact>org.jenkins-ci:constant-pool-scanner</artifact>
+                  <excludes>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
                   </excludes>
                 </filter>
               </filters>
@@ -299,14 +306,14 @@ THE SOFTWARE.
                 <artifactItem>
                   <groupId>org.jenkins-ci</groupId>
                   <artifactId>remoting-test-client</artifactId>
-                  <version>1.0</version>
+                  <version>1.3</version>
                   <outputDirectory>target/test-classes</outputDirectory>
                   <destFileName>remoting-test-client.jar</destFileName>
                 </artifactItem>
                 <artifactItem>
                   <groupId>org.jenkins-ci</groupId>
                   <artifactId>remoting-test-client</artifactId>
-                  <version>1.0</version>
+                  <version>1.3</version>
                   <classifier>tests</classifier>
                   <outputDirectory>target/test-classes</outputDirectory>
                   <destFileName>remoting-test-client-tests.jar</destFileName>
@@ -409,7 +416,7 @@ THE SOFTWARE.
           <plugin>
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
-            <version>0.8.8</version>
+            <version>0.8.12</version>
             <executions>
               <execution>
                 <goals>

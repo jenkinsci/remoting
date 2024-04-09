@@ -7,13 +7,13 @@ import hudson.remoting.Future;
 import hudson.remoting.Pipe;
 import hudson.remoting.SocketChannelStream;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.io.output.NullOutputStream;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
@@ -59,7 +59,7 @@ public class Sender {
     }
 
     private static byte[] digest(InputStream in) throws NoSuchAlgorithmException, IOException {
-        DigestOutputStream dos = new DigestOutputStream(NullOutputStream.NULL_OUTPUT_STREAM, MessageDigest.getInstance("MD5"));
+        DigestOutputStream dos = new DigestOutputStream(OutputStream.nullOutputStream(), MessageDigest.getInstance("MD5"));
         IOUtils.copy(in, dos);
         return dos.getMessageDigest().digest();
     }

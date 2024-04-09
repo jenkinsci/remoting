@@ -17,7 +17,7 @@ import java.util.logging.Logger;
  * that avoids deadlock when read/write happens concurrently.
  *
  * @author Kohsuke Kawaguchi
- * @see <a href="http://stackoverflow.com/questions/174774/">discussion with references to BugParade Bug IDs</a>
+ * @see <a href="http://stackoverflow.com/questions/174774/">discussion with references to JDK bugs; TODO JDK-8222774 simplify in Java 17</a>
  */
 public class SocketChannelStream {
     public static InputStream in(Socket s) throws IOException {

@@ -27,14 +27,12 @@
 package org.jenkinsci.remoting.engine;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,10 +42,12 @@ import java.nio.file.Path;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.io.IOUtils;
 
-import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 
 import org.jenkinsci.remoting.engine.WorkDirManager.DirType;
 import org.junit.Assume;
@@ -70,20 +70,20 @@ public class WorkDirManagerTest {
         final File dir = tmpDir.newFolder("foo");
 
         // Probe files to confirm the directory does not get wiped
-        final File probeFileInWorkDir = new File(dir, "probe.txt");
-        FileUtils.write(probeFileInWorkDir, "Hello!", StandardCharsets.UTF_8);
-        final File remotingDir = new File(dir, DirType.INTERNAL_DIR.getDefaultLocation());
-        Files.createDirectory(remotingDir.toPath());
-        final File probeFileInInternalDir = new File(remotingDir, "/probe.txt");
-        FileUtils.write(probeFileInInternalDir, "Hello!", StandardCharsets.UTF_8);
+        final Path probeFileInWorkDir = dir.toPath().resolve("probe.txt");
+        Files.writeString(probeFileInWorkDir, "Hello!", StandardCharsets.UTF_8);
+        final Path remotingDir = dir.toPath().resolve(DirType.INTERNAL_DIR.getDefaultLocation());
+        Files.createDirectory(remotingDir);
+        final Path probeFileInInternalDir = remotingDir.resolve("probe.txt");
+        Files.writeString(probeFileInInternalDir, "Hello!", StandardCharsets.UTF_8);
 
         // Initialize and check the results
         final Path createdDir = WorkDirManager.getInstance().initializeWorkDir(dir, DirType.INTERNAL_DIR.getDefaultLocation(), false);
-        assertThat("The initialized " + DirType.INTERNAL_DIR + " differs from the expected one", createdDir.toFile(), equalTo(remotingDir));
+        assertThat("The initialized " + DirType.INTERNAL_DIR + " differs from the expected one", createdDir, equalTo(remotingDir));
 
         // Ensure that the files have not been wiped
-        Assert.assertTrue("Probe file in the " + DirType.WORK_DIR + " has been wiped", probeFileInWorkDir.exists());
-        Assert.assertTrue("Probe file in the " + DirType.INTERNAL_DIR + " has been wiped", probeFileInInternalDir.exists());
+        Assert.assertTrue("Probe file in the " + DirType.WORK_DIR + " has been wiped", Files.exists(probeFileInWorkDir));
+        Assert.assertTrue("Probe file in the " + DirType.INTERNAL_DIR + " has been wiped", Files.exists(probeFileInInternalDir));
 
         // Ensure that sub directories are in place
         assertExists(DirType.JAR_CACHE_DIR);
@@ -227,11 +227,9 @@ public class WorkDirManagerTest {
         assertFileLogsExist(logsDir, "remoting.log", 0);
 
         // Ensure the entry has been written
-        File log0 = new File(logsDir, "remoting.log.0");
-        try (FileInputStream istr = new FileInputStream(log0)) {
-            String contents = IOUtils.toString(istr, StandardCharsets.UTF_8);
-            assertThat("Log file " + log0 + " should contain the probe message", contents, containsString(message));
-        }
+        Path log0 = logsDir.toPath().resolve("remoting.log.0");
+        String contents = Files.readString(log0, StandardCharsets.UTF_8);
+        assertThat("Log file " + log0 + " should contain the probe message", contents, containsString(message));
     }
 
     @Test
@@ -287,11 +285,9 @@ public class WorkDirManagerTest {
 
         // Assert that logs have been written to the specified custom destination
         assertFileLogsExist(customLogDir, "mylog.log", 1);
-        File log0 = new File(customLogDir, "mylog.log.0");
-        try (FileInputStream istr = new FileInputStream(log0)) {
-            String contents = IOUtils.toString(istr, StandardCharsets.UTF_8);
-            assertThat("Log file " + log0 + " should contain the probe message", contents, containsString(message));
-        }
+        Path log0 = customLogDir.toPath().resolve("mylog.log.0");
+        String contents = Files.readString(log0, StandardCharsets.UTF_8);
+        assertThat("Log file " + log0 + " should contain the probe message", contents, containsString(message));
     }
 
     private void assertFileLogsExist(File logsDir, String prefix, int logFilesNumber) {

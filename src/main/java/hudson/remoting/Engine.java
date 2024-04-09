@@ -37,6 +37,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.KeyManagementException;
@@ -46,12 +47,14 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +67,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -76,7 +80,11 @@ import jakarta.websocket.Endpoint;
 import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.Session;
+import jakarta.websocket.WebSocketContainer;
 import net.jcip.annotations.NotThreadSafe;
+import org.glassfish.tyrus.client.ClientManager;
+import org.glassfish.tyrus.client.ClientProperties;
+import org.glassfish.tyrus.client.SslEngineConfigurator;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
@@ -94,6 +102,10 @@ import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustMa
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
+import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
+import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Agent engine that proactively connects to Jenkins controller.
@@ -166,15 +178,18 @@ public class Engine extends Thread {
     private Map<String, String> webSocketHeaders;
     private String credentials;
     private String protocolName;
-    private String proxyCredentials = System.getProperty("proxyCredentials");
+    private String proxyCredentials;
 
     /**
-     * See {@link hudson.remoting.jnlp.Main#tunnel} for the documentation.
+     * See {@link Launcher#tunnel} for the documentation.
      */
     @CheckForNull
     private String tunnel;
 
     private boolean disableHttpsCertValidation = false;
+
+    @CheckForNull
+    private HostnameVerifier hostnameVerifier;
 
     private boolean noReconnect = false;
 
@@ -413,6 +428,11 @@ public class Engine extends Thread {
      */
     public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
         this.disableHttpsCertValidation = disableHttpsCertValidation;
+        if (disableHttpsCertValidation) {
+            this.hostnameVerifier = new NoCheckHostnameVerifier();
+        } else {
+            this.hostnameVerifier = null;
+        }
     }
 
     /**
@@ -587,8 +607,13 @@ public class Engine extends Thread {
                             } else {
                                 addedHeaders.remove(Engine.WEBSOCKET_COOKIE_HEADER);
                             }
-                            remoteCapability = Capability.fromASCII(hr.getHeaders().get(Capability.KEY).get(0));
-                            LOGGER.fine(() -> "received " + remoteCapability);
+                            List<String> advertisedCapability = hr.getHeaders().get(Capability.KEY);
+                            if (advertisedCapability == null) {
+                                LOGGER.warning("Did not receive " + Capability.KEY + " header");
+                            } else {
+                                remoteCapability = Capability.fromASCII(advertisedCapability.get(0));
+                                LOGGER.fine(() -> "received " + remoteCapability);
+                            }
                         } catch (IOException x) {
                             events.error(x);
                         }
@@ -644,13 +669,17 @@ public class Engine extends Thread {
                     class Transport extends AbstractByteBufferCommandTransport {
                         final Session session;
                         Transport(Session session) {
+                            super(true);
                             this.session = session;
                         }
                         @Override
-                        protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
-                            LOGGER.finest(() -> "sending message of length + " + ChunkHeader.length(ChunkHeader.peek(header)));
-                            session.getBasicRemote().sendBinary(header, false);
-                            session.getBasicRemote().sendBinary(data, true);
+                        protected void write(ByteBuffer headerAndData) throws IOException {
+                            LOGGER.finest(() -> "sending message of length " + (headerAndData.remaining() - ChunkHeader.SIZE));
+                            try {
+                                session.getAsyncRemote().sendBinary(headerAndData).get(5, TimeUnit.MINUTES);
+                            } catch (Exception x) {
+                                throw new IOException(x);
+                            }
                         }
 
                         @Override
@@ -671,7 +700,35 @@ public class Engine extends Thread {
                 }
                 hudsonUrl = candidateUrls.get(0);
                 String wsUrl = hudsonUrl.toString().replaceFirst("^http", "ws");
-                ContainerProvider.getWebSocketContainer().connectToServer(new AgentEndpoint(),
+                WebSocketContainer container = ContainerProvider.getWebSocketContainer();
+                if (container instanceof ClientManager) {
+                    ClientManager client = (ClientManager) container;
+
+                    String proxyHost = System.getProperty("http.proxyHost", System.getenv("proxy_host"));
+                    String proxyPort = System.getProperty("http.proxyPort");
+                    if (proxyHost != null && "http".equals(hudsonUrl.getProtocol()) && NoProxyEvaluator.shouldProxy(hudsonUrl.getHost())) {
+                        URI proxyUri;
+                        if (proxyPort != null) {
+                            proxyUri = URI.create(String.format("http://%s:%s", proxyHost, proxyPort));
+                        } else {
+                            proxyUri = URI.create(String.format("http://%s", proxyHost));
+                        }
+                        client.getProperties().put(ClientProperties.PROXY_URI, proxyUri);
+                        if (proxyCredentials != null) {
+                            client.getProperties().put(ClientProperties.PROXY_HEADERS, Map.of("Proxy-Authorization", "Basic " + Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8))));
+                        }
+                    }
+
+                    SSLContext sslContext = getSSLContext(candidateCertificates, disableHttpsCertValidation);
+                    if (sslContext != null) {
+                        SslEngineConfigurator sslEngineConfigurator = new SslEngineConfigurator(sslContext);
+                        if (hostnameVerifier != null) {
+                            sslEngineConfigurator.setHostnameVerifier(hostnameVerifier);
+                        }
+                        client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
+                    }
+                }
+                container.connectToServer(new AgentEndpoint(),
                     ClientEndpointConfig.Builder.create().configurator(headerHandler).build(), URI.create(wsUrl + "wsagents/"));
                 while (ch.get() == null) {
                     Thread.sleep(100);
@@ -685,6 +742,7 @@ public class Engine extends Thread {
                 }
                 events.onDisconnect();
                 while (true) {
+                    // TODO refactor various sleep statements into a common method
                     TimeUnit.SECONDS.sleep(10);
                     // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
                     URL ping = new URL(hudsonUrl, "login");
@@ -733,7 +791,7 @@ public class Engine extends Thread {
         for (URL url: candidateUrls) {
             jenkinsUrls.add(url.toExternalForm());
         }
-        JnlpEndpointResolver resolver = createEndpointResolver(jenkinsUrls);
+        JnlpEndpointResolver resolver = createEndpointResolver(jenkinsUrls, agentName);
 
         try {
             boolean first = true;
@@ -749,11 +807,18 @@ public class Engine extends Thread {
                 final JnlpAgentEndpoint endpoint;
                 try {
                     endpoint = resolver.resolve();
-                } catch (Exception e) {
-                    if (Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
-                        events.status("Could not resolve JNLP agent endpoint", e);
+                } catch (IOException e) {
+                    if (!noReconnect) {
+                        events.status("Could not locate server among " + candidateUrls + "; waiting 10 seconds before retry", e);
+                        // TODO refactor various sleep statements into a common method
+                        TimeUnit.SECONDS.sleep(10);
+                        continue;
                     } else {
-                        events.error(e);
+                        if (Boolean.getBoolean(Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
+                            events.status("Could not resolve JNLP agent endpoint", e);
+                        } else {
+                            events.error(e);
+                        }
                     }
                     return;
                 }
@@ -863,25 +928,26 @@ public class Engine extends Thread {
         }
     }
 
-    private JnlpEndpointResolver createEndpointResolver(List<String> jenkinsUrls) {
+    private JnlpEndpointResolver createEndpointResolver(List<String> jenkinsUrls, String agentName) {
         JnlpEndpointResolver resolver;
         if (directConnection == null) {
             SSLSocketFactory sslSocketFactory = null;
             try {
-                sslSocketFactory = getSSLSocketFactory();
+                sslSocketFactory = getSSLSocketFactory(candidateCertificates, disableHttpsCertValidation);
             } catch (Exception e) {
                 events.error(e);
             }
-            resolver = new JnlpAgentEndpointResolver(jenkinsUrls, credentials, proxyCredentials, tunnel,
+            resolver = new JnlpAgentEndpointResolver(jenkinsUrls, agentName, credentials, proxyCredentials, tunnel,
                     sslSocketFactory, disableHttpsCertValidation);
         } else {
-            resolver = new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols);
+            resolver = new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols, proxyCredentials);
         }
         return resolver;
     }
 
     private void onConnectionRejected(String greeting) throws InterruptedException {
         events.status("reconnect rejected, sleeping 10s: ", new Exception("The server rejected the connection: " + greeting));
+        // TODO refactor various sleep statements into a common method
         TimeUnit.SECONDS.sleep(10);
     }
 
@@ -904,6 +970,7 @@ public class Engine extends Thread {
                 if(retry++>10) {
                     throw e;
                 }
+                // TODO refactor various sleep statements into a common method
                 TimeUnit.SECONDS.sleep(10);
                 events.status(msg+" (retrying:"+retry+")",e);
             }
@@ -1015,16 +1082,20 @@ public class Engine extends Thread {
         });
     }
 
-    private SSLSocketFactory getSSLSocketFactory()
+    @CheckForNull
+    private static SSLContext getSSLContext(List<X509Certificate> x509Certificates, boolean noCertificateCheck)
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
             NoSuchAlgorithmException, IOException, KeyManagementException {
-        SSLSocketFactory sslSocketFactory = null;
-        if (candidateCertificates != null && !candidateCertificates.isEmpty()) {
+        SSLContext sslContext = null;
+        if (noCertificateCheck) {
+            sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new TrustManager[]{new NoCheckTrustManager()}, new SecureRandom());
+        } else if (x509Certificates != null && !x509Certificates.isEmpty()) {
             KeyStore keyStore = getCacertsKeyStore();
             // load the keystore
             keyStore.load(null, null);
             int i = 0;
-            for (X509Certificate c : candidateCertificates) {
+            for (X509Certificate c : x509Certificates) {
                 keyStore.setCertificateEntry(String.format("alias-%d", i++), c);
             }
             // prepare the trust manager
@@ -1035,11 +1106,19 @@ public class Engine extends Thread {
             SSLContext ctx = SSLContext.getInstance("TLS");
             // now we have our custom socket factory
             ctx.init(null, trustManagerFactory.getTrustManagers(), null);
-            sslSocketFactory = ctx.getSocketFactory();
         }
-        return sslSocketFactory;
+        return sslContext;
     }
     
+    @CheckForNull
+    @Restricted(NoExternalUse.class)
+    static SSLSocketFactory getSSLSocketFactory(List<X509Certificate> x509Certificates, boolean noCertificateCheck)
+            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
+            NoSuchAlgorithmException, IOException, KeyManagementException {
+        SSLContext sslContext = getSSLContext(x509Certificates, noCertificateCheck);
+        return sslContext != null ? sslContext.getSocketFactory() : null;
+    }
+
     /**
      * Socket read timeout.
      * A {@link SocketInputStream#read()} call associated with underlying Socket will block for only this amount of time

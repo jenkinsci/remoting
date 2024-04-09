@@ -24,9 +24,9 @@
 package hudson.remoting;
 
 import static hudson.remoting.DefaultClassFilterTest.BlackListMatcher.blacklisted;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.core.Every.everyItem;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.File;

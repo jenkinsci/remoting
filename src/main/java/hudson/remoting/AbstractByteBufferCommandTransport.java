@@ -70,18 +70,18 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * Our channel.
      */
     private Channel channel;
-    /**
-     * The chunk header buffer.
-     */
-    private final ByteBuffer writeChunkHeader = ByteBuffer.allocate(2);
+    @Deprecated
+    private final ByteBuffer writeChunkHeader;
     /**
      * The transport frame size.
      */
     private int transportFrameSize = 8192;
+    @Deprecated
+    private ByteBuffer writeChunkBody;
     /**
-     * The chunk body.
+     * The chunk header & body buffer.
      */
-    private ByteBuffer writeChunkBody = ByteBuffer.allocate(transportFrameSize);
+    private ByteBuffer writeChunkCombined;
     /**
      * The delegate, this is required as we cannot access some of the methods of {@link ChunkHeader} outside of the
      * remoting module.
@@ -121,13 +121,42 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     private final ByteBufferQueue sendStaging = new ByteBufferQueue(transportFrameSize);
 
     /**
+     * @deprecated Pass {@code true} to {@link #AbstractByteBufferCommandTransport(boolean)} and switch {@link #write(ByteBuffer, ByteBuffer)} to {@link #write(ByteBuffer)}.
+     */
+    @Deprecated
+    protected AbstractByteBufferCommandTransport() {
+        this(false);
+    }
+
+    protected AbstractByteBufferCommandTransport(boolean combineBuffers) {
+        if (combineBuffers) {
+            writeChunkHeader = null;
+            writeChunkBody = null;
+            writeChunkCombined = ByteBuffer.allocate(transportFrameSize + ChunkHeader.SIZE);
+        } else { // deprecated
+            writeChunkHeader = ByteBuffer.allocate(ChunkHeader.SIZE);
+            writeChunkBody = ByteBuffer.allocate(transportFrameSize);
+            writeChunkCombined = null;
+        }
+    }
+
+    /**
+     * @deprecated pass true to {@link #AbstractByteBufferCommandTransport(boolean)} and implement {@link #write(ByteBuffer)}
+     */
+    @Deprecated
+    protected void write(ByteBuffer header, ByteBuffer data) throws IOException {
+        throw new AbstractMethodError("implement write(ByteBuffer, ByteBuffer) if !combineBuffers");
+    }
+
+    /**
      * Write the packet.
      *
-     * @param header the header to write.
-     * @param data   the data to write.
+     * @param headerAndData the header and data to write.
      * @throws IOException if the data could not be written.
      */
-    protected abstract void write(ByteBuffer header, ByteBuffer data) throws IOException;
+    protected void write(ByteBuffer headerAndData) throws IOException {
+        throw new AbstractMethodError("implement write(ByteBuffer) if combineBuffers");
+    }
 
     /**
      * Handle receiving some data.
@@ -143,7 +172,7 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         while (data.hasRemaining() || readState == READ_STATE_COMMAND_READY) {
             switch (readState) {
                 case READ_STATE_NEED_HEADER:
-                    if (data.remaining() >= 2) {
+                    if (data.remaining() >= ChunkHeader.SIZE) {
                         // jump straight to state 2
                         readFrameHeader = ChunkHeader.read(data);
                         readFrameRemaining = ChunkHeader.length(readFrameHeader);
@@ -247,7 +276,11 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
         }
         this.transportFrameSize = transportFrameSize;
         // this is the only one that matters when it comes to sizing as we have to accept any frame size on receive
-        writeChunkBody = ByteBuffer.allocate(transportFrameSize);
+        if (writeChunkHeader == null) {
+            writeChunkCombined = ByteBuffer.allocate(transportFrameSize + ChunkHeader.SIZE);
+        } else {
+            writeChunkBody = ByteBuffer.allocate(transportFrameSize);
+        }
     }
 
     /**
@@ -293,14 +326,23 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
             int frame = remaining > transportFrameSize
                     ? transportFrameSize
                     : (int) remaining; // # of bytes we send in this chunk
-            ((Buffer) writeChunkHeader).clear();
-            ChunkHeader.write(writeChunkHeader, frame, remaining > transportFrameSize);
-            ((Buffer) writeChunkHeader).flip();
-            ((Buffer) writeChunkBody).clear();
-            ((Buffer) writeChunkBody).limit(frame);
-            sendStaging.get(writeChunkBody);
-            ((Buffer) writeChunkBody).flip();
-            write(writeChunkHeader, writeChunkBody);
+            if (writeChunkHeader == null) {
+                ((Buffer) writeChunkCombined).clear();
+                ((Buffer) writeChunkCombined).limit(frame + ChunkHeader.SIZE);
+                ChunkHeader.write(writeChunkCombined, frame, remaining > transportFrameSize);
+                sendStaging.get(writeChunkCombined);
+                ((Buffer) writeChunkCombined).flip();
+                write(writeChunkCombined);
+            } else {
+                ((Buffer) writeChunkHeader).clear();
+                ChunkHeader.write(writeChunkHeader, frame, remaining > transportFrameSize);
+                ((Buffer) writeChunkHeader).flip();
+                ((Buffer) writeChunkBody).clear();
+                ((Buffer) writeChunkBody).limit(frame);
+                sendStaging.get(writeChunkBody);
+                ((Buffer) writeChunkBody).flip();
+                write(writeChunkHeader, writeChunkBody);
+            }
             remaining -= frame;
         }
     }

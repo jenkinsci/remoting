@@ -40,6 +40,7 @@ import java.net.URL;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -76,13 +77,25 @@ public class JnlpAgentEndpoint {
     @CheckForNull
     private final URL serviceUrl;
 
+    @CheckForNull
+    private final String proxyCredentials;
+
     /**
-     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.net.URL)}
+     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.net.URL, java.lang.String)}
      */
     @Deprecated
     public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,
                              @CheckForNull Set<String> protocols) {
-        this(host, port, publicKey, protocols, null);
+        this(host, port, publicKey, protocols, null, null);
+    }
+
+    /**
+     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.net.URL, java.lang.String)}
+     */
+    @Deprecated
+    public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,
+                             @CheckForNull Set<String> protocols, @CheckForNull URL serviceURL) {
+        this(host, port, publicKey, protocols, serviceURL, null);
     }
 
     /**
@@ -97,7 +110,7 @@ public class JnlpAgentEndpoint {
      * @since 3.0
      */
     public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,
-                             @CheckForNull Set<String> protocols, @CheckForNull URL serviceURL) {
+                             @CheckForNull Set<String> protocols, @CheckForNull URL serviceURL, @CheckForNull String proxyCredentials) {
         if (port <= 0 || 65536 <= port) {
             throw new IllegalArgumentException("Port " + port + " is not in the range 1-65535");
         }
@@ -106,6 +119,7 @@ public class JnlpAgentEndpoint {
         this.publicKey = publicKey;
         this.protocols = protocols == null || protocols.isEmpty() ? null : Collections.unmodifiableSet(new LinkedHashSet<>(protocols));
         this.serviceUrl = serviceURL;
+        this.proxyCredentials = proxyCredentials;
     }
 
     /**
@@ -215,7 +229,12 @@ public class JnlpAgentEndpoint {
             socket.setSoTimeout(socketTimeout);
 
             if (isHttpProxy) {
-                String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n\r\n", host, port, host);
+                String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n", host, port, host);
+                if (proxyCredentials != null) {
+                    String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
+                    connectCommand += "Proxy-Authorization: Basic " + encoding + "\r\n";
+                }
+                connectCommand += "\r\n";
                 socket.getOutputStream()
                         .write(connectCommand.getBytes(StandardCharsets.UTF_8)); // TODO: internationalized domain names
 

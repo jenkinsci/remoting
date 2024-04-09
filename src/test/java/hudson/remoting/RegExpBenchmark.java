@@ -23,7 +23,6 @@
  */
 package hudson.remoting;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -33,6 +32,7 @@ import java.util.Locale;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
+import org.junit.Ignore;
 
 @Ignore("This is not a test just a benchmark and is here for ease of running")
 public class RegExpBenchmark {

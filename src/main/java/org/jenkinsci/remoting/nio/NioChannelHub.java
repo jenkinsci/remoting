@@ -608,15 +608,15 @@ public class NioChannelHub implements Runnable, Closeable {
                                     t.closeR();
                                 }
 
-                                final byte[] buf = new byte[2]; // space for reading the chunk header
+                                final byte[] buf = new byte[ChunkHeader.SIZE];
                                 int pos=0;
                                 int packetSize=0;
                                 while (true) {
-                                    if (t.rb.peek(pos,buf)<buf.length)
+                                    if (t.rb.peek(pos,buf)<ChunkHeader.SIZE)
                                         break;  // we don't have enough to parse header
                                     int header = ChunkHeader.parse(buf);
                                     int chunk = ChunkHeader.length(header);
-                                    pos+=buf.length+chunk;
+                                    pos+=ChunkHeader.SIZE+chunk;
                                     packetSize+=chunk;
                                     boolean last = ChunkHeader.isLast(header);
                                     if (last && pos<=t.rb.readable()) {// do we have the whole packet in our buffer?
@@ -625,7 +625,7 @@ public class NioChannelHub implements Runnable, Closeable {
                                         int r_ptr = 0;
                                         do {
                                             int r = t.rb.readNonBlocking(buf);
-                                            assert r==buf.length;
+                                            assert r==ChunkHeader.SIZE;
                                             header = ChunkHeader.parse(buf);
                                             chunk = ChunkHeader.length(header);
                                             last = ChunkHeader.isLast(header);

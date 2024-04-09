@@ -173,6 +173,7 @@ public class AckFilterLayer extends FilterLayer {
     public void start() throws IOException {
         synchronized (sendLock) {
             timeout = stack().executeLater(() -> {
+                LOGGER.info("Timeout waiting for ACK");
                 IOException cause = new IOException("Timeout waiting for ACK");
                 abort(cause);
                 try {

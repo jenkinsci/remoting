@@ -1,11 +1,11 @@
 package hudson.remoting;
 
 import hudson.remoting.Channel.Mode;
-import org.apache.commons.io.output.NullOutputStream;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StreamCorruptedException;
 import java.io.StringWriter;
@@ -28,7 +28,7 @@ public class DiagnosedStreamCorruptionExceptionTest {
                 new ChannelBuilder("dummy",null)
                     .withMode(Mode.BINARY)
                     .withBaseLoader(getClass().getClassLoader())
-                    .negotiate(new ByteArrayInputStream(payload), NullOutputStream.NULL_OUTPUT_STREAM);
+                    .negotiate(new ByteArrayInputStream(payload), OutputStream.nullOutputStream());
 
         verify(ct);
     }
@@ -63,7 +63,7 @@ public class DiagnosedStreamCorruptionExceptionTest {
                     new ChannelBuilder("dummy",null)
                         .withMode(Mode.BINARY)
                         .withBaseLoader(getClass().getClassLoader())
-                        .negotiate(in, NullOutputStream.NULL_OUTPUT_STREAM);
+                        .negotiate(in, OutputStream.nullOutputStream());
 
             verify(ct);
         }

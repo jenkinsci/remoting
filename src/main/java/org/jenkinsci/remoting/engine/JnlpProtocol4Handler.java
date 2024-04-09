@@ -193,6 +193,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
     private NetworkLayer createNetworkLayer(Socket socket) throws IOException {
         NetworkLayer networkLayer;
         SocketChannel socketChannel = isPreferNio() ? socket.getChannel() : null;
+        LOGGER.fine(() -> "prefer NIO? " + isPreferNio() + " actually using NIO? " + (socketChannel != null));
         if (socketChannel == null) {
             networkLayer = new BIONetworkLayer(ioHub, Channels.newChannel(SocketChannelStream.in(socket)),
                     Channels.newChannel(SocketChannelStream.out(socket)));

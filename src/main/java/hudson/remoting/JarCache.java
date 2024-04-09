@@ -5,6 +5,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Jar file cache.
@@ -55,5 +56,5 @@ public abstract class JarCache {
      *      URL of the jar file.
      */
     @NonNull
-    public abstract Future<URL> resolve(@NonNull Channel channel, long sum1, long sum2) throws IOException, InterruptedException;
+    public abstract CompletableFuture<URL> resolve(@NonNull Channel channel, long sum1, long sum2) throws IOException, InterruptedException;
 }

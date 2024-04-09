@@ -1,4 +1,5 @@
 # Launching inbound agents
+
 Jenkins provides a number of ways of connecting remote agents.
 Two of the most popular are outbound SSH agents and inbound agents.
 SSH agents, most commonly used on Unix platforms, are controller initiated.
@@ -11,85 +12,94 @@ This document describes some of the primary mechanisms for launching inbound age
 For additional information about Jenkins agents see [Distributed builds](https://wiki.jenkins.io/display/JENKINS/Distributed+builds#Distributedbuilds-HavemasterlaunchagentonWindows).
 
 ## Launch mechanisms
+
 Part of the agent status page for inbound agents looks something like this:
 
 ![Tcp agent status UI](tcpAgentStatus.png)
 
 This page contains parameters that you will need to launch an agent.
+These include the Jenkins URl and the agent name (`agentName` in this example).
 The long string of hex digits is a secret key that the client needs to establish the connection. 
 This key is based on the agent name and a per-controller secret.
-Depending on how you connect you may also need the agent name, "AgentName" in this example, or the (misnamed) jnlpUrl, "https://myjenkins.example.com/computer/AgentName/jenkins-agent.jnlp".
 
 Note that the secret key will always be the same for a given agent name on the same Jenkins controller.
 If the secret key of an agent is compromised, do not reuse the agent name on the affected Jenkins controller.
 
 ### "Launch" button
-Historically there was a launch mechanism actually using JavaWebStart/JNLP (`javaws`).
+
+Historically there was a launch mechanism based on Java Web Start/JNLP (`javaws`).
 This has been removed.
 
-### Download JNLP file
-Another mechanism, shown in the above status page fragment, runs the agent from a script or command-line to retrieve the JNLP file. 
-This mechanism does not use JNLP or WebStart but uses the downloaded file to obtain connection information. 
+### Run from command line
+
+The recommended launch mechanism is to run the agent from the command line or a script.
+This mechanism does not use JNLP or Java Web Start.
 
 For an inbound agent using the TCP port, this is a two-step process:
+
 * Connect to an HTTP(S) port to retrieve the connection information.
 * Extract that information and connect to the TCP port.
 
 (When using the `-webSocket` option, only a single connection needs to be made.)
 
-Before invoking this command you must download the "agent.jar" file.
-The correct version can be obtained from your Jenkins server at something like "https://myjenkins.example.com/jnlpJars/agent.jar".
+Before invoking this command you must download the `agent.jar` file.
+The correct version can be obtained from your Jenkins controller at e.g. `https://jenkins.example.com/jnlpJars/agent.jar`.
 These operations can be combined in a script, cron job, or service.
 
-A typical example of this command, as shown in the above image, is
-``` 
-java -jar agent.jar \
-  -jnlpUrl <jnlp url> \
+A typical invocation of this command, as shown in the above image, is as follows:
+
+```bash
+$ java -jar agent.jar \
+  -url <jenkins url> \
   -secret <secret key> \
-  -workDir <work directory> 
+  -name <agent name> \
+  -workDir <work directory>
 ```
 
+The most commonly used option is `-webSocket`. Run `java -jar agent.jar -help` for more.
+
 ### Connect directly to TCP port
-With the latest versions of the Remoting library (since 3.34), it is possible to connect directly to the TCP port. 
+
+With recent versions of the Remoting library (since 3.34), it is possible to connect directly to the TCP port. 
 This skips the download of the connection information file, described in step 1) above. 
 To use this you must provide some of the information that the downloaded file would contain.
 
-You must provide the agent name. 
-This is easily obtained from the agent status page or other places.
+You need to specify the host and port, in typical `HOST:PORT` fashion, as the argument to `-direct`.
+The `HOST` can be whatever name or address resolves to the controller.
+The `PORT` value can be determined by looking at the **Agents** section of the controller's **Configure Global Security** page.
 
-You need to specify the host and port, in a typical `HOST:PORT` fashion. 
-The HOST can be whatever name or address resolves to the server. 
-The PORT value can be determined by examining the JNLP file or looking at the Agents section of the server Configure Global Security page.
-
-Each Jenkins instance has its own [Instance Identity](https://wiki.jenkins.io/display/JENKINS/Instance+Identity). 
+Each Jenkins controller has its own [Instance Identity](https://wiki.jenkins.io/display/JENKINS/Instance+Identity). 
 The agent needs this key to complete the connection. 
 You can obtain this value via the script console or the Instance Identity page.
 
-Using the script console, execute the command
-```
+Using the script console, execute the following statement:
+
+```groovy
 hudson.remoting.Base64.encode(org.jenkinsci.main.modules.instance_identity.InstanceIdentity.get().getPublic().getEncoded())
 ```
+
 Capture the result to pass into the agent invocation.
 
-You can also capture the value by visiting the Instance Identity page, at something like "https://myjenkins.example.com/instance-identity". 
+You can also capture the value by visiting the Instance Identity page at e.g. `https://jenkins.example.com/instance-identity`.
 If you use this mechanism you must stitch it back together into a single, complete value from its multi-line display representation.
 
-This mechanism requires a download of the `agent.jar`, as described for "Download JNLP file".
+This mechanism requires a download of the `agent.jar` file, as described above in **Run from command line**.
+Similarly, you must provide the secret and agent name.
 
-Once all the prerequisite files and data have been obtained, the agent can be launched with a command like this
-```
-java -cp agent.jar hudson.remoting.jnlp.Main \
-  -workDir <work directory> \
+Once all the prerequisite files and data have been obtained, the agent can be launched as follows:
+
+```bash
+$ java -jar agent.jar \
   -direct <HOST:PORT> \
-  -protocols JNLP4-connect \
   -instanceIdentity <instance identity> \
-  <secretString> <agentName>
+  -protocols JNLP4-connect \
+  -secret <secret key> \
+  -name <agent name> \
+  -workDir <work directory>
 ```
-The "-protocols" parameter is optional, but is useful to limit the agent to protocols the server supports. 
-The only currently supported and recommended protocol is "JNLP4-connect".
 
-Note that this mechanism uses a different JAR entry point than used for "Download JNLP file". 
-The parameters available and the default behavior may be different between the entry points.
+The `-protocols` parameter is optional, but it is useful to limit the agent to protocols the controller supports.
+The only currently supported and recommended protocol is `JNLP4-connect`.
 
 ### Install as Windows service
 On a Microsoft Windows platform, you can install the agent as a Windows Service.
@@ -101,8 +111,7 @@ Additional descriptions of configuring this mechanism are located at [Installing
 ## Parameters
 
 There are a number of different launch parameters that control how the agent connects and behaves. 
-The parameters available and the default behavior may vary depending upon the entry point. 
-You can obtain usage information by executing `java -cp agent.jar hudson.remoting.jnlp.Main` or `java -jar agent.jar --help`. 
+You can obtain usage information by executing `java -jar agent.jar -help`.
 Not all parameters work together and some parameters require the use of others.
 
 There are also system or environment variables that control some advanced behaviors documented at [Remoting Configuration](https://github.com/jenkinsci/remoting/blob/master/docs/configuration.md). 
@@ -113,30 +122,12 @@ Similar to the usage in a number of other applications, this controls which host
 
 ### The '@' argument annotation
 
-If any command-line argument is prepended with the '@' symbol, special behavior is invoked. 
-For example, more recent versions of Jenkins show in the UI that one form of launching inbound agents is
-```
-echo <secret key> > secret-file
-java -jar agent.jar -jnlpUrl <jnlp url> -secret @secret-file -workDir <work directory> 
-```
-This varies from the form shown above in "Download JNLP file" in that the secret key is stored in a file rather than passed directly in the command-line. 
+If any command-line argument is prepended with the '@' symbol, the argument is read from a file of that name.
+For example, recent versions of Jenkins show that one form of launching inbound agents is:
 
-The behavior is more general than shown on the agent status page. 
-Any argument passed to the program (not interpreted by Java) may start with an '@'. 
-The agent will interpret the rest of that argument as the name of a file, "secret-file" in this example. 
-The agent reads this file and augments the command-line with an argument for each line in the file.
+```bash
+$ echo <secret key> > secret-file
+$ java -jar agent.jar -url <jenkins url> -secret @secret-file -name <agent name> -workDir <work directory>
+```
 
-As an expanded example, you could incorporate this line in common agent management scripts
-```
-java -jar agent.jar \
-  @agent_options.cfg
-```
-with an "agent_options.cfg" file for each agent looking something like this
-```
--jnlpUrl
-<jnlp url>
--secret
-<secret key>
--workDir <work directory>
-```
-This could be a good way of extracting out the agent configuration information.
+This varies from the form shown above in **Run from command line** in that the secret key is stored in a file rather than passed directly on the command line.

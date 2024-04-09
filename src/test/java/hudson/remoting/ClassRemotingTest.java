@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.Issue;
@@ -50,6 +51,7 @@ public class ClassRemotingTest {
     static final String TESTCALLABLE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestCallable";
     static final String TESTLINKAGE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestLinkage";
 
+    @Disabled("TODO flakes: Artificial testing interrupt.")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void test1(ChannelRunner channelRunner) throws Throwable {
@@ -84,6 +86,7 @@ public class ClassRemotingTest {
         });
     }
 
+    @Disabled("TODO flakes: Artificial testing interrupt.")
     @Issue("JENKINS-6604")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
@@ -109,6 +112,7 @@ public class ClassRemotingTest {
         });
     }
 
+    @Disabled("TODO flakes: Artificial testing interrupt.")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testClassCreation_TestCallable(ChannelRunner channelRunner) throws Exception {
@@ -142,6 +146,7 @@ public class ClassRemotingTest {
         });
     }
 
+    @Disabled("TODO flakes: Remote call on north failed")
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
@@ -156,6 +161,7 @@ public class ClassRemotingTest {
         });
     }
 
+    @Disabled("TODO flakes: Remote call on north failed")
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)

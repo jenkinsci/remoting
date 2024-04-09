@@ -37,11 +37,13 @@ public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
     private final String instanceIdentity;
     private final Set<String> protocols;
     private final String directionConnection;
+    private final String proxyCredentials;
 
-    public JnlpAgentEndpointConfigurator(String directConnection, String instanceIdentity, Set<String> protocols) {
+    public JnlpAgentEndpointConfigurator(String directConnection, String instanceIdentity, Set<String> protocols, String proxyCredentials) {
         this.directionConnection = directConnection;
         this.instanceIdentity = instanceIdentity;
         this.protocols = protocols;
+        this.proxyCredentials = proxyCredentials;
     }
 
     @Override
@@ -57,7 +59,7 @@ public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
         }
         HostPort hostPort = new HostPort(directionConnection);
 
-        return new JnlpAgentEndpoint(hostPort.getHost(), hostPort.getPort(), identity, protocols, null);
+        return new JnlpAgentEndpoint(hostPort.getHost(), hostPort.getPort(), identity, protocols, null, proxyCredentials);
     }
 
     @Override
