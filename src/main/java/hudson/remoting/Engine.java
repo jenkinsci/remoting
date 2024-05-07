@@ -102,6 +102,7 @@ import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
+import org.jenkinsci.remoting.util.DurationFormatter;
 import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
@@ -755,7 +756,7 @@ public class Engine extends Thread {
                 while (true) {
                     // TODO refactor various sleep statements into a common method
                     if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
-                        events.status("Bailing out after " + (noReconnectAfter == null ? "?" : noReconnectAfter.getSeconds()) + " seconds");
+                        events.status("Bailing out after " + DurationFormatter.format(noReconnectAfter));
                         return;
                     }
                     TimeUnit.SECONDS.sleep(10);
@@ -819,7 +820,7 @@ public class Engine extends Thread {
                         return; // exit
                 }
                 if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
-                    events.status("Bailing out after " + (noReconnectAfter == null ? "?" : noReconnectAfter.getSeconds()) + " seconds");
+                    events.status("Bailing out after " + DurationFormatter.format(noReconnectAfter));
                     return;
                 }
                 events.status("Locating server among " + candidateUrls);

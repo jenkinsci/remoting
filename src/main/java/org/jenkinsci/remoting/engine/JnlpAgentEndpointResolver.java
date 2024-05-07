@@ -32,6 +32,7 @@ import hudson.remoting.NoProxyEvaluator;
 import hudson.remoting.Util;
 import java.time.Duration;
 import java.time.Instant;
+import org.jenkinsci.remoting.util.DurationFormatter;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.accmod.Restricted;
@@ -411,7 +412,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             while (true) {
                 // TODO refactor various sleep statements into a common method
                 if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
-                    LOGGER.info("Bailing out after " + (noReconnectAfter == null ? "?" : noReconnectAfter.getSeconds()) + " seconds");
+                    LOGGER.info("Bailing out after " + DurationFormatter.format(noReconnectAfter));
                     return;
                 }
                 Thread.sleep(1000 * 10);

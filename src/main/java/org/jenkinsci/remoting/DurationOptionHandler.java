@@ -1,7 +1,7 @@
 package org.jenkinsci.remoting;
 
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
+import org.jenkinsci.remoting.util.DurationFormatter;
 import org.jenkinsci.remoting.util.DurationStyle;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -31,41 +31,7 @@ public class DurationOptionHandler extends OptionHandler<Duration> {
 
     @Override
     protected String print(Duration v) {
-        return formatDuration(v);
+        return DurationFormatter.format(v);
     }
 
-    private static String formatDuration(Duration d) {
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        long days = d.toDays();
-        if (days > 0) {
-            first = formatDurationPart(true, sb, days, "day");
-            d = d.minus(days, ChronoUnit.DAYS);
-        }
-        long hours = d.toHours();
-        if (hours > 0) {
-            first = formatDurationPart(first, sb, hours, "hour");
-            d = d.minus(hours, ChronoUnit.HOURS);
-        }
-        long minutes = d.toMinutes();
-        if (minutes > 0) {
-            first = formatDurationPart(first, sb, minutes, "minute");
-            d = d.minus(minutes, ChronoUnit.MINUTES);
-        }
-        long seconds = d.getSeconds() ;
-        if (seconds > 0) {
-            formatDurationPart(first, sb, seconds, "second");
-        }
-        return sb.toString();
-    }
-
-    private static boolean formatDurationPart(boolean first, StringBuilder sb, long amount, String unit) {
-        if (!first) {
-            sb.append(", ");
-        } else {
-            first = false;
-        }
-        sb.append(amount).append(" ").append(unit).append(amount > 1 ? "s" : "");
-        return first;
-    }
 }

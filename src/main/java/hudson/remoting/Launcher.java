@@ -32,6 +32,7 @@ import java.time.Instant;
 import org.jenkinsci.remoting.DurationOptionHandler;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.WorkDirManager;
+import org.jenkinsci.remoting.util.DurationFormatter;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.args4j.Argument;
@@ -750,7 +751,7 @@ public class Launcher {
                 if (this.noReconnect)
                     throw new IOException("Failed to obtain " + agentJnlpURL, e);
                 if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
-                    throw new IOException("Failed to obtain " + agentJnlpURL + " after " + (noReconnectAfter == null ? "?" : noReconnectAfter.getSeconds()) + " seconds", e);
+                    throw new IOException("Failed to obtain " + agentJnlpURL + " after " + DurationFormatter.format(noReconnectAfter), e);
                 }
                 System.err.println("Failed to obtain "+ agentJnlpURL);
                 e.printStackTrace(System.err);
