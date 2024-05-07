@@ -29,6 +29,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
 import java.time.Duration;
 import java.time.Instant;
+import org.jenkinsci.remoting.DurationOptionHandler;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.PathUtils;
@@ -251,7 +252,7 @@ public class Launcher {
     @Option(name="-noReconnect",aliases="-noreconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
     public boolean noReconnect = false;
 
-    @Option(name="-noReconnectAfter",usage = "Bail out after the given time after the first attempt to reconnect", handler = DurationSecondsOptionHandler.class, forbids = "-noReconnect")
+    @Option(name="-noReconnectAfter",usage = "Bail out after the given time after the first attempt to reconnect", handler = DurationOptionHandler.class, forbids = "-noReconnect")
     public Duration noReconnectAfter;
 
     @Option(name = "-noKeepAlive",
