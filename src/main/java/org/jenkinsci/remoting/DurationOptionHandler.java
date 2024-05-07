@@ -34,7 +34,7 @@ import org.kohsuke.args4j.spi.Parameters;
 import org.kohsuke.args4j.spi.Setter;
 
 /**
- * Parses a string like 1s, 1m, 1d into a {@link Duration}.
+ * Parses a string like 1s, 2m, 3h, 4d into a {@link Duration}.
  */
 public class DurationOptionHandler extends OptionHandler<Duration> {
     public DurationOptionHandler(CmdLineParser parser, OptionDef option, Setter<? super Duration> setter) {
