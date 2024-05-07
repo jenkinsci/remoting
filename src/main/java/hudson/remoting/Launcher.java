@@ -251,7 +251,7 @@ public class Launcher {
     @Option(name="-noReconnect",aliases="-noreconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
     public boolean noReconnect = false;
 
-    @Option(name="-noReconnectAfter",usage = "Bail out after the given time after the first attempt to reconnect", handler = DurationSecondsOptionHandler.class)
+    @Option(name="-noReconnectAfter",usage = "Bail out after the given time after the first attempt to reconnect", handler = DurationSecondsOptionHandler.class, forbids = "-noReconnect")
     public Duration noReconnectAfter;
 
     @Option(name = "-noKeepAlive",
@@ -405,9 +405,6 @@ public class Launcher {
             if (launcher.args.size() == 2) {
                 System.err.println(
                         "WARNING: Providing the secret and agent name as positional arguments is deprecated; use \"-secret\" and \"-name\" instead.");
-            }
-            if (launcher.noReconnect && launcher.noReconnectAfter != null) {
-                throw new CmdLineException(null, "-noReconnect and -noReconnectAfter are mutually exclusive");
             }
             normalizeArguments(launcher);
             if (launcher.showHelp && !launcher.showVersion) {
