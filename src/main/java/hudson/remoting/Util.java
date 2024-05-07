@@ -1,7 +1,10 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.time.Duration;
+import java.time.Instant;
 import org.jenkinsci.remoting.util.PathUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -112,6 +115,13 @@ public class Util {
             System.out.println("Could not access manifest");
         }
         return version;
+    }
+
+    public static boolean shouldBailOut(@NonNull Instant firstAttempt, @CheckForNull Duration noReconnectAfter) {
+        if (noReconnectAfter == null) {
+            return false;
+        }
+        return Duration.between(firstAttempt, Instant.now()).compareTo(noReconnectAfter) > 0;
     }
 
     private Util() {

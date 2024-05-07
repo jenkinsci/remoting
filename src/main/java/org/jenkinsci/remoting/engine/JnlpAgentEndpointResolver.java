@@ -29,6 +29,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
+import hudson.remoting.Util;
+import java.time.Duration;
+import java.time.Instant;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.accmod.Restricted;
@@ -100,6 +103,8 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
     private HostnameVerifier hostnameVerifier;
 
+    private Duration noReconnectAfter;
+
     /**
      * If specified, only the protocols from the list will be tried during the connection.
      * The option provides protocol names, but the order of the check is defined internally and cannot be changed.
@@ -110,7 +115,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
 
     public JnlpAgentEndpointResolver(@NonNull List<String> jenkinsUrls, String agentName, String credentials, String proxyCredentials,
-                                     String tunnel, SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation) {
+                                     String tunnel, SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation, Duration noReconnectAfter) {
         this.jenkinsUrls = new ArrayList<>(jenkinsUrls);
         this.agentName = agentName;
         this.credentials = credentials;
@@ -118,6 +123,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         this.tunnel = tunnel;
         this.sslSocketFactory = sslSocketFactory;
         setDisableHttpsCertValidation(disableHttpsCertValidation);
+        this.noReconnectAfter = noReconnectAfter;
     }
 
     public SSLSocketFactory getSslSocketFactory() {
@@ -401,8 +407,13 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         String oldName = t.getName();
         try {
             int retries = 0;
+            Instant firstAttempt = Instant.now();
             while (true) {
                 // TODO refactor various sleep statements into a common method
+                if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
+                    LOGGER.info("Bailing out after " + (noReconnectAfter == null ? "?" : noReconnectAfter.getSeconds()) + " seconds");
+                    return;
+                }
                 Thread.sleep(1000 * 10);
                 // Jenkins top page might be read-protected. see http://www.nabble
                 // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html

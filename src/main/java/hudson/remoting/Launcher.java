@@ -27,6 +27,8 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel.Mode;
+import java.time.Duration;
+import java.time.Instant;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.PathUtils;
@@ -249,6 +251,9 @@ public class Launcher {
     @Option(name="-noReconnect",aliases="-noreconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
     public boolean noReconnect = false;
 
+    @Option(name="-noReconnectAfter",usage = "Bail out after the given time after the first attempt to reconnect", handler = DurationSecondsOptionHandler.class)
+    public Duration noReconnectAfter;
+
     @Option(name = "-noKeepAlive",
             usage = "Disable TCP socket keep alive on connection to the controller.")
     public boolean noKeepAlive = false;
@@ -400,6 +405,9 @@ public class Launcher {
             if (launcher.args.size() == 2) {
                 System.err.println(
                         "WARNING: Providing the secret and agent name as positional arguments is deprecated; use \"-secret\" and \"-name\" instead.");
+            }
+            if (launcher.noReconnect && launcher.noReconnectAfter != null) {
+                throw new CmdLineException(null, "-noReconnect and -noReconnectAfter are mutually exclusive");
             }
             normalizeArguments(launcher);
             if (launcher.showHelp && !launcher.showVersion) {
@@ -682,6 +690,7 @@ public class Launcher {
                 throw new IOException("-jnlpCredentials and -secret are mutually exclusive");
             }
         }
+        Instant firstAttempt = Instant.now();
         while (true) {
             URLConnection con = null;
             try {
@@ -742,7 +751,9 @@ public class Launcher {
             } catch (IOException e) {
                 if (this.noReconnect)
                     throw new IOException("Failed to obtain " + agentJnlpURL, e);
-
+                if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
+                    throw new IOException("Failed to obtain " + agentJnlpURL + " after " + (noReconnectAfter == null ? "?" : noReconnectAfter.getSeconds()) + " seconds", e);
+                }
                 System.err.println("Failed to obtain "+ agentJnlpURL);
                 e.printStackTrace(System.err);
                 System.err.println("Waiting 10 seconds before retry");
@@ -1026,6 +1037,7 @@ public class Launcher {
             engine.setJarCache(new FileSystemJarCache(jarCache, true));
         }
         engine.setNoReconnect(noReconnect);
+        engine.setNoReconnectAfter(noReconnectAfter);
         engine.setKeepAlive(!noKeepAlive);
 
         if (noCertificateCheck) {
