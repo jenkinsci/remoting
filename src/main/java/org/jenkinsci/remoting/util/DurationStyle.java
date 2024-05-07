@@ -251,7 +251,7 @@ public enum DurationStyle {
 
         public static Unit fromSuffix(String suffix) {
             for (Unit candidate : values()) {
-                if (candidate.suffix.equalsIgnoreCase(suffix)) {
+                if (candidate.suffix.equals(suffix.toLowerCase())) {
                     return candidate;
                 }
             }
