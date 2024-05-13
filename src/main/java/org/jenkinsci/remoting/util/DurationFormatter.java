@@ -25,10 +25,13 @@ package org.jenkinsci.remoting.util;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Formats a {@link Duration} into a human-readable string.
  */
+@Restricted(NoExternalUse.class)
 public final class DurationFormatter {
     private DurationFormatter(){}
 

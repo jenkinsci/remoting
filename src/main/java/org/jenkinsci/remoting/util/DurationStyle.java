@@ -18,9 +18,12 @@ package org.jenkinsci.remoting.util;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.Locale;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Duration format styles.
@@ -30,6 +33,7 @@ import java.util.regex.Pattern;
  * @author Phillip Webb
  * @author Valentine Wu
  */
+@Restricted(NoExternalUse.class)
 public enum DurationStyle {
 
     /**
@@ -186,7 +190,7 @@ public enum DurationStyle {
         /**
          * Microseconds.
          */
-        MICROS(ChronoUnit.MICROS, "us", (duration) -> duration.toNanos() / 1000L),
+        MICROS(ChronoUnit.MICROS, "µs", duration -> duration.toNanos() / 1000L),
 
         /**
          * Milliseconds.
@@ -251,7 +255,7 @@ public enum DurationStyle {
 
         public static Unit fromSuffix(String suffix) {
             for (Unit candidate : values()) {
-                if (candidate.suffix.equals(suffix.toLowerCase())) {
+                if (candidate.suffix.equals(suffix.toLowerCase(Locale.ROOT))) {
                     return candidate;
                 }
             }

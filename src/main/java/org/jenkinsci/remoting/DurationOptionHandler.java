@@ -26,6 +26,8 @@ package org.jenkinsci.remoting;
 import java.time.Duration;
 import org.jenkinsci.remoting.util.DurationFormatter;
 import org.jenkinsci.remoting.util.DurationStyle;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.OptionDef;
@@ -36,6 +38,7 @@ import org.kohsuke.args4j.spi.Setter;
 /**
  * Parses a string like 1s, 2m, 3h, 4d into a {@link Duration}.
  */
+@Restricted(NoExternalUse.class)
 public class DurationOptionHandler extends OptionHandler<Duration> {
     public DurationOptionHandler(CmdLineParser parser, OptionDef option, Setter<? super Duration> setter) {
         super(parser, option, setter);
