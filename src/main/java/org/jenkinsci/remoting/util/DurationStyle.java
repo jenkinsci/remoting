@@ -16,6 +16,7 @@
 
 package org.jenkinsci.remoting.util;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.Locale;
@@ -253,6 +254,7 @@ public enum DurationStyle {
             throw new IllegalArgumentException("Unknown unit " + chronoUnit);
         }
 
+        @SuppressFBWarnings(value = "IMPROPER_UNICODE", justification = "not security sensitive")
         public static Unit fromSuffix(String suffix) {
             for (Unit candidate : values()) {
                 if (candidate.suffix.equals(suffix.toLowerCase(Locale.ROOT))) {
