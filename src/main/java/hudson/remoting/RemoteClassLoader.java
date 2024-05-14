@@ -170,11 +170,18 @@ final class RemoteClassLoader extends URLClassLoader {
             // actually our classloader that we exported to the other side.
             return ((ClassLoaderProxy) proxy).cl;
         }
-        return new RemoteClassLoader(parent, proxy);
+
+        String name;
+        try {
+            name = proxy.getName();
+        } catch(IOException ignored) {
+            name = "unknown-due-to-io-error";
+        }
+        return new RemoteClassLoader(name, parent, proxy);
     }
 
-    private RemoteClassLoader(@CheckForNull ClassLoader parent, @NonNull IClassLoader proxy) {
-        super(new URL[0], parent);
+    private RemoteClassLoader(String name, @CheckForNull ClassLoader parent, @NonNull IClassLoader proxy) {
+        super(name, new URL[0], parent);
         final Channel channel = RemoteInvocationHandler.unwrap(proxy);
         this.channel = channel == null ? null : channel.ref();
         this.underlyingProxy = proxy;
@@ -887,6 +894,12 @@ final class RemoteClassLoader extends URLClassLoader {
          */
         @NonNull
         ResourceFile[] getResources2(String name) throws IOException;
+
+        /**
+         * Name of the classLoader
+         * @since 3242
+         */
+        String getName() throws IOException;
     }
 
     /**
@@ -1179,6 +1192,11 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         @Override
+        public String getName() throws IOException {
+            return cl.getName();
+        }
+
+        @Override
         public boolean equals(Object that) {
             if (this == that) {
                 return true;
@@ -1276,6 +1294,11 @@ final class RemoteClassLoader extends URLClassLoader {
             return proxy.getResources2(name);
         }
 
+        @Override
+        public String getName() throws IOException {
+            return proxy.getName();
+        }
+
         private Object readResolve() throws ObjectStreamException {
             try {
                 return getChannelForSerialization().getExportedObject(oid);
@@ -1334,6 +1357,11 @@ final class RemoteClassLoader extends URLClassLoader {
         @Override
         public ResourceFile[] getResources2(String name) throws IOException {
             throw new IOException("Cannot get " + name, cause);
+        }
+
+        @Override
+        public String getName() throws IOException {
+            throw new IOException("Cannot getName", cause);
         }
 
     }
