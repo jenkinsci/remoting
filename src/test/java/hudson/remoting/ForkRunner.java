@@ -22,6 +22,7 @@ public class ForkRunner implements ChannelRunner {
         String cp = getClasspath();
 
         List<String> r = new ArrayList<>();
+        r.add("-Xmx128M");
         r.add("-cp");
         r.add(cp);
         r.add(Launcher.class.getName());

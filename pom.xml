@@ -65,6 +65,7 @@ THE SOFTWARE.
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.threshold>Low</spotbugs.threshold>
     <bc-version>1.78.1</bc-version>
+    <argLine>-Xms256M -Xmx256M -XX:+TieredCompilation -XX:TieredStopAtLevel=1</argLine>
   </properties>
 
   <dependencies>
