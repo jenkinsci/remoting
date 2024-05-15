@@ -52,6 +52,8 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -100,6 +102,7 @@ import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
+import org.jenkinsci.remoting.util.DurationFormatter;
 import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
@@ -192,6 +195,10 @@ public class Engine extends Thread {
     private HostnameVerifier hostnameVerifier;
 
     private boolean noReconnect = false;
+
+    private Duration noReconnectAfter;
+
+    private Instant firstAttempt;
 
     /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
@@ -410,6 +417,10 @@ public class Engine extends Thread {
 
     public void setNoReconnect(boolean noReconnect) {
         this.noReconnect = noReconnect;
+    }
+
+    public void setNoReconnectAfter(@CheckForNull Duration noReconnectAfter) {
+        this.noReconnectAfter = noReconnectAfter;
     }
 
     /**
@@ -740,9 +751,14 @@ public class Engine extends Thread {
                 if (noReconnect) {
                     return;
                 }
+                firstAttempt = Instant.now();
                 events.onDisconnect();
                 while (true) {
                     // TODO refactor various sleep statements into a common method
+                    if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
+                        events.status("Bailing out after " + DurationFormatter.format(noReconnectAfter));
+                        return;
+                    }
                     TimeUnit.SECONDS.sleep(10);
                     // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be a 404 if the TCP port is disabled.
                     URL ping = new URL(hudsonUrl, "login");
@@ -795,6 +811,7 @@ public class Engine extends Thread {
 
         try {
             boolean first = true;
+            firstAttempt = Instant.now();
             while(true) {
                 if(first) {
                     first = false;
@@ -802,7 +819,10 @@ public class Engine extends Thread {
                     if(noReconnect)
                         return; // exit
                 }
-
+                if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
+                    events.status("Bailing out after " + DurationFormatter.format(noReconnectAfter));
+                    return;
+                }
                 events.status("Locating server among " + candidateUrls);
                 final JnlpAgentEndpoint endpoint;
                 try {
@@ -915,7 +935,7 @@ public class Engine extends Thread {
                 }
                 if(noReconnect)
                     return; // exit
-
+                firstAttempt = Instant.now();
                 events.onDisconnect();
 
                 // try to connect back to the server every 10 secs.
@@ -938,7 +958,7 @@ public class Engine extends Thread {
                 events.error(e);
             }
             resolver = new JnlpAgentEndpointResolver(jenkinsUrls, agentName, credentials, proxyCredentials, tunnel,
-                    sslSocketFactory, disableHttpsCertValidation);
+                    sslSocketFactory, disableHttpsCertValidation, noReconnectAfter);
         } else {
             resolver = new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols, proxyCredentials);
         }
