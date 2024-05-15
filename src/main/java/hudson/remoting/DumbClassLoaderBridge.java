@@ -79,4 +79,10 @@ class DumbClassLoaderBridge implements IClassLoader {
         }
         return res;
     }
+
+    @Override
+    public String getName() throws IOException {
+        return base.getName();
+    }
+
 }
