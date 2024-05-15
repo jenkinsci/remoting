@@ -44,6 +44,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
@@ -175,7 +176,7 @@ final class RemoteClassLoader extends URLClassLoader {
         try {
             name = proxy.getName();
         } catch(IOException ignored) {
-            name = "unknown-due-to-io-error";
+            name = String.format(Locale.ROOT, "unknown-due-to-io-error %1$#x", System.identityHashCode(proxy));
         }
         return new RemoteClassLoader(name, parent, proxy);
     }
