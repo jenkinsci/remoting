@@ -22,6 +22,7 @@ public class ForkRunner implements ChannelRunner {
         String cp = getClasspath();
 
         List<String> r = new ArrayList<>();
+        r.add("-Xmx128M");
         r.add("-cp");
         r.add(cp);
         r.add(Launcher.class.getName());
@@ -61,13 +62,7 @@ public class ForkRunner implements ChannelRunner {
     }
 
     public String getClasspath() {
-        // this assumes we run in Maven
-        StringBuilder buf = new StringBuilder();
-        for (String entry : System.getProperty("java.class.path").split(":")) {
-            if (buf.length()>0) buf.append(File.pathSeparatorChar);
-            buf.append(entry);
-        }
-        return buf.toString();
+        return System.getProperty("java.class.path");
     }
 
     @Override
