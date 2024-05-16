@@ -177,6 +177,11 @@ final class RemoteClassLoader extends URLClassLoader {
             name = proxy.getName();
         } catch(IOException ignored) {
             name = String.format(Locale.ROOT, "unknown-due-to-io-error %1$#x", System.identityHashCode(proxy));
+        } catch (IllegalStateException ignored) {
+            // IllegalStateException is thrown if the method does not exist on the remote side.
+            // TODO remove this at some point in the future when Jenkins sets the minimum remoting version to
+            // 3244.vf7f977e04755 or higher
+            name = String.format(Locale.ROOT, "upgrade-remoting-to-3244.vf7f977e04755-or-higher %1$#x", System.identityHashCode(proxy));
         }
         return new RemoteClassLoader(name, parent, proxy);
     }
