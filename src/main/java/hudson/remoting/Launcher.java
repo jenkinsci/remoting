@@ -882,7 +882,7 @@ public class Launcher {
         Launcher.communicationProtocolName = "Standard in/out";
         // System.in/out appear to be already buffered (at least that was the case in Linux and Windows as of Java6)
         // so we are not going to double-buffer these.
-        main(System.in, os, mode, ping, jarCache != null ? new FileSystemJarCache(jarCache,true) : null);
+        main(ZosSshInOutStreamWrapper.wrapper.in(System.in), os, mode, ping, jarCache != null ? new FileSystemJarCache(jarCache,true) : null);
     }
 
     /**

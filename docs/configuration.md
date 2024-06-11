@@ -127,6 +127,14 @@ These properties require independent configuration on both sides of the channel.
       <td></td>
       <td>Provides specifications for hosts that should not be proxied. See the <a href="no_proxy.md">NO_PROXY Environment Variable</a> page for details on supported specifications.</td>
     </tr>
+    <tr>
+      <td>hudson.remoting.ZosSshInOutStreamWrapper</td>
+      <td>null</td>
+      <td>TODO</td>    
+      <td>TODO</td>
+      <td><a href="https://issues.jenkins-ci.org/browse/JENKINS-72474">JENKINS-72474</a></td>
+      <td>For z/OS ssh agents ZosSshInOutStreamWrapper neutralizes the character set conversions between ISO-8859-1 and EBCDIC done by z/OS OpenSSH implementation. That neutralization can be disabled by setting this property to "disabled". A specific EBCDIC character set can be enforced (over default taken from system property ibm.system.encoding) by setting this property to the character set name, e.g. IBM1047.</td>
+    </tr>    
     <!--Template
     <tr>
       <td></td>
