@@ -36,21 +36,22 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  */
 @Restricted(NoExternalUse.class)
 public class ExecutorServiceUtils {
-    
+
     private ExecutorServiceUtils() {
         // The class cannot be constructed
     }
-    
+
     /**
-     * Submits a task to the executor service without further handling. 
-     * The original {@link ExecutorService#submit(Runnable)} method actually expects this return value 
+     * Submits a task to the executor service without further handling.
+     * The original {@link ExecutorService#submit(Runnable)} method actually expects this return value
      * to be handled, but this method explicitly relies on the external logic to handle the future operation.
      * Use on your own risk.
      * @param es Executor service
      * @param runnable Operation to be executed
      * @throws ExecutionRejectedException Execution is rejected by the executor service
      */
-    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
+    @SuppressFBWarnings(
+            value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
             justification = "User of this API explicitly submits the task in the async mode on his own risk")
     public static void submitAsync(@NonNull ExecutorService es, @NonNull Runnable runnable)
             throws ExecutionRejectedException {
@@ -61,7 +62,7 @@ public class ExecutorServiceUtils {
             throw new ExecutionRejectedException(es, ex);
         }
     }
-    
+
     /**
      * Creates a runtime {@link RejectedExecutionException} for {@link ExecutionRejectedException}.
      * This version takes the {@link ExecutionRejectedException#isFatal()} value into account
@@ -72,15 +73,14 @@ public class ExecutorServiceUtils {
      */
     @NonNull
     public static RejectedExecutionException createRuntimeException(
-            @NonNull String message,
-            @NonNull ExecutionRejectedException cause) {
+            @NonNull String message, @NonNull ExecutionRejectedException cause) {
         if (cause.isFatal()) {
             return new FatalRejectedExecutionException(message, cause);
         } else {
             return new RejectedExecutionException(message, cause);
         }
     }
-    
+
     /**
      * Version of {@link RejectedExecutionException}, which treats the error as fatal.
      * It means that the Executor Service will never accept this or any other task in the future.
@@ -89,17 +89,16 @@ public class ExecutorServiceUtils {
     public static class FatalRejectedExecutionException extends RejectedExecutionException {
 
         private static final long serialVersionUID = 1L;
-        
+
         public FatalRejectedExecutionException(String message) {
             super(message);
         }
-        
+
         public FatalRejectedExecutionException(String message, Throwable cause) {
             super(message, cause);
         }
-        
     }
-    
+
     /**
      * Wraps the runtime {@link RejectedExecutionException}.
      * The exception also caches the serializable metadata.
@@ -111,7 +110,7 @@ public class ExecutorServiceUtils {
         private final String executorServiceDisplayName;
         private final String runnableDisplayName;
         private final boolean fatal;
-        
+
         /**
          * Constructor of the new exception.
          * @param es Executor service, which rejected the exception
@@ -139,7 +138,7 @@ public class ExecutorServiceUtils {
         public boolean isFatal() {
             return fatal;
         }
-        
-        //TODO: inject the metadata into the toString() call?
+
+        // TODO: inject the metadata into the toString() call?
     }
 }

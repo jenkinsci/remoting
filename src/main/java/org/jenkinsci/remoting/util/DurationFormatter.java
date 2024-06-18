@@ -33,7 +33,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  */
 @Restricted(NoExternalUse.class)
 public final class DurationFormatter {
-    private DurationFormatter(){}
+    private DurationFormatter() {}
 
     public static String format(Duration d) {
         StringBuilder sb = new StringBuilder();

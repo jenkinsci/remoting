@@ -59,7 +59,11 @@ public final class JnlpProtocol4ProxyHandler extends JnlpProtocolHandler<JnlpCon
 
     @Override
     @NonNull
-    public Future<Channel> connect(@NonNull Socket socket, @NonNull Map<String, String> headers, @NonNull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
+    public Future<Channel> connect(
+            @NonNull Socket socket,
+            @NonNull Map<String, String> headers,
+            @NonNull List<? extends JnlpConnectionStateListener> listeners)
+            throws IOException {
         LOGGER.fine("sending my name");
         DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
         dos.writeUTF("Protocol:" + NAME);
@@ -78,14 +82,18 @@ public final class JnlpProtocol4ProxyHandler extends JnlpProtocolHandler<JnlpCon
 
     @Override
     @NonNull
-    public Future<Channel> handle(@NonNull Socket socket, @NonNull Map<String, String> headers, @NonNull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
+    public Future<Channel> handle(
+            @NonNull Socket socket,
+            @NonNull Map<String, String> headers,
+            @NonNull List<? extends JnlpConnectionStateListener> listeners)
+            throws IOException {
         throw new UnsupportedOperationException("unused, API design mistake");
     }
 
     @Override
     @NonNull
-    protected JnlpConnectionState createConnectionState(@NonNull Socket socket, @NonNull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
+    protected JnlpConnectionState createConnectionState(
+            @NonNull Socket socket, @NonNull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
         throw new UnsupportedOperationException("unused, API design mistake");
     }
-
 }

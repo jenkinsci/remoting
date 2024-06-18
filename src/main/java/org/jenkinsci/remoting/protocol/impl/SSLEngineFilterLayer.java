@@ -77,6 +77,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
      */
     @CheckForNull
     private ByteBuffer previous;
+
     private final AtomicReference<ByteBuffer> directBufferRef = new AtomicReference<>();
 
     /**
@@ -97,9 +98,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
     @Override
     public void start() throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "{0} Starting {1}", new Object[]{
-                    stack().name(), sslEngine.getHandshakeStatus()
-            });
+            LOGGER.log(Level.FINEST, "{0} Starting {1}", new Object[] {stack().name(), sslEngine.getHandshakeStatus()});
         }
         sslEngine.beginHandshake();
         onRecv(EMPTY_BUFFER);
@@ -111,8 +110,9 @@ public class SSLEngineFilterLayer extends FilterLayer {
     @Override
     public void onRecv(@NonNull ByteBuffer readBuffer) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes plus {2} retained",
-                    new Object[]{stack().name(), readBuffer.remaining(), previous == null ? 0 : previous.remaining()});
+            LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes plus {2} retained", new Object[] {
+                stack().name(), readBuffer.remaining(), previous == null ? 0 : previous.remaining()
+            });
         }
         try {
             processRead(readBuffer);
@@ -278,9 +278,9 @@ public class SSLEngineFilterLayer extends FilterLayer {
             onRecvClosed(null);
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
-                LogRecord record = new LogRecord(Level.FINE,
-                        "[{0}] Could not complete close of read after closure of SSL session");
-                record.setParameters(new Object[]{stack().name()});
+                LogRecord record = new LogRecord(
+                        Level.FINE, "[{0}] Could not complete close of read after closure of SSL session");
+                record.setParameters(new Object[] {stack().name()});
                 record.setThrown(e);
                 LOGGER.log(record);
             }
@@ -301,12 +301,12 @@ public class SSLEngineFilterLayer extends FilterLayer {
         void onHandshakeCompleted(SSLSession session) throws ConnectionRefusalException;
     }
 
-    //-----------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
 
     //
     // The following code is a modified version of the code from Apache MINA's SslHelper class.
     //
-    //-----------------------------------------------------------------------------------------------------------------
+    // -----------------------------------------------------------------------------------------------------------------
 
     /**
      * Process the read.
@@ -344,24 +344,25 @@ public class SSLEngineFilterLayer extends FilterLayer {
 
                     switch (result.getStatus()) {
                         case BUFFER_UNDERFLOW:
-                    /* we need more data */
+                            /* we need more data */
                         case CLOSED:
-                    /* connection is already closed */
+                            /* connection is already closed */
                             done = true;
                             break;
                         case BUFFER_OVERFLOW:
-                    /* resize output buffer */
+                            /* resize output buffer */
                             int newCapacity = appBuffer.capacity() * 2;
                             stack().release(appBuffer);
                             appBuffer = stack().acquire(newCapacity);
                             break;
                         case OK:
-                            if ((handshakeStatus == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING) && (
-                                    result.bytesProduced() > 0)) {
+                            if ((handshakeStatus == SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING)
+                                    && (result.bytesProduced() > 0)) {
                                 ((Buffer) appBuffer).flip();
                                 if (LOGGER.isLoggable(Level.FINEST)) {
-                                    LOGGER.log(Level.FINEST, "[{0}] DECODE: {1} bytes",
-                                            new Object[]{stack().name(), appBuffer.remaining()});
+                                    LOGGER.log(Level.FINEST, "[{0}] DECODE: {1} bytes", new Object[] {
+                                        stack().name(), appBuffer.remaining()
+                                    });
                                 }
                                 next().onRecv(appBuffer);
                                 ((Buffer) appBuffer).clear();
@@ -400,8 +401,9 @@ public class SSLEngineFilterLayer extends FilterLayer {
                                 ((Buffer) appBuffer).flip();
                                 if (appBuffer.hasRemaining()) {
                                     if (LOGGER.isLoggable(Level.FINEST)) {
-                                        LOGGER.log(Level.FINEST, "[{0}] HANDSHAKE SEND: {1} bytes",
-                                                new Object[]{stack().name(), appBuffer.remaining()});
+                                        LOGGER.log(Level.FINEST, "[{0}] HANDSHAKE SEND: {1} bytes", new Object[] {
+                                            stack().name(), appBuffer.remaining()
+                                        });
                                     }
                                     next().doSend(appBuffer);
                                 }
@@ -432,8 +434,9 @@ public class SSLEngineFilterLayer extends FilterLayer {
      */
     private void processResult(SSLEngineResult.HandshakeStatus sessionStatus, SSLEngineResult operationStatus) {
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "[{0}] Handshake status: {1} engine result: {2}",
-                    new Object[]{stack().name(), sessionStatus, operationStatus});
+            LOGGER.log(Level.FINEST, "[{0}] Handshake status: {1} engine result: {2}", new Object[] {
+                stack().name(), sessionStatus, operationStatus
+            });
         }
         switch (sessionStatus) {
             case NEED_TASK: // $FALL-THROUGH$
@@ -482,13 +485,15 @@ public class SSLEngineFilterLayer extends FilterLayer {
         while (!done) {
             // Encrypt the message
             if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINEST, "[{0}] APP ENCODE: {1} bytes",
-                        new Object[]{stack().name(), message.remaining()});
+                LOGGER.log(
+                        Level.FINEST, "[{0}] APP ENCODE: {1} bytes", new Object[] {stack().name(), message.remaining()
+                        });
             }
             SSLEngineResult result = sslEngine.wrap(message, appBuffer);
             if (LOGGER.isLoggable(Level.FINEST)) {
-                LOGGER.log(Level.FINEST, "[{0}] Handshake status: {1} engine result: {2}",
-                        new Object[]{stack().name(), result.getHandshakeStatus(), result});
+                LOGGER.log(Level.FINEST, "[{0}] Handshake status: {1} engine result: {2}", new Object[] {
+                    stack().name(), result.getHandshakeStatus(), result
+                });
             }
 
             switch (result.getStatus()) {
@@ -508,8 +513,9 @@ public class SSLEngineFilterLayer extends FilterLayer {
                     done = !message.hasRemaining();
                     if (appBuffer.hasRemaining()) {
                         if (LOGGER.isLoggable(Level.FINEST)) {
-                            LOGGER.log(Level.FINEST, "[{0}] APP SEND: {1} bytes",
-                                    new Object[]{stack().name(), appBuffer.remaining()});
+                            LOGGER.log(Level.FINEST, "[{0}] APP SEND: {1} bytes", new Object[] {
+                                stack().name(), appBuffer.remaining()
+                            });
                         }
                         while (appBuffer.hasRemaining()) {
                             next().doSend(appBuffer);
@@ -539,6 +545,5 @@ public class SSLEngineFilterLayer extends FilterLayer {
          * Secure credentials are removed from the session, application messages are not encrypted anymore.
          */
         NO_CREDENTIALS
-
     }
 }

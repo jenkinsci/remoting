@@ -34,7 +34,8 @@ public class SingleLaneExecutorServiceTest extends Assert {
         final StringBuilder record = new StringBuilder();
         synchronized (lock) {
             lane1.submit(() -> {
-                synchronized (lock) {}
+                synchronized (lock) {
+                }
                 sleep(1000);
                 record.append("x");
             });
@@ -48,7 +49,7 @@ public class SingleLaneExecutorServiceTest extends Assert {
         waitForCompletion(lane1);
         waitForCompletion(lane2);
 
-        assertEquals("zxy",record.toString());
+        assertEquals("zxy", record.toString());
     }
 
     /**
@@ -64,10 +65,10 @@ public class SingleLaneExecutorServiceTest extends Assert {
             ExecutorService lane = new SingleLaneExecutorService(base);
 
             Workload() {
-                for (char t='a'; t<='z'; t++) {
+                for (char t = 'a'; t <= 'z'; t++) {
                     final char ch = t;
                     tasks.add(() -> {
-                        sleep(50+r.nextInt(100));
+                        sleep(50 + r.nextInt(100));
                         record.append(ch);
                     });
                 }
@@ -75,13 +76,14 @@ public class SingleLaneExecutorServiceTest extends Assert {
         }
 
         List<Workload> works = new ArrayList<>();
-        for (int i=0; i<5; i++)
+        for (int i = 0; i < 5; i++) {
             works.add(new Workload());
+        }
 
         // submit them all in the queue
         List<Workload> remaining = new ArrayList<>(works);
         int total = (('z' - 'a') + 1) * works.size();
-        for (int i=0; i<total; i++) {
+        for (int i = 0; i < total; i++) {
             while (true) {
                 int j = r.nextInt(remaining.size());
                 Workload wl = remaining.get(j);
@@ -97,7 +99,7 @@ public class SingleLaneExecutorServiceTest extends Assert {
         // the execution order must have been preserved.
         for (Workload wl : works) {
             waitForCompletion(wl.lane);
-            assertEquals("abcdefghijklmnopqrstuvwxyz",wl.record.toString());
+            assertEquals("abcdefghijklmnopqrstuvwxyz", wl.record.toString());
         }
     }
 

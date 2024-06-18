@@ -118,5 +118,4 @@ public class TeeOutputStream extends FilterOutputStream {
             this.branch.close();
         }
     }
-
 }

@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -65,10 +65,10 @@ public class PipeTest implements Serializable {
 
             int r = f.get();
             System.out.println("result=" + r);
-            assertEquals(5,r);
+            assertEquals(5, r);
         });
     }
-    
+
     /**
      * Have the reader close the read end of the pipe while the writer is still writing.
      * The writer should pick up a failure.
@@ -108,6 +108,7 @@ public class PipeTest implements Serializable {
                 Thread.sleep(10);
             }
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -123,6 +124,7 @@ public class PipeTest implements Serializable {
             write(pipe);
             return 5;
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -140,7 +142,7 @@ public class PipeTest implements Serializable {
 
             int r = f.get();
             System.out.println("result=" + r);
-            assertEquals(5,r);
+            assertEquals(5, r);
         });
     }
 
@@ -162,19 +164,26 @@ public class PipeTest implements Serializable {
 
     public interface ISaturationTest {
         void ensureConnected();
+
         int readFirst() throws IOException;
+
         void readRest() throws IOException;
     }
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testSaturation(ChannelRunner channelRunner) throws Exception {
-        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner, "can't do this test without the throttling support.");
+        assumeFalse(
+                channelRunner instanceof InProcessCompatibilityRunner,
+                "can't do this test without the throttling support.");
         channelRunner.withChannel(channel -> {
             final Pipe p = Pipe.createLocalToRemote();
 
             Thread writer = new Thread() {
-                final Thread mainThread = Thread.currentThread(); // this makes it easy to see the relationship between the thread pair in the debugger
+                final Thread mainThread =
+                        Thread.currentThread(); // this makes it easy to see the relationship between the thread pair
+                // in the
+                // debugger
 
                 @Override
                 public void run() {
@@ -212,7 +221,7 @@ public class PipeTest implements Serializable {
         });
     }
 
-    private static class CreateSaturationTestProxy extends CallableBase<ISaturationTest,IOException> {
+    private static class CreateSaturationTestProxy extends CallableBase<ISaturationTest, IOException> {
         private final Pipe pipe;
 
         public CreateSaturationTestProxy(Pipe pipe) {
@@ -223,6 +232,7 @@ public class PipeTest implements Serializable {
         public ISaturationTest call() {
             return Channel.currentOrFail().export(ISaturationTest.class, new ISaturationTest() {
                 private InputStream in;
+
                 @Override
                 public void ensureConnected() {
                     in = pipe.getIn();
@@ -235,10 +245,11 @@ public class PipeTest implements Serializable {
 
                 @Override
                 public void readRest() throws IOException {
-                    new DataInputStream(in).readFully(new byte[Channel.PIPE_WINDOW_SIZE*2]);
+                    new DataInputStream(in).readFully(new byte[Channel.PIPE_WINDOW_SIZE * 2]);
                 }
             });
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -253,12 +264,13 @@ public class PipeTest implements Serializable {
         public Integer call() throws IOException {
             try {
                 read(pipe);
-            } catch(AssertionError ex) {
+            } catch (AssertionError ex) {
                 // Propagate the assetion to the remote side
                 throw new IOException("Assertion failed", ex);
             }
             return 5;
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -274,13 +286,12 @@ public class PipeTest implements Serializable {
 
     private static void read(Pipe p) throws IOException, AssertionError {
         try (InputStream in = p.getIn()) {
-            for( int cnt=0; cnt<256*256; cnt++ ) {
-                assertEquals(cnt/256,in.read());
+            for (int cnt = 0; cnt < 256 * 256; cnt++) {
+                assertEquals(cnt / 256, in.read());
             }
-            assertEquals(-1,in.read());
+            assertEquals(-1, in.read());
         }
     }
-
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
@@ -311,7 +322,7 @@ public class PipeTest implements Serializable {
             // at this point the async executable kicks in.
             // TODO: introduce a lock to ensure the ordering.
 
-            assertEquals(1,(int)f.get());
+            assertEquals(1, (int) f.get());
         });
     }
 
@@ -320,6 +331,7 @@ public class PipeTest implements Serializable {
         public OutputStream call() {
             return new RemoteOutputStream(OutputStream.nullOutputStream());
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -340,7 +352,9 @@ public class PipeTest implements Serializable {
             IOUtils.copy(p.getIn(), baos);
             return baos.size();
         }
+
         private static final long serialVersionUID = 1L;
     }
+
     private static final long serialVersionUID = 1L;
 }

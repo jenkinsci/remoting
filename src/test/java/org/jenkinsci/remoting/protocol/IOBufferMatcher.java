@@ -68,6 +68,7 @@ public abstract class IOBufferMatcher {
      * A name to differentiate multiple instances.
      */
     private final String name;
+
     private final ByteArrayOutputStream recv = new ByteArrayOutputStream();
     private final WritableByteChannel channel = Channels.newChannel(recv);
     private final CompletableFuture<IOException> closed = new CompletableFuture<>();
@@ -136,7 +137,7 @@ public abstract class IOBufferMatcher {
     public void receive(@NonNull ByteBuffer data) {
         int r = data.remaining();
         if (name != null) {
-            LOGGER.log(Level.INFO, "[{0}] Receiving {1} bytes", new Object[]{name, r});
+            LOGGER.log(Level.INFO, "[{0}] Receiving {1} bytes", new Object[] {name, r});
         }
         try {
             channel.write(data);
@@ -151,7 +152,7 @@ public abstract class IOBufferMatcher {
             // ignore
         }
         if (name != null) {
-            LOGGER.log(Level.INFO, "[{0}] Received {1} bytes: «{2}»", new Object[]{name, r - data.remaining(), this});
+            LOGGER.log(Level.INFO, "[{0}] Received {1} bytes: «{2}»", new Object[] {name, r - data.remaining(), this});
         }
     }
 
@@ -165,9 +166,7 @@ public abstract class IOBufferMatcher {
 
     @Override
     public String toString() {
-        return "SimpleBufferReceiver{" + "name='" + name + '\'' +
-                ", content='" + asString() + '\'' +
-                '}';
+        return "SimpleBufferReceiver{" + "name='" + name + '\'' + ", content='" + asString() + '\'' + '}';
     }
 
     /**
@@ -225,7 +224,6 @@ public abstract class IOBufferMatcher {
         } finally {
             state.unlock();
         }
-
     }
 
     public boolean awaitStringContent(Matcher<String> matcher, long timeout, TimeUnit unit)
@@ -255,11 +253,9 @@ public abstract class IOBufferMatcher {
         } finally {
             state.unlock();
         }
-
     }
 
-    public boolean awaitByteContent(Matcher<byte[]> matcher, long timeout, TimeUnit unit)
-            throws InterruptedException {
+    public boolean awaitByteContent(Matcher<byte[]> matcher, long timeout, TimeUnit unit) throws InterruptedException {
         long giveUp = System.nanoTime() + unit.toNanos(timeout);
         state.lock();
         try {
@@ -275,5 +271,4 @@ public abstract class IOBufferMatcher {
             state.unlock();
         }
     }
-
 }

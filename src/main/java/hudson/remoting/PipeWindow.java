@@ -105,7 +105,7 @@ abstract class PipeWindow {
      */
     void dead(@CheckForNull Throwable cause) {
         // We need to record
-        this.dead = cause != null ? cause : new RemotingSystemException("Unknown cause", null) ;
+        this.dead = cause != null ? cause : new RemotingSystemException("Unknown cause", null);
     }
 
     /**
@@ -120,7 +120,6 @@ abstract class PipeWindow {
         }
     }
 
-
     /**
      * Fake implementation used when the receiver side doesn't support throttling.
      */
@@ -131,8 +130,7 @@ abstract class PipeWindow {
         }
 
         @Override
-        void increase(int delta) {
-        }
+        void increase(int delta) {}
 
         @Override
         int peek() {
@@ -146,8 +144,7 @@ abstract class PipeWindow {
         }
 
         @Override
-        void decrease(int delta) {
-        }
+        void decrease(int delta) {}
     }
 
     static final class Key {
@@ -159,7 +156,9 @@ abstract class PipeWindow {
 
         @Override
         public boolean equals(Object o) {
-            if (o == null || getClass() != o.getClass()) return false;
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             return oid == ((Key) o).oid;
         }
@@ -170,7 +169,7 @@ abstract class PipeWindow {
         }
     }
 
-    //TODO: Consider rework and cleanup of the fields
+    // TODO: Consider rework and cleanup of the fields
     @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "Legacy implementation")
     static class Real extends PipeWindow {
         private final int initial;
@@ -183,6 +182,7 @@ abstract class PipeWindow {
          * Total bytes that the remote side acked.
          */
         private long acked;
+
         private final int oid;
         /**
          * The only strong reference to the key, which in turn
@@ -204,8 +204,9 @@ abstract class PipeWindow {
 
         @Override
         public synchronized void increase(int delta) {
-            if (LOGGER.isLoggable(Level.FINER))
-                LOGGER.finer(String.format("increase(%d,%d)->%d",oid,delta,delta+available));
+            if (LOGGER.isLoggable(Level.FINER)) {
+                LOGGER.finer(String.format("increase(%d,%d)->%d", oid, delta, delta + available));
+            }
             available += delta;
             acked += delta;
             notifyAll();
@@ -223,10 +224,11 @@ abstract class PipeWindow {
         public int get(int min) throws InterruptedException, IOException {
             checkDeath();
             synchronized (this) {
-                if (available>=min)
+                if (available >= min) {
                     return available;
+                }
 
-                while (available<min) {
+                while (available < min) {
                     wait(100);
                     checkDeath();
                 }
@@ -237,10 +239,11 @@ abstract class PipeWindow {
 
         @Override
         public synchronized void decrease(int delta) {
-            if (LOGGER.isLoggable(Level.FINER))
-                LOGGER.finer(String.format("decrease(%d,%d)->%d",oid,delta,available-delta));
+            if (LOGGER.isLoggable(Level.FINER)) {
+                LOGGER.finer(String.format("decrease(%d,%d)->%d", oid, delta, available - delta));
+            }
             available -= delta;
-            written+= delta;
+            written += delta;
             /*
             HUDSON-7745 says the following assertion fails, which AFAICT is only possible if multiple
             threads write to OutputStream concurrently, but that doesn't happen in most of the situations, so
@@ -248,8 +251,8 @@ abstract class PipeWindow {
 
             HUDSON-7581 appears to be related.
             */
-//            if (available<0)
-//                throw new AssertionError();
+            //            if (available<0)
+            //                throw new AssertionError();
         }
     }
 

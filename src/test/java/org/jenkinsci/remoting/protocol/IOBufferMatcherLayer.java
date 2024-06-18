@@ -57,13 +57,11 @@ public class IOBufferMatcherLayer extends ApplicationLayer<IOBufferMatcher> {
                 doCloseWrite();
                 super.close(cause);
             }
-
         };
     }
 
     @Override
-    public void start() {
-    }
+    public void start() {}
 
     @Override
     public IOBufferMatcher get() {

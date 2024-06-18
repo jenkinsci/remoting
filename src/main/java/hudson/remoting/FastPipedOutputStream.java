@@ -74,7 +74,9 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     private FastPipedInputStream sink() throws IOException {
         FastPipedInputStream s = sink.get();
-        if (s==null)    throw new IOException("Reader side has already been abandoned", allocatedAt);
+        if (s == null) {
+            throw new IOException("Reader side has already been abandoned", allocatedAt);
+        }
         return s;
     }
 
@@ -88,12 +90,12 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     @Override
     public void error(Throwable e) throws IOException {
-        if(sink == null) {
+        if (sink == null) {
             throw new IOException("Unconnected pipe");
         }
         FastPipedInputStream s = sink();
-        synchronized(s.buffer) {
-            if (s.closed==null) {
+        synchronized (s.buffer) {
+            if (s.closed == null) {
                 s.closed = new FastPipedInputStream.ClosedBy(e);
                 flush();
             }
@@ -104,7 +106,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
      * @exception IOException The pipe is already connected.
      */
     public void connect(FastPipedInputStream sink) throws IOException {
-        if(this.sink != null) {
+        if (this.sink != null) {
             throw new IOException("Pipe already connected");
         }
         this.sink = new WeakReference<>(sink);
@@ -120,7 +122,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     @Override
     public void flush() throws IOException {
         FastPipedInputStream s = sink();
-        synchronized(s.buffer) {
+        synchronized (s.buffer) {
             // Release all readers.
             s.buffer.notifyAll();
         }
@@ -128,7 +130,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     @Override
     public void write(int b) throws IOException {
-        write(new byte[] { (byte) b });
+        write(new byte[] {(byte) b});
     }
 
     @Override
@@ -141,19 +143,19 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
      */
     @Override
     public void write(@NonNull byte[] b, int off, int len) throws IOException {
-        if(sink == null) {
+        if (sink == null) {
             throw new IOException("Unconnected pipe");
         }
 
-        while (len>0) {
+        while (len > 0) {
             FastPipedInputStream s = sink(); // make sure the sink is still trying to read, or else fail the write.
 
-            if(s.closed!=null) {
+            if (s.closed != null) {
                 throw new IOException("Pipe is already closed", s.closed);
             }
 
-            synchronized(s.buffer) {
-                if(s.writePosition == s.readPosition && s.writeLaps > s.readLaps) {
+            synchronized (s.buffer) {
+                if (s.writePosition == s.readPosition && s.writeLaps > s.readLaps) {
                     // The circular buffer is full, so wait for some reader to consume
                     // something.
 
@@ -163,11 +165,11 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
                     Thread t = Thread.currentThread();
                     String oldName = t.getName();
-                    t.setName("Blocking to write "+HexDump.toHex(b,off,Math.min(len,256))+": "+oldName);
+                    t.setName("Blocking to write " + HexDump.toHex(b, off, Math.min(len, 256)) + ": " + oldName);
                     try {
                         buf.wait(TIMEOUT);
                     } catch (InterruptedException e) {
-                        throw (InterruptedIOException)new InterruptedIOException(e.getMessage()).initCause(e);
+                        throw (InterruptedIOException) new InterruptedIOException(e.getMessage()).initCause(e);
                     } finally {
                         t.setName(oldName);
                     }
@@ -177,13 +179,12 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
                 // Don't write more than the capacity indicated by len or the space
                 // available in the circular buffer.
-                int amount = Math.min(len, (s.writePosition < s.readPosition ? s.readPosition
-                        : s.buffer.length)
-                        - s.writePosition);
+                int amount = Math.min(
+                        len, (s.writePosition < s.readPosition ? s.readPosition : s.buffer.length) - s.writePosition);
                 System.arraycopy(b, off, s.buffer, s.writePosition, amount);
                 s.writePosition += amount;
 
-                if(s.writePosition == s.buffer.length) {
+                if (s.writePosition == s.buffer.length) {
                     s.writePosition = 0;
                     ++s.writeLaps;
                 }
@@ -196,5 +197,5 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         }
     }
 
-    static final int TIMEOUT = Integer.getInteger(FastPipedOutputStream.class.getName()+".timeout",10*1000);
+    static final int TIMEOUT = Integer.getInteger(FastPipedOutputStream.class.getName() + ".timeout", 10 * 1000);
 }

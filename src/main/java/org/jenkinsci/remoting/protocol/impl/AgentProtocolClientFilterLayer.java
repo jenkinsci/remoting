@@ -96,5 +96,4 @@ public class AgentProtocolClientFilterLayer extends FilterLayer {
             completed();
         }
     }
-
 }

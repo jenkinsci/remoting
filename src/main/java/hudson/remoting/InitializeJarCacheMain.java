@@ -27,12 +27,14 @@ public class InitializeJarCacheMain {
      * <li>The jar cache directory.
      * </ol>
      */
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "These file values are provided by users with sufficient administrative permissions to run this utility program.")
+    @SuppressFBWarnings(
+            value = "PATH_TRAVERSAL_IN",
+            justification =
+                    "These file values are provided by users with sufficient administrative permissions to run this utility program.")
     public static void main(String[] argv) throws Exception {
         if (argv.length != 2) {
-            throw new IllegalArgumentException(
-                    "Usage: java -cp agent.jar hudson.remoting.InitializeJarCacheMain " +
-                    "<source jar dir> <jar cache dir>");
+            throw new IllegalArgumentException("Usage: java -cp agent.jar hudson.remoting.InitializeJarCacheMain "
+                    + "<source jar dir> <jar cache dir>");
         }
 
         File sourceJarDir = new File(argv[0]);

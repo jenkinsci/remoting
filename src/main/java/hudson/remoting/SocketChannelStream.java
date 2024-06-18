@@ -21,10 +21,11 @@ import java.util.logging.Logger;
  */
 public class SocketChannelStream {
     public static InputStream in(Socket s) throws IOException {
-        if (s.getChannel()!=null)
+        if (s.getChannel() != null) {
             return in(s.getChannel());
-        else
+        } else {
             return new SocketInputStream(s);
+        }
     }
 
     public static InputStream in(final SocketChannel ch) throws IOException {
@@ -59,10 +60,11 @@ public class SocketChannelStream {
     }
 
     public static OutputStream out(Socket s) throws IOException {
-        if (s.getChannel()!=null)
+        if (s.getChannel() != null) {
             return out(s.getChannel());
-        else
+        } else {
             return new SocketOutputStream(s);
+        }
     }
 
     public static OutputStream out(final SocketChannel ch) throws IOException {

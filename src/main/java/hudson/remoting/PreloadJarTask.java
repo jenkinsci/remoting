@@ -34,13 +34,14 @@ import org.jenkinsci.remoting.RoleChecker;
  *
  * @author Kohsuke Kawaguchi
  */
-final class PreloadJarTask implements DelegatingCallable<Boolean,IOException> {
+final class PreloadJarTask implements DelegatingCallable<Boolean, IOException> {
     /**
      * Jar file to be preloaded.
      */
     private final URL[] jars;
 
-    //TODO: This implementation exists starting from https://github.com/jenkinsci/remoting/commit/f3d0a81fdf46a10c3c6193faf252efaeaee98823
+    // TODO: This implementation exists starting from
+    // https://github.com/jenkinsci/remoting/commit/f3d0a81fdf46a10c3c6193faf252efaeaee98823
     // Since this time nothing has blown up, but it still seems to be suspicious.
     // The solution for null classloaders is available in RemoteDiagnostics.Script#call() in the Jenkins core codebase
     @CheckForNull
@@ -59,13 +60,15 @@ final class PreloadJarTask implements DelegatingCallable<Boolean,IOException> {
     @Override
     public Boolean call() throws IOException {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        if (!(cl instanceof RemoteClassLoader))
+        if (!(cl instanceof RemoteClassLoader)) {
             return false;
+        }
 
         RemoteClassLoader rcl = (RemoteClassLoader) cl;
         boolean r = false;
-        for (URL jar : jars)
+        for (URL jar : jars) {
             r |= rcl.prefetch(jar);
+        }
         return r;
     }
 
@@ -75,7 +78,7 @@ final class PreloadJarTask implements DelegatingCallable<Boolean,IOException> {
      */
     @Override
     public void checkRoles(RoleChecker checker) throws SecurityException {
-        checker.check(this,Role.UNKNOWN);
+        checker.check(this, Role.UNKNOWN);
     }
 
     private static final long serialVersionUID = -773448303394727271L;

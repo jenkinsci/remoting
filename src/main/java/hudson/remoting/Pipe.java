@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -140,14 +140,14 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
      */
     public static Pipe createRemoteToLocal() {
         // OutputStream will be created on the target
-        return new Pipe(new FastPipedInputStream(),null);
+        return new Pipe(new FastPipedInputStream(), null);
     }
 
     /**
      * Creates a {@link Pipe} that allows local system to write and remote system to read.
      */
     public static Pipe createLocalToRemote() {
-        return new Pipe(null,new ProxyOutputStream());
+        return new Pipe(null, new ProxyOutputStream());
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
@@ -157,10 +157,11 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
         // The former uses 1M, while the latter uses 64K, so if the sender is too fast, it'll cause
         // the pipe IO thread to block other IO activities. Fix this by first using adaptive growing buffer
         // in FastPipedInputStream, then make sure the maximum size is bigger than the pipe window size.
-        if(in!=null && out==null) {
+        if (in != null && out == null) {
             // remote will write to local
-            FastPipedOutputStream pos = new FastPipedOutputStream((FastPipedInputStream)in);
-            int oid = ch.internalExport(Object.class, pos, false);  // this export is unexported in ProxyOutputStream.finalize()
+            FastPipedOutputStream pos = new FastPipedOutputStream((FastPipedInputStream) in);
+            int oid = ch.internalExport(
+                    Object.class, pos, false); // this export is unexported in ProxyOutputStream.finalize()
 
             oos.writeBoolean(true); // marker
             oos.writeInt(oid);
@@ -174,11 +175,13 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
         }
     }
 
-    @SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "Serializable only over remoting. Class filtering is done through JEP-200.")
+    @SuppressFBWarnings(
+            value = "DESERIALIZATION_GADGET",
+            justification = "Serializable only over remoting. Class filtering is done through JEP-200.")
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         final Channel channel = getChannelForSerialization();
 
-        if(ois.readBoolean()) {
+        if (ois.readBoolean()) {
             // local will write to remote
             in = null;
             out = new ProxyOutputStream(channel, ois.readInt());
@@ -192,7 +195,8 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
             // we want 'oidRos' to send data to this PipedOutputStream
             FastPipedOutputStream pos = new FastPipedOutputStream();
             FastPipedInputStream pis = new FastPipedInputStream(pos);
-            final int oidPos = channel.internalExport(Object.class, pos, false); // this gets unexported when the remote ProxyOutputStream closes.
+            final int oidPos = channel.internalExport(
+                    Object.class, pos, false); // this gets unexported when the remote ProxyOutputStream closes.
 
             // tell 'ros' to connect to our 'pos'.
             channel.send(new ConnectCommand(oidRos, oidPos));
@@ -221,11 +225,11 @@ public final class Pipe implements SerializableOnlyOverRemoting, ErrorPropagatin
             channel.pipeWriter.submit(0, () -> {
                 try {
                     final ProxyOutputStream ros = (ProxyOutputStream) channel.getExportedObject(oidRos);
-                    channel.unexport(oidRos,createdAt);
+                    channel.unexport(oidRos, createdAt);
                     // the above unexport cancels out the export in writeObject above
                     ros.connect(channel, oidPos);
                 } catch (IOException e) {
-                    logger.log(Level.SEVERE,"Failed to connect to pipe",e);
+                    logger.log(Level.SEVERE, "Failed to connect to pipe", e);
                 } catch (ExecutionException ex) {
                     throw new IllegalStateException(ex);
                 }

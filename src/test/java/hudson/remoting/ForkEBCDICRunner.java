@@ -9,7 +9,7 @@ public class ForkEBCDICRunner extends ForkRunner {
     @Override
     protected List<String> buildCommandLine() {
         List<String> r = super.buildCommandLine();
-        r.add(0,"-Dfile.encoding=CP037");
+        r.add(0, "-Dfile.encoding=CP037");
         return r;
     }
 

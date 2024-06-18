@@ -44,8 +44,9 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
     public void shutdown() {
         synchronized (q) {
             shutdown = true;
-            if (isAlive())
+            if (isAlive()) {
                 worker.interrupt();
+            }
         }
     }
 
@@ -53,7 +54,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
      * Do we have a worker thread and is it running?
      */
     private boolean isAlive() {
-        return worker!=null && worker.isAlive();
+        return worker != null && worker.isAlive();
     }
 
     @NonNull
@@ -111,7 +112,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
             while (true) {
                 Runnable task;
                 synchronized (q) {
-                    if (q.isEmpty()) {// no more work
+                    if (q.isEmpty()) { // no more work
                         worker = null;
                         return;
                     }

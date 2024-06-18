@@ -59,7 +59,7 @@ public class ByteBufferQueueTest {
     public void putGetByteAndHasRemaining() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
-            byte b = (byte)i;
+            byte b = (byte) i;
             queue.put(b);
             assertThat(queue.hasRemaining(), is(true));
             assertThat(queue.get(), is(b));
@@ -72,7 +72,7 @@ public class ByteBufferQueueTest {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(1);
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
-            byte b = (byte)i;
+            byte b = (byte) i;
             src.clear();
             src.put(b);
             src.flip();
@@ -92,7 +92,7 @@ public class ByteBufferQueueTest {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(1);
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
-            byte b = (byte)i;
+            byte b = (byte) i;
             queue.put(b);
             assertThat(queue.hasRemaining(), is(true));
         }
@@ -111,7 +111,7 @@ public class ByteBufferQueueTest {
     public void putGetByteSequences() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
-            byte b = (byte)i;
+            byte b = (byte) i;
             queue.put(b);
             assertThat(queue.hasRemaining(), is(true));
         }
@@ -128,7 +128,7 @@ public class ByteBufferQueueTest {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         byte[] dst = new byte[1];
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
-            byte b = (byte)i;
+            byte b = (byte) i;
             queue.put(b);
             assertThat(queue.hasRemaining(), is(true));
         }
@@ -484,21 +484,22 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void interleavingReadWrite_7_11_13_853_19_5(){
+    public void interleavingReadWrite_7_11_13_853_19_5() {
         interleavingReadWrite(7, 11, 13, 853, 19, 5);
     }
 
     @Test
-    public void interleavingReadWrite_7_11_13_853_5_19(){
+    public void interleavingReadWrite_7_11_13_853_5_19() {
         interleavingReadWrite(7, 11, 13, 853, 19, 5);
     }
 
     @Test
-    public void interleavingReadWrite_23_37_53_1051_13_29(){
+    public void interleavingReadWrite_23_37_53_1051_13_29() {
         interleavingReadWrite(23, 37, 53, 1051, 13, 29);
     }
 
-    public void interleavingReadWrite(int intSize, int srcSize, int dstSize, int srcCount, int srcModulus, int dstModulus) {
+    public void interleavingReadWrite(
+            int intSize, int srcSize, int dstSize, int srcCount, int srcModulus, int dstModulus) {
         ByteBufferQueue queue = new ByteBufferQueue(intSize);
         ByteBuffer src = ByteBuffer.allocate(srcSize);
         ByteBuffer dst = ByteBuffer.allocate(dstSize);

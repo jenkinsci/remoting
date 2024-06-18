@@ -74,9 +74,10 @@ public class SSLContextRule implements TestRule {
         this.id = id;
     }
 
-    private static KeyStore createKeyStore(@CheckForNull List<X509CertificateRule> certificates,
-                                           @CheckForNull List<KeyWithChain> keys,
-                                           @NonNull char[] password)
+    private static KeyStore createKeyStore(
+            @CheckForNull List<X509CertificateRule> certificates,
+            @CheckForNull List<KeyWithChain> keys,
+            @NonNull char[] password)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
         KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
         int id = 1;
@@ -179,7 +180,8 @@ public class SSLContextRule implements TestRule {
     @Override
     public Statement apply(final Statement base, Description description) {
         Skip skip = description.getAnnotation(Skip.class);
-        if (skip != null && (skip.value().length == 0 || Arrays.asList(skip.value()).contains(id))) {
+        if (skip != null
+                && (skip.value().length == 0 || Arrays.asList(skip.value()).contains(id))) {
             return base;
         }
         return new Statement() {
@@ -195,9 +197,10 @@ public class SSLContextRule implements TestRule {
                         TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
                 tmf.init(createKeyStore(certificates, null, password));
                 TrustManager[] trustManagers = new TrustManager[1];
-                trustManagers[0] = validityChecking ? new ValidityCheckingX509ExtendedTrustManager(
-                        findFirst(X509ExtendedTrustManager.class, tmf.getTrustManagers())) : findFirst(
-                        X509ExtendedTrustManager.class, tmf.getTrustManagers());
+                trustManagers[0] = validityChecking
+                        ? new ValidityCheckingX509ExtendedTrustManager(
+                                findFirst(X509ExtendedTrustManager.class, tmf.getTrustManagers()))
+                        : findFirst(X509ExtendedTrustManager.class, tmf.getTrustManagers());
 
                 context.init(keyManagers, trustManagers, null);
                 try {
@@ -227,5 +230,4 @@ public class SSLContextRule implements TestRule {
             this.chain = chain;
         }
     }
-
 }

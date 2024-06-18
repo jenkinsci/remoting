@@ -17,7 +17,6 @@ public abstract class AbstractNioChannelRunner implements DualSideChannelRunner 
 
     protected Channel south;
 
-
     @Override
     public void stop(Channel channel) throws Exception {
         channel.close();
@@ -34,8 +33,9 @@ public abstract class AbstractNioChannelRunner implements DualSideChannelRunner 
         nio.close();
         executor.shutdown();
 
-        if(failure!=null)
-            throw new AssertionError(failure);  // report a failure in the south side
+        if (failure != null) {
+            throw new AssertionError(failure); // report a failure in the south side
+        }
     }
 
     @Override

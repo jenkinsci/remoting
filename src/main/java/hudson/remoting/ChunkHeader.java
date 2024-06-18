@@ -38,15 +38,15 @@ public class ChunkHeader {
     }
 
     public static int parse(int b1, int b2) {
-        return ((b1&0xFF)<<8) | (b2&0xFF);
+        return ((b1 & 0xFF) << 8) | (b2 & 0xFF);
     }
 
     public static boolean isLast(int header) {
-        return (header&0x8000)==0;
+        return (header & 0x8000) == 0;
     }
 
     public static int length(int header) {
-        return header&0x7FFF;
+        return header & 0x7FFF;
     }
 
     public static void write(ByteBuffer buf, int length, boolean hasMore) {
@@ -61,8 +61,8 @@ public class ChunkHeader {
 
     public static byte[] pack(int length, boolean hasMore) {
         byte[] header = new byte[SIZE];
-        header[0] = (byte)((hasMore?0x80:0)|(length>>8));
-        header[1] = (byte)(length);
+        header[0] = (byte) ((hasMore ? 0x80 : 0) | (length >> 8));
+        header[1] = (byte) (length);
         return header;
     }
 }

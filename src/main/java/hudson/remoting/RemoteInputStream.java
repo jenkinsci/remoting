@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -78,21 +78,24 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
      */
     @Deprecated
     public RemoteInputStream(InputStream core, boolean autoUnexport) {
-        this(core, RemoteInputStream.Flag.NOT_GREEDY, autoUnexport ? RemoteInputStream.Flag.NOT_GREEDY : RemoteInputStream.Flag.MANUAL_UNEXPORT);
+        this(
+                core,
+                RemoteInputStream.Flag.NOT_GREEDY,
+                autoUnexport ? RemoteInputStream.Flag.NOT_GREEDY : RemoteInputStream.Flag.MANUAL_UNEXPORT);
     }
 
     /**
      * @since 2.35
      */
     public RemoteInputStream(InputStream core, Flag f) {
-        this(core,EnumSet.of(f));
+        this(core, EnumSet.of(f));
     }
 
     /**
      * @since 2.35
      */
     public RemoteInputStream(InputStream core, Flag f1, Flag f2) {
-        this(core,EnumSet.of(f1,f2));
+        this(core, EnumSet.of(f1, f2));
     }
 
     /**
@@ -101,8 +104,9 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
     public RemoteInputStream(InputStream core, Set<Flag> flags) {
         this.core = core;
         greedy = flags.contains(RemoteInputStream.Flag.GREEDY);
-        if (greedy)
+        if (greedy) {
             greedyAt = new Greedy();
+        }
         autoUnexport = !flags.contains(RemoteInputStream.Flag.MANUAL_UNEXPORT);
     }
 
@@ -118,8 +122,8 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
 
                 new Thread("RemoteInputStream greedy pump thread: " + greedyAt.print()) {
                     {
-                        setUncaughtExceptionHandler(
-                                (t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in RemoteInputStream pump thread " + t, e));
+                        setUncaughtExceptionHandler((t, e) -> LOGGER.log(
+                                Level.SEVERE, "Uncaught exception in RemoteInputStream pump thread " + t, e));
                         setDaemon(true);
                     }
 
@@ -131,7 +135,9 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
                             while (true) {
                                 try {
                                     len = i.read(buf);
-                                    if (len < 0) break;
+                                    if (len < 0) {
+                                        break;
+                                    }
                                 } catch (IOException e) {
                                     // if we can propagate the error, do so. In any case, give up
                                     if (o instanceof ErrorPropagatingOutputStream) {
@@ -175,13 +181,15 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
         oos.writeInt(id);
     }
 
-    @SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "Serializable only over remoting. Class filtering is done through JEP-200.")
+    @SuppressFBWarnings(
+            value = "DESERIALIZATION_GADGET",
+            justification = "Serializable only over remoting. Class filtering is done through JEP-200.")
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         final Channel channel = getChannelForSerialization();
         if (channel.remoteCapability.supportsGreedyRemoteInputStream()) {
             boolean greedy = ois.readBoolean();
             if (greedy) {
-                Pipe p = (Pipe)ois.readObject();
+                Pipe p = (Pipe) ois.readObject();
                 this.core = p.getIn();
                 return;
             }
@@ -258,11 +266,11 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
         }
     }
 
-//
-//
-// delegation to core
-//
-//
+    //
+    //
+    // delegation to core
+    //
+    //
 
     @Override
     public int read() throws IOException {

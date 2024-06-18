@@ -105,13 +105,14 @@ class PipeWriter {
         }
 
         public synchronized Future<?> get() throws InterruptedException {
-            while (f==null)
+            while (f == null) {
                 wait();
+            }
             return f;
         }
     }
 
-    private final Map<Integer,FutureHolder> pendingIO = Collections.synchronizedMap(new HashMap<>());
+    private final Map<Integer, FutureHolder> pendingIO = Collections.synchronizedMap(new HashMap<>());
 
     /**
      * Actually carries out the {@link Runnable}s.
@@ -138,8 +139,9 @@ class PipeWriter {
      *      Future object that can be used to wait for the completion of the submitted I/O task.
      */
     public Future<?> submit(final int id, final Runnable command) {
-        if (id==0)
+        if (id == 0) {
             return base.submit(command);
+        }
 
         // this indirection is needed to ensure that put happens before remove
         // if we store Future itself, then remove can happen before put, and
@@ -147,7 +149,7 @@ class PipeWriter {
         FutureHolder fh = new FutureHolder();
 
         FutureHolder old = pendingIO.put(id, fh);
-        assert old==null;
+        assert old == null;
 
         return fh.set(base.submit(new Runnable() {
             @Override
@@ -155,11 +157,11 @@ class PipeWriter {
                 final Thread t = Thread.currentThread();
                 final String oldName = t.getName();
                 try {
-                    t.setName(oldName+" : IO ID="+id+" : seq#="+iota.getAndIncrement());
+                    t.setName(oldName + " : IO ID=" + id + " : seq#=" + iota.getAndIncrement());
                     command.run();
                 } finally {
                     FutureHolder old = pendingIO.remove(id);
-                    assert old!=null;
+                    assert old != null;
                     t.setName(oldName);
                 }
             }
@@ -180,7 +182,9 @@ class PipeWriter {
      */
     public Future<?> get(int id) throws InterruptedException {
         FutureHolder f = pendingIO.get(id);
-        if (f==null)    return SIGNALED;    // already completed
+        if (f == null) {
+            return SIGNALED; // already completed
+        }
         return f.get();
     }
 

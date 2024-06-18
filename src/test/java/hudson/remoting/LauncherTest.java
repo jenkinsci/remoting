@@ -55,9 +55,8 @@ public class LauncherTest {
     }
 
     private void shouldFailWithDoctype(FileInputStream jnlpFile) {
-        final SAXParseException spe = assertThrows("Dom loading should have failed.", SAXParseException.class,
-                () -> Launcher.loadDom(jnlpFile));
+        final SAXParseException spe = assertThrows(
+                "Dom loading should have failed.", SAXParseException.class, () -> Launcher.loadDom(jnlpFile));
         assertThat(spe.getMessage(), containsString("\"http://apache.org/xml/features/disallow-doctype-decl\""));
     }
-
 }

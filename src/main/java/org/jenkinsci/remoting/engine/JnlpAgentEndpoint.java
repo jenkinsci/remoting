@@ -56,6 +56,7 @@ public class JnlpAgentEndpoint {
      */
     @NonNull
     private final String host;
+
     private final int port;
     /**
      * The {@code InstanceIdentity.getPublic()} of the instance or {@code null} if the instance identity was not
@@ -83,8 +84,8 @@ public class JnlpAgentEndpoint {
      * @deprecated Use {@link #JnlpAgentEndpoint(String, int, RSAPublicKey, Set, URL, String)}
      */
     @Deprecated
-    public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,
-                             @CheckForNull Set<String> protocols) {
+    public JnlpAgentEndpoint(
+            @NonNull String host, int port, @CheckForNull RSAPublicKey publicKey, @CheckForNull Set<String> protocols) {
         this(host, port, publicKey, protocols, null, null);
     }
 
@@ -92,8 +93,12 @@ public class JnlpAgentEndpoint {
      * @deprecated Use {@link #JnlpAgentEndpoint(String, int, RSAPublicKey, Set, URL, String)}
      */
     @Deprecated
-    public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,
-                             @CheckForNull Set<String> protocols, @CheckForNull URL serviceURL) {
+    public JnlpAgentEndpoint(
+            @NonNull String host,
+            int port,
+            @CheckForNull RSAPublicKey publicKey,
+            @CheckForNull Set<String> protocols,
+            @CheckForNull URL serviceURL) {
         this(host, port, publicKey, protocols, serviceURL, null);
     }
 
@@ -108,15 +113,22 @@ public class JnlpAgentEndpoint {
      *                   Use {@code null} if it is not a web service or if the URL cannot be determined
      * @since 3.0
      */
-    public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,
-                             @CheckForNull Set<String> protocols, @CheckForNull URL serviceURL, @CheckForNull String proxyCredentials) {
+    public JnlpAgentEndpoint(
+            @NonNull String host,
+            int port,
+            @CheckForNull RSAPublicKey publicKey,
+            @CheckForNull Set<String> protocols,
+            @CheckForNull URL serviceURL,
+            @CheckForNull String proxyCredentials) {
         if (port <= 0 || 65536 <= port) {
             throw new IllegalArgumentException("Port " + port + " is not in the range 1-65535");
         }
         this.host = host;
         this.port = port;
         this.publicKey = publicKey;
-        this.protocols = protocols == null || protocols.isEmpty() ? null : Collections.unmodifiableSet(new LinkedHashSet<>(protocols));
+        this.protocols = protocols == null || protocols.isEmpty()
+                ? null
+                : Collections.unmodifiableSet(new LinkedHashSet<>(protocols));
         this.serviceUrl = serviceURL;
         this.proxyCredentials = proxyCredentials;
     }
@@ -197,9 +209,9 @@ public class JnlpAgentEndpoint {
      * @return the socket.
      * @throws IOException if things go wrong.
      */
-    @SuppressFBWarnings(value = "VA_FORMAT_STRING_USES_NEWLINE",
-                        justification = "Unsafe endline symbol is a pert of the protocol. Unsafe to fix it. See TODO "
-                                + "below")
+    @SuppressFBWarnings(
+            value = "VA_FORMAT_STRING_USES_NEWLINE",
+            justification = "Unsafe endline symbol is a pert of the protocol. Unsafe to fix it. See TODO " + "below")
     public Socket open(int socketTimeout) throws IOException {
         boolean isHttpProxy = false;
         InetSocketAddress targetAddress = null;
@@ -230,7 +242,8 @@ public class JnlpAgentEndpoint {
             if (isHttpProxy) {
                 String connectCommand = String.format("CONNECT %s:%s HTTP/1.1\r\nHost: %s\r\n", host, port, host);
                 if (proxyCredentials != null) {
-                    String encoding = Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
+                    String encoding =
+                            Base64.getEncoder().encodeToString(proxyCredentials.getBytes(StandardCharsets.UTF_8));
                     connectCommand += "Proxy-Authorization: Basic " + encoding + "\r\n";
                 }
                 connectCommand += "\r\n";
@@ -240,8 +253,9 @@ public class JnlpAgentEndpoint {
                 BufferedInputStream is = new BufferedInputStream(socket.getInputStream());
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
                 String line = reader.readLine();
-                if (line == null)
+                if (line == null) {
                     throw new IOException("Proxy socket closed");
+                }
                 String[] responseLineParts = line.trim().split(" ");
                 if (responseLineParts.length < 2 || !responseLineParts[1].equals("200")) {
                     throw new IOException("Got a bad response from proxy: " + line);
@@ -322,10 +336,9 @@ public class JnlpAgentEndpoint {
      */
     @Override
     public String toString() {
-        return "JnlpAgentEndpoint{" + "host=" + host +
-                ", port=" + port +
-                ", publicKey=" + KeyUtils.fingerprint(publicKey) +
-                ", protocols=" + protocols +
-                '}';
+        return "JnlpAgentEndpoint{" + "host=" + host + ", port="
+                + port + ", publicKey="
+                + KeyUtils.fingerprint(publicKey) + ", protocols="
+                + protocols + '}';
     }
 }

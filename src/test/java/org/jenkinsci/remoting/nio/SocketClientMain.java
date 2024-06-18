@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 public class SocketClientMain {
     public static void main(String[] args) throws Exception {
         final ExecutorService es = Executors.newCachedThreadPool();
-        Socket s = new Socket("localhost",9953);
+        Socket s = new Socket("localhost", 9953);
         LOGGER.info("Cnonected");
         Channel ch = new ChannelBuilder("client", es)
                 .withHeaderStream(new FlushEveryByteStream(System.out))
@@ -22,7 +22,7 @@ public class SocketClientMain {
                 .build(s);
         LOGGER.info("Established.");
 
-        LOGGER.info("Got "+echo(ch,"Hello!"));
+        LOGGER.info("Got " + echo(ch, "Hello!"));
 
         ch.close();
         ch.join();
@@ -47,6 +47,7 @@ public class SocketClientMain {
             LOGGER.info("Echoing back " + arg);
             return arg;
         }
+
         private static final long serialVersionUID = 1L;
     }
 }

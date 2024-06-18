@@ -15,7 +15,8 @@ public class DaemonThreadFactory implements ThreadFactory {
     public Thread newThread(@NonNull Runnable r) {
         Thread thread = new Thread(r);
         thread.setDaemon(true);
-        thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Unhandled exception in thread " + t));
+        thread.setUncaughtExceptionHandler(
+                (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Unhandled exception in thread " + t));
         return thread;
     }
 }

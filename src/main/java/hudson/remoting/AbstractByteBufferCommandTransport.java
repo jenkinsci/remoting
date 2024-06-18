@@ -69,12 +69,14 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * Our channel.
      */
     private Channel channel;
+
     @Deprecated
     private final ByteBuffer writeChunkHeader;
     /**
      * The transport frame size.
      */
     private int transportFrameSize = 8192;
+
     @Deprecated
     private ByteBuffer writeChunkBody;
     /**
@@ -354,5 +356,4 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     public void terminate(IOException e) {
         receiver.terminate(e);
     }
-
 }

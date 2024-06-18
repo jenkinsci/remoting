@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 @Target({ElementType.METHOD, ElementType.TYPE})
 public @interface Repeat {
     int value() default 0;
+
     long stopAfter() default 0L;
+
     TimeUnit stopAfterUnits() default TimeUnit.SECONDS;
 }

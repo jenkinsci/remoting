@@ -35,62 +35,91 @@ import org.junit.Test;
 
 @Ignore("This is not a test just a benchmark and is here for ease of running")
 public class RegExpBenchmark {
-    
+
     final Pattern p1 = Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*");
     final Pattern p2 = Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*");
     final Pattern p3 = Pattern.compile("^.*org\\.apache\\.xalan\\..*");
-    
-    final Pattern p4 = Pattern.compile("^(?:(?:org\\.(?:codehaus\\.groovy\\.runtime|apache\\.commons\\.collections\\.functors))|.*?org\\.apache\\.xalan)\\..*");
 
+    final Pattern p4 = Pattern.compile(
+            "^(?:(?:org\\.(?:codehaus\\.groovy\\.runtime|apache\\.commons\\.collections\\.functors))|.*?org\\.apache\\.xalan)\\..*");
 
     final String s1 = "org.codehaus.groovy.runtime.";
     final String s2 = "org.apache.commons.collections.functors.";
     final String s3 = "org.apache.xalan.";
-    
+
     @Test
     public void repeatedBenchMark() throws Exception {
-        for (int i=0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             benchmark();
-            System.gc();System.gc();System.gc();
+            System.gc();
+            System.gc();
+            System.gc();
         }
     }
-    
+
     @Test
     public void benchmark() throws Exception {
         System.out.println("there are " + getAllRTClasses().size());
-        
+
         List<String> classes = getAllRTClasses();
         final long startRegExp = System.nanoTime();
         final List<String> matchesRegExp = checkClassesRegExp(classes);
         final long durationRegexpNanos = System.nanoTime() - startRegExp;
 
-        System.gc();System.gc();System.gc();
-        
-        // make sure we use new Strings each time so that hotpsot does not do funky caching (after all the strings we will be testing will come from the stream and be new).
+        System.gc();
+        System.gc();
+        System.gc();
+
+        // make sure we use new Strings each time so that hotpsot does not do funky caching (after all the strings we
+        // will be testing will come from the stream and be new).
         classes = getAllRTClasses();
         final long startSingleRegExp = System.nanoTime();
         final List<String> matchesSingleRegExp = checkClassesSingleRegExp(classes);
         final long durationSingleRegexpNanos = System.nanoTime() - startSingleRegExp;
-        System.gc();System.gc();System.gc();
-        
-        // make sure we use new Strings each time so that hotpsot does not do funky caching (after all the strings we will be testing will come from the stream and be new).
+        System.gc();
+        System.gc();
+        System.gc();
+
+        // make sure we use new Strings each time so that hotpsot does not do funky caching (after all the strings we
+        // will be testing will come from the stream and be new).
         classes = getAllRTClasses();
         final long startString = System.nanoTime();
         final List<String> matchesString = checkClassesString(classes);
         final long durationStringNanos = System.nanoTime() - startString;
-        
-        System.out.printf(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns%n", "RegExp ", matchesRegExp.size(), durationRegexpNanos, durationRegexpNanos/classes.size());
-        System.out.printf(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns%n", "SingleRegExp ", matchesSingleRegExp.size(), durationSingleRegexpNanos, durationSingleRegexpNanos/classes.size());
-        System.out.printf(Locale.ENGLISH, "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns%n", "String ", matchesString.size(), durationStringNanos, durationStringNanos/classes.size());
-        
-        System.out.println("Regular Expression is " + durationRegexpNanos/durationStringNanos + " times slower");
-        System.out.println("Single Regular Expression is " + durationSingleRegexpNanos/durationStringNanos + " times slower\n");
+
+        System.out.printf(
+                Locale.ENGLISH,
+                "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns%n",
+                "RegExp ",
+                matchesRegExp.size(),
+                durationRegexpNanos,
+                durationRegexpNanos / classes.size());
+        System.out.printf(
+                Locale.ENGLISH,
+                "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns%n",
+                "SingleRegExp ",
+                matchesSingleRegExp.size(),
+                durationSingleRegexpNanos,
+                durationSingleRegexpNanos / classes.size());
+        System.out.printf(
+                Locale.ENGLISH,
+                "%-13s: %d blacklisted classes in %9dns.  Average class check time is %dns%n",
+                "String ",
+                matchesString.size(),
+                durationStringNanos,
+                durationStringNanos / classes.size());
+
+        System.out.println("Regular Expression is " + durationRegexpNanos / durationStringNanos + " times slower");
+        System.out.println(
+                "Single Regular Expression is " + durationSingleRegexpNanos / durationStringNanos + " times slower\n");
     }
 
     private List<String> checkClassesRegExp(List<String> classnames) {
         List<String> blacklistedClasses = new ArrayList<>();
         for (String s : classnames) {
-            if (p1.matcher(s).matches() || p2.matcher(s).matches() || p3.matcher(s).matches()) {
+            if (p1.matcher(s).matches()
+                    || p2.matcher(s).matches()
+                    || p3.matcher(s).matches()) {
                 // something with a side effect
                 blacklistedClasses.add(s);
             }
@@ -108,7 +137,7 @@ public class RegExpBenchmark {
         }
         return blacklistedClasses;
     }
- 
+
     private List<String> checkClassesString(List<String> classnames) {
         List<String> blacklistedClasses = new ArrayList<>();
         for (String s : classnames) {
@@ -119,12 +148,12 @@ public class RegExpBenchmark {
         }
         return blacklistedClasses;
     }
-    
+
     private List<String> getAllRTClasses() throws Exception {
         List<String> classes = new ArrayList<>();
         // Object.class.getProtectionDomain().getCodeSource() returns null :(
         String javaHome = System.getProperty("java.home");
-        JarFile jf = new JarFile(javaHome +  "/lib/rt.jar");
+        JarFile jf = new JarFile(javaHome + "/lib/rt.jar");
         for (JarEntry je : Collections.list(jf.entries())) {
             if (!je.isDirectory() && je.getName().endsWith(".class")) {
                 String name = je.getName().replace('/', '.');

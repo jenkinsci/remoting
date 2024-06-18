@@ -59,5 +59,4 @@ public class DurationOptionHandler extends OptionHandler<Duration> {
     protected String print(Duration v) {
         return DurationFormatter.format(v);
     }
-
 }

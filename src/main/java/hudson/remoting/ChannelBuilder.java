@@ -43,7 +43,9 @@ public class ChannelBuilder {
      * Our logger.
      */
     private static final Logger LOGGER = Logger.getLogger(ChannelBuilder.class.getName());
-    private static /* non-final for Groovy */ boolean CALLABLES_CAN_IGNORE_ROLECHECKER = Boolean.getBoolean(ChannelBuilder.class.getName() + ".allCallablesCanIgnoreRoleChecker");
+
+    private static /* non-final for Groovy */ boolean CALLABLES_CAN_IGNORE_ROLECHECKER =
+            Boolean.getBoolean(ChannelBuilder.class.getName() + ".allCallablesCanIgnoreRoleChecker");
 
     private static final Set<String> SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER = new HashSet<>();
 
@@ -51,26 +53,32 @@ public class ChannelBuilder {
         final String propertyName = ChannelBuilder.class.getName() + ".specificCallablesCanIgnoreRoleChecker";
         final String property = System.getProperty(propertyName);
         if (property != null) {
-            final Set<String> names = Arrays.stream(property.split(",")).map(String::trim).collect(Collectors.toSet());
-            LOGGER.log(Level.INFO, () -> "Allowing the following callables to bypass role checker requirement: " + String.join(", ", names));
+            final Set<String> names =
+                    Arrays.stream(property.split(",")).map(String::trim).collect(Collectors.toSet());
+            LOGGER.log(
+                    Level.INFO,
+                    () -> "Allowing the following callables to bypass role checker requirement: "
+                            + String.join(", ", names));
             SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER.addAll(names);
         }
     }
-
 
     private final String name;
     private final ExecutorService executors;
     private ClassLoader base = this.getClass().getClassLoader();
     private Channel.Mode mode = Channel.Mode.NEGOTIATE;
     private Capability capability = new Capability();
+
     @CheckForNull
     private OutputStream header;
+
     @CheckForNull
     private JarCache jarCache;
+
     private final List<CallableDecorator> decorators = new ArrayList<>();
     private boolean arbitraryCallableAllowed = true;
     private boolean remoteClassLoadingAllowed = true;
-    private final Map<Object,Object> properties = new HashMap<>();
+    private final Map<Object, Object> properties = new HashMap<>();
     private ClassFilter filter = ClassFilter.DEFAULT;
 
     /**
@@ -102,7 +110,9 @@ public class ChannelBuilder {
      * so that those classes resolve. If null, {@code Channel.class.getClassLoader()} is used.
      */
     public ChannelBuilder withBaseLoader(ClassLoader base) {
-        if (base==null)     base = this.getClass().getClassLoader();
+        if (base == null) {
+            base = this.getClass().getClassLoader();
+        }
         this.base = base;
         return this;
     }
@@ -158,7 +168,7 @@ public class ChannelBuilder {
      *      Control individual features.
      */
     @Deprecated
-    public ChannelBuilder withRestricted(boolean  restricted) {
+    public ChannelBuilder withRestricted(boolean restricted) {
         withArbitraryCallableAllowed(!restricted);
         withRemoteClassLoadingAllowed(!restricted);
         return this;
@@ -303,11 +313,13 @@ public class ChannelBuilder {
         }
 
         if (callable instanceof InternalCallable) {
-            LOGGER.fine(() -> "Callable " + callable.getClass().getName() + " is a remoting built-in callable allowed to bypass the role check");
+            LOGGER.fine(() -> "Callable " + callable.getClass().getName()
+                    + " is a remoting built-in callable allowed to bypass the role check");
             return false;
         }
 
-        if (SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER.contains(callable.getClass().getName())) {
+        if (SPECIFIC_CALLABLES_CAN_IGNORE_ROLECHECKER.contains(
+                callable.getClass().getName())) {
             LOGGER.fine(() -> "Callable " + callable.getClass().getName() + " is allowed through override");
             return false;
         }
@@ -327,13 +339,20 @@ public class ChannelBuilder {
                     RequiredRoleCheckerWrapper wrapped = new RequiredRoleCheckerWrapper(checker);
                     stem.checkRoles(wrapped);
                     if (wrapped.isChecked()) {
-                        LOGGER.log(Level.FINER, () -> "Callable " + stem.getClass().getName() + " checked roles");
+                        LOGGER.log(
+                                Level.FINER, () -> "Callable " + stem.getClass().getName() + " checked roles");
                     } else if (isCallableProhibitedByRequiredRoleCheck(stem)) {
-                        LOGGER.log(Level.INFO, () -> "Rejecting callable " + stem.getClass().getName() + " for ignoring RoleChecker in #checkRoles, see https://www.jenkins.io/redirect/required-role-check");
-                        throw new SecurityException("Security hardening prohibits the Callable implementation " + stem.getClass().getName() + " from ignoring RoleChecker, see https://www.jenkins.io/redirect/required-role-check");
+                        LOGGER.log(
+                                Level.INFO,
+                                () -> "Rejecting callable " + stem.getClass().getName()
+                                        + " for ignoring RoleChecker in #checkRoles, see https://www.jenkins.io/redirect/required-role-check");
+                        throw new SecurityException(
+                                "Security hardening prohibits the Callable implementation "
+                                        + stem.getClass().getName()
+                                        + " from ignoring RoleChecker, see https://www.jenkins.io/redirect/required-role-check");
                     }
                 } catch (AbstractMethodError e) {
-                    checker.check(stem, Role.UNKNOWN);// not implemented, assume 'unknown'
+                    checker.check(stem, Role.UNKNOWN); // not implemented, assume 'unknown'
                 }
 
                 return stem;
@@ -350,7 +369,7 @@ public class ChannelBuilder {
      * @since 2.47
      */
     public ChannelBuilder withProperty(Object key, Object value) {
-        properties.put(key,value);
+        properties.put(key, value);
         return this;
     }
 
@@ -364,7 +383,7 @@ public class ChannelBuilder {
     /**
      * @since 2.47
      */
-    public Map<Object,Object> getProperties() {
+    public Map<Object, Object> getProperties() {
         return Collections.unmodifiableMap(properties);
     }
 
@@ -375,7 +394,9 @@ public class ChannelBuilder {
      * @since 2.53
      */
     public ChannelBuilder withClassFilter(ClassFilter filter) {
-        if (filter==null)   throw new IllegalArgumentException();
+        if (filter == null) {
+            throw new IllegalArgumentException();
+        }
         this.filter = filter;
         return this;
     }
@@ -398,23 +419,22 @@ public class ChannelBuilder {
      *      buffering on this stream, if that's necessary.
      */
     public Channel build(InputStream is, OutputStream os) throws IOException {
-        return new Channel(this,negotiate(is,os));
+        return new Channel(this, negotiate(is, os));
     }
 
     public Channel build(Socket s) throws IOException {
         // support half-close properly
-        return build(new BufferedInputStream(SocketChannelStream.in(s)),
-                    new BufferedOutputStream(SocketChannelStream.out(s)));
+        return build(
+                new BufferedInputStream(SocketChannelStream.in(s)),
+                new BufferedOutputStream(SocketChannelStream.out(s)));
     }
 
     public Channel build(SocketChannel s) throws IOException {
-        return build(
-                SocketChannelStream.in(s),
-                SocketChannelStream.out(s));
+        return build(SocketChannelStream.in(s), SocketChannelStream.out(s));
     }
 
     public Channel build(CommandTransport transport) throws IOException {
-        return new Channel(this,transport);
+        return new Channel(this, transport);
     }
 
     /**
@@ -439,63 +459,71 @@ public class ChannelBuilder {
         if (mode != Channel.Mode.NEGOTIATE) {
             LOGGER.log(Level.FINER, "Sending mode preamble: {0}", mode);
             os.write(mode.preamble);
-            os.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
+            os.flush(); // make sure that stream preamble is sent to the other end. avoids dead-lock
         } else {
             LOGGER.log(Level.FINER, "Awaiting mode preamble...");
         }
 
-        {// read the input until we hit preamble
+        { // read the input until we hit preamble
             Channel.Mode[] modes = {Channel.Mode.BINARY, Channel.Mode.TEXT};
-            byte[][] preambles = new byte[][]{Channel.Mode.BINARY.preamble, Channel.Mode.TEXT.preamble, Capability.PREAMBLE};
-            int[] ptr=new int[3];
-            Capability cap = new Capability(0); // remote capacity that we obtained. If we don't hear from remote, assume no capability
+            byte[][] preambles =
+                    new byte[][] {Channel.Mode.BINARY.preamble, Channel.Mode.TEXT.preamble, Capability.PREAMBLE};
+            int[] ptr = new int[3];
+            Capability cap = new Capability(
+                    0); // remote capacity that we obtained. If we don't hear from remote, assume no capability
 
-            while(true) {
+            while (true) {
                 int ch = is.read();
-                if(ch==-1)
+                if (ch == -1) {
                     throw new EOFException("unexpected stream termination");
+                }
 
-                for(int i=0;i<preambles.length;i++) {
+                for (int i = 0; i < preambles.length; i++) {
                     byte[] preamble = preambles[i];
-                    if(preamble[ptr[i]]==ch) {
-                        if(++ptr[i]==preamble.length) {
+                    if (preamble[ptr[i]] == ch) {
+                        if (++ptr[i] == preamble.length) {
                             switch (i) {
-                            case 0:
-                            case 1:
-                                LOGGER.log(Level.FINER, "Received mode preamble: {0}", modes[i]);
-                                // transmission mode negotiation
-                                if (mode == Channel.Mode.NEGOTIATE) {
-                                    // now we know what the other side wants, so send the consistent preamble
-                                    mode = modes[i];
-                                    LOGGER.log(Level.FINER, "Sending agreed mode preamble: {0}", mode);
-                                    os.write(mode.preamble);
-                                    os.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
-                                } else {
-                                    if(modes[i]!=mode)
-                                        throw new IOException("Protocol negotiation failure");
-                                }
-                                LOGGER.log(Level.FINE, "Channel name {0} negotiated mode {1} with capability {2}",
-                                        new Object[]{name, mode, cap});
+                                case 0:
+                                case 1:
+                                    LOGGER.log(Level.FINER, "Received mode preamble: {0}", modes[i]);
+                                    // transmission mode negotiation
+                                    if (mode == Channel.Mode.NEGOTIATE) {
+                                        // now we know what the other side wants, so send the consistent preamble
+                                        mode = modes[i];
+                                        LOGGER.log(Level.FINER, "Sending agreed mode preamble: {0}", mode);
+                                        os.write(mode.preamble);
+                                        os.flush(); // make sure that stream preamble is sent to the other end.
+                                        // avoids dead-lock
+                                    } else {
+                                        if (modes[i] != mode) {
+                                            throw new IOException("Protocol negotiation failure");
+                                        }
+                                    }
+                                    LOGGER.log(
+                                            Level.FINE,
+                                            "Channel name {0} negotiated mode {1} with capability {2}",
+                                            new Object[] {name, mode, cap});
 
-                                return makeTransport(is, os, mode, cap);
-                            case 2:
-                                cap = Capability.read(is);
-                                LOGGER.log(Level.FINER, "Received capability preamble: {0}", cap);
-                                break;
-                            default:
-                                throw new IllegalStateException("Unexpected preamble byte #" + i + 
-                                        ". Only " + preambles.length + " bytes are supported");
+                                    return makeTransport(is, os, mode, cap);
+                                case 2:
+                                    cap = Capability.read(is);
+                                    LOGGER.log(Level.FINER, "Received capability preamble: {0}", cap);
+                                    break;
+                                default:
+                                    throw new IllegalStateException("Unexpected preamble byte #" + i + ". Only "
+                                            + preambles.length + " bytes are supported");
                             }
-                            ptr[i]=0; // reset
+                            ptr[i] = 0; // reset
                         }
                     } else {
                         // didn't match.
-                        ptr[i]=0;
+                        ptr[i] = 0;
                     }
                 }
 
-                if(header!=null)
+                if (header != null) {
                     header.write(ch);
+                }
             }
         }
     }
@@ -512,18 +540,18 @@ public class ChannelBuilder {
      * @param cap
      *      Capabilities of the other side, as determined during the handshaking.
      */
-    protected CommandTransport makeTransport(InputStream is, OutputStream os, Channel.Mode mode, Capability cap) throws IOException {
+    protected CommandTransport makeTransport(InputStream is, OutputStream os, Channel.Mode mode, Capability cap)
+            throws IOException {
         FlightRecorderInputStream fis = new FlightRecorderInputStream(is);
 
-        if (cap.supportsChunking())
+        if (cap.supportsChunking()) {
             return new ChunkedCommandTransport(cap, mode.wrap(fis), mode.wrap(os), os);
-        else {
+        } else {
             ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(mode.wrap(os));
-            oos.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
+            oos.flush(); // make sure that stream preamble is sent to the other end. avoids dead-lock
 
             return new ClassicCommandTransport(
-                    new ObjectInputStreamEx(mode.wrap(fis),getBaseLoader(),getClassFilter()),
-                    oos,fis,os,cap);
+                    new ObjectInputStreamEx(mode.wrap(fis), getBaseLoader(), getClassFilter()), oos, fis, os, cap);
         }
     }
 }

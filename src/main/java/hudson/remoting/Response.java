@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -37,7 +37,7 @@ import java.io.Serializable;
  * @see Request
  * @since 3.17
  */
-public final class Response<RSP extends Serializable,EXC extends Throwable> extends Command {
+public final class Response<RSP extends Serializable, EXC extends Throwable> extends Command {
     /**
      * ID of the {@link Request} for which
      */
@@ -57,9 +57,14 @@ public final class Response<RSP extends Serializable,EXC extends Throwable> exte
     final RSP returnValue;
     final EXC exception;
 
-    @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED", justification="Only supposed to be defined on one side.")
+    @SuppressFBWarnings(
+            value = "SE_TRANSIENT_FIELD_NOT_RESTORED",
+            justification = "Only supposed to be defined on one side.")
     private transient long totalTime;
-    @SuppressFBWarnings(value="SE_TRANSIENT_FIELD_NOT_RESTORED", justification="Bound after deserialization, in execute.")
+
+    @SuppressFBWarnings(
+            value = "SE_TRANSIENT_FIELD_NOT_RESTORED",
+            justification = "Bound after deserialization, in execute.")
     private transient Request<RSP, ? extends Throwable> request;
 
     Response(Request<RSP, ? extends Throwable> request, int id, int lastIoId, RSP returnValue) {
@@ -84,8 +89,9 @@ public final class Response<RSP extends Serializable,EXC extends Throwable> exte
     @Override
     void execute(Channel channel) {
         Request<RSP, ? extends Throwable> req = (Request<RSP, ? extends Throwable>) channel.pendingCalls.get(id);
-        if(req==null)
+        if (req == null) {
             return; // maybe aborted
+        }
         req.responseIoId = lastIoId;
 
         req.onCompleted(this);
@@ -101,15 +107,18 @@ public final class Response<RSP extends Serializable,EXC extends Throwable> exte
 
     @Override
     public String toString() {
-        return "Response" + (request != null ? ":" + request : "") + "(" + (returnValue != null ? returnValue.getClass().getName() : exception != null ? exception.getClass().getName() : null) + ")";
+        return "Response" + (request != null ? ":" + request : "") + "("
+                + (returnValue != null
+                        ? returnValue.getClass().getName()
+                        : exception != null ? exception.getClass().getName() : null)
+                + ")";
     }
 
     /**
      * Obtains the matching request.
      * @return null if this response has not been processed successfully
      */
-    public @CheckForNull
-    Request<?, ?> getRequest() {
+    public @CheckForNull Request<?, ?> getRequest() {
         return request;
     }
 

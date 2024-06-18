@@ -47,8 +47,8 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @author Kohsuke Kawaguchi
  */
 final class ExportTable {
-    private final Map<Integer,Entry<?>> table = new HashMap<>();
-    private final Map<Object,Entry<?>> reverse = new HashMap<>();
+    private final Map<Integer, Entry<?>> table = new HashMap<>();
+    private final Map<Object, Entry<?>> reverse = new HashMap<>();
     /**
      * {@link ExportList}s which are actively recording the current
      * export operation.
@@ -100,8 +100,8 @@ final class ExportTable {
             this.objectType = object.getClass().getName();
             this.allocationTrace = EXPORT_TRACES ? new CreatedAt() : null;
 
-            table.put(id,this);
-            reverse.put(object,this);
+            table.put(id, this);
+            reverse.put(object, this);
         }
 
         void addRef() {
@@ -126,8 +126,9 @@ final class ExportTable {
             //   addRef  -> 0x80000000 => BOOM
             // By making the decision point half way, we give the maximum number of releases away from the pinned
             // magic value
-            if (referenceCount<0x20000000)
+            if (referenceCount < 0x20000000) {
                 referenceCount += 0x40000000;
+            }
         }
 
         /**
@@ -137,7 +138,7 @@ final class ExportTable {
          *      in case it was requested from the other side of the channel.
          */
         void release(@CheckForNull Throwable callSite) {
-            if(--referenceCount==0) {
+            if (--referenceCount == 0) {
                 table.remove(id);
                 reverse.remove(object);
 
@@ -146,15 +147,16 @@ final class ExportTable {
                     releaseTrace = new ReleasedAt(callSite);
                 }
                 unexportLog.add(this);
-                while (unexportLog.size() > UNEXPORT_LOG_SIZE)
+                while (unexportLog.size() > UNEXPORT_LOG_SIZE) {
                     unexportLog.remove(0);
+                }
             }
         }
 
         private String interfaceNames() {
             StringBuilder buf = new StringBuilder(10 + getInterfaces().length * 128);
             String sep = "[";
-            for (Class<? super T> clazz: getInterfaces()) {
+            for (Class<? super T> clazz : getInterfaces()) {
                 buf.append(sep).append(clazz.getName());
                 sep = ", ";
             }
@@ -166,7 +168,9 @@ final class ExportTable {
          * Dumps the contents of the entry.
          */
         void dump(PrintWriter w) throws IOException {
-            w.printf("#%d (ref.%d) : object=%s type=%s interfaces=%s%n", id, referenceCount, object, objectType, interfaceNames());
+            w.printf(
+                    "#%d (ref.%d) : object=%s type=%s interfaces=%s%n",
+                    id, referenceCount, object, objectType, interfaceNames());
             if (allocationTrace != null) {
                 allocationTrace.printStackTrace(w);
             }
@@ -180,7 +184,7 @@ final class ExportTable {
             try (PrintWriter pw = new PrintWriter(sw)) {
                 dump(pw);
             } catch (IOException e) {
-                throw new Error(e);   // impossible
+                throw new Error(e); // impossible
             }
             return sw.toString();
         }
@@ -190,15 +194,16 @@ final class ExportTable {
         }
 
         synchronized void addInterface(Class<? super T> clazz) {
-            for (Class<? super T> c: interfaces) {
-                if (c.equals(clazz)) return;
+            for (Class<? super T> c : interfaces) {
+                if (c.equals(clazz)) {
+                    return;
+                }
             }
-            Class<? super T>[] replacement = new Class[interfaces.length+1];
+            Class<? super T>[] replacement = new Class[interfaces.length + 1];
             System.arraycopy(interfaces, 0, replacement, 0, interfaces.length);
             replacement[interfaces.length] = clazz;
             interfaces = replacement;
         }
-
     }
 
     static class Source extends Exception {
@@ -212,7 +217,6 @@ final class ExportTable {
         Source(@CheckForNull Throwable callSite) {
             super(callSite);
         }
-
     }
 
     static class CreatedAt extends Source {
@@ -222,7 +226,7 @@ final class ExportTable {
 
         @Override
         public String toString() {
-            return "  Created at "+new Date(timestamp);
+            return "  Created at " + new Date(timestamp);
         }
     }
 
@@ -233,7 +237,7 @@ final class ExportTable {
 
         @Override
         public String toString() {
-            return "  Released at "+new Date(timestamp);
+            return "  Released at " + new Date(timestamp);
         }
     }
 
@@ -244,26 +248,32 @@ final class ExportTable {
      * The class is not serializable.
      */
     @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = {"EQ_DOESNT_OVERRIDE_EQUALS", "SE_BAD_FIELD_INNER_CLASS"},
+    @SuppressFBWarnings(
+            value = {"EQ_DOESNT_OVERRIDE_EQUALS", "SE_BAD_FIELD_INNER_CLASS"},
             justification = "ExportList is supposed to be serializable as ArrayList, but it is not. "
-                          + "The issue is ignored since the class does not belong to the public API")
+                    + "The issue is ignored since the class does not belong to the public API")
     public final class ExportList extends ArrayList<Entry<?>> {
         private final ExportList old;
+
         private ExportList() {
-            old=lists.get();
+            old = lists.get();
             lists.set(this);
         }
+
         void release(Throwable callSite) {
-            synchronized(ExportTable.this) {
-                for (Entry<?> e : this)
+            synchronized (ExportTable.this) {
+                for (Entry<?> e : this) {
                     e.release(callSite);
+                }
             }
         }
+
         void stopRecording() {
             lists.set(old);
         }
 
-        private static final long serialVersionUID = 1L;    // we don't actually serialize this class but just to shutup FindBugs
+        private static final long serialVersionUID =
+                1L; // we don't actually serialize this class but just to shutup FindBugs
     }
 
     /**
@@ -284,7 +294,7 @@ final class ExportTable {
     }
 
     boolean isRecording() {
-        return lists.get()!=null;
+        return lists.get() != null;
     }
 
     /**
@@ -302,7 +312,7 @@ final class ExportTable {
      * @param t Class instance
      */
     synchronized <T> int export(@NonNull Class<T> clazz, @CheckForNull T t) {
-        return export(clazz, t,true);
+        return export(clazz, t, true);
     }
 
     /**
@@ -317,7 +327,9 @@ final class ExportTable {
      *      {@code 0} if the input parameter is {@code null}.
      */
     synchronized <T> int export(@NonNull Class<T> clazz, @CheckForNull T t, boolean notifyListener) {
-        if(t==null)    return 0;   // bootstrap classloader
+        if (t == null) {
+            return 0; // bootstrap classloader
+        }
 
         Entry<T> e = (Entry<T>) reverse.get(t);
         if (e == null) {
@@ -327,9 +339,11 @@ final class ExportTable {
         }
         e.addRef();
 
-        if(notifyListener) {
+        if (notifyListener) {
             ExportList l = lists.get();
-            if(l!=null) l.add(e);
+            if (l != null) {
+                l.add(e);
+            }
         }
 
         return e.id;
@@ -337,8 +351,9 @@ final class ExportTable {
 
     /*package*/ synchronized void pin(@NonNull Object t) {
         Entry<?> e = reverse.get(t);
-        if(e!=null)
+        if (e != null) {
             e.pin();
+        }
     }
 
     /**
@@ -351,7 +366,9 @@ final class ExportTable {
     @NonNull
     synchronized Object get(int id) throws ExecutionException {
         Entry<?> e = table.get(id);
-        if(e!=null) return e.object;
+        if (e != null) {
+            return e.object;
+        }
 
         throw diagnoseInvalidObjectId(id);
     }
@@ -364,7 +381,9 @@ final class ExportTable {
     @CheckForNull
     synchronized Object getOrNull(int oid) {
         Entry<?> e = table.get(oid);
-        if(e!=null) return e.object;
+        if (e != null) {
+            return e.object;
+        }
 
         return null;
     }
@@ -372,7 +391,9 @@ final class ExportTable {
     @NonNull
     synchronized Class<?>[] type(int id) throws ExecutionException {
         Entry<?> e = table.get(id);
-        if(e!=null) return e.getInterfaces();
+        if (e != null) {
+            return e.getInterfaces();
+        }
 
         throw diagnoseInvalidObjectId(id);
     }
@@ -396,9 +417,9 @@ final class ExportTable {
         for (Entry<?> v : values) {
             if (v.object instanceof ErrorPropagatingOutputStream) {
                 try {
-                    ((ErrorPropagatingOutputStream)v.object).error(e);
+                    ((ErrorPropagatingOutputStream) v.object).error(e);
                 } catch (Throwable x) {
-                    LOGGER.log(Level.INFO, "Failed to propagate a channel termination error",x);
+                    LOGGER.log(Level.INFO, "Failed to propagate a channel termination error", x);
                 }
             }
         }
@@ -419,24 +440,25 @@ final class ExportTable {
      */
     @NonNull
     private synchronized ExecutionException diagnoseInvalidObjectId(int id) {
-        Exception cause=null;
+        Exception cause = null;
 
         if (!unexportLog.isEmpty()) {
             for (Entry<?> e : unexportLog) {
-                if (e.id==id) {
+                if (e.id == id) {
                     cause = new Exception("Object was recently deallocated\n" + Util.indent(e.dump()), e.releaseTrace);
                     break;
                 }
             }
-            if (cause==null) {
-                // If there is no cause available, create an artificial cause and use the last unexport entry as an estimated release time if possible
+            if (cause == null) {
+                // If there is no cause available, create an artificial cause and use the last unexport entry as an
+                // estimated release time if possible
                 final ReleasedAt releasedAt = unexportLog.get(0).releaseTrace;
                 final Date releasedBefore = releasedAt != null ? new Date(releasedAt.timestamp) : new Date();
-                cause = new Exception("Object appears to be deallocated at lease before "+ releasedBefore);
+                cause = new Exception("Object appears to be deallocated at lease before " + releasedBefore);
             }
         }
 
-        return new ExecutionException("Invalid object ID "+id+" iota="+iota, cause);
+        return new ExecutionException("Invalid object ID " + id + " iota=" + iota, cause);
     }
 
     /**
@@ -454,14 +476,21 @@ final class ExportTable {
      * @param severeErrorIfMissing Consider missing object as {@link Level#SEVERE} error. {@link Level#FINE} otherwise
      * @since 2.62
      */
-    synchronized void unexportByOid(@CheckForNull Integer oid, @CheckForNull Throwable callSite, boolean severeErrorIfMissing) {
-        if(oid==null)     return;
+    synchronized void unexportByOid(
+            @CheckForNull Integer oid, @CheckForNull Throwable callSite, boolean severeErrorIfMissing) {
+        if (oid == null) {
+            return;
+        }
         Entry<?> e = table.get(oid);
-        if(e==null) {
+        if (e == null) {
             Level loggingLevel = severeErrorIfMissing ? Level.SEVERE : Level.FINE;
-            LOGGER.log(loggingLevel, "Trying to unexport an object that's already unexported", diagnoseInvalidObjectId(oid));
-            if (callSite!=null)
+            LOGGER.log(
+                    loggingLevel,
+                    "Trying to unexport an object that's already unexported",
+                    diagnoseInvalidObjectId(oid));
+            if (callSite != null) {
                 LOGGER.log(loggingLevel, "2nd unexport attempt is here", callSite);
+            }
             return;
         }
         e.release(callSite);
@@ -477,7 +506,7 @@ final class ExportTable {
         }
     }
 
-    /*package*/ synchronized  boolean isExported(Object o) {
+    /*package*/ synchronized boolean isExported(Object o) {
         return reverse.containsKey(o);
     }
 
@@ -485,7 +514,7 @@ final class ExportTable {
      * Defines number of entries to be stored in the unexport history.
      * @since 2.40
      */
-    public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName()+".unexportLogSize",1024);
+    public static int UNEXPORT_LOG_SIZE = Integer.getInteger(ExportTable.class.getName() + ".unexportLogSize", 1024);
 
     static boolean EXPORT_TRACES = Boolean.getBoolean(ExportTable.class.getName() + ".exportTraces");
 

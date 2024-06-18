@@ -81,17 +81,15 @@ public class NetworkLayerTest {
     }
 
     @Theory
-    public void doBasicSendReceive(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(hub, serverToClient.source(), clientToServer.sink()))
-                        .build(new IOBufferMatcherLayer());
+    public void doBasicSendReceive(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
+            throws Exception {
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(hub, serverToClient.source(), clientToServer.sink()))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(hub, clientToServer.source(), serverToClient.sink()))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(hub, clientToServer.source(), serverToClient.sink()))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -103,5 +101,4 @@ public class NetworkLayerTest {
         server.get().close(null);
         client.get().awaitClose();
     }
-
 }

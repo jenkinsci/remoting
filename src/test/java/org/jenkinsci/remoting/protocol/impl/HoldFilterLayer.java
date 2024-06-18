@@ -96,5 +96,4 @@ public class HoldFilterLayer extends FilterLayer {
             }
         }
     }
-
 }

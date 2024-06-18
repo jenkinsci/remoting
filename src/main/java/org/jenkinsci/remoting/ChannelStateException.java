@@ -52,13 +52,13 @@ public class ChannelStateException extends IOException {
 
     public ChannelStateException(@CheckForNull Channel channel, @NonNull String message) {
         super(message);
-        channelRef = channel != null ?  new WeakReference<>(channel) : null;
+        channelRef = channel != null ? new WeakReference<>(channel) : null;
         channelName = channel != null ? channel.getName() : "unknown";
     }
 
     public ChannelStateException(@CheckForNull Channel channel, String message, @CheckForNull Throwable cause) {
         super(message, cause);
-        channelRef = channel != null ?  new WeakReference<>(channel) : null;
+        channelRef = channel != null ? new WeakReference<>(channel) : null;
         channelName = channel != null ? channel.getName() : "unknown";
     }
 

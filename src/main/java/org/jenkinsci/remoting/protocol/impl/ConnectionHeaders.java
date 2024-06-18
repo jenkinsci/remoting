@@ -163,7 +163,10 @@ public final class ConnectionHeaders {
                     if (isWhitespace) {
                         continue;
                     }
-                    if (c == 'n' && i + 3 < n && data.charAt(i + 1) == 'u' && data.charAt(i + 2) == 'l'
+                    if (c == 'n'
+                            && i + 3 < n
+                            && data.charAt(i + 1) == 'u'
+                            && data.charAt(i + 2) == 'l'
                             && data.charAt(i + 3) == 'l') {
                         i += 3;
                         result.put(key.toString(), null);
@@ -300,7 +303,6 @@ public final class ConnectionHeaders {
             default:
                 throw new ParseException("Unknown character escape '" + c + "'");
         }
-
     }
 
     public static String encodeEscape(int c) {
@@ -309,7 +311,6 @@ public final class ConnectionHeaders {
                 + Character.forDigit((c >> 4) & 15, 16)
                 + Character.forDigit(c & 15, 16);
     }
-
 
     public static class ParseException extends Exception {
         public ParseException(String message) {

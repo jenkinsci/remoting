@@ -38,5 +38,4 @@ public class NoOpFilterLayer extends FilterLayer {
     public void doSend(@NonNull ByteBuffer data) throws IOException {
         next().doSend(data);
     }
-
 }

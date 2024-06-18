@@ -25,19 +25,20 @@ public class NioPipeRunner extends AbstractNioChannelRunner {
         final Pipe s2n = Pipe.open();
 
         nio = new NioChannelHub(executor);
-        nio.setFrameSize(132);  // force unaligned boundaries to shake things up a bit
+        nio.setFrameSize(132); // force unaligned boundaries to shake things up a bit
 
         executor.submit(() -> {
             try {
                 nio.run();
             } catch (Throwable e) {
-                LOGGER.log(Level.WARNING, "Faield to keep the NIO selector thread going",e);
+                LOGGER.log(Level.WARNING, "Faield to keep the NIO selector thread going", e);
                 failure = e;
             }
         });
         executor.submit(() -> {
             try {
-                Channel south = nio.newChannelBuilder("south",executor).withMode(Channel.Mode.NEGOTIATE)
+                Channel south = nio.newChannelBuilder("south", executor)
+                        .withMode(Channel.Mode.NEGOTIATE)
                         .build(n2s.source(), s2n.sink());
                 southHandoff.put(south);
                 south.join();
@@ -49,7 +50,8 @@ public class NioPipeRunner extends AbstractNioChannelRunner {
         });
 
         // create a client channel that connects to the same hub
-        Channel north = nio.newChannelBuilder("north", executor).withMode(Channel.Mode.BINARY)
+        Channel north = nio.newChannelBuilder("north", executor)
+                .withMode(Channel.Mode.BINARY)
                 .build(s2n.source(), n2s.sink());
         south = southHandoff.poll(10, TimeUnit.SECONDS);
         return north;
@@ -62,4 +64,3 @@ public class NioPipeRunner extends AbstractNioChannelRunner {
 
     private static final Logger LOGGER = Logger.getLogger(NioSocketRunner.class.getName());
 }
-

@@ -1,6 +1,5 @@
 package hudson.remoting;
 
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.net.URL;
@@ -17,7 +16,9 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
-@SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent as part of jar cache management.")
+@SuppressFBWarnings(
+        value = "URLCONNECTION_SSRF_FD",
+        justification = "Used by the agent as part of jar cache management.")
 class ResourceImageDirect extends ResourceImageRef {
     /**
      * The actual resource.
@@ -34,7 +35,7 @@ class ResourceImageDirect extends ResourceImageRef {
 
     @Override
     Future<byte[]> resolve(Channel channel, String resourcePath) throws IOException, InterruptedException {
-        LOGGER.log(Level.FINE, resourcePath+" image is direct");
+        LOGGER.log(Level.FINE, resourcePath + " image is direct");
         return CompletableFuture.completedFuture(payload);
     }
 

@@ -32,7 +32,7 @@ final class CopyThread extends Thread {
                 LOGGER.log(Level.WARNING, e, () -> "Uncaught exception in CopyThread " + t + ", retrying copy");
                 new CopyThread(threadName, in, out, termination, remainingTries - 1).start();
             } else {
-                LOGGER.log(Level.SEVERE, e, () ->  "Uncaught exception in CopyThread " + t + ", out of retries");
+                LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in CopyThread " + t + ", out of retries");
                 termination.run();
             }
         });
@@ -43,8 +43,9 @@ final class CopyThread extends Thread {
         try {
             byte[] buf = new byte[8192];
             int len;
-            while ((len = in.read(buf)) > 0)
+            while ((len = in.read(buf)) > 0) {
                 out.write(buf, 0, len);
+            }
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, e, () -> "Exception while copying in thread: " + getName());
         }

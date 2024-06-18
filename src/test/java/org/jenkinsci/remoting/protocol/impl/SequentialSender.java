@@ -123,10 +123,10 @@ public class SequentialSender implements Callable<Void> {
             }
             if (nextLog - System.nanoTime() < 0) {
                 nextLog = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-                LOGGER.log(Level.INFO, "Sent {0} in {1} blocks", new Object[]{count, n});
+                LOGGER.log(Level.INFO, "Sent {0} in {1} blocks", new Object[] {count, n});
             }
         }
-        LOGGER.log(Level.INFO, "Done {0} in {1} blocks", new Object[]{limit, n});
+        LOGGER.log(Level.INFO, "Done {0} in {1} blocks", new Object[] {limit, n});
         return null;
     }
 

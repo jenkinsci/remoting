@@ -74,18 +74,22 @@ class DelegatingExecutorService implements ExecutorService {
 
     @Override
     @NonNull
-    public <T> List<Future<T>> invokeAll(@NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit) throws InterruptedException {
+    public <T> List<Future<T>> invokeAll(
+            @NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit)
+            throws InterruptedException {
         return base.invokeAll(tasks, timeout, unit);
     }
 
     @Override
     @NonNull
-    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks)
+            throws InterruptedException, ExecutionException {
         return base.invokeAny(tasks);
     }
 
     @Override
-    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit)
+            throws InterruptedException, ExecutionException, TimeoutException {
         return base.invokeAny(tasks, timeout, unit);
     }
 

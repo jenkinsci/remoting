@@ -52,7 +52,6 @@ import org.junit.Test;
 
 public class IOHubTest {
 
-
     @Rule
     public IOHubRule hub = new IOHubRule();
 
@@ -100,40 +99,45 @@ public class IOHubTest {
         final AtomicReference<SelectionKey> key = new AtomicReference<>();
         final AtomicBoolean oops = new AtomicBoolean(false);
         IOHub h = hub.hub();
-        h.register(srv, new IOHubReadyListener() {
+        h.register(
+                srv,
+                new IOHubReadyListener() {
 
-            final AtomicInteger count = new AtomicInteger(0);
+                    final AtomicInteger count = new AtomicInteger(0);
 
-            @Override
-            public void ready(boolean accept, boolean connect, boolean read, boolean write) {
-                if (accept) {
-                    try {
-                        SocketChannel channel = srv.accept();
-                        channel.write(ByteBuffer.wrap(String.format("Go away #%d", count.incrementAndGet())
-                                .getBytes(StandardCharsets.UTF_8)));
-                        channel.close();
-                    } catch (IOException e) {
-                        // ignore
+                    @Override
+                    public void ready(boolean accept, boolean connect, boolean read, boolean write) {
+                        if (accept) {
+                            try {
+                                SocketChannel channel = srv.accept();
+                                channel.write(ByteBuffer.wrap(String.format("Go away #%d", count.incrementAndGet())
+                                        .getBytes(StandardCharsets.UTF_8)));
+                                channel.close();
+                            } catch (IOException e) {
+                                // ignore
+                            }
+                            h.addInterestAccept(key.get());
+                        } else {
+                            oops.set(true);
+                        }
+                        if (connect || read || write) {
+                            oops.set(true);
+                        }
                     }
-                    h.addInterestAccept(key.get());
-                } else {
-                    oops.set(true);
-                }
-                if (connect || read || write) {
-                    oops.set(true);
-                }
-            }
-        }, true, false, false, false, new IOHubRegistrationCallback() {
-            @Override
-            public void onRegistered(SelectionKey selectionKey) {
-                key.set(selectionKey);
-            }
+                },
+                true,
+                false,
+                false,
+                false,
+                new IOHubRegistrationCallback() {
+                    @Override
+                    public void onRegistered(SelectionKey selectionKey) {
+                        key.set(selectionKey);
+                    }
 
-            @Override
-            public void onClosedChannel(ClosedChannelException e) {
-
-            }
-        });
+                    @Override
+                    public void onClosedChannel(ClosedChannelException e) {}
+                });
         Socket client = new Socket();
         client.connect(srv.getLocalAddress(), 100);
         assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #1"));
@@ -152,39 +156,46 @@ public class IOHubTest {
         srv.configureBlocking(false);
         final AtomicReference<SelectionKey> key = new AtomicReference<>();
         final AtomicBoolean oops = new AtomicBoolean(false);
-        hub.hub().register(srv, new IOHubReadyListener() {
+        hub.hub()
+                .register(
+                        srv,
+                        new IOHubReadyListener() {
 
-            final AtomicInteger count = new AtomicInteger(0);
+                            final AtomicInteger count = new AtomicInteger(0);
 
-            @Override
-            public void ready(boolean accept, boolean connect, boolean read, boolean write) {
-                if (accept) {
-                    try {
-                        SocketChannel channel = srv.accept();
-                        channel.write(ByteBuffer.wrap(String.format("Go away #%d", count.incrementAndGet())
-                                .getBytes(StandardCharsets.UTF_8)));
-                        channel.close();
-                    } catch (IOException e) {
-                        // ignore
-                    }
-                } else {
-                    oops.set(true);
-                }
-                if (connect || read || write) {
-                    oops.set(true);
-                }
-            }
-        }, true, false, false, false, new IOHubRegistrationCallback() {
-            @Override
-            public void onRegistered(SelectionKey selectionKey) {
-                key.set(selectionKey);
-            }
+                            @Override
+                            public void ready(boolean accept, boolean connect, boolean read, boolean write) {
+                                if (accept) {
+                                    try {
+                                        SocketChannel channel = srv.accept();
+                                        channel.write(
+                                                ByteBuffer.wrap(String.format("Go away #%d", count.incrementAndGet())
+                                                        .getBytes(StandardCharsets.UTF_8)));
+                                        channel.close();
+                                    } catch (IOException e) {
+                                        // ignore
+                                    }
+                                } else {
+                                    oops.set(true);
+                                }
+                                if (connect || read || write) {
+                                    oops.set(true);
+                                }
+                            }
+                        },
+                        true,
+                        false,
+                        false,
+                        false,
+                        new IOHubRegistrationCallback() {
+                            @Override
+                            public void onRegistered(SelectionKey selectionKey) {
+                                key.set(selectionKey);
+                            }
 
-            @Override
-            public void onClosedChannel(ClosedChannelException e) {
-
-            }
-        });
+                            @Override
+                            public void onClosedChannel(ClosedChannelException e) {}
+                        });
         try (Socket client = new Socket()) {
             client.setSoTimeout(100);
             client.connect(srv.getLocalAddress(), 100);
@@ -194,8 +205,10 @@ public class IOHubTest {
             client.setSoTimeout(100);
             client.connect(srv.getLocalAddress(), 100);
 
-            final SocketTimeoutException e = assertThrows(SocketTimeoutException.class,
-                    () -> assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #2")));
+            final SocketTimeoutException e = assertThrows(
+                    SocketTimeoutException.class,
+                    () -> assertThat(
+                            IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #2")));
             assertThat(e.getMessage(), containsString("timed out"));
 
             hub.hub().addInterestAccept(key.get());
@@ -204,7 +217,8 @@ public class IOHubTest {
         }
     }
 
-    @Ignore("TODO flakes: Read timed out; or expected java.net.SocketTimeoutException to be thrown, but nothing was thrown")
+    @Ignore(
+            "TODO flakes: Read timed out; or expected java.net.SocketTimeoutException to be thrown, but nothing was thrown")
     @Test
     public void noReadyCallbackIfInterestRemoved() throws Exception {
         final ServerSocketChannel srv = ServerSocketChannel.open();
@@ -213,40 +227,45 @@ public class IOHubTest {
         final AtomicReference<SelectionKey> key = new AtomicReference<>();
         final AtomicBoolean oops = new AtomicBoolean(false);
         IOHub h = hub.hub();
-        h.register(srv, new IOHubReadyListener() {
+        h.register(
+                srv,
+                new IOHubReadyListener() {
 
-            final AtomicInteger count = new AtomicInteger(0);
+                    final AtomicInteger count = new AtomicInteger(0);
 
-            @Override
-            public void ready(boolean accept, boolean connect, boolean read, boolean write) {
-                if (accept) {
-                    try {
-                        SocketChannel channel = srv.accept();
-                        channel.write(ByteBuffer.wrap(String.format("Go away #%d", count.incrementAndGet())
-                                .getBytes(StandardCharsets.UTF_8)));
-                        channel.close();
-                    } catch (IOException e) {
-                        // ignore
+                    @Override
+                    public void ready(boolean accept, boolean connect, boolean read, boolean write) {
+                        if (accept) {
+                            try {
+                                SocketChannel channel = srv.accept();
+                                channel.write(ByteBuffer.wrap(String.format("Go away #%d", count.incrementAndGet())
+                                        .getBytes(StandardCharsets.UTF_8)));
+                                channel.close();
+                            } catch (IOException e) {
+                                // ignore
+                            }
+                            h.addInterestAccept(key.get());
+                        } else {
+                            oops.set(true);
+                        }
+                        if (connect || read || write) {
+                            oops.set(true);
+                        }
                     }
-                    h.addInterestAccept(key.get());
-                } else {
-                    oops.set(true);
-                }
-                if (connect || read || write) {
-                    oops.set(true);
-                }
-            }
-        }, true, false, false, false, new IOHubRegistrationCallback() {
-            @Override
-            public void onRegistered(SelectionKey selectionKey) {
-                key.set(selectionKey);
-            }
+                },
+                true,
+                false,
+                false,
+                false,
+                new IOHubRegistrationCallback() {
+                    @Override
+                    public void onRegistered(SelectionKey selectionKey) {
+                        key.set(selectionKey);
+                    }
 
-            @Override
-            public void onClosedChannel(ClosedChannelException e) {
-
-            }
-        });
+                    @Override
+                    public void onClosedChannel(ClosedChannelException e) {}
+                });
 
         // Wait for registration, in other case we get unpredictable timing related results due to late registration
         while (key.get() == null) {
@@ -267,8 +286,10 @@ public class IOHubTest {
             client.setSoTimeout(100);
             client.connect(srv.getLocalAddress(), 100);
 
-            final SocketTimeoutException e = assertThrows(SocketTimeoutException.class,
-                    () -> assertThat(IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #2")));
+            final SocketTimeoutException e = assertThrows(
+                    SocketTimeoutException.class,
+                    () -> assertThat(
+                            IOUtils.toString(client.getInputStream(), StandardCharsets.UTF_8), is("Go away #2")));
             assertThat(e.getMessage(), containsString("timed out"));
 
             h.addInterestAccept(key.get());

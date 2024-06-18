@@ -33,5 +33,6 @@ package hudson.remoting;
  */
 interface IChannel {
     Object getProperty(Object key);
+
     Object waitForProperty(Object key) throws InterruptedException;
 }

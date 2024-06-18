@@ -1,6 +1,5 @@
 package hudson.remoting;
 
-
 import static org.junit.Assert.assertEquals;
 
 import java.io.OutputStream;
@@ -31,10 +30,10 @@ public class ForkRunner implements ChannelRunner {
     @Override
     public Channel start() throws Exception {
         List<String> cmds = buildCommandLine();
-        cmds.add(0,"java");
+        cmds.add(0, "java");
         proc = Runtime.getRuntime().exec(cmds.toArray(new String[0]));
 
-        copier = new Copier("copier",proc.getErrorStream(),System.out);
+        copier = new Copier("copier", proc.getErrorStream(), System.out);
         copier.start();
 
         executor = Executors.newCachedThreadPool();
@@ -45,7 +44,7 @@ public class ForkRunner implements ChannelRunner {
     @Override
     public void stop(Channel channel) throws Exception {
         channel.close();
-        channel.join(10*1000);
+        channel.join(10 * 1000);
 
         executor.shutdown();
 

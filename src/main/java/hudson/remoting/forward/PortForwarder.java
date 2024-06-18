@@ -53,7 +53,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
 
     @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "Unused")
     public PortForwarder(int localPort, Forwarder forwarder) throws IOException {
-        super(String.format("Port forwarder %d",localPort));
+        super(String.format("Port forwarder %d", localPort));
         this.forwarder = forwarder;
         this.socket = new ServerSocket(localPort);
         // mark as a daemon thread by default.
@@ -78,28 +78,27 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
     public void run() {
         try {
             try {
-                while(true) {
+                while (true) {
                     final Socket s = socket.accept();
-                    new Thread("Port forwarding session from "+s.getRemoteSocketAddress()) {
+                    new Thread("Port forwarding session from " + s.getRemoteSocketAddress()) {
                         {
-                            setUncaughtExceptionHandler(
-                                    (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Unhandled exception in port forwarding session " + t));
+                            setUncaughtExceptionHandler((t, e) -> LOGGER.log(
+                                    Level.SEVERE, e, () -> "Unhandled exception in port forwarding session " + t));
                         }
+
                         @Override
                         public void run() {
                             try (InputStream in = SocketChannelStream.in(s);
-                                    OutputStream out = forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)))) {
-                                new CopyThread(
-                                        "Copier for " + s.getRemoteSocketAddress(),
-                                        in,
-                                        out,
-                                        () -> {
+                                    OutputStream out =
+                                            forwarder.connect(new RemoteOutputStream(SocketChannelStream.out(s)))) {
+                                new CopyThread("Copier for " + s.getRemoteSocketAddress(), in, out, () -> {
                                             try {
                                                 s.close();
                                             } catch (IOException e) {
                                                 LOGGER.log(Level.WARNING, "Failed to close socket", e);
                                             }
-                                        }).start();
+                                        })
+                                        .start();
                             } catch (IOException e) {
                                 // this happens if the socket connection is terminated abruptly.
                                 LOGGER.log(Level.FINE, "Port forwarding session was shut down abnormally", e);
@@ -131,7 +130,8 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
      * @return
      *      A {@link Closeable} that can be used to shut the port forwarding down.
      */
-    public static ListeningPort create(VirtualChannel ch, final int acceptingPort, Forwarder forwarder) throws IOException, InterruptedException {
+    public static ListeningPort create(VirtualChannel ch, final int acceptingPort, Forwarder forwarder)
+            throws IOException, InterruptedException {
         // need a remotable reference
         final Forwarder proxy = ch.export(Forwarder.class, forwarder);
 
@@ -145,7 +145,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
      */
     public static final Role ROLE = new Role(PortForwarder.class);
 
-    private static class ListeningPortCallable implements Callable<ListeningPort,IOException> {
+    private static class ListeningPortCallable implements Callable<ListeningPort, IOException> {
         private static final long serialVersionUID = 1L;
         private final int acceptingPort;
         private final Forwarder proxy;
@@ -157,10 +157,12 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
 
         @Override
         public ListeningPort call() throws IOException {
-            final Channel channel = getOpenChannelOrFail(); // We initialize it early, so the forwarder won's start its daemon if the channel is shutting down
+            final Channel channel =
+                    getOpenChannelOrFail(); // We initialize it early, so the forwarder won's start its daemon if the
+            // channel is shutting down
             PortForwarder t = new PortForwarder(acceptingPort, proxy);
             t.start();
-            return channel.export(ListeningPort.class,t);
+            return channel.export(ListeningPort.class, t);
         }
 
         @Override

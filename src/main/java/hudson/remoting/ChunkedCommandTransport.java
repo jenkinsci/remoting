@@ -21,10 +21,11 @@ class ChunkedCommandTransport extends AbstractSynchronousByteArrayCommandTranspo
      */
     private final OutputStream rawOut;
 
-    /*package*/ ChunkedCommandTransport(Capability remoteCapability, InputStream in, OutputStream out, OutputStream rawOut) {
+    /*package*/ ChunkedCommandTransport(
+            Capability remoteCapability, InputStream in, OutputStream out, OutputStream rawOut) {
         this.remoteCapability = remoteCapability;
         this.in = new ChunkedInputStream(in);
-        this.out = new ChunkedOutputStream(8192,out);
+        this.out = new ChunkedOutputStream(8192, out);
         this.rawOut = rawOut;
     }
 

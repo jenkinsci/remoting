@@ -44,9 +44,9 @@ public class RemoteInputStreamTest {
             // not very reliable but the intention is to have it greedily read
             Thread.sleep(100);
 
-            if (channel.remoteCapability.supportsGreedyRemoteInputStream())
+            if (channel.remoteCapability.supportsGreedyRemoteInputStream()) {
                 assertEquals(-1, in.read());
-            else {
+            } else {
                 // if we are dealing with version that doesn't support GREEDY, we should be reading '5'
                 assertEquals('5', in.read());
             }
@@ -56,7 +56,7 @@ public class RemoteInputStreamTest {
     /**
      * Reads N bytes and verify that it matches what's expected.
      */
-    private static class Read extends CallableBase<Object,IOException> {
+    private static class Read extends CallableBase<Object, IOException> {
         private final RemoteInputStream in;
         private final byte[] expected;
 
@@ -70,9 +70,9 @@ public class RemoteInputStreamTest {
             assertArrayEquals(readFully(in, expected.length), expected);
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
-
 
     /**
      * Read in multiple chunks.
@@ -89,7 +89,7 @@ public class RemoteInputStreamTest {
         });
     }
 
-    private static class TestGreedy2 extends CallableBase<Void,IOException> {
+    private static class TestGreedy2 extends CallableBase<Void, IOException> {
         private final RemoteInputStream i;
 
         public TestGreedy2(RemoteInputStream i) {
@@ -103,9 +103,9 @@ public class RemoteInputStreamTest {
             assertEquals(-1, i.read());
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
-
 
     /**
      * Greedy {@link RemoteInputStream} should propagate error.
@@ -116,9 +116,7 @@ public class RemoteInputStreamTest {
         channelRunner.withChannel(channel -> {
             for (RemoteInputStream.Flag f : List.of(RemoteInputStream.Flag.GREEDY, RemoteInputStream.Flag.NOT_GREEDY)) {
                 InputStream in = new SequenceInputStream(
-                        new ByteArrayInputStream(toBytes("1234")),
-                        new BrokenInputStream(new SkyIsFalling())
-                );
+                        new ByteArrayInputStream(toBytes("1234")), new BrokenInputStream(new SkyIsFalling()));
                 final RemoteInputStream i = new RemoteInputStream(in, f);
 
                 channel.call(new TestErrorPropagation(i));
@@ -126,7 +124,9 @@ public class RemoteInputStreamTest {
         });
     }
 
-    private static class SkyIsFalling extends IOException {private static final long serialVersionUID = 1L;}
+    private static class SkyIsFalling extends IOException {
+        private static final long serialVersionUID = 1L;
+    }
 
     private static class TestErrorPropagation extends CallableBase<Void, IOException> {
         private final RemoteInputStream i;
@@ -146,14 +146,15 @@ public class RemoteInputStreamTest {
                 // but in case someone is using it as a signal I'm not changing that behaviour.
                 return null;
             } catch (IOException e) {
-                if (e.getCause() instanceof SkyIsFalling)
+                if (e.getCause() instanceof SkyIsFalling) {
                     return null;
+                }
                 throw e;
             }
         }
+
         private static final long serialVersionUID = 1L;
     }
-
 
     private static byte[] readFully(InputStream in, int n) throws IOException {
         byte[] actual = new byte[n];
@@ -162,8 +163,8 @@ public class RemoteInputStreamTest {
     }
 
     private static void assertArrayEquals(byte[] b1, byte[] b2) {
-        if (!Arrays.equals(b1,b2)) {
-            fail("Expected "+ HexDump.toHex(b1)+" but got "+ HexDump.toHex(b2));
+        if (!Arrays.equals(b1, b2)) {
+            fail("Expected " + HexDump.toHex(b1) + " but got " + HexDump.toHex(b2));
         }
     }
 

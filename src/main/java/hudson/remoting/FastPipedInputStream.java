@@ -44,6 +44,7 @@ public class FastPipedInputStream extends InputStream {
      * Once closed, this is set to the stack trace of who closed it.
      */
     ClosedBy closed = null;
+
     int readLaps = 0;
     int readPosition = 0;
     WeakReference<FastPipedOutputStream> source;
@@ -51,7 +52,7 @@ public class FastPipedInputStream extends InputStream {
     int writePosition = 0;
 
     private final Throwable allocatedAt = new Throwable();
-    
+
     /**
      * Creates an unconnected PipedInputStream with a default buffer size.
      */
@@ -74,7 +75,7 @@ public class FastPipedInputStream extends InputStream {
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source, int bufferSize) throws IOException {
-        if(source != null) {
+        if (source != null) {
             connect(source);
         }
         this.buffer = new byte[bufferSize];
@@ -82,7 +83,9 @@ public class FastPipedInputStream extends InputStream {
 
     private void checkSource() throws IOException {
         FastPipedOutputStream s = source.get();
-        if (s==null)    throw new IOException("Writer side has already been abandoned", allocatedAt);
+        if (s == null) {
+            throw new IOException("Writer side has already been abandoned", allocatedAt);
+        }
     }
 
     @Override
@@ -91,10 +94,10 @@ public class FastPipedInputStream extends InputStream {
          * are located.
          */
         synchronized (buffer) {
-            return writePosition > readPosition /* The writer is in the same lap. */? writePosition
-                    - readPosition
-                    : (writePosition < readPosition /* The writer is in the next lap. */? buffer.length
-                            - readPosition + 1 + writePosition
+            return writePosition > readPosition /* The writer is in the same lap. */
+                    ? writePosition - readPosition
+                    : (writePosition < readPosition /* The writer is in the next lap. */
+                            ? buffer.length - readPosition + 1 + writePosition
                             :
                             /* The writer is at the same position or a complete lap ahead. */
                             (writeLaps > readLaps ? buffer.length : 0));
@@ -106,10 +109,10 @@ public class FastPipedInputStream extends InputStream {
      */
     @Override
     public void close() throws IOException {
-        if(source == null) {
+        if (source == null) {
             throw new IOException("Unconnected pipe");
         }
-        synchronized(buffer) {
+        synchronized (buffer) {
             closed = new ClosedBy(null);
             // Release any pending writers.
             buffer.notifyAll();
@@ -120,7 +123,7 @@ public class FastPipedInputStream extends InputStream {
      * @exception IOException The pipe is already connected.
      */
     public void connect(FastPipedOutputStream source) throws IOException {
-        if(this.source != null) {
+        if (this.source != null) {
             throw new IOException("Pipe already connected");
         }
         this.source = new WeakReference<>(source);
@@ -134,8 +137,7 @@ public class FastPipedInputStream extends InputStream {
     }
 
     @Override
-    public void mark(int readLimit) {
-    }
+    public void mark(int readLimit) {}
 
     @Override
     public boolean markSupported() {
@@ -158,16 +160,18 @@ public class FastPipedInputStream extends InputStream {
      */
     @Override
     public int read(@NonNull byte[] b, int off, int len) throws IOException {
-        if(source == null) {
+        if (source == null) {
             throw new IOException("Unconnected pipe");
         }
 
         while (true) {
-            synchronized(buffer) {
-                if(writePosition == readPosition && writeLaps == readLaps) {
-                    if(closed!=null) {
+            synchronized (buffer) {
+                if (writePosition == readPosition && writeLaps == readLaps) {
+                    if (closed != null) {
                         Throwable c = closed.getCause();
-                        if (c==null)        return -1;  // EOF
+                        if (c == null) {
+                            return -1; // EOF
+                        }
                         throw new IOException(c);
                     }
                     checkSource(); // make sure the sink is still trying to read, or else fail the write.
@@ -185,13 +189,12 @@ public class FastPipedInputStream extends InputStream {
 
                 // Don't read more than the capacity indicated by len or what's available
                 // in the circular buffer.
-                int amount = Math.min(len, (writePosition > readPosition ? writePosition
-                        : buffer.length)
-                        - readPosition);
+                int amount =
+                        Math.min(len, (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
                 System.arraycopy(buffer, readPosition, b, off, amount);
                 readPosition += amount;
 
-                if(readPosition == buffer.length) {// A lap was completed, so go back.
+                if (readPosition == buffer.length) { // A lap was completed, so go back.
                     readPosition = 0;
                     ++readLaps;
                 }

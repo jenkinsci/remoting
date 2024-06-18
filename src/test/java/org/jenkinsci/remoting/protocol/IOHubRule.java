@@ -82,22 +82,23 @@ public class IOHubRule implements TestRule {
     @Override
     public Statement apply(final Statement base, final Description description) {
         Skip skip = description.getAnnotation(Skip.class);
-        if (skip != null && (skip.value().length == 0 || Arrays.asList(skip.value()).contains(id))) {
+        if (skip != null
+                && (skip.value().length == 0 || Arrays.asList(skip.value()).contains(id))) {
             return base;
         }
         final AtomicInteger counter = new AtomicInteger();
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
-                executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2 - 1,
+                executorService = Executors.newFixedThreadPool(
+                        Runtime.getRuntime().availableProcessors() * 2 - 1,
                         r -> new Thread(
                                 r,
                                 String.format(
                                         "%s%s-%d",
                                         description.getDisplayName(),
                                         id == null || id.isEmpty() ? "" : "-" + id,
-                                        counter.incrementAndGet())
-                        ));
+                                        counter.incrementAndGet())));
                 selector = IOHub.create(executorService);
                 try {
                     base.evaluate();

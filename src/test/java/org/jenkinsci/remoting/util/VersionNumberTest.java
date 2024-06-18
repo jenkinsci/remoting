@@ -30,35 +30,40 @@ import junit.framework.TestCase;
 /**
  * @author Xavier Le Vourch
  */
-// Copied from https://github.com/jenkinsci/lib-version-number/blob/master/src/test/java/hudson/util/VersionNumberTest.java
+// Copied from
+// https://github.com/jenkinsci/lib-version-number/blob/master/src/test/java/hudson/util/VersionNumberTest.java
 // We didn't want to introduce a dependency on another library and had troubles getting shading to work.
 public class VersionNumberTest extends TestCase {
 
     public void testIsNewerThan() {
-       assertTrue(new VersionNumber("2.0.*").isNewerThan(new VersionNumber("2.0")));
-       assertTrue(new VersionNumber("2.1-SNAPSHOT").isNewerThan(new VersionNumber("2.0.*")));
-       assertTrue(new VersionNumber("2.1").isNewerThan(new VersionNumber("2.1-SNAPSHOT")));
-       assertTrue(new VersionNumber("2.0.*").isNewerThan(new VersionNumber("2.0.1")));
-       assertTrue(new VersionNumber("2.0.1").isNewerThan(new VersionNumber("2.0.1-SNAPSHOT")));
-       assertTrue(new VersionNumber("2.0.1-SNAPSHOT").isNewerThan(new VersionNumber("2.0.0.99")));
-       assertTrue(new VersionNumber("2.0.0.99").isNewerThan(new VersionNumber("2.0.0")));
-       assertTrue(new VersionNumber("2.0.0").isNewerThan(new VersionNumber("2.0.ea")));
-       assertTrue(new VersionNumber("2.0").isNewerThan(new VersionNumber("2.0.ea")));
-       // the inversion of the previous test case from the old behaviour is explained by
-       // which makes more sense than before
-       assertEquals(new VersionNumber("2.0.0"), new VersionNumber("2.0"));
+        assertTrue(new VersionNumber("2.0.*").isNewerThan(new VersionNumber("2.0")));
+        assertTrue(new VersionNumber("2.1-SNAPSHOT").isNewerThan(new VersionNumber("2.0.*")));
+        assertTrue(new VersionNumber("2.1").isNewerThan(new VersionNumber("2.1-SNAPSHOT")));
+        assertTrue(new VersionNumber("2.0.*").isNewerThan(new VersionNumber("2.0.1")));
+        assertTrue(new VersionNumber("2.0.1").isNewerThan(new VersionNumber("2.0.1-SNAPSHOT")));
+        assertTrue(new VersionNumber("2.0.1-SNAPSHOT").isNewerThan(new VersionNumber("2.0.0.99")));
+        assertTrue(new VersionNumber("2.0.0.99").isNewerThan(new VersionNumber("2.0.0")));
+        assertTrue(new VersionNumber("2.0.0").isNewerThan(new VersionNumber("2.0.ea")));
+        assertTrue(new VersionNumber("2.0").isNewerThan(new VersionNumber("2.0.ea")));
+        // the inversion of the previous test case from the old behaviour is explained by
+        // which makes more sense than before
+        assertEquals(new VersionNumber("2.0.0"), new VersionNumber("2.0"));
     }
 
     public void testEarlyAccess() {
-       assertTrue(new VersionNumber("2.0.ea2").isNewerThan(new VersionNumber("2.0.ea1")));
-       assertTrue(new VersionNumber("2.0.ea1").isNewerThan(new VersionNumber("2.0.ea")));
-       assertEquals(new VersionNumber("2.0.ea"), new VersionNumber("2.0.ea0"));
+        assertTrue(new VersionNumber("2.0.ea2").isNewerThan(new VersionNumber("2.0.ea1")));
+        assertTrue(new VersionNumber("2.0.ea1").isNewerThan(new VersionNumber("2.0.ea")));
+        assertEquals(new VersionNumber("2.0.ea"), new VersionNumber("2.0.ea0"));
     }
 
     public void testSnapshots() {
-        assertTrue(new VersionNumber("1.12").isNewerThan(new VersionNumber("1.12-SNAPSHOT (private-08/24/2008 12:13-hudson)")));
-        assertTrue(new VersionNumber("1.12-SNAPSHOT (private-08/24/2008 12:13-hudson)").isNewerThan(new VersionNumber("1.11")));
-        assertEquals(new VersionNumber("1.12-SNAPSHOT (private-08/24/2008 12:13-hudson)"), new VersionNumber("1.12-SNAPSHOT"));
+        assertTrue(new VersionNumber("1.12")
+                .isNewerThan(new VersionNumber("1.12-SNAPSHOT (private-08/24/2008 12:13-hudson)")));
+        assertTrue(new VersionNumber("1.12-SNAPSHOT (private-08/24/2008 12:13-hudson)")
+                .isNewerThan(new VersionNumber("1.11")));
+        assertEquals(
+                new VersionNumber("1.12-SNAPSHOT (private-08/24/2008 12:13-hudson)"),
+                new VersionNumber("1.12-SNAPSHOT"));
         // This is changed from the old impl because snapshots are no longer a "magic" number
         assertNotEquals(new VersionNumber("1.12-SNAPSHOT"), new VersionNumber("1.11.*"));
         assertTrue(new VersionNumber("1.11.*").isNewerThan(new VersionNumber("1.11.9")));
@@ -68,10 +73,15 @@ public class VersionNumberTest extends TestCase {
         assertTrue(new VersionNumber("2.0.3-20170207.105042-1").isNewerThan(new VersionNumber("2.0.2")));
         assertTrue(new VersionNumber("2.0.3").isNewerThan(new VersionNumber("2.0.3-20170207.105042-1")));
         assertEquals(new VersionNumber("2.0.3-20170207.105042-1"), new VersionNumber("2.0.3-SNAPSHOT"));
-        assertEquals(new VersionNumber("2.0.3-20170207.105042-1"), new VersionNumber("2.0.3-SNAPSHOT (private-08/24/2008 12:13-hudson)"));
-        assertTrue(new VersionNumber("2.0.3-20170207.105043-2").isNewerThan(new VersionNumber("2.0.3-20170207.105042-1")));
-        assertTrue(new VersionNumber("2.0.3-20170207.105042-2").isNewerThan(new VersionNumber("2.0.3-20170207.105042-1")));
-        assertTrue(new VersionNumber("2.0.3-20170207.105042-13").isNewerThan(new VersionNumber("2.0.3-20170207.105042-2")));
+        assertEquals(
+                new VersionNumber("2.0.3-20170207.105042-1"),
+                new VersionNumber("2.0.3-SNAPSHOT (private-08/24/2008 12:13-hudson)"));
+        assertTrue(
+                new VersionNumber("2.0.3-20170207.105043-2").isNewerThan(new VersionNumber("2.0.3-20170207.105042-1")));
+        assertTrue(
+                new VersionNumber("2.0.3-20170207.105042-2").isNewerThan(new VersionNumber("2.0.3-20170207.105042-1")));
+        assertTrue(new VersionNumber("2.0.3-20170207.105042-13")
+                .isNewerThan(new VersionNumber("2.0.3-20170207.105042-2")));
         assertFalse(new VersionNumber("2.0.3-20170207.105042-1").isNewerThan(new VersionNumber("2.0.3-SNAPSHOT")));
         assertFalse(new VersionNumber("2.0.3-20170207.105042-1").isOlderThan(new VersionNumber("2.0.3-SNAPSHOT")));
     }

@@ -92,16 +92,15 @@ public class NoProxyEvaluator {
     }
 
     private boolean matchesIpAddress(InetAddress hostAddress) {
-        return noProxyIpAddresses.stream().
-                anyMatch(inetAddress -> inetAddress.equals(hostAddress));
+        return noProxyIpAddresses.stream().anyMatch(inetAddress -> inetAddress.equals(hostAddress));
     }
 
     private void processSpecificationsIntoTypes(String noProxySpecification) {
         noProxySpecification = noProxySpecification.trim();
         String[] noProxySpecifications = splitComponents(noProxySpecification);
-        for (String specification : noProxySpecifications){
+        for (String specification : noProxySpecifications) {
             specification = stripLeadingStarDot(stripLeadingDot(specification.trim()));
-            if (specification.isEmpty() ) {
+            if (specification.isEmpty()) {
                 continue;
             }
             if (isIpAddress(specification)) {
@@ -149,12 +148,10 @@ public class NoProxyEvaluator {
     }
 
     private boolean matchesDomainHost(String host) {
-        return noProxyDomainsHosts.stream().
-               anyMatch(host::endsWith);
+        return noProxyDomainsHosts.stream().anyMatch(host::endsWith);
     }
 
     private boolean isIpAddress(String host) {
         return InetAddressValidator.getInstance().isValid(host);
     }
-
 }

@@ -14,7 +14,7 @@ import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
  * @since 2.12
  */
 public class ClassLoaderHolder implements SerializableOnlyOverRemoting {
-    
+
     @CheckForNull
     private transient ClassLoader classLoader;
 
@@ -22,8 +22,7 @@ public class ClassLoaderHolder implements SerializableOnlyOverRemoting {
         this.classLoader = classLoader;
     }
 
-    public ClassLoaderHolder() {
-    }
+    public ClassLoaderHolder() {}
 
     @CheckForNull
     public ClassLoader get() {
@@ -36,15 +35,18 @@ public class ClassLoaderHolder implements SerializableOnlyOverRemoting {
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         RemoteClassLoader.IClassLoader proxy = (RemoteClassLoader.IClassLoader) ois.readObject();
-        classLoader = proxy==null ? null : getChannelForSerialization().importedClassLoaders.get(proxy);
+        classLoader = proxy == null
+                ? null
+                : getChannelForSerialization().importedClassLoaders.get(proxy);
     }
 
-    @SuppressFBWarnings(value = "DMI_NONSERIALIZABLE_OBJECT_WRITTEN", 
+    @SuppressFBWarnings(
+            value = "DMI_NONSERIALIZABLE_OBJECT_WRITTEN",
             justification = "RemoteClassLoader.export() produces a serializable wrapper class")
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        if (classLoader==null)
+        if (classLoader == null) {
             oos.writeObject(null);
-        else {
+        } else {
             RemoteClassLoader.IClassLoader proxy = RemoteClassLoader.export(classLoader, getChannelForSerialization());
             oos.writeObject(proxy);
         }

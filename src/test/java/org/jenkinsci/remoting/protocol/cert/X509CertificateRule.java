@@ -59,36 +59,48 @@ public class X509CertificateRule implements TestRule {
     private final String id;
     private X509Certificate certificate;
 
-    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule selfSigned(String id, KeyPairRule<PUB,PRIV> subject) {
+    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule selfSigned(
+            String id, KeyPairRule<PUB, PRIV> subject) {
         return new X509CertificateRule(id, subject, subject, null, -7, 7, TimeUnit.DAYS);
     }
 
-    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule create(String id, KeyPairRule<PUB,PRIV> subject,
-                                                                                              KeyPairRule<PUB, PRIV> signer, X509CertificateRule signerCertificate) {
+    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule create(
+            String id,
+            KeyPairRule<PUB, PRIV> subject,
+            KeyPairRule<PUB, PRIV> signer,
+            X509CertificateRule signerCertificate) {
         return new X509CertificateRule(id, subject, signer, signerCertificate, -7, 7, TimeUnit.DAYS);
     }
 
-    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule selfSigned(KeyPairRule<PUB,PRIV> subject) {
+    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule selfSigned(
+            KeyPairRule<PUB, PRIV> subject) {
         return selfSigned("", subject);
     }
 
-    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule create(KeyPairRule<PUB,PRIV> subject,
-                                                                                              KeyPairRule<PUB, PRIV> signer, X509CertificateRule signerCertificate) {
+    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule create(
+            KeyPairRule<PUB, PRIV> subject, KeyPairRule<PUB, PRIV> signer, X509CertificateRule signerCertificate) {
         return create("", subject, signer, signerCertificate);
     }
 
-    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule create(String id,
-                                                                                              KeyPairRule<PUB,PRIV> subject,
-                                                                                              KeyPairRule<PUB, PRIV> signer,
-                                                                                              X509CertificateRule signerCertificate,
-                                                                                              long startDateOffset,
-                                                                                              long endDateOffset,
-                                                                                              TimeUnit units) {
+    public static <PUB extends PublicKey, PRIV extends PrivateKey> X509CertificateRule create(
+            String id,
+            KeyPairRule<PUB, PRIV> subject,
+            KeyPairRule<PUB, PRIV> signer,
+            X509CertificateRule signerCertificate,
+            long startDateOffset,
+            long endDateOffset,
+            TimeUnit units) {
         return new X509CertificateRule(id, subject, signer, signerCertificate, startDateOffset, endDateOffset, units);
     }
 
-    public X509CertificateRule(String id, KeyPairRule<? extends PublicKey, ? extends PrivateKey> subjectKey,
-                               KeyPairRule<? extends PublicKey, ? extends PrivateKey> signerKey, X509CertificateRule signerCertificate, long startDateOffset, long endDateOffset, TimeUnit units) {
+    public X509CertificateRule(
+            String id,
+            KeyPairRule<? extends PublicKey, ? extends PrivateKey> subjectKey,
+            KeyPairRule<? extends PublicKey, ? extends PrivateKey> signerKey,
+            X509CertificateRule signerCertificate,
+            long startDateOffset,
+            long endDateOffset,
+            TimeUnit units) {
         this.id = id;
         this.subjectKey = subjectKey;
         this.signerKey = signerKey;
@@ -104,7 +116,8 @@ public class X509CertificateRule implements TestRule {
     @Override
     public Statement apply(final Statement base, final Description description) {
         Skip skip = description.getAnnotation(Skip.class);
-        if (skip != null && (skip.value().length == 0 || Arrays.asList(skip.value()).contains(id))) {
+        if (skip != null
+                && (skip.value().length == 0 || Arrays.asList(skip.value()).contains(id))) {
             return base;
         }
         return new Statement() {
@@ -121,25 +134,22 @@ public class X509CertificateRule implements TestRule {
                 X500Principal subject = new X500Principal(nameBuilder
                         .addRDN(BCStyle.CN, description.getDisplayName())
                         .addRDN(BCStyle.C, "US")
-                        .build().toString());
+                        .build()
+                        .toString());
 
-                X500Principal issuer = signerCertificate != null ? signerCertificate.certificate().getSubjectX500Principal() : subject;
+                X500Principal issuer = signerCertificate != null
+                        ? signerCertificate.certificate().getSubjectX500Principal()
+                        : subject;
 
                 X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
-                        issuer,
-                        BigInteger.ONE,
-                        firstDate,
-                        lastDate,
-                        subject,
-                        subjectKey.getPublic()
-                );
+                        issuer, BigInteger.ONE, firstDate, lastDate, subject, subjectKey.getPublic());
 
                 JcaX509ExtensionUtils instance = new JcaX509ExtensionUtils();
 
-                certGen.addExtension(Extension.subjectKeyIdentifier,
+                certGen.addExtension(
+                        Extension.subjectKeyIdentifier,
                         false,
-                        instance.createSubjectKeyIdentifier(subjectKey.getPublic())
-                );
+                        instance.createSubjectKeyIdentifier(subjectKey.getPublic()));
 
                 ContentSigner signer = new JcaContentSignerBuilder("SHA1withRSA")
                         .setProvider(BOUNCY_CASTLE_PROVIDER)
@@ -153,7 +163,6 @@ public class X509CertificateRule implements TestRule {
                 } finally {
                     certificate = null;
                 }
-
             }
         };
     }

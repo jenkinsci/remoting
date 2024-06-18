@@ -42,7 +42,14 @@ public final class Capability implements Serializable {
     }
 
     public Capability() {
-        this(MASK_MULTI_CLASSLOADER | MASK_PIPE_THROTTLING | MASK_MIMIC_EXCEPTION | MASK_PREFETCH | GREEDY_REMOTE_INPUTSTREAM | MASK_PROXY_WRITER_2_35 | MASK_CHUNKED_ENCODING | PROXY_EXCEPTION_FALLBACK);
+        this(MASK_MULTI_CLASSLOADER
+                | MASK_PIPE_THROTTLING
+                | MASK_MIMIC_EXCEPTION
+                | MASK_PREFETCH
+                | GREEDY_REMOTE_INPUTSTREAM
+                | MASK_PROXY_WRITER_2_35
+                | MASK_CHUNKED_ENCODING
+                | PROXY_EXCEPTION_FALLBACK);
     }
 
     /**
@@ -52,7 +59,7 @@ public final class Capability implements Serializable {
      * @see MultiClassLoaderSerializer
      */
     public boolean supportsMultiClassLoaderRPC() {
-        return (mask&MASK_MULTI_CLASSLOADER)!=0;
+        return (mask & MASK_MULTI_CLASSLOADER) != 0;
     }
 
     /**
@@ -61,13 +68,13 @@ public final class Capability implements Serializable {
      * @see ProxyOutputStream
      */
     public boolean supportsPipeThrottling() {
-        return (mask& MASK_PIPE_THROTTLING)!=0;
+        return (mask & MASK_PIPE_THROTTLING) != 0;
     }
 
     /** @deprecated no longer used */
     @Deprecated
     public boolean hasMimicException() {
-        return (mask&MASK_MIMIC_EXCEPTION)!=0;
+        return (mask & MASK_MIMIC_EXCEPTION) != 0;
     }
 
     /**
@@ -126,7 +133,7 @@ public final class Capability implements Serializable {
         return (mask & PROXY_EXCEPTION_FALLBACK) != 0;
     }
 
-    //TODO: ideally preamble handling needs to be reworked in order to avoid FB suppression
+    // TODO: ideally preamble handling needs to be reworked in order to avoid FB suppression
     /**
      * Writes {@link #PREAMBLE} then uses {@link #write}.
      */
@@ -143,9 +150,11 @@ public final class Capability implements Serializable {
             @Override
             public void close() throws IOException {
                 flush();
-                // TODO: Cannot invoke the private clear() method, but GC well do it for us. Not worse than the original solution
+                // TODO: Cannot invoke the private clear() method, but GC well do it for us. Not worse than the original
+                // solution
                 // Here the code does not close the proxied stream OS on completion
             }
+
             @Override
             protected void annotateClass(Class<?> c) throws IOException {
                 AnonymousClassWarnings.check(c);
@@ -160,30 +169,36 @@ public final class Capability implements Serializable {
     /**
      * The opposite operation of {@link #write}.
      */
-    @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "Capability is used for negotiating channel between authorized agent and server. Whitelisting and proper deserialization hygiene are used.")
+    @SuppressFBWarnings(
+            value = "OBJECT_DESERIALIZATION",
+            justification =
+                    "Capability is used for negotiating channel between authorized agent and server. Whitelisting and proper deserialization hygiene are used.")
     public static Capability read(InputStream is) throws IOException {
         try (ObjectInputStream ois = new ObjectInputStream(Channel.Mode.TEXT.wrap(is)) {
-                // during deserialization, only accept Capability to protect ourselves
-                // from malicious payload. Allow java.lang.String so that
-                // future versions of Capability can send more complex data structure.
-                // If we decide to do so in the future, the payload will contain those instances
-                // even though our version of Capability class will discard them after deserialization.
-                @Override
-                protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-                    String n = desc.getName();
-                    if (n.equals("java.lang.String") || n.equals("[Ljava.lang.String;") || n.equals(Capability.class.getName()))
-                        return super.resolveClass(desc);
-                    throw new SecurityException("Rejected: "+n);
+            // during deserialization, only accept Capability to protect ourselves
+            // from malicious payload. Allow java.lang.String so that
+            // future versions of Capability can send more complex data structure.
+            // If we decide to do so in the future, the payload will contain those instances
+            // even though our version of Capability class will discard them after deserialization.
+            @Override
+            protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+                String n = desc.getName();
+                if (n.equals("java.lang.String")
+                        || n.equals("[Ljava.lang.String;")
+                        || n.equals(Capability.class.getName())) {
+                    return super.resolveClass(desc);
                 }
+                throw new SecurityException("Rejected: " + n);
+            }
 
-                @Override
-                public void close() throws IOException {
-                    // Do not close the stream since we continue reading from the input stream "is"
-                }
-            }) {
-            return (Capability)ois.readObject();
+            @Override
+            public void close() throws IOException {
+                // Do not close the stream since we continue reading from the input stream "is"
+            }
+        }) {
+            return (Capability) ois.readObject();
         } catch (ClassNotFoundException e) {
-            throw (Error)new NoClassDefFoundError(e.getMessage()).initCause(e);
+            throw (Error) new NoClassDefFoundError(e.getMessage()).initCause(e);
         }
     }
 

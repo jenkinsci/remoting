@@ -25,7 +25,7 @@ import org.jvnet.hudson.test.Issue;
  */
 public class ProxyWriterTest implements Serializable {
     ByteArrayOutputStream log = new ByteArrayOutputStream();
-    StreamHandler logRecorder = new StreamHandler(log,new SimpleFormatter()) {
+    StreamHandler logRecorder = new StreamHandler(log, new SimpleFormatter()) {
         @Override
         public synchronized void publish(LogRecord record) {
             super.publish(record);
@@ -43,7 +43,6 @@ public class ProxyWriterTest implements Serializable {
     public void tearDown() throws Exception {
         logger.removeHandler(logRecorder);
     }
-
 
     volatile boolean streamClosed;
 
@@ -63,20 +62,20 @@ public class ProxyWriterTest implements Serializable {
             writeBunchOfData(correct);
 
             assertEquals(sw.toString(), correct.toString());
-            assertEquals(0, log.size());    // no warning should be reported
+            assertEquals(0, log.size()); // no warning should be reported
         });
     }
 
     private static void writeBunchOfData(Writer w) throws IOException {
-        for (int i=0; i<1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             w.write('1');
             w.write("hello".toCharArray());
             w.write("abcdef".toCharArray(), 0, 3);
         }
         w.flush();
-        for (int i=0; i<1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             w.write("hello");
-            w.write("abcdef",0,3);
+            w.write("abcdef", 0, 3);
         }
         w.close();
     }
@@ -88,7 +87,9 @@ public class ProxyWriterTest implements Serializable {
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testRemoteGC(ChannelRunner channelRunner) throws Exception {
-        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner, "in the legacy mode ProxyWriter will try to close the stream, so can't run this test");
+        assumeFalse(
+                channelRunner instanceof InProcessCompatibilityRunner,
+                "in the legacy mode ProxyWriter will try to close the stream, so can't run this test");
         channelRunner.withChannel(channel -> {
             StringWriter sw = new StringWriter() {
                 @Override
@@ -103,12 +104,13 @@ public class ProxyWriterTest implements Serializable {
             // induce a GC. There's no good reliable way to do this,
             // and if GC doesn't happen within this loop, the test can pass
             // even when the underlying problem exists.
-            for (int i=0; i<30; i++) {
+            for (int i = 0; i < 30; i++) {
                 assertEquals(0, log.size(), "There shouldn't be any errors: " + log.toString());
 
                 Thread.sleep(100);
-                if (channel.call(new GcCallable()))
+                if (channel.call(new GcCallable())) {
                     break;
+                }
             }
 
             channel.syncIO();
@@ -118,7 +120,6 @@ public class ProxyWriterTest implements Serializable {
     }
 
     static WeakReference<RemoteWriter> W;
-
 
     /**
      * Basic test of {@link RemoteWriter}/{@link ProxyWriter} test.
@@ -130,12 +131,12 @@ public class ProxyWriterTest implements Serializable {
             StringWriter sw = new StringWriter();
             final RemoteWriter w = new RemoteWriter(sw);
 
-            for (int i=0; i<16; i++) {
+            for (int i = 0; i < 16; i++) {
                 channel.call(new WriterCallable(w));
                 w.write("2");
             }
 
-            assertEquals("12121212121212121212121212121212",sw.toString());
+            assertEquals("12121212121212121212121212121212", sw.toString());
         });
     }
 
@@ -155,6 +156,7 @@ public class ProxyWriterTest implements Serializable {
             writeBunchOfData(w);
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -179,6 +181,7 @@ public class ProxyWriterTest implements Serializable {
             System.gc();
             return W.get() == null;
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -194,7 +197,9 @@ public class ProxyWriterTest implements Serializable {
             w.write("1--", 0, 1);
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
+
     private static final long serialVersionUID = 1L;
 }

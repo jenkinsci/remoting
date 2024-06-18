@@ -44,7 +44,7 @@ public class SocketServerMain {
                         }
                     });
                 } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Failed to accept a soccket",e);
+                    LOGGER.log(Level.WARNING, "Failed to accept a soccket", e);
                 }
             }
         };

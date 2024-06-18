@@ -52,8 +52,7 @@ public class JnlpConnectionState {
     /**
      * The current iterator being used to process the listener notifications.
      */
-    private static final ThreadLocal<Iterator<JnlpConnectionStateListener>> fireIterator
-            = new ThreadLocal<>();
+    private static final ThreadLocal<Iterator<JnlpConnectionStateListener>> fireIterator = new ThreadLocal<>();
 
     /**
      * The property name for the secret key.
@@ -520,7 +519,5 @@ public class JnlpConnectionState {
      * @see JnlpConnectionState#setStash(ListenerState)
      * @see JnlpConnectionState#getStash(Class)
      */
-    public interface ListenerState {
-
-    }
+    public interface ListenerState {}
 }
