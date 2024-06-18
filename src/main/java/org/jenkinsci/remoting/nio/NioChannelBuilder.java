@@ -23,7 +23,7 @@ import java.util.concurrent.ExecutorService;
  * @see NioChannelHub#newChannelBuilder(String, ExecutorService)
  */
 public abstract class NioChannelBuilder extends ChannelBuilder {
-    /*package*/ SelectableChannel/* & ReadableByteChannel&WritableByteChannel */ r,w;
+    /*package*/ SelectableChannel /* & ReadableByteChannel&WritableByteChannel */ r, w;
 
     NioChannelBuilder(String name, ExecutorService executors) {
         super(name, executors);
@@ -40,27 +40,26 @@ public abstract class NioChannelBuilder extends ChannelBuilder {
         this.r = r;
         this.w = w;
         return super.build(
-                Channels.newInputStream((ReadableByteChannel)r),
-                Channels.newOutputStream((WritableByteChannel)w));
+                Channels.newInputStream((ReadableByteChannel) r), Channels.newOutputStream((WritableByteChannel) w));
     }
 
     @Override
     public Channel build(Socket s) throws IOException {
         SocketChannel ch = s.getChannel();
-        if (ch==null)
-            throw new IllegalArgumentException(s+" doesn't have a channel");
+        if (ch == null) {
+            throw new IllegalArgumentException(s + " doesn't have a channel");
+        }
         return build(ch);
     }
 
-
     @Override
     public NioChannelBuilder withBaseLoader(ClassLoader base) {
-        return (NioChannelBuilder)super.withBaseLoader(base);
+        return (NioChannelBuilder) super.withBaseLoader(base);
     }
 
     @Override
     public NioChannelBuilder withMode(Channel.Mode mode) {
-        return (NioChannelBuilder)super.withMode(mode);
+        return (NioChannelBuilder) super.withMode(mode);
     }
 
     @Override
@@ -90,6 +89,6 @@ public abstract class NioChannelBuilder extends ChannelBuilder {
 
     @Override
     public NioChannelBuilder withClassFilter(ClassFilter filter) {
-        return (NioChannelBuilder)super.withClassFilter(filter);
+        return (NioChannelBuilder) super.withClassFilter(filter);
     }
 }

@@ -39,12 +39,10 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @SuppressFBWarnings(value = "WEAK_TRUST_MANAGER", justification = "User set parameter to skip verifier.")
 public class NoCheckTrustManager implements X509TrustManager {
     @Override
-    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) {
-    }
+    public void checkClientTrusted(X509Certificate[] x509Certificates, String s) {}
 
     @Override
-    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) {
-    }
+    public void checkServerTrusted(X509Certificate[] x509Certificates, String s) {}
 
     @Override
     public X509Certificate[] getAcceptedIssuers() {

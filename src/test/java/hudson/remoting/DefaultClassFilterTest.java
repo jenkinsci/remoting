@@ -45,14 +45,20 @@ import org.junit.rules.TemporaryFolder;
 public class DefaultClassFilterTest {
 
     /** Some classes that should be matched by the default class filter */
-    private static final List<String> defaultBadClasses = Arrays.asList("org.codehaus.groovy.runtime.Bob",
-                                    "org.apache.commons.collections.functors.Wibble", "org.apache.xalan.Bogus",
-                                    "com.sun.org.apache.xalan.bogus", "org.springframework.core.SomeClass", 
-                                    "org.springframework.wibble.ExceptionHandler");
+    private static final List<String> defaultBadClasses = Arrays.asList(
+            "org.codehaus.groovy.runtime.Bob",
+            "org.apache.commons.collections.functors.Wibble",
+            "org.apache.xalan.Bogus",
+            "com.sun.org.apache.xalan.bogus",
+            "org.springframework.core.SomeClass",
+            "org.springframework.wibble.ExceptionHandler");
     /** Some classes that should not be matched by the default class filter */
-    private static final List<String> defaultOKClasses = Arrays.asList("java.lang.String", "java.lang.Object",
-                                    "java.util.ArrayList", "org.springframework.core.NestedRuntimeException",
-                                    "org.springframework.a.b.c.yada.SomeSuperException");
+    private static final List<String> defaultOKClasses = Arrays.asList(
+            "java.lang.String",
+            "java.lang.Object",
+            "java.util.ArrayList",
+            "org.springframework.core.NestedRuntimeException",
+            "org.springframework.a.b.c.yada.SomeSuperException");
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -67,10 +73,14 @@ public class DefaultClassFilterTest {
      */
     @Test
     public void testDefaultsNoOverride() {
-        assertThat("Default blacklist is not blacklisting some classes", defaultBadClasses,
-                                        everyItem(is(BlackListMatcher.blacklisted())));
-        assertThat("Default blacklist is not allowing some classes", defaultOKClasses,
-                                        everyItem(is(not(BlackListMatcher.blacklisted()))));
+        assertThat(
+                "Default blacklist is not blacklisting some classes",
+                defaultBadClasses,
+                everyItem(is(BlackListMatcher.blacklisted())));
+        assertThat(
+                "Default blacklist is not allowing some classes",
+                defaultOKClasses,
+                everyItem(is(not(BlackListMatcher.blacklisted()))));
     }
 
     /**
@@ -87,15 +97,21 @@ public class DefaultClassFilterTest {
             }
         }
         setOverrideProperty(f.getAbsolutePath());
-        assertThat("Default blacklist should not be used", defaultBadClasses, everyItem(is(not(BlackListMatcher.blacklisted()))));
+        assertThat(
+                "Default blacklist should not be used",
+                defaultBadClasses,
+                everyItem(is(not(BlackListMatcher.blacklisted()))));
         assertThat("Custom blacklist should be used", badClasses, everyItem(is(BlackListMatcher.blacklisted())));
-        assertThat("Custom blacklist is not allowing some classes", defaultOKClasses, everyItem(is(not(BlackListMatcher.blacklisted()))));
+        assertThat(
+                "Custom blacklist is not allowing some classes",
+                defaultOKClasses,
+                everyItem(is(not(BlackListMatcher.blacklisted()))));
     }
 
     /**
      * Checks that if given an invalid pattern in the overrides then the defaults are used.
      */
-    @Test(expected=Error.class)
+    @Test(expected = Error.class)
     public void testDefaultsAreUsedIfOverridesAreGarbage() throws Exception {
         List<String> badClasses = List.of("Z{100,0}" /* min > max for repetition */);
         File f = folder.newFile("overrides.txt");
@@ -113,10 +129,10 @@ public class DefaultClassFilterTest {
     /**
      * Checks that the defaults are loaded when the override property is provided and the file does not exist.
      */
-    @Test(expected=Error.class)
+    @Test(expected = Error.class)
     public void testDefaultsRemainWhenOverrideDoesExists() throws Exception {
-        setOverrideProperty(folder.getRoot().toString()
-                + "/DO_NOT_CREATE_THIS_FILE_OR_ELSE_BAD_THINGS_WILL_HAPPEN_TO_YOU");
+        setOverrideProperty(
+                folder.getRoot().toString() + "/DO_NOT_CREATE_THIS_FILE_OR_ELSE_BAD_THINGS_WILL_HAPPEN_TO_YOU");
         ClassFilter.createDefaultInstance();
     }
 
@@ -157,5 +173,4 @@ public class DefaultClassFilterTest {
             description.appendText("blacklisted");
         }
     }
-
 }

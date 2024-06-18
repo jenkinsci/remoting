@@ -62,8 +62,9 @@ public class StandardOutputStream extends OutputStream {
     public synchronized OutputStream swap(OutputStream another) {
         // if the stream is already swapped, the caller's implicit assumption that this represents stdout
         // is wrong, so we raise an error.
-        if (swapped)
+        if (swapped) {
             throw new IllegalStateException();
+        }
         OutputStream old = out;
         out = another;
         swapped = true;

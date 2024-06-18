@@ -306,7 +306,7 @@ public class ByteBufferQueue {
             }
             int remaining = buffers[readIndex].position() - readPosition;
             if (remaining > bytes) {
-                readPosition += (int)bytes;
+                readPosition += (int) bytes;
                 skipped += bytes;
                 break;
             } else {
@@ -526,18 +526,17 @@ public class ByteBufferQueue {
      */
     @Override
     public String toString() {
-        return getClass().getName() +
-                "[hasRemaining=" +
-                hasRemaining() +
-                ",readIndex=" +
-                readIndex +
-                ",writeIndex=" +
-                writeIndex +
-                ",capacity=" +
-                buffers.length +
-                ",bufSize=" +
-                bufferSize +
-                ']';
+        return getClass().getName() + "[hasRemaining="
+                + hasRemaining()
+                + ",readIndex="
+                + readIndex
+                + ",writeIndex="
+                + writeIndex
+                + ",capacity="
+                + buffers.length
+                + ",bufSize="
+                + bufferSize
+                + ']';
     }
 
     /**

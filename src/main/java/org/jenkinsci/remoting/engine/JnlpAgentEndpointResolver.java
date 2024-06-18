@@ -111,8 +111,15 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     private static String PROTOCOL_NAMES_TO_TRY =
             System.getProperty(JnlpAgentEndpointResolver.class.getName() + ".protocolNamesToTry");
 
-    public JnlpAgentEndpointResolver(@NonNull List<String> jenkinsUrls, String agentName, String credentials, String proxyCredentials,
-                                     String tunnel, SSLSocketFactory sslSocketFactory, boolean disableHttpsCertValidation, Duration noReconnectAfter) {
+    public JnlpAgentEndpointResolver(
+            @NonNull List<String> jenkinsUrls,
+            String agentName,
+            String credentials,
+            String proxyCredentials,
+            String tunnel,
+            SSLSocketFactory sslSocketFactory,
+            boolean disableHttpsCertValidation,
+            Duration noReconnectAfter) {
         this.jenkinsUrls = new ArrayList<>(jenkinsUrls);
         this.agentName = agentName;
         this.credentials = credentials;
@@ -169,7 +176,6 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      *
      * @return {@code true} if the HTTPs certificate is disabled, endpoint check is ignored
      */
-
     public boolean isDisableHttpsCertValidation() {
         return disableHttpsCertValidation;
     }
@@ -203,26 +209,31 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 selectedJenkinsURL = new URL(jenkinsUrl);
                 salURL = toAgentListenerURL(jenkinsUrl);
             } catch (MalformedURLException ex) {
-                LOGGER.log(Level.WARNING, String.format("Cannot parse agent endpoint URL %s. Skipping it", jenkinsUrl), ex);
+                LOGGER.log(
+                        Level.WARNING,
+                        String.format("Cannot parse agent endpoint URL %s. Skipping it", jenkinsUrl),
+                        ex);
                 continue;
             }
 
             // find out the TCP port
-            HttpURLConnection con =
-                    (HttpURLConnection) openURLConnection(salURL, agentName, credentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
+            HttpURLConnection con = (HttpURLConnection) openURLConnection(
+                    salURL, agentName, credentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
             try {
                 try {
                     con.setConnectTimeout(30000);
                     con.setReadTimeout(60000);
                     con.connect();
                 } catch (IOException x) {
-                    firstError = ThrowableUtils.chain(firstError,
-                            new IOException("Failed to connect to " + salURL + ": " + x.getMessage(), x));
+                    firstError = ThrowableUtils.chain(
+                            firstError, new IOException("Failed to connect to " + salURL + ": " + x.getMessage(), x));
                     continue;
                 }
                 if (con.getResponseCode() != 200) {
-                    firstError = ThrowableUtils.chain(firstError, new IOException(
-                            salURL + " is invalid: " + con.getResponseCode() + " " + con.getResponseMessage()));
+                    firstError = ThrowableUtils.chain(
+                            firstError,
+                            new IOException(
+                                    salURL + " is invalid: " + con.getResponseCode() + " " + con.getResponseMessage()));
                     continue;
                 }
 
@@ -232,17 +243,19 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     VersionNumber minimumSupportedVersion = new VersionNumber(minimumSupportedVersionHeader);
                     VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
                     if (currentVersion.isOlderThan(minimumSupportedVersion)) {
-                        firstError = ThrowableUtils.chain(firstError, new IOException(
-                                "Agent version " + minimumSupportedVersion + " or newer is required."
-                        ));
+                        firstError = ThrowableUtils.chain(
+                                firstError,
+                                new IOException("Agent version " + minimumSupportedVersion + " or newer is required."));
                         continue;
                     }
                 }
 
                 Set<String> agentProtocolNames = null;
 
-                String portStr = Optional.ofNullable(con.getHeaderField("X-Jenkins-JNLP-Port")).orElse(con.getHeaderField("X-Hudson-JNLP-Port"));
-                String host = Optional.ofNullable(con.getHeaderField("X-Jenkins-JNLP-Host")).orElse(salURL.getHost());
+                String portStr = Optional.ofNullable(con.getHeaderField("X-Jenkins-JNLP-Port"))
+                        .orElse(con.getHeaderField("X-Hudson-JNLP-Port"));
+                String host = Optional.ofNullable(con.getHeaderField("X-Jenkins-JNLP-Host"))
+                        .orElse(salURL.getHost());
                 String protocols = con.getHeaderField("X-Jenkins-Agent-Protocols");
                 if (protocols != null) {
                     // Take the list of protocols to try from the headers
@@ -252,20 +265,26 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                             .collect(Collectors.toSet());
 
                     if (agentProtocolNames.isEmpty()) {
-                        LOGGER.log(Level.WARNING, "Received the empty list of supported protocols from the server. " +
-                                "All protocols are disabled on the controller side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). " +
-                                "In the case of the header corruption as a workaround you can use the " +
-                                "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' system property " +
-                                "to define the supported protocols.");
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Received the empty list of supported protocols from the server. "
+                                        + "All protocols are disabled on the controller side OR the 'X-Jenkins-Agent-Protocols' header is corrupted (JENKINS-41730). "
+                                        + "In the case of the header corruption as a workaround you can use the "
+                                        + "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' system property "
+                                        + "to define the supported protocols.");
                     } else {
-                        LOGGER.log(Level.INFO, "Remoting server accepts the following protocols: {0}", agentProtocolNames);
+                        LOGGER.log(
+                                Level.INFO, "Remoting server accepts the following protocols: {0}", agentProtocolNames);
                     }
                 }
 
                 if (PROTOCOL_NAMES_TO_TRY != null) {
                     // Take a list of protocols to try from the system property
-                    LOGGER.log(Level.INFO, "Ignoring the list of supported remoting protocols provided by the server, because the " +
-                        "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' property is defined. Will try {0}", PROTOCOL_NAMES_TO_TRY);
+                    LOGGER.log(
+                            Level.INFO,
+                            "Ignoring the list of supported remoting protocols provided by the server, because the "
+                                    + "'org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver.protocolNamesToTry' property is defined. Will try {0}",
+                            PROTOCOL_NAMES_TO_TRY);
                     agentProtocolNames = Stream.of(PROTOCOL_NAMES_TO_TRY.split(","))
                             .map(String::trim)
                             .filter(Predicate.not(String::isEmpty))
@@ -277,13 +296,15 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 try {
                     identity = getIdentity(idHeader);
                     if (identity == null) {
-                        firstError = ThrowableUtils.chain(firstError, new IOException(
-                                salURL + " appears to be publishing an invalid X-Instance-Identity."));
+                        firstError = ThrowableUtils.chain(
+                                firstError,
+                                new IOException(salURL + " appears to be publishing an invalid X-Instance-Identity."));
                         continue;
                     }
                 } catch (InvalidKeySpecException e) {
-                    firstError = ThrowableUtils.chain(firstError, new IOException(
-                            salURL + " appears to be publishing an invalid X-Instance-Identity."));
+                    firstError = ThrowableUtils.chain(
+                            firstError,
+                            new IOException(salURL + " appears to be publishing an invalid X-Instance-Identity."));
                     continue;
                 }
 
@@ -295,24 +316,30 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 try {
                     port = Integer.parseInt(portStr);
                 } catch (NumberFormatException e) {
-                    firstError = ThrowableUtils.chain(firstError, new IOException(jenkinsUrl + " is publishing an invalid port", e));
+                    firstError = ThrowableUtils.chain(
+                            firstError, new IOException(jenkinsUrl + " is publishing an invalid port", e));
                     continue;
                 }
                 if (port <= 0 || 65536 <= port) {
-                    firstError = ThrowableUtils.chain(firstError, new IOException(jenkinsUrl + " is publishing an invalid port"));
+                    firstError = ThrowableUtils.chain(
+                            firstError, new IOException(jenkinsUrl + " is publishing an invalid port"));
                     continue;
                 }
                 if (tunnel == null) {
                     if (!isPortVisible(host, port)) {
-                        firstError = ThrowableUtils.chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
-                                + " is not reachable on host " + host));
+                        firstError = ThrowableUtils.chain(
+                                firstError,
+                                new IOException(
+                                        jenkinsUrl + " provided port:" + port + " is not reachable on host " + host));
                         continue;
                     } else {
                         LOGGER.log(Level.FINE, "TCP Agent Listener Port availability check passed");
                     }
                 } else {
-                    LOGGER.log(Level.INFO, "Remoting TCP connection tunneling is enabled. " +
-                            "Skipping the TCP Agent Listener Port availability check");
+                    LOGGER.log(
+                            Level.INFO,
+                            "Remoting TCP connection tunneling is enabled. "
+                                    + "Skipping the TCP Agent Listener Port availability check");
                 }
                 // sort the URLs so that the winner is the one we try first next time
                 final String winningJenkinsUrl = jenkinsUrl;
@@ -331,8 +358,9 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     port = hostPort.getPort();
                 }
 
-                //TODO: all the checks above do not make much sense if tunneling is enabled (JENKINS-52246)
-                return new JnlpAgentEndpoint(host, port, identity, agentProtocolNames, selectedJenkinsURL, proxyCredentials);
+                // TODO: all the checks above do not make much sense if tunneling is enabled (JENKINS-52246)
+                return new JnlpAgentEndpoint(
+                        host, port, identity, agentProtocolNames, selectedJenkinsURL, proxyCredentials);
             } finally {
                 con.disconnect();
             }
@@ -343,7 +371,9 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         return null;
     }
 
-    @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET", justification = "This just verifies connection to the port. No data is transmitted.")
+    @SuppressFBWarnings(
+            value = "UNENCRYPTED_SOCKET",
+            justification = "This just verifies connection to the port. No data is transmitted.")
     private synchronized boolean isPortVisible(String hostname, int port) {
         boolean exitStatus = false;
         Socket s = null;
@@ -362,13 +392,15 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     @Override
                     protected PasswordAuthentication getPasswordAuthentication() {
                         if (getRequestorType().equals(RequestorType.PROXY)) {
-                            return new PasswordAuthentication(proxyCredentials.substring(0, index), proxyCredentials.substring(index + 1).toCharArray());
+                            return new PasswordAuthentication(
+                                    proxyCredentials.substring(0, index),
+                                    proxyCredentials.substring(index + 1).toCharArray());
                         }
                         return super.getPasswordAuthentication();
                     }
                 });
             }
-            InetSocketAddress proxyToUse = getResolvedHttpProxyAddress(hostname,port);
+            InetSocketAddress proxyToUse = getResolvedHttpProxyAddress(hostname, port);
             s = proxyToUse == null ? new Socket() : new Socket(new Proxy(Proxy.Type.HTTP, proxyToUse));
             s.setReuseAddress(true);
             SocketAddress sa = new InetSocketAddress(hostname, port);
@@ -425,20 +457,22 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     retries++;
                     t.setName(oldName + ": trying " + url + " for " + retries + " times");
 
-                    HttpURLConnection con =
-                            (HttpURLConnection) openURLConnection(url, agentName, credentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
+                    HttpURLConnection con = (HttpURLConnection) openURLConnection(
+                            url, agentName, credentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
                     con.setConnectTimeout(5000);
                     con.setReadTimeout(5000);
                     con.connect();
                     if (con.getResponseCode() == 200) {
                         return;
                     }
-                    LOGGER.log(Level.INFO,
+                    LOGGER.log(
+                            Level.INFO,
                             "Controller isn''t ready to talk to us on {0}. Will try again: response code={1}",
-                            new Object[]{url, con.getResponseCode()});
+                            new Object[] {url, con.getResponseCode()});
                 } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
-                    LOGGER.log(Level.INFO, "Failed to connect to {0}. Will try again: {1} {2}",
-                            new String[] {firstUrl, e.getClass().getName(), e.getMessage()});
+                    LOGGER.log(Level.INFO, "Failed to connect to {0}. Will try again: {1} {2}", new String[] {
+                        firstUrl, e.getClass().getName(), e.getMessage()
+                    });
                 } catch (IOException e) {
                     // report the failure
                     LOGGER.log(Level.INFO, e, () -> "Failed to connect to " + firstUrl + ". Will try again");
@@ -452,45 +486,57 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     @CheckForNull
     static InetSocketAddress getResolvedHttpProxyAddress(@NonNull String host, int port) throws IOException {
         InetSocketAddress targetAddress = null;
-        Iterator<Proxy>
-                proxies =
-                ProxySelector.getDefault().select(URI.create(String.format("http://%s:%d", host, port))).iterator();
+        Iterator<Proxy> proxies = ProxySelector.getDefault()
+                .select(URI.create(String.format("http://%s:%d", host, port)))
+                .iterator();
         while (targetAddress == null && proxies.hasNext()) {
             Proxy proxy = proxies.next();
             if (proxy.type() == Proxy.Type.DIRECT) {
                 // Proxy.NO_PROXY with a DIRECT type is returned in two cases:
-                // - when no proxy (none) has been configured in the JVM (either with system properties or by the operating system)
+                // - when no proxy (none) has been configured in the JVM (either with system properties or by the
+                // operating system)
                 // - when the host URI is part of the exclusion list defined by system property -Dhttp.nonProxyHosts
                 //
                 // Unfortunately, the Proxy class does not provide a way to differentiate both cases to fallback to
-                // environment variables only when no proxy has been configured. Therefore, we have to recheck if the URI
+                // environment variables only when no proxy has been configured. Therefore, we have to recheck if the
+                // URI
                 // host is in the exclusion list.
                 //
                 // Warning:
-                //      This code only supports Java 9+ implementation where nonProxyHosts entries are not interpreted as regex expressions anymore.
-                //      Wildcard at the beginning or the end of an expression are the only remaining supported behaviours (e.g. *.jenkins.io or 127.*)
+                //      This code only supports Java 9+ implementation where nonProxyHosts entries are not interpreted
+                // as regex expressions anymore.
+                //      Wildcard at the beginning or the end of an expression are the only remaining supported
+                // behaviours (e.g. *.jenkins.io or 127.*)
                 //      https://bugs.java.com/view_bug.do?bug_id=8035158
                 //      http://hg.openjdk.java.net/jdk9/jdk9/jdk/rev/50a749f2cade
                 String nonProxyHosts = System.getProperty("http.nonProxyHosts");
-                if(nonProxyHosts != null && nonProxyHosts.length() != 0) {
+                if (nonProxyHosts != null && nonProxyHosts.length() != 0) {
                     // Build a list of regexps matching all nonProxyHosts entries
                     StringJoiner sj = new StringJoiner("|");
                     nonProxyHosts = nonProxyHosts.toLowerCase(Locale.ENGLISH);
-                    for(String entry : nonProxyHosts.split("\\|")) {
-                        if(entry.isEmpty())
+                    for (String entry : nonProxyHosts.split("\\|")) {
+                        if (entry.isEmpty()) {
                             continue;
-                        else if(entry.startsWith("*"))
+                        } else if (entry.startsWith("*")) {
                             sj.add(".*" + Pattern.quote(entry.substring(1)));
-                        else if(entry.endsWith("*"))
+                        } else if (entry.endsWith("*")) {
                             sj.add(Pattern.quote(entry.substring(0, entry.length() - 1)) + ".*");
-                        else
+                        } else {
                             sj.add(Pattern.quote(entry));
-                        // Detect when the pattern contains multiple wildcard, which used to work previous to Java 9 (e.g. 127.*.*.*)
-                        if(entry.split("\\*").length > 2)
-                            LOGGER.log(Level.WARNING, "Using more than one wildcard is not supported in nonProxyHosts entries: {0}", entry);
+                        }
+                        // Detect when the pattern contains multiple wildcard, which used to work previous to Java 9
+                        // (e.g. 127.*.*.*)
+                        if (entry.split("\\*").length > 2) {
+                            LOGGER.log(
+                                    Level.WARNING,
+                                    "Using more than one wildcard is not supported in nonProxyHosts entries: {0}",
+                                    entry);
+                        }
                     }
                     Pattern nonProxyRegexps = Pattern.compile(sj.toString());
-                    if(nonProxyRegexps.matcher(host.toLowerCase(Locale.ENGLISH)).matches()) {
+                    if (nonProxyRegexps
+                            .matcher(host.toLowerCase(Locale.ENGLISH))
+                            .matches()) {
                         return null;
                     } else {
                         break;
@@ -500,12 +546,16 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             if (proxy.type() == Proxy.Type.HTTP) {
                 final SocketAddress address = proxy.address();
                 if (!(address instanceof InetSocketAddress)) {
-                    LOGGER.log(Level.WARNING, "Unsupported proxy address type {0}", (address != null ? address.getClass() : "null"));
+                    LOGGER.log(
+                            Level.WARNING,
+                            "Unsupported proxy address type {0}",
+                            (address != null ? address.getClass() : "null"));
                     continue;
                 }
                 InetSocketAddress proxyAddress = (InetSocketAddress) address;
-                if (proxyAddress.isUnresolved())
+                if (proxyAddress.isUnresolved()) {
                     proxyAddress = new InetSocketAddress(proxyAddress.getHostName(), proxyAddress.getPort());
+                }
                 targetAddress = proxyAddress;
             }
         }
@@ -530,7 +580,9 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
      * FIXME: similar to hudson.remoting.Util.openURLConnection which is still used in hudson.remoting.Launcher
      */
     @Restricted(NoExternalUse.class)
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent for retrieving connection info from the server.")
+    @SuppressFBWarnings(
+            value = "URLCONNECTION_SSRF_FD",
+            justification = "Used by the agent for retrieving connection info from the server.")
     public static URLConnection openURLConnection(
             URL url,
             @CheckForNull String agentName,
@@ -580,5 +632,4 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         }
         return con;
     }
-
 }

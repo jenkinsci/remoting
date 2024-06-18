@@ -56,7 +56,7 @@ public class ProxyExceptionTest {
         ProxyException pe1 = new ProxyException(cyclic1);
         assertThat(pe1.getMessage(), is(cyclic1.toString()));
         assertThat(pe1.getStackTrace(), is(cyclic1.getStackTrace()));
-        ProxyException pe2 = (ProxyException)pe1.getSuppressed()[0];
+        ProxyException pe2 = (ProxyException) pe1.getSuppressed()[0];
         assertThat(pe2.getMessage(), is(cyclic2.toString()));
         assertThat(pe2.getStackTrace(), is(cyclic2.getStackTrace()));
         assertThat(pe2.getSuppressed(), is(emptyArray()));

@@ -39,7 +39,8 @@ public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
     private final String directionConnection;
     private final String proxyCredentials;
 
-    public JnlpAgentEndpointConfigurator(String directConnection, String instanceIdentity, Set<String> protocols, String proxyCredentials) {
+    public JnlpAgentEndpointConfigurator(
+            String directConnection, String instanceIdentity, Set<String> protocols, String proxyCredentials) {
         this.directionConnection = directConnection;
         this.instanceIdentity = instanceIdentity;
         this.protocols = protocols;
@@ -59,12 +60,12 @@ public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
         }
         HostPort hostPort = new HostPort(directionConnection);
 
-        return new JnlpAgentEndpoint(hostPort.getHost(), hostPort.getPort(), identity, protocols, null, proxyCredentials);
+        return new JnlpAgentEndpoint(
+                hostPort.getHost(), hostPort.getPort(), identity, protocols, null, proxyCredentials);
     }
 
     @Override
     public void waitForReady() {
         LOGGER.log(Level.INFO, "Sleeping 10s before reconnect.");
     }
-
 }

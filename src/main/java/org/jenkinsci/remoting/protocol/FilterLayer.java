@@ -149,7 +149,7 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
     protected final void abort(@NonNull IOException cause) {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LogRecord record = new LogRecord(Level.FINEST, "[{0}] Aborted");
-            record.setParameters(new Object[]{stack().name()});
+            record.setParameters(new Object[] {stack().name()});
             record.setThrown(cause);
             LOGGER.log(record);
         }
@@ -166,7 +166,7 @@ public abstract class FilterLayer implements ProtocolLayer, ProtocolLayer.Send, 
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINE)) {
                 LogRecord record = new LogRecord(Level.FINE, "[{0}] Close notification only partially completed");
-                record.setParameters(new Object[]{stack().name()});
+                record.setParameters(new Object[] {stack().name()});
                 record.setThrown(e);
                 LOGGER.log(record);
             }

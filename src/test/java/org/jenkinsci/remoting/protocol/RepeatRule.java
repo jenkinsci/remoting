@@ -36,51 +36,65 @@ public class RepeatRule implements TestRule {
     @Override
     public Statement apply(final Statement base, final Description description) {
         final Repeat repeat = description.getAnnotation(Repeat.class);
-        return repeat == null || (repeat.value() <= 0 && repeat.stopAfter() <= 0L) ? base : new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                long nextProgress = System.currentTimeMillis() + 10000;
-                int lastLoopCount = 0;
-                int maxLoops;
-                long stopNanos;
-                String text;
-                if (repeat.stopAfter() <= 0L) {
-                    stopNanos = Long.MAX_VALUE;
-                    if (repeat.value() <= 0) {
-                        maxLoops = 1;
-                        text = "once";
-                    } else {
-                        maxLoops = repeat.value();
-                        text = String.format("%d times", maxLoops);
+        return repeat == null || (repeat.value() <= 0 && repeat.stopAfter() <= 0L)
+                ? base
+                : new Statement() {
+                    @Override
+                    public void evaluate() throws Throwable {
+                        long nextProgress = System.currentTimeMillis() + 10000;
+                        int lastLoopCount = 0;
+                        int maxLoops;
+                        long stopNanos;
+                        String text;
+                        if (repeat.stopAfter() <= 0L) {
+                            stopNanos = Long.MAX_VALUE;
+                            if (repeat.value() <= 0) {
+                                maxLoops = 1;
+                                text = "once";
+                            } else {
+                                maxLoops = repeat.value();
+                                text = String.format("%d times", maxLoops);
+                            }
+                        } else {
+                            if (repeat.value() <= 0) {
+                                maxLoops = Integer.MAX_VALUE;
+                                text = String.format(
+                                        "for %d %s",
+                                        repeat.stopAfter(),
+                                        repeat.stopAfterUnits().name());
+                            } else {
+                                maxLoops = repeat.value();
+                                text = String.format(
+                                        "for %d times or %d %s",
+                                        maxLoops,
+                                        repeat.stopAfter(),
+                                        repeat.stopAfterUnits().name());
+                            }
+                            stopNanos = System.currentTimeMillis()
+                                    + repeat.stopAfterUnits().toMillis(repeat.stopAfter());
+                        }
+                        int loopCount;
+                        for (loopCount = 0;
+                                loopCount < maxLoops && System.currentTimeMillis() < stopNanos;
+                                loopCount++) {
+                            base.evaluate();
+                            if (System.currentTimeMillis() > nextProgress) {
+                                double loopsPerSec = (loopCount - lastLoopCount + 1) / 10.0;
+                                LOGGER.log(
+                                        Level.INFO,
+                                        "Repeating {0} {1} at {2,number,0.0} runs per second, {3,number} done",
+                                        new Object[] {description.getDisplayName(), text, loopsPerSec, loopCount + 1});
+                                lastLoopCount = loopCount;
+                                nextProgress = System.currentTimeMillis() + 10000;
+                                System.gc();
+                            }
+                        }
+                        if (repeat.stopAfter() > 0) {
+                            LOGGER.log(Level.INFO, "Repeated {0} {1,number} times", new Object[] {
+                                description.getDisplayName(), loopCount
+                            });
+                        }
                     }
-                } else {
-                    if (repeat.value() <= 0) {
-                        maxLoops = Integer.MAX_VALUE;
-                        text = String.format("for %d %s", repeat.stopAfter(), repeat.stopAfterUnits().name());
-                    } else {
-                        maxLoops = repeat.value();
-                        text = String.format("for %d times or %d %s", maxLoops, repeat.stopAfter(),
-                                repeat.stopAfterUnits().name());
-                    }
-                    stopNanos = System.currentTimeMillis() + repeat.stopAfterUnits().toMillis(repeat.stopAfter());
-                }
-                int loopCount;
-                for (loopCount = 0; loopCount < maxLoops && System.currentTimeMillis() < stopNanos; loopCount++) {
-                    base.evaluate();
-                    if (System.currentTimeMillis() > nextProgress) {
-                        double loopsPerSec = (loopCount - lastLoopCount + 1) / 10.0;
-                        LOGGER.log(Level.INFO, "Repeating {0} {1} at {2,number,0.0} runs per second, {3,number} done",
-                                new Object[]{description.getDisplayName(), text, loopsPerSec, loopCount + 1});
-                        lastLoopCount = loopCount;
-                        nextProgress = System.currentTimeMillis() + 10000;
-                        System.gc();
-                    }
-                }
-                if (repeat.stopAfter() > 0) {
-                    LOGGER.log(Level.INFO, "Repeated {0} {1,number} times",
-                            new Object[]{description.getDisplayName(), loopCount});
-                }
-            }
-        };
+                };
     }
 }

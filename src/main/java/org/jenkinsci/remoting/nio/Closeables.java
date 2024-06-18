@@ -24,12 +24,13 @@ class Closeables {
                     // at least as of Java7u55, shutdownInput fails if the socket
                     // is already closed or half-closed, as opposed to be a no-op.
                     // so let's just ignore close error altogether
-                    LOGGER.log(Level.FINE, "Failed to close "+s,e);
+                    LOGGER.log(Level.FINE, "Failed to close " + s, e);
                 }
                 maybeClose(s);
             };
-        } else
+        } else {
             return ch;
+        }
     }
 
     public static Closeable output(SelectableChannel ch) {
@@ -40,12 +41,13 @@ class Closeables {
                     s.socket().shutdownOutput();
                 } catch (IOException e) {
                     // see the discussion in try/catch block around shutdownInput above
-                    LOGGER.log(Level.FINE, "Failed to close "+s,e);
+                    LOGGER.log(Level.FINE, "Failed to close " + s, e);
                 }
                 maybeClose(s);
             };
-        } else
+        } else {
             return ch;
+        }
     }
 
     /**

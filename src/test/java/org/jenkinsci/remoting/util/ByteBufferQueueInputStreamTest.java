@@ -112,7 +112,7 @@ public class ByteBufferQueueInputStreamTest {
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
-        try (ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue) ) {
+        try (ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue)) {
             StringBuilder buf = new StringBuilder();
             int b;
             do {

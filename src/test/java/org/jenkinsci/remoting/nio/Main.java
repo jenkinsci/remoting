@@ -15,28 +15,28 @@ import java.nio.channels.SocketChannel;
  */
 public class Main {
     /*
-        Non-blocking stream copier
-        --------------------------
+       Non-blocking stream copier
+       --------------------------
 
-        Allow arbitrary pair of InputStream+OutputStream and pump them all just by using a single thread.
+       Allow arbitrary pair of InputStream+OutputStream and pump them all just by using a single thread.
 
-        InputStream needs to be SelectableChannel or FileInputStream on Linux.
-        Now OutputStream, this is a bigger problem!
-            - SelectableChannel, such as another FileOutputStream or Socket is fine
-            - ProxyOutputStream, to send bits remotely. But this involves window support.
-              -> if ProxyOutputStream can't write, set the bytes aside and don't look for OP_READ
-                 in corresponding reader.
-              -> when window size becomes available, notify and act
+       InputStream needs to be SelectableChannel or FileInputStream on Linux.
+       Now OutputStream, this is a bigger problem!
+           - SelectableChannel, such as another FileOutputStream or Socket is fine
+           - ProxyOutputStream, to send bits remotely. But this involves window support.
+             -> if ProxyOutputStream can't write, set the bytes aside and don't look for OP_READ
+                in corresponding reader.
+             -> when window size becomes available, notify and act
 
-              -> but ProxyOutputStream is still a blocking write.
+             -> but ProxyOutputStream is still a blocking write.
 
 
-       Pumping executors forking builds aren't too interesting. But ChannelReaderThread can
-       benefit from this.
+      Pumping executors forking builds aren't too interesting. But ChannelReaderThread can
+      benefit from this.
 
-       Need an additional framing mechanism
+      Need an additional framing mechanism
 
-     */
+    */
 
     public static void main(String[] args) throws Exception {
         testProcessSelection();
@@ -62,8 +62,8 @@ public class Main {
         while (true) {
             sel.select();
             for (SelectionKey sk : sel.selectedKeys()) {
-                System.out.println("==== "+sk.attachment());
-                SocketChannel c = (SocketChannel)sk.channel();
+                System.out.println("==== " + sk.attachment());
+                SocketChannel c = (SocketChannel) sk.channel();
 
                 ByteBuffer buf = ByteBuffer.allocate(1024);
                 c.read(buf);
@@ -78,13 +78,13 @@ public class Main {
             if (i instanceof FilterInputStream) {
                 Field $in = FilterInputStream.class.getDeclaredField("in");
                 $in.setAccessible(true);
-                i = (InputStream)$in.get(i);
+                i = (InputStream) $in.get(i);
                 continue;
             }
             if (i instanceof FileInputStream) {
                 return (FileInputStream) i;
             }
-            return null;    // unknown type
+            return null; // unknown type
         }
     }
 

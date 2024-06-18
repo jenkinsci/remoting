@@ -34,13 +34,13 @@ public class Util {
      * Acts like basename(1)
      */
     static String getBaseName(String path) {
-        return path.substring(path.lastIndexOf('/')+1);
+        return path.substring(path.lastIndexOf('/') + 1);
     }
 
     static byte[] readFully(InputStream in) throws IOException {
         // TODO perhaps replace by in.readAllBytes() after checking close behavior
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        copy(in,baos);
+        copy(in, baos);
         return baos.toByteArray();
     }
 
@@ -55,14 +55,16 @@ public class Util {
     }
 
     @NonNull
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
+    @SuppressFBWarnings(
+            value = "PATH_TRAVERSAL_IN",
+            justification = "This path exists within a temp directory so the potential traversal is limited.")
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
         File resource = new File(tmpDir.toFile(), name);
         Files.createDirectories(PathUtils.fileToPath(resource.getParentFile()));
         Files.createFile(PathUtils.fileToPath(resource));
 
-        try(FileOutputStream fos = new FileOutputStream(resource)) {
+        try (FileOutputStream fos = new FileOutputStream(resource)) {
             fos.write(image);
         }
 
@@ -85,7 +87,9 @@ public class Util {
         if (dir.isDirectory()) {
             File[] childFiles = dir.listFiles();
             if (childFiles != null) { // listFiles may return null if there's an IO error
-                for (File f: childFiles) { deleteDirectoryOnExit(f); }
+                for (File f : childFiles) {
+                    deleteDirectoryOnExit(f);
+                }
             }
         }
     }
@@ -94,17 +98,18 @@ public class Util {
         return "    " + s.trim().replace("\n", "\n    ");
     }
 
-    static public String getVersion() {
+    public static String getVersion() {
         String version = "unknown";
         try {
-            Enumeration<URL> resEnum = Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
+            Enumeration<URL> resEnum =
+                    Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
             while (resEnum.hasMoreElements()) {
                 URL url = resEnum.nextElement();
-                try(InputStream is = url.openStream()) {
+                try (InputStream is = url.openStream()) {
                     if (is != null) {
                         Manifest manifest = new Manifest(is);
                         version = manifest.getMainAttributes().getValue("Version");
-                        if(version != null) {
+                        if (version != null) {
                             break;
                         }
                     }
@@ -123,7 +128,5 @@ public class Util {
         return Duration.between(firstAttempt, Instant.now()).compareTo(noReconnectAfter) > 0;
     }
 
-    private Util() {
-    }
-
+    private Util() {}
 }

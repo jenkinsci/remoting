@@ -34,14 +34,16 @@ import java.util.concurrent.Future;
      *      the amount of state {@link ResourceImageRef}s need to carry around, which helps reduce
      *      the bandwidth consumption.
      */
-    /*package*/ abstract Future<byte[]> resolve(Channel channel, String resourcePath) throws IOException, InterruptedException;
+    /*package*/ abstract Future<byte[]> resolve(Channel channel, String resourcePath)
+            throws IOException, InterruptedException;
 
     /**
      * Returns an URL that points to this resource.
      *
      * This may require creating a temporary file.
      */
-    /*package*/ abstract Future<URLish> resolveURL(Channel channel, String resourcePath) throws IOException, InterruptedException;
+    /*package*/ abstract Future<URLish> resolveURL(Channel channel, String resourcePath)
+            throws IOException, InterruptedException;
 
     private static final long serialVersionUID = 1L;
 }

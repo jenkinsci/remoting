@@ -107,8 +107,7 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
     /**
      * Use {@link #create()}.
      */
-    private SettableFuture() {
-    }
+    private SettableFuture() {}
 
     /**
      * Completes the future with the supplied value.
@@ -273,8 +272,10 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
             try {
                 executor.execute(listener);
             } catch (RuntimeException e) {
-                LOGGER.log(Level.SEVERE, e, () ->
-                        "RuntimeException while executing runnable " + listener + " with executor " + executor);
+                LOGGER.log(
+                        Level.SEVERE,
+                        e,
+                        () -> "RuntimeException while executing runnable " + listener + " with executor " + executor);
             }
         }
     }
@@ -294,11 +295,12 @@ public final class SettableFuture<V> implements ListenableFuture<V> {
             try {
                 entry.getValue().execute(entry.getKey());
             } catch (RuntimeException e) {
-                LOGGER.log(Level.SEVERE, e, () ->
-                        "RuntimeException while executing runnable " + entry.getKey() + " with executor "
+                LOGGER.log(
+                        Level.SEVERE,
+                        e,
+                        () -> "RuntimeException while executing runnable " + entry.getKey() + " with executor "
                                 + entry.getValue());
             }
-
         }
     }
 }

@@ -43,7 +43,7 @@ public class ObjectInputStreamEx extends ObjectInputStream {
      */
     @Deprecated
     public ObjectInputStreamEx(InputStream in, ClassLoader cl) throws IOException {
-        this(in,cl,ClassFilter.DEFAULT);
+        this(in, cl, ClassFilter.DEFAULT);
     }
 
     public ObjectInputStreamEx(InputStream in, ClassLoader cl, ClassFilter filter) throws IOException {
@@ -78,8 +78,7 @@ public class ObjectInputStreamEx extends ObjectInputStream {
             if ((cl.getModifiers() & Modifier.PUBLIC) == 0) {
                 if (hasNonPublicInterface) {
                     if (nonPublicLoader != cl.getClassLoader()) {
-                        throw new IllegalAccessError(
-                            "conflicting non-public interface class loaders");
+                        throw new IllegalAccessError("conflicting non-public interface class loaders");
                     }
                 } else {
                     nonPublicLoader = cl.getClassLoader();
@@ -89,9 +88,7 @@ public class ObjectInputStreamEx extends ObjectInputStream {
             classObjs[i] = cl;
         }
         try {
-            return Proxy.getProxyClass(
-                hasNonPublicInterface ? nonPublicLoader : latestLoader,
-                classObjs);
+            return Proxy.getProxyClass(hasNonPublicInterface ? nonPublicLoader : latestLoader, classObjs);
         } catch (IllegalArgumentException e) {
             throw new ClassNotFoundException(null, e);
         }
@@ -99,7 +96,7 @@ public class ObjectInputStreamEx extends ObjectInputStream {
 
     @Override
     protected Object resolveObject(Object obj) throws IOException {
-        if(obj instanceof URL){
+        if (obj instanceof URL) {
             // SECURITY-637, URL deserialization could lead to DNS query
             return URLDeserializationHelper.wrapIfRequired((URL) obj);
         }

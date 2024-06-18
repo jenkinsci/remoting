@@ -60,7 +60,8 @@ public abstract class KeyPairRule<PUB extends PublicKey, PRIV extends PrivateKey
     @Override
     public Statement apply(final Statement base, Description description) {
         Skip skip = description.getAnnotation(Skip.class);
-        if (skip != null && (skip.value().length == 0 || Arrays.asList(skip.value()).contains(id))) {
+        if (skip != null
+                && (skip.value().length == 0 || Arrays.asList(skip.value()).contains(id))) {
             return base;
         }
         return new Statement() {

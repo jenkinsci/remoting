@@ -142,8 +142,7 @@ public class SettableFutureTest {
         assertFalse(async.set(42));
     }
 
-    public void assertCompletedFuture(@Nullable Object expectedValue)
-            throws InterruptedException, ExecutionException {
+    public void assertCompletedFuture(@Nullable Object expectedValue) throws InterruptedException, ExecutionException {
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
 
@@ -154,8 +153,7 @@ public class SettableFutureTest {
         assertEquals(expectedValue, future.get());
     }
 
-    public void assertCancelledFuture()
-            throws InterruptedException, ExecutionException {
+    public void assertCancelledFuture() throws InterruptedException, ExecutionException {
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
@@ -163,12 +161,13 @@ public class SettableFutureTest {
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
-        assertThrows("Future should throw CancellationException on cancel.",
-                CancellationException.class, () -> future.get());
+        assertThrows(
+                "Future should throw CancellationException on cancel.",
+                CancellationException.class,
+                () -> future.get());
     }
 
-    public void assertFailedFuture(@Nullable String message)
-            throws InterruptedException {
+    public void assertFailedFuture(@Nullable String message) throws InterruptedException {
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
 
@@ -176,9 +175,8 @@ public class SettableFutureTest {
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
 
-        final ExecutionException e = assertThrows("Future should rethrow the exception.",
-                ExecutionException.class, () -> future.get());
+        final ExecutionException e =
+                assertThrows("Future should rethrow the exception.", ExecutionException.class, () -> future.get());
         assertThat(e.getCause().getMessage(), is(message));
     }
-
 }

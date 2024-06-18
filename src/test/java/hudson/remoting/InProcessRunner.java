@@ -16,6 +16,7 @@ public class InProcessRunner implements DualSideChannelRunner {
      * failure occurred in the other {@link Channel}.
      */
     private Exception failure;
+
     private Channel south;
 
     @Override
@@ -34,7 +35,7 @@ public class InProcessRunner implements DualSideChannelRunner {
             @Override
             public void run() {
                 try {
-                    Channel south = configureSouth().build(in2,out1);
+                    Channel south = configureSouth().build(in2, out1);
                     southHandoff.put(south);
                     south.join();
                     System.out.println("south completed");
@@ -72,8 +73,9 @@ public class InProcessRunner implements DualSideChannelRunner {
 
         executor.shutdown();
 
-        if(failure!=null)
-            throw failure;  // report a failure in the south side
+        if (failure != null) {
+            throw failure; // report a failure in the south side
+        }
     }
 
     @Override

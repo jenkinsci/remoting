@@ -14,7 +14,7 @@ import java.util.Set;
 public class OISInterception {
     public static void main(String[] args) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ObjectOutputStream oos = new ObjectOutputStream(baos) ) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
             oos.writeObject(Set.of("foo"));
         }
 

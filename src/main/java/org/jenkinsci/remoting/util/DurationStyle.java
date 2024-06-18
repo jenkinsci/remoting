@@ -52,8 +52,7 @@ public enum DurationStyle {
                 String suffix = matcher.group(2);
                 return ((suffix != null && !suffix.isEmpty()) ? Unit.fromSuffix(suffix) : Unit.fromChronoUnit(unit))
                         .parse(matcher.group(1));
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 throw new IllegalArgumentException("'" + value + "' is not a valid simple duration", ex);
             }
         }
@@ -62,7 +61,6 @@ public enum DurationStyle {
         public String print(Duration value, ChronoUnit unit) {
             return Unit.fromChronoUnit(unit).print(value);
         }
-
     },
 
     /**
@@ -74,8 +72,7 @@ public enum DurationStyle {
         public Duration parse(String value, ChronoUnit unit) {
             try {
                 return Duration.parse(value);
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 throw new IllegalArgumentException("'" + value + "' is not a valid ISO-8601 duration", ex);
             }
         }
@@ -84,7 +81,6 @@ public enum DurationStyle {
         public String print(Duration value, ChronoUnit unit) {
             return value.toString();
         }
-
     };
 
     private final Pattern pattern;
@@ -263,7 +259,5 @@ public enum DurationStyle {
             }
             throw new IllegalArgumentException("Unknown unit '" + suffix + "'");
         }
-
     }
-
 }

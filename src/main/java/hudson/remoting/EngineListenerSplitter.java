@@ -30,7 +30,7 @@ public class EngineListenerSplitter implements EngineListener {
     @Override
     public void status(String msg, Throwable t) {
         for (EngineListener l : listeners) {
-            l.status(msg,t);
+            l.status(msg, t);
         }
     }
 

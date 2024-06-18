@@ -86,7 +86,8 @@ public class VersionNumber implements Comparable<VersionNumber> {
 
         int WILDCARD_ITEM = 3;
 
-        // Cannot set name to compareTo because FindBugs will think this interface extend Comparable and fire CO_ABSTRACT_SELF bug
+        // Cannot set name to compareTo because FindBugs will think this interface extend Comparable and fire
+        // CO_ABSTRACT_SELF bug
         int compare(Item item);
 
         int getType();
@@ -101,8 +102,9 @@ public class VersionNumber implements Comparable<VersionNumber> {
 
         @Override
         public int compare(Item item) {
-            if (item==null) // 1.* ( > 1.99) > 1
+            if (item == null) { // 1.* ( > 1.99) > 1
                 return 1;
+            }
             switch (item.getType()) {
                 case INTEGER_ITEM:
                 case LIST_ITEM:
@@ -134,8 +136,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
     /**
      * Represents a numeric item in the version item list.
      */
-    private static class IntegerItem
-            implements Item {
+    private static class IntegerItem implements Item {
         private static final BigInteger BigInteger_ZERO = new BigInteger("0");
 
         private final BigInteger value;
@@ -196,11 +197,11 @@ public class VersionNumber implements Comparable<VersionNumber> {
      * Represents a string in the version item list, usually a qualifier.
      */
     private static class StringItem implements Item {
-        private final static String[] QUALIFIERS = {"snapshot", "alpha", "beta", "milestone", "rc", "", "sp"};
+        private static final String[] QUALIFIERS = {"snapshot", "alpha", "beta", "milestone", "rc", "", "sp"};
 
-        private final static List<String> _QUALIFIERS = Arrays.asList(QUALIFIERS);
+        private static final List<String> _QUALIFIERS = Arrays.asList(QUALIFIERS);
 
-        private final static Properties ALIASES = new Properties();
+        private static final Properties ALIASES = new Properties();
 
         static {
             ALIASES.put("ga", "");
@@ -397,7 +398,6 @@ public class VersionNumber implements Comparable<VersionNumber> {
 
     private void parseVersion(String version) {
         this.value = version;
-
 
         items = new ListItem();
 

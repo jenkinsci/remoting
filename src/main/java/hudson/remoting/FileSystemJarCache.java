@@ -40,9 +40,9 @@ public class FileSystemJarCache extends JarCacheSupport {
     @GuardedBy("itself")
     private final Map<String, Checksum> checksumsByPath = new HashMap<>();
 
-    //TODO: Create new IOException constructor
+    // TODO: Create new IOException constructor
     /**
-     * @param rootDir  
+     * @param rootDir
      *      Root directory.
      * @param touch
      *      True to touch the cached jar file that's used. This enables external LRU based cache
@@ -53,8 +53,9 @@ public class FileSystemJarCache extends JarCacheSupport {
     public FileSystemJarCache(@NonNull File rootDir, boolean touch) {
         this.rootDir = rootDir;
         this.touch = touch;
-        if (rootDir==null)
+        if (rootDir == null) {
             throw new IllegalArgumentException("Root directory is null");
+        }
 
         try {
             Files.createDirectories(rootDir.toPath());
@@ -67,17 +68,17 @@ public class FileSystemJarCache extends JarCacheSupport {
     public String toString() {
         return String.format("FileSystem JAR Cache: path=%s, touch=%s", rootDir, touch);
     }
-    
+
     @Override
     protected URL lookInCache(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         File jar = map(sum1, sum2);
         if (jar.exists()) {
-            LOGGER.log(Level.FINER, () -> String.format("Jar file cache hit %16X%16X",sum1,sum2));
-            if (touch)  {
+            LOGGER.log(Level.FINER, () -> String.format("Jar file cache hit %16X%16X", sum1, sum2));
+            if (touch) {
                 Files.setLastModifiedTime(PathUtils.fileToPath(jar), FileTime.fromMillis(System.currentTimeMillis()));
             }
-            if (notified.add(new Checksum(sum1,sum2))) {
-                getJarLoader(channel).notifyJarPresence(sum1,sum2);
+            if (notified.add(new Checksum(sum1, sum2))) {
+                getJarLoader(channel).notifyJarPresence(sum1, sum2);
             }
             return jar.toURI().toURL();
         }
@@ -85,7 +86,9 @@ public class FileSystemJarCache extends JarCacheSupport {
     }
 
     @Override
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "The file path is a generated value based on server supplied data.")
+    @SuppressFBWarnings(
+            value = "PATH_TRAVERSAL_IN",
+            justification = "The file path is a generated value based on server supplied data.")
     protected URL retrieve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         Checksum expected = new Checksum(sum1, sum2);
         File target = map(sum1, sum2);
@@ -99,8 +102,7 @@ public class FileSystemJarCache extends JarCacheSupport {
 
             LOGGER.warning(String.format(
                     "Cached file checksum mismatch: %s%nExpected: %s%n Actual: %s",
-                    target.getAbsolutePath(), expected, actual
-            ));
+                    target.getAbsolutePath(), expected, actual));
             Files.delete(PathUtils.fileToPath(target));
             synchronized (checksumsByPath) {
                 checksumsByPath.remove(target.getCanonicalPath());
@@ -145,7 +147,7 @@ public class FileSystemJarCache extends JarCacheSupport {
                 Files.deleteIfExists(PathUtils.fileToPath(tmp));
             }
         } catch (IOException e) {
-            throw new IOException("Failed to write to "+target, e);
+            throw new IOException("Failed to write to " + target, e);
         }
     }
 
@@ -160,7 +162,9 @@ public class FileSystemJarCache extends JarCacheSupport {
         // until calculated to be picked up from cache right away.
         synchronized (checksumsByPath) {
             Checksum checksum = checksumsByPath.get(location);
-            if (checksum != null) return checksum;
+            if (checksum != null) {
+                return checksum;
+            }
 
             checksum = Checksum.forFile(file);
             checksumsByPath.put(location, checksum);
@@ -168,7 +172,9 @@ public class FileSystemJarCache extends JarCacheSupport {
         }
     }
 
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
+    @SuppressFBWarnings(
+            value = "PATH_TRAVERSAL_IN",
+            justification = "This path exists within a temp directory so the potential traversal is limited.")
     /*package for testing*/ File createTempJar(@NonNull File target) throws IOException {
         File parent = target.getParentFile();
         Files.createDirectories(parent.toPath());
@@ -179,9 +185,9 @@ public class FileSystemJarCache extends JarCacheSupport {
      * Map to the cache jar file name.
      */
     File map(long sum1, long sum2) {
-        return new File(rootDir,String.format("%02X/%014X%016X.jar",
-                (int)(sum1>>>(64-8)),
-                sum1&0x00FFFFFFFFFFFFFFL, sum2));
+        return new File(
+                rootDir,
+                String.format("%02X/%014X%016X.jar", (int) (sum1 >>> (64 - 8)), sum1 & 0x00FFFFFFFFFFFFFFL, sum2));
     }
 
     private static final Logger LOGGER = Logger.getLogger(FileSystemJarCache.class.getName());

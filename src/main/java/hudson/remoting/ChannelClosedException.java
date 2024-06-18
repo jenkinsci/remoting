@@ -61,7 +61,8 @@ public class ChannelClosedException extends ChannelStateException {
      *              May be {@code null} if it cannot be determined when the exception is constructed.
      * @since 3.15
      */
-    public ChannelClosedException(@CheckForNull Channel channel, @NonNull String message, @CheckForNull Throwable cause) {
+    public ChannelClosedException(
+            @CheckForNull Channel channel, @NonNull String message, @CheckForNull Throwable cause) {
         super(channel, message, cause);
     }
 }

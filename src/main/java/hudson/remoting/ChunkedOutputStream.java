@@ -37,23 +37,23 @@ class ChunkedOutputStream extends OutputStream {
      * How many more bytes can our buffer take?
      */
     private int capacity() {
-        return buf.length-size;
+        return buf.length - size;
     }
 
     @Override
     public void write(int b) throws IOException {
-        buf[size++] = (byte)b;
+        buf[size++] = (byte) b;
         drain();
     }
 
     @Override
     public void write(@NonNull byte[] b, int off, int len) throws IOException {
-        while (len>0) {
-            int s = Math.min(capacity(),len);
-            System.arraycopy(b,off,buf,size,s);
-            off+=s;
-            len-=s;
-            size+=s;
+        while (len > 0) {
+            int s = Math.min(capacity(), len);
+            System.arraycopy(b, off, buf, size, s);
+            off += s;
+            len -= s;
+            size += s;
             drain();
         }
     }
@@ -68,7 +68,7 @@ class ChunkedOutputStream extends OutputStream {
 
     @Override
     public void flush() throws IOException {
-        if (size>0) {
+        if (size > 0) {
             sendFrame(true);
             base.flush();
         }
@@ -84,13 +84,14 @@ class ChunkedOutputStream extends OutputStream {
      * If the buffer is filled up, send a frame.
      */
     private void drain() throws IOException {
-        if (capacity()==0)
+        if (capacity() == 0) {
             sendFrame(true);
+        }
     }
 
     private void sendFrame(boolean hasMore) throws IOException {
-        base.write(ChunkHeader.pack(size,hasMore));
-        base.write(buf,0,size);
+        base.write(ChunkHeader.pack(size, hasMore));
+        base.write(buf, 0, size);
         size = 0;
     }
 }

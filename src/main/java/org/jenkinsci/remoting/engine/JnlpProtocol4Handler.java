@@ -104,9 +104,13 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
      * @param needClientAuth {@code} to force all clients to have a client certificate in order to connect.
      * @param preferNio      {@code true} means that the protocol should attempt to use NIO if possible.
      */
-    public JnlpProtocol4Handler(@Nullable JnlpClientDatabase clientDatabase, @NonNull ExecutorService threadPool,
-                                @NonNull IOHub ioHub, @NonNull SSLContext context, boolean needClientAuth,
-                                boolean preferNio) {
+    public JnlpProtocol4Handler(
+            @Nullable JnlpClientDatabase clientDatabase,
+            @NonNull ExecutorService threadPool,
+            @NonNull IOHub ioHub,
+            @NonNull SSLContext context,
+            boolean needClientAuth,
+            boolean preferNio) {
         super(clientDatabase, preferNio);
         this.threadPool = threadPool;
         this.ioHub = ioHub;
@@ -124,8 +128,8 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
 
     @NonNull
     @Override
-    public Jnlp4ConnectionState createConnectionState(@NonNull Socket socket,
-                                                      @NonNull List<? extends JnlpConnectionStateListener> listeners) {
+    public Jnlp4ConnectionState createConnectionState(
+            @NonNull Socket socket, @NonNull List<? extends JnlpConnectionStateListener> listeners) {
         return new Jnlp4ConnectionState(socket, listeners);
     }
 
@@ -138,8 +142,10 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
      */
     @NonNull
     @Override
-    public Future<Channel> handle(@NonNull Socket socket, @NonNull Map<String, String> headers,
-                                  @NonNull List<? extends JnlpConnectionStateListener> listeners)
+    public Future<Channel> handle(
+            @NonNull Socket socket,
+            @NonNull Map<String, String> headers,
+            @NonNull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException {
         NetworkLayer networkLayer = createNetworkLayer(socket);
         SSLEngine engine = createSSLEngine(socket);
@@ -166,8 +172,11 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
      */
     @NonNull
     @Override
-    public Future<Channel> connect(@NonNull Socket socket, @NonNull Map<String, String> headers,
-                                   @NonNull List<? extends JnlpConnectionStateListener> listeners) throws IOException {
+    public Future<Channel> connect(
+            @NonNull Socket socket,
+            @NonNull Map<String, String> headers,
+            @NonNull List<? extends JnlpConnectionStateListener> listeners)
+            throws IOException {
         NetworkLayer networkLayer = createNetworkLayer(socket);
         SSLEngine sslEngine = createSSLEngine(socket);
         sslEngine.setUseClientMode(true);
@@ -195,7 +204,9 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         SocketChannel socketChannel = isPreferNio() ? socket.getChannel() : null;
         LOGGER.fine(() -> "prefer NIO? " + isPreferNio() + " actually using NIO? " + (socketChannel != null));
         if (socketChannel == null) {
-            networkLayer = new BIONetworkLayer(ioHub, Channels.newChannel(SocketChannelStream.in(socket)),
+            networkLayer = new BIONetworkLayer(
+                    ioHub,
+                    Channels.newChannel(SocketChannelStream.in(socket)),
                     Channels.newChannel(SocketChannelStream.out(socket)));
         } else {
             networkLayer = new NIONetworkLayer(ioHub, socketChannel, socketChannel);
@@ -223,9 +234,12 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
     /**
      * Handles the state transitions for a connection.
      */
-    private class Handler extends Channel.Listener implements SSLEngineFilterLayer.Listener,
-            ConnectionHeadersFilterLayer.Listener, ChannelApplicationLayer.Listener, ProtocolStack.Listener,
-            ChannelApplicationLayer.ChannelDecorator {
+    private class Handler extends Channel.Listener
+            implements SSLEngineFilterLayer.Listener,
+                    ConnectionHeadersFilterLayer.Listener,
+                    ChannelApplicationLayer.Listener,
+                    ProtocolStack.Listener,
+                    ChannelApplicationLayer.ChannelDecorator {
         /**
          * The event.
          */
@@ -303,9 +317,10 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                         // no-op, we trust the certificate as being from the client
                         break;
                     case INVALID:
-                        LOGGER.log(Level.WARNING,
+                        LOGGER.log(
+                                Level.WARNING,
                                 "An attempt was made to connect as {0} from {1} with an invalid client certificate",
-                                new Object[]{clientName, event.getRemoteEndpointDescription()});
+                                new Object[] {clientName, event.getRemoteEndpointDescription()});
                         throw new ConnectionRefusalException("Authentication failure");
                     default:
                         String secretKey = clientDatabase.getSecretOf(clientName);
@@ -313,10 +328,13 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                             // should never get hear unless there is a race condition in removing an entry from the DB
                             throw new ConnectionRefusalException("Unknown client name: " + clientName);
                         }
-                        if (!MessageDigest.isEqual(secretKey.getBytes(StandardCharsets.UTF_8), headers.get(JnlpConnectionState.SECRET_KEY).getBytes(StandardCharsets.UTF_8))) {
-                            LOGGER.log(Level.WARNING,
+                        if (!MessageDigest.isEqual(
+                                secretKey.getBytes(StandardCharsets.UTF_8),
+                                headers.get(JnlpConnectionState.SECRET_KEY).getBytes(StandardCharsets.UTF_8))) {
+                            LOGGER.log(
+                                    Level.WARNING,
                                     "An attempt was made to connect as {0} from {1} with an incorrect secret",
-                                    new Object[]{clientName, event.getRemoteEndpointDescription()});
+                                    new Object[] {clientName, event.getRemoteEndpointDescription()});
                             throw new ConnectionRefusalException("Authorization failure");
                         }
                         break;
@@ -377,6 +395,4 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
             }
         }
     }
-
-
 }

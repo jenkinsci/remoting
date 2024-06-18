@@ -75,12 +75,20 @@ public class WorkDirManagerTest {
         Files.writeString(probeFileInInternalDir, "Hello!", StandardCharsets.UTF_8);
 
         // Initialize and check the results
-        final Path createdDir = WorkDirManager.getInstance().initializeWorkDir(dir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
-        assertThat("The initialized " + WorkDirManager.DirType.INTERNAL_DIR + " differs from the expected one", createdDir, equalTo(remotingDir));
+        final Path createdDir = WorkDirManager.getInstance()
+                .initializeWorkDir(dir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
+        assertThat(
+                "The initialized " + WorkDirManager.DirType.INTERNAL_DIR + " differs from the expected one",
+                createdDir,
+                equalTo(remotingDir));
 
         // Ensure that the files have not been wiped
-        Assert.assertTrue("Probe file in the " + WorkDirManager.DirType.WORK_DIR + " has been wiped", Files.exists(probeFileInWorkDir));
-        Assert.assertTrue("Probe file in the " + WorkDirManager.DirType.INTERNAL_DIR + " has been wiped", Files.exists(probeFileInInternalDir));
+        Assert.assertTrue(
+                "Probe file in the " + WorkDirManager.DirType.WORK_DIR + " has been wiped",
+                Files.exists(probeFileInWorkDir));
+        Assert.assertTrue(
+                "Probe file in the " + WorkDirManager.DirType.INTERNAL_DIR + " has been wiped",
+                Files.exists(probeFileInInternalDir));
 
         // Ensure that sub directories are in place
         assertExists(WorkDirManager.DirType.JAR_CACHE_DIR);
@@ -91,15 +99,22 @@ public class WorkDirManagerTest {
     public void shouldPerformMkdirsIfRequired() throws Exception {
         final File tmpDirFile = tmpDir.newFolder("foo");
         final File workDir = new File(tmpDirFile, "just/a/long/non/existent/path");
-        Assert.assertFalse("The " +  WorkDirManager.DirType.INTERNAL_DIR + " should not exist in the test", workDir.exists());
+        Assert.assertFalse(
+                "The " + WorkDirManager.DirType.INTERNAL_DIR + " should not exist in the test", workDir.exists());
 
         // Probe files to confirm the directory does not get wiped;
         final File remotingDir = new File(workDir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation());
 
         // Initialize and check the results
-        final Path createdDir = WorkDirManager.getInstance().initializeWorkDir(workDir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
-        assertThat("The initialized " + WorkDirManager.DirType.INTERNAL_DIR + " differs from the expected one", createdDir.toFile(), equalTo(remotingDir));
-        Assert.assertTrue("Remoting " + WorkDirManager.DirType.INTERNAL_DIR +  " should have been initialized", remotingDir.exists());
+        final Path createdDir = WorkDirManager.getInstance()
+                .initializeWorkDir(workDir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
+        assertThat(
+                "The initialized " + WorkDirManager.DirType.INTERNAL_DIR + " differs from the expected one",
+                createdDir.toFile(),
+                equalTo(remotingDir));
+        Assert.assertTrue(
+                "Remoting " + WorkDirManager.DirType.INTERNAL_DIR + " should have been initialized",
+                remotingDir.exists());
     }
 
     @Test
@@ -107,28 +122,39 @@ public class WorkDirManagerTest {
         final String internalDirectoryName = "myRemotingLogs";
         final File tmpDirFile = tmpDir.newFolder("foo");
         final File workDir = new File(tmpDirFile, "just/another/path");
-        Assert.assertFalse("The " + WorkDirManager.DirType.WORK_DIR + " should not exist in the test", workDir.exists());
+        Assert.assertFalse(
+                "The " + WorkDirManager.DirType.WORK_DIR + " should not exist in the test", workDir.exists());
 
         // Probe files to confirm the directory does not get wiped;
         final File remotingDir = new File(workDir, internalDirectoryName);
 
         // Initialize and check the results
         final Path createdDir = WorkDirManager.getInstance().initializeWorkDir(workDir, internalDirectoryName, false);
-        assertThat("The initialized " + WorkDirManager.DirType.INTERNAL_DIR + " differs from the expected one", createdDir.toFile(), equalTo(remotingDir));
-        Assert.assertTrue("Remoting " + WorkDirManager.DirType.INTERNAL_DIR + " should have been initialized", remotingDir.exists());
+        assertThat(
+                "The initialized " + WorkDirManager.DirType.INTERNAL_DIR + " differs from the expected one",
+                createdDir.toFile(),
+                equalTo(remotingDir));
+        Assert.assertTrue(
+                "Remoting " + WorkDirManager.DirType.INTERNAL_DIR + " should have been initialized",
+                remotingDir.exists());
     }
 
     @Test
     public void shouldFailIfWorkDirIsAFile() throws IOException {
         File foo = tmpDir.newFile("foo");
         try {
-            WorkDirManager.getInstance().initializeWorkDir(foo, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
+            WorkDirManager.getInstance()
+                    .initializeWorkDir(foo, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
         } catch (IOException ex) {
-            assertThat("Wrong exception message",
-                    ex.getMessage(), containsString("The specified " + WorkDirManager.DirType.WORK_DIR + " path points to a non-directory file"));
+            assertThat(
+                    "Wrong exception message",
+                    ex.getMessage(),
+                    containsString("The specified " + WorkDirManager.DirType.WORK_DIR
+                            + " path points to a non-directory file"));
             return;
         }
-        Assert.fail("The " + WorkDirManager.DirType.WORK_DIR + " has been initialized, but it should fail due to the conflicting file");
+        Assert.fail("The " + WorkDirManager.DirType.WORK_DIR
+                + " has been initialized, but it should fail due to the conflicting file");
     }
 
     @Test
@@ -140,7 +166,6 @@ public class WorkDirManagerTest {
     public void shouldFailIfWorkDirIsNotWritable() throws IOException {
         verifyDirectoryFlag(WorkDirManager.DirType.WORK_DIR, DirectoryFlag.NOT_WRITABLE);
     }
-
 
     @Test
     public void shouldFailIfWorkDirIsNotReadable() throws IOException {
@@ -156,7 +181,6 @@ public class WorkDirManagerTest {
     public void shouldFailIfInternalDirIsNotWritable() throws IOException {
         verifyDirectoryFlag(WorkDirManager.DirType.INTERNAL_DIR, DirectoryFlag.NOT_WRITABLE);
     }
-
 
     @Test
     public void shouldFailIfInternalDirIsNotReadable() throws IOException {
@@ -180,7 +204,8 @@ public class WorkDirManagerTest {
     public void shouldFailToStartupIf_WorkDir_IsMissing_andRequired() throws Exception {
         final File tmpDirFile = tmpDir.newFolder("foo");
         final File workDir = new File(tmpDirFile, "just/a/long/non/existent/path");
-        Assert.assertFalse("The " +  WorkDirManager.DirType.INTERNAL_DIR + " should not exist in the test", workDir.exists());
+        Assert.assertFalse(
+                "The " + WorkDirManager.DirType.INTERNAL_DIR + " should not exist in the test", workDir.exists());
 
         assertAllocationFailsForMissingDir(workDir, WorkDirManager.DirType.WORK_DIR);
     }
@@ -238,7 +263,8 @@ public class WorkDirManagerTest {
     @Test
     public void shouldUseLoggingSettingsFromFileDefinedBySystemProperty() throws Exception {
         final File loggingConfigFile = new File(tmpDir.getRoot(), "julSettings.prop");
-        final String oldValue = System.setProperty(WorkDirManager.JUL_CONFIG_FILE_SYSTEM_PROPERTY_NAME, loggingConfigFile.getAbsolutePath());
+        final String oldValue = System.setProperty(
+                WorkDirManager.JUL_CONFIG_FILE_SYSTEM_PROPERTY_NAME, loggingConfigFile.getAbsolutePath());
         try {
             doTestLoggingConfig(loggingConfigFile, false);
         } finally {
@@ -247,13 +273,15 @@ public class WorkDirManagerTest {
         }
     }
 
-    private void doTestLoggingConfig(File loggingConfigFile, boolean passToManager) throws IOException, AssertionError{
+    private void doTestLoggingConfig(File loggingConfigFile, boolean passToManager) throws IOException, AssertionError {
         final File workDir = tmpDir.newFolder("workDir");
         final File customLogDir = tmpDir.newFolder("mylogs");
 
         Properties p = new Properties();
         p.setProperty("handlers", "java.util.logging.FileHandler");
-        p.setProperty("java.util.logging.FileHandler.pattern", customLogDir.getAbsolutePath() + File.separator  + "mylog.log.%g");
+        p.setProperty(
+                "java.util.logging.FileHandler.pattern",
+                customLogDir.getAbsolutePath() + File.separator + "mylog.log.%g");
         p.setProperty("java.util.logging.FileHandler.limit", "81920");
         p.setProperty("java.util.logging.FileHandler.count", "5");
 
@@ -277,7 +305,8 @@ public class WorkDirManagerTest {
         // Assert that logs directory still exists, but has no default logs
         assertExists(WorkDirManager.DirType.LOGS_DIR);
         File defaultLog0 = new File(mngr.getLocation(WorkDirManager.DirType.LOGS_DIR), "remoting.log.0");
-        Assert.assertFalse("Log settings have been passed from the config file, the default log should not exist: " + defaultLog0,
+        Assert.assertFalse(
+                "Log settings have been passed from the config file, the default log should not exist: " + defaultLog0,
                 defaultLog0.exists());
 
         // Assert that logs have been written to the specified custom destination
@@ -288,7 +317,7 @@ public class WorkDirManagerTest {
     }
 
     private void assertFileLogsExist(File logsDir, String prefix, int logFilesNumber) {
-        for (int i=0; i<logFilesNumber; ++i) {
+        for (int i = 0; i < logFilesNumber; ++i) {
             File log = new File(logsDir, prefix + "." + i);
             Assert.assertTrue("Log file should exist: " + log, log.exists());
         }
@@ -297,9 +326,12 @@ public class WorkDirManagerTest {
     private void assertAllocationFailsForMissingDir(File workDir, WorkDirManager.DirType expectedCheckFailure) {
         // Initialize and check the results
         try {
-            WorkDirManager.getInstance().initializeWorkDir(workDir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), true);
+            WorkDirManager.getInstance()
+                    .initializeWorkDir(workDir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), true);
         } catch (IOException ex) {
-            assertThat("Unexpected exception message", ex.getMessage(),
+            assertThat(
+                    "Unexpected exception message",
+                    ex.getMessage(),
                     containsString("The " + expectedCheckFailure + " is missing, but it is expected to exist:"));
             return;
         }
@@ -309,12 +341,16 @@ public class WorkDirManagerTest {
     private void assertAllocationFails(File workDir, String internalDirName) throws AssertionError {
         try {
             WorkDirManager.getInstance().initializeWorkDir(workDir, internalDirName, false);
-        }  catch (IOException ex) {
-            assertThat(ex.getMessage(), containsString(String.format("Name of %s ('%s') is not compliant with the required format",
-                    WorkDirManager.DirType.INTERNAL_DIR, internalDirName)));
+        } catch (IOException ex) {
+            assertThat(
+                    ex.getMessage(),
+                    containsString(String.format(
+                            "Name of %s ('%s') is not compliant with the required format",
+                            WorkDirManager.DirType.INTERNAL_DIR, internalDirName)));
             return;
         }
-        Assert.fail("Initialization of WorkDirManager with invalid internal directory '" + internalDirName + "' should have failed");
+        Assert.fail("Initialization of WorkDirManager with invalid internal directory '" + internalDirName
+                + "' should have failed");
     }
 
     private void assertExists(@NonNull WorkDirManager.DirType type) throws AssertionError {
@@ -323,21 +359,28 @@ public class WorkDirManagerTest {
         Assert.assertTrue("Cannot find the " + type + " directory: " + location, location.exists());
     }
 
-    private void assertDoesNotCreateDisabledDir(File workDir, WorkDirManager.DirType type) throws AssertionError, IOException {
+    private void assertDoesNotCreateDisabledDir(File workDir, WorkDirManager.DirType type)
+            throws AssertionError, IOException {
         WorkDirManager instance = WorkDirManager.getInstance();
         instance.disable(type);
         instance.initializeWorkDir(workDir, "remoting", false);
 
         // Checks
-        assertThat("Directory " + type + " has been added to the cache. Expected WirkDirManager to ignore it",
-                instance.getLocation(type), nullValue());
+        assertThat(
+                "Directory " + type + " has been added to the cache. Expected WirkDirManager to ignore it",
+                instance.getLocation(type),
+                nullValue());
         File internalDir = instance.getLocation(WorkDirManager.DirType.INTERNAL_DIR);
         File expectedDir = new File(internalDir, type.getDefaultLocation());
         Assert.assertFalse("The logs directoy should not exist", expectedDir.exists());
     }
 
-    private void verifyDirectoryFlag(WorkDirManager.DirType type, DirectoryFlag flag) throws IOException, AssertionError {
-        Assume.assumeThat("need to be running as a regular user for file permission checks to be meaningful", System.getProperty("user.name"), not(equalTo("root")));
+    private void verifyDirectoryFlag(WorkDirManager.DirType type, DirectoryFlag flag)
+            throws IOException, AssertionError {
+        Assume.assumeThat(
+                "need to be running as a regular user for file permission checks to be meaningful",
+                System.getProperty("user.name"),
+                not(equalTo("root")));
         final File dir = tmpDir.newFolder("test-" + type.getClass().getSimpleName() + "-" + flag);
 
         boolean success = false;
@@ -358,10 +401,13 @@ public class WorkDirManagerTest {
         Assume.assumeTrue(String.format("Failed to modify flag %s of %s", flag, dirToModify), success);
 
         try {
-            WorkDirManager.getInstance().initializeWorkDir(dir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
+            WorkDirManager.getInstance()
+                    .initializeWorkDir(dir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
         } catch (IOException ex) {
-            assertThat("Wrong exception message for " + flag,
-                    ex.getMessage(), containsString("The specified " + type + " should be fully accessible to the remoting executable"));
+            assertThat(
+                    "Wrong exception message for " + flag,
+                    ex.getMessage(),
+                    containsString("The specified " + type + " should be fully accessible to the remoting executable"));
             return;
         }
         Assert.fail("The directory has been initialized, but it should fail since the target dir is " + flag);
@@ -391,5 +437,4 @@ public class WorkDirManagerTest {
             }
         }
     }
-
 }

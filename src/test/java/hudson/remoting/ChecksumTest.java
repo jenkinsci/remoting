@@ -24,7 +24,8 @@ public class ChecksumTest {
     private static final String FILE_CONTENTS1 = "These are the file contents";
     private static final String FILE_CONTENTS2 = "These are some other file contents";
 
-    @Rule public TemporaryFolder tmp = new TemporaryFolder();
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
 
     @Test
     public void testForFileAndURL() throws Exception {
@@ -34,10 +35,12 @@ public class ChecksumTest {
         HashCode hash2 = Files.asByteSource(tmpFile2).hash(Hashing.sha256());
 
         assertEquals(createdExpectedChecksum(hash1), Checksum.forFile(tmpFile1));
-        assertEquals(createdExpectedChecksum(hash1), Checksum.forURL(tmpFile1.toURI().toURL()));
+        assertEquals(
+                createdExpectedChecksum(hash1), Checksum.forURL(tmpFile1.toURI().toURL()));
 
         assertEquals(createdExpectedChecksum(hash2), Checksum.forFile(tmpFile2));
-        assertEquals(createdExpectedChecksum(hash2), Checksum.forURL(tmpFile2.toURI().toURL()));
+        assertEquals(
+                createdExpectedChecksum(hash2), Checksum.forURL(tmpFile2.toURI().toURL()));
 
         assertNotEquals(Checksum.forFile(tmpFile1), Checksum.forFile(tmpFile2));
     }
@@ -56,8 +59,7 @@ public class ChecksumTest {
             long nextLong = in.readLong();
             if (i % 2 == 0) {
                 sum1 ^= nextLong;
-            }
-            else {
+            } else {
                 sum2 ^= nextLong;
             }
         }

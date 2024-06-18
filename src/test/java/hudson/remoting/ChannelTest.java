@@ -40,7 +40,9 @@ public class ChannelTest {
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testCapability(ChannelRunner channelRunner) throws Exception {
-        assumeFalse(channelRunner instanceof InProcessCompatibilityRunner, "In-process runner does not support multi-classloader RPC");
+        assumeFalse(
+                channelRunner instanceof InProcessCompatibilityRunner,
+                "In-process runner does not support multi-classloader RPC");
         channelRunner.withChannel(channel -> assertTrue(channel.remoteCapability.supportsMultiClassLoaderRPC()));
     }
 
@@ -55,7 +57,7 @@ public class ChannelTest {
         });
     }
 
-    private static class CallableImpl extends CallableBase<Object,IOException> {
+    private static class CallableImpl extends CallableBase<Object, IOException> {
         @Override
         public Object call() {
             return null;
@@ -64,6 +66,7 @@ public class ChannelTest {
         private void readObject(ObjectInputStream ois) {
             throw new ClassCastException("foobar");
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -79,7 +82,9 @@ public class ChannelTest {
                 final GreeterImpl g = new GreeterImpl();
                 channel.call(new GreetingTask(g));
                 assertEquals(g.name, "Kohsuke");
-                assertFalse(channel.exportedObjects.isExported(g), "in this scenario, auto-unexport by the caller should kick in.");
+                assertFalse(
+                        channel.exportedObjects.isExported(g),
+                        "in this scenario, auto-unexport by the caller should kick in.");
             }
         });
     }
@@ -153,9 +158,10 @@ public class ChannelTest {
         @Override
         public Void call() throws Exception {
             Thread.sleep(500);
-            getChannelOrFail().setProperty("foo","bar");
+            getChannelOrFail().setProperty("foo", "bar");
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -165,13 +171,14 @@ public class ChannelTest {
 
     private static class GreeterImpl implements Greeter, SerializableOnlyOverRemoting {
         String name;
+
         @Override
         public void greet(String name) {
             this.name = name;
         }
 
         private Object writeReplace() throws ObjectStreamException {
-            return getChannelForSerialization().export(Greeter.class,this);
+            return getChannelForSerialization().export(Greeter.class, this);
         }
     }
 
@@ -187,9 +194,9 @@ public class ChannelTest {
             g.greet("Kohsuke");
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
-
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
@@ -201,7 +208,7 @@ public class ChannelTest {
         });
     }
 
-    private static class Echo<T> extends CallableBase<T,RuntimeException> {
+    private static class Echo<T> extends CallableBase<T, RuntimeException> {
         private final T t;
 
         Echo(T t) {
@@ -212,6 +219,7 @@ public class ChannelTest {
         public T call() throws RuntimeException {
             return t;
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -246,7 +254,9 @@ public class ChannelTest {
             assertEquals(RuntimeException.class, rootCause.getClass());
             Throwable callSite = cause.getSuppressed()[0];
             assertEquals("Remote call to north", callSite.getMessage());
-            assertEquals("hudson.remoting.Channel$CallSiteStackTrace", callSite.getClass().getName());
+            assertEquals(
+                    "hudson.remoting.Channel$CallSiteStackTrace",
+                    callSite.getClass().getName());
         });
     }
 
@@ -259,12 +269,14 @@ public class ChannelTest {
     }
 
     private static class ThrowingCallable extends CallableBase<Void, IOException> {
-        @Override public Void call() throws IOException {
+        @Override
+        public Void call() throws IOException {
             throw new IOException("Node Nested", new RuntimeException("Node says hello!"));
         }
+
         private static final long serialVersionUID = 1L;
     }
-    
+
     /**
      * Checks if {@link UserRequest}s can be executed during the pending close operation.
      * @throws Exception Test Error
@@ -302,14 +314,14 @@ public class ChannelTest {
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testShouldNotAcceptUserRPCRequestsWhenIsBeingClosed(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
-
             Collection<String> src = new ArrayList<>();
             src.add("Hello");
             src.add("World");
 
-            //TODO: System request will just hang. Once JENKINS-44785 is implemented, all system requests
+            // TODO: System request will just hang. Once JENKINS-44785 is implemented, all system requests
             // in Remoting codebase must have a timeout.
-            final Collection<String> remoteList = channel.call(new RMIObjectExportedCallable<>(src, Collection.class, true));
+            final Collection<String> remoteList =
+                    channel.call(new RMIObjectExportedCallable<>(src, Collection.class, true));
 
             try (ChannelCloseLock ignored = new ChannelCloseLock(channel)) {
                 // Call Async
@@ -342,9 +354,8 @@ public class ChannelTest {
         }
 
         @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
+        public void checkRoles(RoleChecker checker) throws SecurityException {}
 
-        }
         private static final long serialVersionUID = 1L;
     }
 
@@ -362,7 +373,7 @@ public class ChannelTest {
             throw new AssertionError("This method should be never executed");
         }
     }
-    
+
     /**
      * Auto-closable wrapper, which puts the {@link Channel} into the pending close state.
      * This state is achieved by a deadlock of the customer request, which blocks {@link Channel#close()}.
@@ -376,7 +387,7 @@ public class ChannelTest {
         public ChannelCloseLock(final @NonNull Channel channel) throws AssertionError, InterruptedException {
             this.svc = Executors.newFixedThreadPool(2);
             this.channel = channel;
-            
+
             // Lock channel
             java.util.concurrent.Future<Void> lockChannel = svc.submit(() -> {
                 synchronized (channel) {
@@ -400,17 +411,16 @@ public class ChannelTest {
             assertTrue(channel.isClosingOrClosed(), "Channel should be closing");
             assertFalse(channel.isOutClosed(), "Channel should not be closed due to the lock");
         }
-        
+
         @Override
         public void close() {
             svc.shutdownNow();
         }
-        
     }
-    
+
     private abstract static class TestRunnable {
         public abstract void run(Channel channel) throws Exception, AssertionError;
-        
+
         private static TestRunnable forChannel_call(final Callable<Void, Exception> payload) {
             return new TestRunnable() {
                 @Override
@@ -419,7 +429,7 @@ public class ChannelTest {
                 }
             };
         }
-        
+
         private static TestRunnable forChannel_callAsync(final Callable<Void, Exception> payload) {
             return new TestRunnable() {
                 @Override
@@ -428,7 +438,7 @@ public class ChannelTest {
                 }
             };
         }
-        
+
         private static TestRunnable forUserRequest_constructor(final Callable<Void, Exception> payload) {
             return new TestRunnable() {
                 @Override
@@ -437,7 +447,7 @@ public class ChannelTest {
                 }
             };
         }
-        
+
         private static TestRunnable forUserRequest_call(final UserRequest<Void, Exception> req) {
             return new TestRunnable() {
                 @Override
@@ -446,7 +456,7 @@ public class ChannelTest {
                 }
             };
         }
-        
+
         private static TestRunnable forUserRequest_callAsync(final UserRequest<Void, Exception> req) {
             return new TestRunnable() {
                 @Override
@@ -456,11 +466,11 @@ public class ChannelTest {
             };
         }
     }
-    
+
     private void assertFailsWithChannelClosedException(Channel channel, TestRunnable call) throws AssertionError {
         try {
             call.run(channel);
-        } catch(Exception ex) {
+        } catch (Exception ex) {
             LOGGER.log(Level.WARNING, "Call execution failed with exception", ex);
             Throwable cause = ex instanceof RemotingSystemException ? ex.getCause() : ex;
             if (cause instanceof ChannelClosedException) {

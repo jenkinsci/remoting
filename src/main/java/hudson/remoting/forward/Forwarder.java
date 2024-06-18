@@ -31,7 +31,7 @@ import java.io.Serializable;
  * Abstracts away how the forwarding is set up.
  *
  * @author Kohsuke Kawaguchi
-*/
+ */
 public interface Forwarder extends Serializable {
     /**
      * Establishes a port forwarding connection and returns

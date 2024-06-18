@@ -96,7 +96,9 @@ import org.xml.sax.SAXException;
  *
  * @author Kohsuke Kawaguchi
  */
-@SuppressFBWarnings(value = "DM_EXIT", justification = "This class is runnable. It is eligible to exit in the case of wrong params")
+@SuppressFBWarnings(
+        value = "DM_EXIT",
+        justification = "This class is runnable. It is eligible to exit in the case of wrong params")
 public class Launcher {
     public Channel.Mode mode = Channel.Mode.BINARY;
 
@@ -112,15 +114,17 @@ public class Launcher {
      * If both this options and {@link #workDir} is not set, the log will not be generated.
      * @since 3.8
      */
-    @Option(name="-agentLog", usage="Local agent error log destination (overrides workDir)")
+    @Option(name = "-agentLog", usage = "Local agent error log destination (overrides workDir)")
     @CheckForNull
     public File agentLog = null;
 
-    @Option(name="-text",usage="encode communication with the controller with base64. " +
-            "Useful for running agent over 8-bit unsafe protocol like telnet")
+    @Option(
+            name = "-text",
+            usage = "encode communication with the controller with base64. "
+                    + "Useful for running agent over 8-bit unsafe protocol like telnet")
     public void setTextMode(boolean b) {
         mode = b ? Channel.Mode.TEXT : Channel.Mode.BINARY;
-        System.out.println("Running in "+mode.name().toLowerCase(Locale.ENGLISH)+" mode");
+        System.out.println("Running in " + mode.name().toLowerCase(Locale.ENGLISH) + " mode");
     }
 
     /**
@@ -138,22 +142,32 @@ public class Launcher {
      * @deprecated use {@link #secret}, {@link #name}, {@link #urls}, {@link #webSocket}, {@link #tunnel},
      * {@link #workDir}, {@link #internalDir}, and/or {@link #failIfWorkDirIsMissing} directly.
      */
-    @Option(name="-jnlpUrl",usage="instead of talking to the controller via stdin/stdout, " +
-            "emulate a JNLP client by making a TCP connection to the controller. " +
-            "Connection parameters are obtained by parsing the JNLP file.", forbids = {"-direct", "-name", "-tunnel", "-url", "-webSocket"})
+    @Option(
+            name = "-jnlpUrl",
+            usage = "instead of talking to the controller via stdin/stdout, "
+                    + "emulate a JNLP client by making a TCP connection to the controller. "
+                    + "Connection parameters are obtained by parsing the JNLP file.",
+            forbids = {"-direct", "-name", "-tunnel", "-url", "-webSocket"})
     @Deprecated
     public URL agentJnlpURL = null;
 
-    @Option(name="-credentials",metaVar="USER:PASSWORD",aliases="-jnlpCredentials",usage="HTTP BASIC AUTH header to pass in for making HTTP requests.")
+    @Option(
+            name = "-credentials",
+            metaVar = "USER:PASSWORD",
+            aliases = "-jnlpCredentials",
+            usage = "HTTP BASIC AUTH header to pass in for making HTTP requests.")
     public String agentJnlpCredentials = null;
 
-    @Option(name="-secret", metaVar="HEX_SECRET", usage="Agent connection secret.")
+    @Option(name = "-secret", metaVar = "HEX_SECRET", usage = "Agent connection secret.")
     public String secret;
 
-    @Option(name="-name", usage="Name of the agent.")
+    @Option(name = "-name", usage = "Name of the agent.")
     public String name;
 
-    @Option(name="-proxyCredentials",metaVar="USER:PASSWORD",usage="HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
+    @Option(
+            name = "-proxyCredentials",
+            metaVar = "USER:PASSWORD",
+            usage = "HTTP BASIC AUTH header to pass in for making HTTP authenticated proxy requests.")
     public String proxyCredentials = System.getProperty("proxyCredentials");
 
     /**
@@ -166,9 +180,11 @@ public class Launcher {
      * @deprecated removed without replacement
      */
     @Deprecated
-    @Option(name="-tcp",usage="(deprecated) instead of talking to the controller via stdin/stdout, " +
-            "listens to a random local port, write that port number to the given file, " +
-            "then wait for the controller to connect to that port.")
+    @Option(
+            name = "-tcp",
+            usage = "(deprecated) instead of talking to the controller via stdin/stdout, "
+                    + "listens to a random local port, write that port number to the given file, "
+                    + "then wait for the controller to connect to that port.")
     public void setTcpPortFile(File tcpPortFile) {
         this.tcpPortFile = tcpPortFile;
         System.err.println(
@@ -196,7 +212,10 @@ public class Launcher {
      * @since 2.24
      */
     @CheckForNull
-    @Option(name="-jar-cache",metaVar="DIR",usage="Cache directory that stores jar files sent from the controller")
+    @Option(
+            name = "-jar-cache",
+            metaVar = "DIR",
+            usage = "Cache directory that stores jar files sent from the controller")
     public File jarCache = null;
 
     /**
@@ -204,13 +223,15 @@ public class Launcher {
      * @since 3.8
      */
     @CheckForNull
-    @Option(name="-loggingConfig",usage="Path to the property file with java.util.logging settings")
+    @Option(name = "-loggingConfig", usage = "Path to the property file with java.util.logging settings")
     public File loggingConfigFilePath = null;
 
-    @Option(name = "-cert",
-            usage = "Specify additional X.509 encoded PEM certificates to trust when connecting to Jenkins " +
-                    "root URLs. If starting with @ then the remainder is assumed to be the name of the " +
-                    "certificate file to read.", forbids = "-noCertificateCheck")
+    @Option(
+            name = "-cert",
+            usage = "Specify additional X.509 encoded PEM certificates to trust when connecting to Jenkins "
+                    + "root URLs. If starting with @ then the remainder is assumed to be the name of the "
+                    + "certificate file to read.",
+            forbids = "-noCertificateCheck")
     public List<String> candidateCertificates;
 
     private List<X509Certificate> x509Certificates;
@@ -221,7 +242,11 @@ public class Launcher {
      * Disables HTTPs Certificate validation of the server when using {@link JnlpAgentEndpointResolver}.
      * This option is managed by the {@code -noCertificateCheck} option.
      */
-    @Option(name="-noCertificateCheck", aliases = "-disableHttpsCertValidation", forbids = "-cert", usage="Ignore SSL validation errors - use as a last resort only.")
+    @Option(
+            name = "-noCertificateCheck",
+            aliases = "-disableHttpsCertValidation",
+            forbids = "-cert",
+            usage = "Ignore SSL validation errors - use as a last resort only.")
     public boolean noCertificateCheck = false;
 
     private HostnameVerifier hostnameVerifier;
@@ -236,26 +261,35 @@ public class Launcher {
      * @deprecated removed without replacement
      */
     @Deprecated
-    @Option(name="-connectTo",usage="(deprecated) make a TCP connection to the given host and port, then start communication.",metaVar="HOST:PORT")
+    @Option(
+            name = "-connectTo",
+            usage = "(deprecated) make a TCP connection to the given host and port, then start communication.",
+            metaVar = "HOST:PORT")
     public void setConnectTo(String target) {
         String[] tokens = target.split(":");
-        if(tokens.length!=2) {
-            System.err.println("Illegal parameter: "+target);
+        if (tokens.length != 2) {
+            System.err.println("Illegal parameter: " + target);
             System.exit(1);
         }
-        connectionTarget = new InetSocketAddress(tokens[0],Integer.parseInt(tokens[1]));
+        connectionTarget = new InetSocketAddress(tokens[0], Integer.parseInt(tokens[1]));
         System.err.println(
                 "WARNING: The \"-connectTo\" argument is deprecated and will be removed without replacement in a future release.");
     }
 
-    @Option(name="-noReconnect",aliases="-noreconnect",usage="Doesn't try to reconnect when a communication fail, and exit instead")
+    @Option(
+            name = "-noReconnect",
+            aliases = "-noreconnect",
+            usage = "Doesn't try to reconnect when a communication fail, and exit instead")
     public boolean noReconnect = false;
 
-    @Option(name="-noReconnectAfter",usage = "Bail out after the given time after the first attempt to reconnect", handler = DurationOptionHandler.class, forbids = "-noReconnect")
+    @Option(
+            name = "-noReconnectAfter",
+            usage = "Bail out after the given time after the first attempt to reconnect",
+            handler = DurationOptionHandler.class,
+            forbids = "-noReconnect")
     public Duration noReconnectAfter;
 
-    @Option(name = "-noKeepAlive",
-            usage = "Disable TCP socket keep alive on connection to the controller.")
+    @Option(name = "-noKeepAlive", usage = "Disable TCP socket keep alive on connection to the controller.")
     public boolean noKeepAlive = false;
 
     /**
@@ -267,7 +301,8 @@ public class Launcher {
      * Jenkins specifics: This working directory is expected to be equal to the agent root specified in Jenkins configuration.
      * @since 3.8
      */
-    @Option(name = "-workDir",
+    @Option(
+            name = "-workDir",
             usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
     @CheckForNull
     public File workDir = null;
@@ -279,7 +314,8 @@ public class Launcher {
      * storage directory if the default {@code remoting} directory is consumed by other stuff.
      * @since 3.8
      */
-    @Option(name = "-internalDir",
+    @Option(
+            name = "-internalDir",
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
             depends = "-workDir")
     @NonNull
@@ -291,12 +327,14 @@ public class Launcher {
      * (e.g. if a filesystem mount gets disconnected).
      * @since 3.8
      */
-    @Option(name = "-failIfWorkDirIsMissing",
+    @Option(
+            name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
             depends = "-workDir")
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
-    
-    @Option(name = "-tunnel",
+
+    @Option(
+            name = "-tunnel",
             metaVar = "HOST:PORT",
             usage = "Connect to the specified host and port, instead of connecting directly to Jenkins. "
                     + "Useful when connection to Jenkins needs to be tunneled. Can be also HOST: or :PORT, "
@@ -323,19 +361,17 @@ public class Launcher {
     @Option(name = "-url", usage = "Specify the Jenkins root URLs to connect to.")
     public List<URL> urls = new ArrayList<>();
 
-    @Option(name = "-webSocket",
+    @Option(
+            name = "-webSocket",
             usage = "Make a WebSocket connection to Jenkins rather than using the TCP port.",
             depends = "-url",
-            forbids = {
-                "-direct",
-                "-tunnel",
-                "-credentials",
-                "-noKeepAlive"
-            })
+            forbids = {"-direct", "-tunnel", "-credentials", "-noKeepAlive"})
     public boolean webSocket;
 
-    @Option(name = "-webSocketHeader",
-            usage = "Additional WebSocket header to set, eg for authenticating with reverse proxies. To specify multiple headers, call this flag multiple times, one with each header",
+    @Option(
+            name = "-webSocketHeader",
+            usage =
+                    "Additional WebSocket header to set, eg for authenticating with reverse proxies. To specify multiple headers, call this flag multiple times, one with each header",
             metaVar = "NAME=VALUE",
             depends = "-webSocket")
     public Map<String, String> webSocketHeaders;
@@ -344,12 +380,14 @@ public class Launcher {
      * Connect directly to the TCP port specified, skipping the HTTP(S) connection parameter download.
      * @since 3.34
      */
-    @Option(name = "-direct",
+    @Option(
+            name = "-direct",
             metaVar = "HOST:PORT",
             aliases = "-directConnection",
             depends = "-instanceIdentity",
             forbids = {"-jnlpUrl", "-url", "-tunnel"},
-            usage = "Connect directly to this TCP agent port, skipping the HTTP(S) connection parameter download. For example, \"myjenkins:50000\".")
+            usage =
+                    "Connect directly to this TCP agent port, skipping the HTTP(S) connection parameter download. For example, \"myjenkins:50000\".")
     public String directConnection;
 
     /**
@@ -357,9 +395,11 @@ public class Launcher {
      * @see <a href="https://plugins.jenkins.io/instance-identity/">Instance Identity</a>
      * @since 3.34
      */
-    @Option(name = "-instanceIdentity",
+    @Option(
+            name = "-instanceIdentity",
             depends = "-direct",
-            usage = "The base64 encoded InstanceIdentity byte array of the Jenkins controller. When this is set, the agent skips connecting to an HTTP(S) port for connection info.")
+            usage =
+                    "The base64 encoded InstanceIdentity byte array of the Jenkins controller. When this is set, the agent skips connecting to an HTTP(S) port for connection info.")
     public String instanceIdentity;
 
     /**
@@ -368,7 +408,8 @@ public class Launcher {
      * it knows. Use this to limit the protocol list.
      * @since 3.34
      */
-    @Option(name = "-protocols",
+    @Option(
+            name = "-protocols",
             depends = {"-direct"},
             usage = "Specify the remoting protocols to attempt when instanceIdentity is provided.")
     public List<String> protocols = new ArrayList<>();
@@ -377,14 +418,14 @@ public class Launcher {
      * Shows help message and then exits
      * @since 3.36
      */
-    @Option(name="-help",usage="Show this help message")
+    @Option(name = "-help", usage = "Show this help message")
     public boolean showHelp = false;
 
     /**
      * Shows version information and then exits
      * @since 3.36
      */
-    @Option(name="-version",usage="Shows the version of the remoting jar and then exits")
+    @Option(name = "-version", usage = "Shows the version of the remoting jar and then exits")
     public boolean showVersion = false;
 
     /**
@@ -420,11 +461,13 @@ public class Launcher {
         }
     }
 
-    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "log file, just like console output, should be in platform default encoding")
+    @SuppressFBWarnings(
+            value = "DM_DEFAULT_ENCODING",
+            justification = "log file, just like console output, should be in platform default encoding")
     public void run() throws CmdLineException, IOException, InterruptedException {
         if (showVersion) {
             String version = Util.getVersion();
-            if(version != null) {
+            if (version != null) {
                 System.out.println(version);
             }
             return;
@@ -456,9 +499,11 @@ public class Launcher {
             throw new IllegalStateException("double initialization");
         }
         // Create and verify working directory and logging
-        // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this parameter in
+        // TODO: The pass-through for the JNLP mode has been added in JENKINS-39817. But we still need to keep this
+        // parameter in
         // consideration for other modes (TcpServer, TcpClient, etc.) to retain the legacy behavior.
-        // On the other hand, in such case there is no need to invoke WorkDirManager and handle the double initialization logic
+        // On the other hand, in such case there is no need to invoke WorkDirManager and handle the double
+        // initialization logic
         final WorkDirManager workDirManager = WorkDirManager.getInstance();
         final Path internalDirPath = workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
         if (agentLog != null) {
@@ -506,25 +551,30 @@ public class Launcher {
                             // larger
                             // than 64kb we can revisit the upper bound.
                             cert = new byte[(int) length];
-                                int read = fis.read(cert);
-                                if (cert.length != read) {
-                                    LOGGER.log(Level.WARNING, "Only read {0} bytes from {1}, expected to read {2}",
-                                            new Object[]{read, file, cert.length});
-                                    // skip it
-                                    continue;
-                                }
+                            int read = fis.read(cert);
+                            if (cert.length != read) {
+                                LOGGER.log(
+                                        Level.WARNING,
+                                        "Only read {0} bytes from {1}, expected to read {2}",
+                                        new Object[] {read, file, cert.length});
+                                // skip it
+                                continue;
+                            }
                         } catch (IOException e) {
                             LOGGER.log(Level.WARNING, e, () -> "Could not read certificate from " + file);
                             continue;
                         }
                     } else {
                         if (file.isFile()) {
-                            LOGGER.log(Level.WARNING,
-                                    "Could not read certificate from {0}. File size is not within " +
-                                            "the expected range for a PEM encoded X.509 certificate",
+                            LOGGER.log(
+                                    Level.WARNING,
+                                    "Could not read certificate from {0}. File size is not within "
+                                            + "the expected range for a PEM encoded X.509 certificate",
                                     file.getAbsolutePath());
                         } else {
-                            LOGGER.log(Level.WARNING, "Could not read certificate from {0}. File not found",
+                            LOGGER.log(
+                                    Level.WARNING,
+                                    "Could not read certificate from {0}. File not found",
                                     file.getAbsolutePath());
                         }
                         continue;
@@ -678,8 +728,11 @@ public class Launcher {
     /**
      * Parses the connection arguments from JNLP file given in the URL.
      */
-    @SuppressFBWarnings(value = {"CIPHER_INTEGRITY", "STATIC_IV"}, justification = "Integrity not needed here. IV used for decryption only, loaded from encryptor.")
-    private List<String> parseJnlpArguments() throws ParserConfigurationException, SAXException, IOException, InterruptedException {
+    @SuppressFBWarnings(
+            value = {"CIPHER_INTEGRITY", "STATIC_IV"},
+            justification = "Integrity not needed here. IV used for decryption only, loaded from encryptor.")
+    private List<String> parseJnlpArguments()
+            throws ParserConfigurationException, SAXException, IOException, InterruptedException {
         initialize();
         if (secret != null) {
             agentJnlpURL = new URL(agentJnlpURL + "?encrypt=true");
@@ -691,21 +744,25 @@ public class Launcher {
         while (true) {
             URLConnection con = null;
             try {
-                con = JnlpAgentEndpointResolver.openURLConnection(agentJnlpURL, null, agentJnlpCredentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
+                con = JnlpAgentEndpointResolver.openURLConnection(
+                        agentJnlpURL, null, agentJnlpCredentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
                 con.connect();
 
                 if (con instanceof HttpURLConnection) {
                     HttpURLConnection http = (HttpURLConnection) con;
-                    if(http.getResponseCode()>=400)
+                    if (http.getResponseCode() >= 400) {
                         // got the error code. report that (such as 401)
-                        throw new IOException("Failed to load "+ agentJnlpURL +": "+http.getResponseCode()+" "+http.getResponseMessage());
+                        throw new IOException("Failed to load " + agentJnlpURL + ": " + http.getResponseCode() + " "
+                                + http.getResponseMessage());
+                    }
                 }
 
                 Document dom;
 
                 // check if this URL points to a .jnlp file
                 String contentType = con.getHeaderField("Content-Type");
-                String expectedContentType = secret == null ? "application/x-java-jnlp-file" : "application/octet-stream";
+                String expectedContentType =
+                        secret == null ? "application/x-java-jnlp-file" : "application/octet-stream";
                 InputStream input = con.getInputStream();
                 if (secret != null) {
                     byte[] payload = input.readAllBytes();
@@ -713,21 +770,25 @@ public class Launcher {
 
                     try {
                         Cipher cipher = Cipher.getInstance("AES/CFB8/NoPadding");
-                        cipher.init(Cipher.DECRYPT_MODE,
-                                new SecretKeySpec(fromHexString(secret.substring(0, Math.min(secret.length(), 32))), "AES"),
-                                new IvParameterSpec(payload,0,16));
-                        byte[] decrypted = cipher.doFinal(payload,16,payload.length-16);
+                        cipher.init(
+                                Cipher.DECRYPT_MODE,
+                                new SecretKeySpec(
+                                        fromHexString(secret.substring(0, Math.min(secret.length(), 32))), "AES"),
+                                new IvParameterSpec(payload, 0, 16));
+                        byte[] decrypted = cipher.doFinal(payload, 16, payload.length - 16);
                         input = new ByteArrayInputStream(decrypted);
                     } catch (GeneralSecurityException x) {
                         throw new IOException("Failed to decrypt the JNLP file. Invalid secret key?", x);
                     }
                 }
-                if(contentType==null || !contentType.startsWith(expectedContentType)) {
-                    // load DOM anyway, but if it fails to parse, that's probably because this is not an XML file to begin with.
+                if (contentType == null || !contentType.startsWith(expectedContentType)) {
+                    // load DOM anyway, but if it fails to parse, that's probably because this is not an XML file to
+                    // begin with.
                     try {
                         dom = loadDom(input);
                     } catch (SAXException | IOException e) {
-                        throw new IOException(agentJnlpURL +" doesn't look like a JNLP file; content type was "+contentType);
+                        throw new IOException(
+                                agentJnlpURL + " doesn't look like a JNLP file; content type was " + contentType);
                     }
                 } else {
                     dom = loadDom(input);
@@ -736,22 +797,29 @@ public class Launcher {
                 // exec into the JNLP launcher, to fetch the connection parameter through JNLP.
                 NodeList argElements = dom.getElementsByTagName("argument");
                 List<String> jnlpArgs = new ArrayList<>();
-                for( int i=0; i<argElements.getLength(); i++ )
-                        jnlpArgs.add(argElements.item(i).getTextContent());
+                for (int i = 0; i < argElements.getLength(); i++) {
+                    jnlpArgs.add(argElements.item(i).getTextContent());
+                }
                 return jnlpArgs;
             } catch (SSLHandshakeException e) {
-                if(e.getMessage().contains("PKIX path building failed")) {
+                if (e.getMessage().contains("PKIX path building failed")) {
                     // invalid SSL certificate. One reason this happens is when the certificate is self-signed
-                    throw new IOException("Failed to validate a server certificate. If you are using a self-signed certificate, you can use the -noCertificateCheck option to bypass this check.", e);
-                } else
+                    throw new IOException(
+                            "Failed to validate a server certificate. If you are using a self-signed certificate, you can use the -noCertificateCheck option to bypass this check.",
+                            e);
+                } else {
                     throw e;
-            } catch (IOException e) {
-                if (this.noReconnect)
-                    throw new IOException("Failed to obtain " + agentJnlpURL, e);
-                if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
-                    throw new IOException("Failed to obtain " + agentJnlpURL + " after " + DurationFormatter.format(noReconnectAfter), e);
                 }
-                System.err.println("Failed to obtain "+ agentJnlpURL);
+            } catch (IOException e) {
+                if (this.noReconnect) {
+                    throw new IOException("Failed to obtain " + agentJnlpURL, e);
+                }
+                if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
+                    throw new IOException(
+                            "Failed to obtain " + agentJnlpURL + " after " + DurationFormatter.format(noReconnectAfter),
+                            e);
+                }
+                System.err.println("Failed to obtain " + agentJnlpURL);
                 e.printStackTrace(System.err);
                 System.err.println("Waiting 10 seconds before retry");
                 // TODO refactor various sleep statements into a common method
@@ -769,8 +837,9 @@ public class Launcher {
     // from hudson.Util
     private static byte[] fromHexString(String data) {
         byte[] r = new byte[data.length() / 2];
-        for (int i = 0; i < data.length(); i += 2)
+        for (int i = 0; i < data.length(); i += 2) {
             r[i / 2] = (byte) Integer.parseInt(data.substring(i, i + 2), 16);
+        }
         return r;
     }
 
@@ -786,15 +855,18 @@ public class Launcher {
      * then accepts one TCP connection.
      */
     @Deprecated
-    @SuppressFBWarnings(value = {"UNENCRYPTED_SERVER_SOCKET", "DM_DEFAULT_ENCODING", "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"}, justification = "This is an old, insecure mechanism that should be removed. port number file should be in platform default encoding. Laucher instance is created only once.")
+    @SuppressFBWarnings(
+            value = {"UNENCRYPTED_SERVER_SOCKET", "DM_DEFAULT_ENCODING", "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"},
+            justification =
+                    "This is an old, insecure mechanism that should be removed. port number file should be in platform default encoding. Laucher instance is created only once.")
     private void runAsTcpServer() throws IOException, InterruptedException {
         // accept just one connection and that's it.
         // when we are done, remove the port file to avoid stale port file
         Socket s;
-        try (ServerSocket ss = new ServerSocket(0,1)) {
+        try (ServerSocket ss = new ServerSocket(0, 1)) {
             // if no one connects for too long, assume something went wrong
             // and avoid hanging forever
-            ss.setSoTimeout(30*1000);
+            ss.setSoTimeout(30 * 1000);
 
             // write a port file to report the port number
             try (FileWriter w = new FileWriter(tcpPortFile)) {
@@ -819,56 +891,64 @@ public class Launcher {
         s.setKeepAlive(true);
         // we take care of buffering on our own
         s.setTcpNoDelay(true);
-        main(new BufferedInputStream(SocketChannelStream.in(s)),
-             new BufferedOutputStream(SocketChannelStream.out(s)), mode,ping,
-             jarCache != null ? new FileSystemJarCache(jarCache,true) : null);
+        main(
+                new BufferedInputStream(SocketChannelStream.in(s)),
+                new BufferedOutputStream(SocketChannelStream.out(s)),
+                mode,
+                ping,
+                jarCache != null ? new FileSystemJarCache(jarCache, true) : null);
     }
 
     /**
      * Connects to the given TCP port and then start running
      */
-    @SuppressFBWarnings(value = {"UNENCRYPTED_SOCKET", "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"}, justification = "This implements an old, insecure connection mechanism. Laucher instance is created only once.")
+    @SuppressFBWarnings(
+            value = {"UNENCRYPTED_SOCKET", "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD"},
+            justification =
+                    "This implements an old, insecure connection mechanism. Laucher instance is created only once.")
     @Deprecated
     private void runAsTcpClient() throws IOException, InterruptedException {
         // if no one connects for too long, assume something went wrong
         // and avoid hanging forever
-        Socket s = new Socket(connectionTarget.getAddress(),connectionTarget.getPort());
+        Socket s = new Socket(connectionTarget.getAddress(), connectionTarget.getPort());
 
         Launcher.communicationProtocolName = "TCP (remote: client)";
         runOnSocket(s);
     }
 
-    @SuppressFBWarnings(value = {"ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", "DMI_RANDOM_USED_ONLY_ONCE"}, justification = "Laucher instance is created only once.")
+    @SuppressFBWarnings(
+            value = {"ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", "DMI_RANDOM_USED_ONLY_ONCE"},
+            justification = "Laucher instance is created only once.")
     private void runWithStdinStdout() throws IOException, InterruptedException {
         // use stdin/stdout for channel communication
         ttyCheck();
 
         if (isWindows()) {
             /*
-                To prevent the dead lock between GetFileType from _ioinit in C runtime and blocking read that ChannelReaderThread
-                would do on stdin, load the crypto DLL first.
+               To prevent the dead lock between GetFileType from _ioinit in C runtime and blocking read that ChannelReaderThread
+               would do on stdin, load the crypto DLL first.
 
-                This is a band-aid solution to the problem. Still searching for more fundamental fix.
+               This is a band-aid solution to the problem. Still searching for more fundamental fix.
 
-                02f1e750 7c90d99a ntdll!KiFastSystemCallRet
-                02f1e754 7c810f63 ntdll!NtQueryVolumeInformationFile+0xc
-                02f1e784 77c2c9f9 kernel32!GetFileType+0x7e
-                02f1e7e8 77c1f01d msvcrt!_ioinit+0x19f
-                02f1e88c 7c90118a msvcrt!__CRTDLL_INIT+0xac
-                02f1e8ac 7c91c4fa ntdll!LdrpCallInitRoutine+0x14
-                02f1e9b4 7c916371 ntdll!LdrpRunInitializeRoutines+0x344
-                02f1ec60 7c9164d3 ntdll!LdrpLoadDll+0x3e5
-                02f1ef08 7c801bbd ntdll!LdrLoadDll+0x230
-                02f1ef70 7c801d72 kernel32!LoadLibraryExW+0x18e
-                02f1ef84 7c801da8 kernel32!LoadLibraryExA+0x1f
-                02f1efa0 77de8830 kernel32!LoadLibraryA+0x94
-                02f1f05c 6d3eb1be ADVAPI32!CryptAcquireContextA+0x512
-                WARNING: Stack unwind information not available. Following frames may be wrong.
-                02f1f13c 6d99c844 java_6d3e0000!Java_sun_security_provider_NativeSeedGenerator_nativeGenerateSeed+0x6e
+               02f1e750 7c90d99a ntdll!KiFastSystemCallRet
+               02f1e754 7c810f63 ntdll!NtQueryVolumeInformationFile+0xc
+               02f1e784 77c2c9f9 kernel32!GetFileType+0x7e
+               02f1e7e8 77c1f01d msvcrt!_ioinit+0x19f
+               02f1e88c 7c90118a msvcrt!__CRTDLL_INIT+0xac
+               02f1e8ac 7c91c4fa ntdll!LdrpCallInitRoutine+0x14
+               02f1e9b4 7c916371 ntdll!LdrpRunInitializeRoutines+0x344
+               02f1ec60 7c9164d3 ntdll!LdrpLoadDll+0x3e5
+               02f1ef08 7c801bbd ntdll!LdrLoadDll+0x230
+               02f1ef70 7c801d72 kernel32!LoadLibraryExW+0x18e
+               02f1ef84 7c801da8 kernel32!LoadLibraryExA+0x1f
+               02f1efa0 77de8830 kernel32!LoadLibraryA+0x94
+               02f1f05c 6d3eb1be ADVAPI32!CryptAcquireContextA+0x512
+               WARNING: Stack unwind information not available. Following frames may be wrong.
+               02f1f13c 6d99c844 java_6d3e0000!Java_sun_security_provider_NativeSeedGenerator_nativeGenerateSeed+0x6e
 
-                see http://weblogs.java.net/blog/kohsuke/archive/2009/09/28/reading-stdin-may-cause-your-jvm-hang
-                for more details
-             */
+               see http://weblogs.java.net/blog/kohsuke/archive/2009/09/28/reading-stdin-may-cause-your-jvm-hang
+               for more details
+            */
             new SecureRandom().nextBoolean();
         }
 
@@ -880,7 +960,7 @@ public class Launcher {
         Launcher.communicationProtocolName = "Standard in/out";
         // System.in/out appear to be already buffered (at least that was the case in Linux and Windows as of Java6)
         // so we are not going to double-buffer these.
-        main(System.in, os, mode, ping, jarCache != null ? new FileSystemJarCache(jarCache,true) : null);
+        main(System.in, os, mode, ping, jarCache != null ? new FileSystemJarCache(jarCache, true) : null);
     }
 
     /**
@@ -889,13 +969,12 @@ public class Launcher {
      */
     private static void ttyCheck() {
         final Console console = System.console();
-        if(console != null) {
+        if (console != null) {
             // we seem to be running from interactive console. issue a warning.
             // but since this diagnosis could be wrong, go on and do what we normally do anyway. Don't exit.
-            System.out.println(
-                    "WARNING: Are you running agent from an interactive console?\n" +
-                            "If so, you are probably using it incorrectly.\n" +
-                            "See https://wiki.jenkins.io/display/JENKINS/Launching+agent+from+console");
+            System.out.println("WARNING: Are you running agent from an interactive console?\n"
+                    + "If so, you are probably using it incorrectly.\n"
+                    + "See https://wiki.jenkins.io/display/JENKINS/Launching+agent+from+console");
         }
     }
 
@@ -903,8 +982,9 @@ public class Launcher {
         main(is, os, Channel.Mode.BINARY);
     }
 
-    public static void main(InputStream is, OutputStream os, Channel.Mode mode) throws IOException, InterruptedException {
-        main(is,os,mode,false);
+    public static void main(InputStream is, OutputStream os, Channel.Mode mode)
+            throws IOException, InterruptedException {
+        main(is, os, mode, false);
     }
 
     /**
@@ -912,7 +992,8 @@ public class Launcher {
      *      Use {@link #main(InputStream, OutputStream, Channel.Mode, boolean, JarCache)}
      */
     @Deprecated
-    public static void main(InputStream is, OutputStream os, Channel.Mode mode, boolean performPing) throws IOException, InterruptedException {
+    public static void main(InputStream is, OutputStream os, Channel.Mode mode, boolean performPing)
+            throws IOException, InterruptedException {
         main(is, os, mode, performPing, null);
     }
     /**
@@ -921,26 +1002,33 @@ public class Launcher {
      *              If {@code null}, a default value will be used.
      * @since 2.24
      */
-    public static void main(InputStream is, OutputStream os, Channel.Mode mode, boolean performPing, @CheckForNull JarCache cache) throws IOException, InterruptedException {
+    public static void main(
+            InputStream is, OutputStream os, Channel.Mode mode, boolean performPing, @CheckForNull JarCache cache)
+            throws IOException, InterruptedException {
         ExecutorService executor = Executors.newCachedThreadPool();
-        ChannelBuilder cb = new ChannelBuilder("channel", executor)
-                .withMode(mode)
-                .withJarCacheOrDefault(cache);
+        ChannelBuilder cb =
+                new ChannelBuilder("channel", executor).withMode(mode).withJarCacheOrDefault(cache);
 
         // expose StandardOutputStream as a channel property, which is a better way to make this available
         // to the user of Channel than Channel#getUnderlyingOutput()
-        if (os instanceof StandardOutputStream)
-            cb.withProperty(StandardOutputStream.class,os);
+        if (os instanceof StandardOutputStream) {
+            cb.withProperty(StandardOutputStream.class, os);
+        }
 
         Channel channel = cb.build(is, os);
         System.err.println("channel started");
 
         // Both settings are available since remoting-2.0
-        long timeout = 1000 * Long.parseLong(
-                System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),
-             interval = 1000 * Long.parseLong(
-                System.getProperty("hudson.remoting.Launcher.pingIntervalSec", /* was "600" but this duplicates ChannelPinger */ "0"));
-        Logger.getLogger(PingThread.class.getName()).log(Level.FINE, "performPing={0} timeout={1} interval={2}", new Object[] {performPing, timeout, interval});
+        long timeout = 1000 * Long.parseLong(System.getProperty("hudson.remoting.Launcher.pingTimeoutSec", "240")),
+                interval =
+                        1000
+                                * Long.parseLong(System.getProperty(
+                                        "hudson.remoting.Launcher.pingIntervalSec", /* was "600" but this duplicates ChannelPinger */
+                                        "0"));
+        Logger.getLogger(PingThread.class.getName())
+                .log(Level.FINE, "performPing={0} timeout={1} interval={2}", new Object[] {
+                    performPing, timeout, interval
+                });
         if (performPing && timeout > 0 && interval > 0) {
             new PingThread(channel, timeout, interval) {
                 @Deprecated
@@ -949,8 +1037,11 @@ public class Launcher {
                     System.err.println("Ping failed. Terminating");
                     System.exit(-1);
                 }
+
                 @Override
-                @SuppressFBWarnings(value = "INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE", justification = "Prints the agent-side message to the agent log before exiting.")
+                @SuppressFBWarnings(
+                        value = "INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE",
+                        justification = "Prints the agent-side message to the agent log before exiting.")
                 protected void onDead(Throwable cause) {
                     System.err.println("Ping failed. Terminating");
                     cause.printStackTrace();
@@ -964,7 +1055,7 @@ public class Launcher {
     }
 
     public static boolean isWindows() {
-        return File.pathSeparatorChar==';';
+        return File.pathSeparatorChar == ';';
     }
 
     /**
@@ -983,7 +1074,9 @@ public class Launcher {
         Properties props = new Properties();
         InputStream is = Launcher.class.getResourceAsStream(JENKINS_VERSION_PROP_FILE);
         if (is == null) {
-            LOGGER.log(Level.FINE, "Cannot locate the {0} resource file. Hudson/Jenkins version is unknown",
+            LOGGER.log(
+                    Level.FINE,
+                    "Cannot locate the {0} resource file. Hudson/Jenkins version is unknown",
                     JENKINS_VERSION_PROP_FILE);
             return UNKNOWN_JENKINS_VERSION_STR;
         }
@@ -1010,13 +1103,7 @@ public class Launcher {
     private Engine createEngine() throws IOException {
         LOGGER.log(Level.INFO, "Setting up agent: {0}", name);
         Engine engine = new Engine(
-                new CuiListener(),
-                urls,
-                secret,
-                name,
-                directConnection,
-                instanceIdentity,
-                new HashSet<>(protocols));
+                new CuiListener(), urls, secret, name, directConnection, instanceIdentity, new HashSet<>(protocols));
         engine.setWebSocket(webSocket);
         if (webSocketHeaders != null) {
             engine.setWebSocketHeaders(webSocketHeaders);

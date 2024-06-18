@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -49,9 +49,9 @@ import org.jvnet.hudson.test.Issue;
  * Capability.NONE.
  */
 @WithRunner({
-        InProcessRunner.class,
-        NioSocketRunner.class,
-        NioPipeRunner.class,
+    InProcessRunner.class,
+    NioSocketRunner.class,
+    NioPipeRunner.class,
 })
 public class ClassRemoting2Test {
 
@@ -59,11 +59,7 @@ public class ClassRemoting2Test {
 
     @SuppressWarnings("unused") // used by JUnit
     static Stream<ChannelRunner> provider() {
-        return Stream.of(
-                new InProcessRunner(),
-                new NioSocketRunner(),
-                new NioPipeRunner()
-        );
+        return Stream.of(new InProcessRunner(), new NioSocketRunner(), new NioPipeRunner());
     }
 
     @After
@@ -205,10 +201,12 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testSingleInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner) throws Exception {
+    public void testSingleInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner)
+            throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
-            final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
+            final Callable<Object, Exception> callable =
+                    (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
             // make sure we get a remote interruption exception on "getResource" call
             RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 1);
             Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
@@ -222,10 +220,12 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testMultipleInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner) throws Exception {
+    public void testMultipleInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner)
+            throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
-            final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
+            final Callable<Object, Exception> callable =
+                    (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
             // make sure we get a remote interruption exception on "getResource" call
             RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
             RemoteClassLoader.MAX_RETRIES = 10;
@@ -241,10 +241,12 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testContinuedInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner) throws Exception {
+    public void testContinuedInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner)
+            throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
-            final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
+            final Callable<Object, Exception> callable =
+                    (Callable<Object, Exception>) dcl.load(TestStaticResourceReference.class);
             // make sure we get a remote interruption exception on "getResource" call
             RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
             RemoteClassLoader.MAX_RETRIES = 3;
@@ -261,7 +263,8 @@ public class ClassRemoting2Test {
     public void testSingleInterruptionOfFindResources(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
-            final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
+            final Callable<Object, Exception> callable =
+                    (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
             // make sure we get a remote interruption exception on "findResources" call
             RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 1);
             Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
@@ -278,7 +281,8 @@ public class ClassRemoting2Test {
     public void testMultipleInterruptionOfFindResources(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
-            final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
+            final Callable<Object, Exception> callable =
+                    (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
             // make sure we get a remote interruption exception on "getResource" call
             RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
             RemoteClassLoader.MAX_RETRIES = 10;
@@ -297,7 +301,8 @@ public class ClassRemoting2Test {
     public void testContinuedInterruptionOfFindResources(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
-            final Callable<Object, Exception> callable = (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
+            final Callable<Object, Exception> callable =
+                    (Callable<Object, Exception>) dcl.load(TestStaticGetResources.class);
             // make sure we get a remote interruption exception on "getResource" call
             RemoteClassLoader.RETRY_SLEEP_DURATION_MILLISECONDS = 1;
             RemoteClassLoader.MAX_RETRIES = 3;

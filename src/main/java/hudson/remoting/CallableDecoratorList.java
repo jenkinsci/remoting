@@ -10,20 +10,23 @@ import org.jenkinsci.remoting.CallableDecorator;
  */
 class CallableDecoratorList extends CopyOnWriteArrayList<CallableDecorator> {
     <V> java.util.concurrent.Callable<V> wrapCallable(java.util.concurrent.Callable<V> r) {
-        for (CallableDecorator d : this)
+        for (CallableDecorator d : this) {
             r = applyDecorator(r, d);
+        }
         return r;
     }
 
-    private <V> java.util.concurrent.Callable<V> applyDecorator(final java.util.concurrent.Callable<V> inner, final CallableDecorator filter) {
+    private <V> java.util.concurrent.Callable<V> applyDecorator(
+            final java.util.concurrent.Callable<V> inner, final CallableDecorator filter) {
         return () -> filter.call(inner);
     }
 
-    <V,T extends Throwable> Callable<V,T> wrapUserRequest(final Callable<V,T> c) {
-        Callable<V,T> decorated = c;
+    <V, T extends Throwable> Callable<V, T> wrapUserRequest(final Callable<V, T> c) {
+        Callable<V, T> decorated = c;
 
-        for (CallableDecorator d : this)
-            decorated = d.userRequest(c,decorated);
+        for (CallableDecorator d : this) {
+            decorated = d.userRequest(c, decorated);
+        }
 
         return decorated;
     }

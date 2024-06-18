@@ -27,7 +27,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @see "http://www.faqs.org/rfcs/rfc1519.html"
  * @since 2.0
  */
-//[PATCH]
+// [PATCH]
 @Restricted(NoExternalUse.class)
 // end of [PATCH]
 public class SubnetUtils {
@@ -40,8 +40,7 @@ public class SubnetUtils {
         /** Mask to convert unsigned int to a long (i.e. keep 32 bits). */
         private static final long UNSIGNED_INT_MASK = 0x0FFFFFFFFL;
 
-        private SubnetInfo() {
-        }
+        private SubnetInfo() {}
 
         public int asInteger(final String address) {
             return toInteger(address);
@@ -57,7 +56,7 @@ public class SubnetUtils {
         private String format(final int[] octets) {
             final int last = octets.length - 1;
             final StringBuilder builder = new StringBuilder();
-            for (int i = 0;; i++) {
+            for (int i = 0; ; i++) {
                 builder.append(octets[i]);
                 if (i == last) {
                     return builder.toString();
@@ -214,13 +213,13 @@ public class SubnetUtils {
          */
         @Override
         public String toString() {
-            return "CIDR Signature:\t[" + getCidrSignature() + "]\n" +
-                    "  Netmask: [" + getNetmask() + "]\n" +
-                    "  Network: [" + getNetworkAddress() + "]\n" +
-                    "  Broadcast: [" + getBroadcastAddress() + "]\n" +
-                    "  First address: [" + getLowAddress() + "]\n" +
-                    "  Last address: [" + getHighAddress() + "]\n" +
-                    "  Address Count: [" + getAddressCountLong() + "]\n";
+            return "CIDR Signature:\t[" + getCidrSignature() + "]\n" + "  Netmask: ["
+                    + getNetmask() + "]\n" + "  Network: ["
+                    + getNetworkAddress() + "]\n" + "  Broadcast: ["
+                    + getBroadcastAddress() + "]\n" + "  First address: ["
+                    + getLowAddress() + "]\n" + "  Last address: ["
+                    + getHighAddress() + "]\n" + "  Address Count: ["
+                    + getAddressCountLong() + "]\n";
         }
     }
 
@@ -372,5 +371,4 @@ public class SubnetUtils {
     public void setInclusiveHostCount(final boolean inclusiveHostCount) {
         this.inclusiveHostCount = inclusiveHostCount;
     }
-
 }

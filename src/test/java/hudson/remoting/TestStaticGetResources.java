@@ -10,14 +10,17 @@ public class TestStaticGetResources extends CallableBase {
 
     static {
         try {
-            FIRST_RESOURCE = TestStaticGetResources.class.getClassLoader().getResources("BLAH").hasMoreElements();
+            FIRST_RESOURCE = TestStaticGetResources.class
+                    .getClassLoader()
+                    .getResources("BLAH")
+                    .hasMoreElements();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
+    @Override
     public Object call() {
         return "found the impossible: " + FIRST_RESOURCE;
     }
-
 }

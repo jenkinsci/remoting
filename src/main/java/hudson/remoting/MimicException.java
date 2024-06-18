@@ -19,13 +19,15 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 @Restricted(DoNotUse.class)
 class MimicException extends Exception {
     private final String className;
+
     MimicException(Throwable cause) {
         super(cause.getMessage());
         className = cause.getClass().getName();
         setStackTrace(cause.getStackTrace());
 
-        if (cause.getCause()!=null)
+        if (cause.getCause() != null) {
             initCause(new MimicException(cause.getCause()));
+        }
     }
 
     @Override
@@ -37,13 +39,16 @@ class MimicException extends Exception {
 
     @Nullable
     public static Throwable make(@NonNull Channel ch, @Nullable Throwable cause) {
-        if (cause == null)  return null;
+        if (cause == null) {
+            return null;
+        }
 
         // make sure the remoting layer of the other end supports this
-        if (ch.remoteCapability.hasMimicException())
+        if (ch.remoteCapability.hasMimicException()) {
             return new MimicException(cause);
-        else
+        } else {
             return cause;
+        }
     }
 
     private static final long serialVersionUID = 1L;

@@ -11,7 +11,7 @@ import java.util.logging.Logger;
  * @author Kohsuke Kawaguchi
  */
 class ResourceImageBoth extends ResourceImageDirect {
-    final long sum1,sum2;
+    final long sum1, sum2;
 
     public ResourceImageBoth(URL resource, Checksum sum) throws IOException {
         super(resource);
@@ -28,15 +28,16 @@ class ResourceImageBoth extends ResourceImageDirect {
     @Override
     Future<URLish> resolveURL(Channel channel, String resourcePath) throws IOException, InterruptedException {
         Future<URL> f = initiateJarRetrieval(channel);
-        if (f.isDone()) // prefer using the jar URL if the stuff is already available
-            return new ResourceImageInJar(sum1,sum2,null).resolveURL(channel,resourcePath);
-        else
+        if (f.isDone()) { // prefer using the jar URL if the stuff is already available
+            return new ResourceImageInJar(sum1, sum2, null).resolveURL(channel, resourcePath);
+        } else {
             return super.resolveURL(channel, resourcePath);
+        }
     }
 
     /**
      * Starts JAR retrieval over the channel.
-     * 
+     *
      * @param channel Channel instance
      * @return Future object. In the case of error the diagnostics info will be sent to {@link #LOGGER}.
      */
@@ -44,7 +45,8 @@ class ResourceImageBoth extends ResourceImageDirect {
     private Future<URL> initiateJarRetrieval(@NonNull Channel channel) throws IOException, InterruptedException {
         JarCache c = channel.getJarCache();
         if (c == null) {
-            throw new IOException("Failed to initiate retrieval. JAR Cache is disabled for the channel " + channel.getName());
+            throw new IOException(
+                    "Failed to initiate retrieval. JAR Cache is disabled for the channel " + channel.getName());
         }
 
         try {

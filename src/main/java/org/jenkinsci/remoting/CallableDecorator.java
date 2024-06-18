@@ -40,7 +40,7 @@ public abstract class CallableDecorator {
      *      Any exception thrown from this method will be propagated to the other side as if the execution of
      *      the callable had failed with this exception.
      */
-    public <V,T extends Throwable> Callable<V,T> userRequest(Callable<V,T> op, Callable<V,T> stem) {
+    public <V, T extends Throwable> Callable<V, T> userRequest(Callable<V, T> op, Callable<V, T> stem) {
         return stem;
     }
 }

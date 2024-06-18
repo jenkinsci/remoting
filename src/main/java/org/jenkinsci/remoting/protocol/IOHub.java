@@ -76,7 +76,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * Defines the Selector wakeup timeout via a system property. Defaults to {@code 1000ms}.
      * @since 3.15
      */
-    private static final long SELECTOR_WAKEUP_TIMEOUT_MS = Long.getLong(IOHub.class.getName() + ".selectorWakeupTimeout", 1000);
+    private static final long SELECTOR_WAKEUP_TIMEOUT_MS =
+            Long.getLong(IOHub.class.getName() + ".selectorWakeupTimeout", 1000);
 
     /**
      * The next ID to use.
@@ -90,6 +91,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * Our selector.
      */
     private final Selector selector;
+
     private volatile boolean ioHubRunning = false;
     private final Object selectorLockObject = new Object();
 
@@ -151,7 +153,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
     public static IOHub create(Executor executor) throws IOException {
         IOHub result = new IOHub(executor);
         executor.execute(result);
-        LOGGER.log(Level.FINE, "Starting an additional Selector wakeup thread. See JENKINS-47965 for more information.");
+        LOGGER.log(
+                Level.FINE, "Starting an additional Selector wakeup thread. See JENKINS-47965 for more information.");
         executor.execute(new IOHubSelectorWatcher(result));
         return result;
     }
@@ -368,9 +371,14 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param write    {@code true} to initially register for writing data.
      * @param callback the {@link IOHubRegistrationCallback} to notify on registration.
      */
-    public final void register(SelectableChannel channel, IOHubReadyListener listener, boolean accept, boolean connect,
-                               boolean read, boolean write,
-                               IOHubRegistrationCallback callback) {
+    public final void register(
+            SelectableChannel channel,
+            IOHubReadyListener listener,
+            boolean accept,
+            boolean connect,
+            boolean read,
+            boolean write,
+            IOHubRegistrationCallback callback) {
         int ops = 0;
         if (accept) {
             ops |= SelectionKey.OP_ACCEPT;
@@ -400,8 +408,13 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      * @param write    {@code true} to initially register for writing data.
      * @return the {@link Future} for the {@link SelectionKey}.
      */
-    public final Future<SelectionKey> register(SelectableChannel channel, IOHubReadyListener listener, boolean accept,
-                                               boolean connect, boolean read, boolean write) {
+    public final Future<SelectionKey> register(
+            SelectableChannel channel,
+            IOHubReadyListener listener,
+            boolean accept,
+            boolean connect,
+            boolean read,
+            boolean write) {
         IOHubRegistrationFutureAdapterImpl callback = new IOHubRegistrationFutureAdapterImpl();
         register(channel, listener, accept, connect, read, write, callback);
         return callback.getFuture();
@@ -456,7 +469,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                     } else {
                         // On Windows the select(timeout) operation ALWAYS waits for the timeout,
                         // so we workaround it by IOHubSelectorWatcher
-                        // "Ubuntu on Windows also qualifies as Windows, so we just rely on the wakeup thread ad use infinite timeout"
+                        // "Ubuntu on Windows also qualifies as Windows, so we just rely on the wakeup thread ad use
+                        // infinite timeout"
                         selected = selector.select();
                     }
 
@@ -490,7 +504,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                     long sleepNanos = System.nanoTime() - cpuOverheatProtection;
                     if (sleepNanos > 0) {
                         if (LOGGER.isLoggable(Level.FINEST)) {
-                            LOGGER.log(Level.FINEST,
+                            LOGGER.log(
+                                    Level.FINEST,
                                     "Sleeping for {0,number}ns to prevent selector thread CPU monopolization!",
                                     sleepNanos);
                         }
@@ -659,7 +674,6 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         IOHub ioHub = (IOHub) o;
 
         return _id == ioHub._id;
-
     }
 
     /**
@@ -719,8 +733,8 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
          * @param listener the listener to set as the {@link SelectionKey#attachment()}.
          * @param callback the callback to notify on registration.
          */
-        Registration(int ops, SelectableChannel channel, IOHubReadyListener listener,
-                     IOHubRegistrationCallback callback) {
+        Registration(
+                int ops, SelectableChannel channel, IOHubReadyListener listener, IOHubRegistrationCallback callback) {
             this.ops = ops;
             this.channel = channel;
             this.listener = listener;
@@ -732,13 +746,11 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
          */
         @Override
         public String toString() {
-            return "Registration{" + "ops=" + ops +
-                    ", channel=" + channel +
-                    ", listener=" + listener +
-                    ", callback=" + callback +
-                    '}';
+            return "Registration{" + "ops=" + ops + ", channel="
+                    + channel + ", listener="
+                    + listener + ", callback="
+                    + callback + '}';
         }
-
     }
 
     /**
@@ -780,13 +792,17 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                 workerThread.setName("IOHub#" + _id + ": Worker[channel:" + key.channel() + "] / " + oldName);
                 if (LOGGER.isLoggable(Level.FINEST)) {
                     // TODO probably want some more info about the key here...
-                    LOGGER.log(Level.FINEST, "Calling listener.ready({0}, {1}, {2}, {3}) for channel {4}",
-                            new Object[] { (ops & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT,
-                                    (ops & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT,
-                                    (ops & SelectionKey.OP_READ) == SelectionKey.OP_READ,
-                                    (ops & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE, key.channel() });
+                    LOGGER.log(
+                            Level.FINEST, "Calling listener.ready({0}, {1}, {2}, {3}) for channel {4}", new Object[] {
+                                (ops & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT,
+                                (ops & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT,
+                                (ops & SelectionKey.OP_READ) == SelectionKey.OP_READ,
+                                (ops & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE,
+                                key.channel()
+                            });
                 }
-                listener.ready((ops & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT,
+                listener.ready(
+                        (ops & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT,
                         (ops & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT,
                         (ops & SelectionKey.OP_READ) == SelectionKey.OP_READ,
                         (ops & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE);
@@ -794,11 +810,13 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                 if (LOGGER.isLoggable(Level.SEVERE)) {
                     LogRecord record = new LogRecord(Level.SEVERE, "[{0}] Listener {1} propagated an uncaught {2}");
                     record.setThrown(e);
-                    record.setParameters(new Object[]{workerThread.getName(), listener, e.getClass().getSimpleName()});
+                    record.setParameters(new Object[] {
+                        workerThread.getName(), listener, e.getClass().getSimpleName()
+                    });
                     LOGGER.log(record);
                 }
                 if (e instanceof Error) {
-                    throw (Error)e;
+                    throw (Error) e;
                 }
             } finally {
                 workerThread.setName(oldName);
@@ -846,8 +864,10 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
         private boolean interestOps() {
             if (LOGGER.isLoggable(Level.FINEST)) {
                 // TODO probably want some more info about the key here...
-                LOGGER.log(Level.FINEST, "updating interest ops &={0} |={1} on {2} with existing ops {3} on key {4}",
-                        new Object[] { opsAnd, opsOr, key.channel(), key.interestOps(), key });
+                LOGGER.log(
+                        Level.FINEST,
+                        "updating interest ops &={0} |={1} on {2} with existing ops {3} on key {4}",
+                        new Object[] {opsAnd, opsOr, key.channel(), key.interestOps(), key});
             }
             if (key.isValid()) {
                 key.interestOps((key.interestOps() & opsAnd) | opsOr);
@@ -949,12 +969,7 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
                 final Thread workerThread = Thread.currentThread();
                 final String oldName = workerThread.getName();
                 try {
-                    workerThread.setName(
-                            String.format("IOHub#%d: Timeout[%s] / %s",
-                                    _id,
-                                    task,
-                                    oldName)
-                    );
+                    workerThread.setName(String.format("IOHub#%d: Timeout[%s] / %s", _id, task, oldName));
                     task.run();
                     synchronized (this) {
                         done = true;
@@ -1056,5 +1071,4 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
             return null;
         }
     }
-
 }

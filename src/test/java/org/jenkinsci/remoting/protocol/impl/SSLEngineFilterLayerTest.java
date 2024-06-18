@@ -74,40 +74,35 @@ public class SSLEngineFilterLayerTest {
     private static RSAKeyPairRule serverKey = new RSAKeyPairRule();
     private static RSAKeyPairRule caRootKey = new RSAKeyPairRule();
     private static X509CertificateRule caRootCert = X509CertificateRule.create("caRoot", caRootKey, caRootKey, null);
-    private static X509CertificateRule clientCert = X509CertificateRule.create("client", clientKey, caRootKey, caRootCert);
-    private static X509CertificateRule serverCert = X509CertificateRule.create("server", serverKey, caRootKey, caRootCert);
+    private static X509CertificateRule clientCert =
+            X509CertificateRule.create("client", clientKey, caRootKey, caRootCert);
+    private static X509CertificateRule serverCert =
+            X509CertificateRule.create("server", serverKey, caRootKey, caRootCert);
     private static X509CertificateRule expiredClientCert =
             X509CertificateRule.create("expiredClient", clientKey, caRootKey, caRootCert, -10, -5, TimeUnit.DAYS);
     private static X509CertificateRule notYetValidServerCert =
             X509CertificateRule.create("notYetValidServer", serverKey, caRootKey, caRootCert, +5, +10, TimeUnit.DAYS);
-    private static SSLContextRule clientCtx =
-            new SSLContextRule("client")
-                    .as(clientKey, clientCert, caRootCert)
-                    .trusting(caRootCert)
-                    .trusting(serverCert);
-    private static SSLContextRule serverCtx =
-            new SSLContextRule("server")
-                    .as(serverKey, serverCert, caRootCert)
-                    .trusting(caRootCert)
-                    .trusting(clientCert);
-    private static SSLContextRule expiredClientCtx =
-            new SSLContextRule("expiredClient")
-                    .as(clientKey, expiredClientCert, caRootCert)
-                    .trusting(caRootCert)
-                    .trusting(serverCert);
-    private static SSLContextRule notYetValidServerCtx =
-            new SSLContextRule("notYetValidServer")
-                    .as(serverKey, notYetValidServerCert, caRootCert)
-                    .trusting(caRootCert)
-                    .trusting(clientCert);
+    private static SSLContextRule clientCtx = new SSLContextRule("client")
+            .as(clientKey, clientCert, caRootCert)
+            .trusting(caRootCert)
+            .trusting(serverCert);
+    private static SSLContextRule serverCtx = new SSLContextRule("server")
+            .as(serverKey, serverCert, caRootCert)
+            .trusting(caRootCert)
+            .trusting(clientCert);
+    private static SSLContextRule expiredClientCtx = new SSLContextRule("expiredClient")
+            .as(clientKey, expiredClientCert, caRootCert)
+            .trusting(caRootCert)
+            .trusting(serverCert);
+    private static SSLContextRule notYetValidServerCtx = new SSLContextRule("notYetValidServer")
+            .as(serverKey, notYetValidServerCert, caRootCert)
+            .trusting(caRootCert)
+            .trusting(clientCert);
     private static SSLContextRule untrustingClientCtx =
-            new SSLContextRule("untrustingClient")
-                    .as(clientKey, clientCert)
-                    .trusting(caRootCert);
+            new SSLContextRule("untrustingClient").as(clientKey, clientCert).trusting(caRootCert);
     private static SSLContextRule untrustingServerCtx =
-            new SSLContextRule("untrustingServer")
-                    .as(serverKey, serverCert)
-                    .trusting(caRootCert);
+            new SSLContextRule("untrustingServer").as(serverKey, serverCert).trusting(caRootCert);
+
     @ClassRule
     public static RuleChain staticCtx = RuleChain.outerRule(caRootKey)
             .around(clientKey)
@@ -126,11 +121,15 @@ public class SSLEngineFilterLayerTest {
 
     @Rule
     public IOHubRule selector = new IOHubRule();
+
     @Rule
     public TestName name = new TestName();
+
     private Timeout globalTimeout = new Timeout(30, TimeUnit.SECONDS);
+
     @Rule
     public RuleChain ctx = RuleChain.outerRule(new RepeatRule()).around(globalTimeout);
+
     private Pipe clientToServer;
     private Pipe serverToClient;
 
@@ -187,18 +186,15 @@ public class SSLEngineFilterLayerTest {
         SSLEngine clientEngine = clientCtx.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
                         serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -212,27 +208,25 @@ public class SSLEngineFilterLayerTest {
     }
 
     @Theory
-    public void clientRejectsServer(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    public void clientRejectsServer(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
+            throws Exception {
         SSLEngine serverEngine = serverCtx.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
         SSLEngine clientEngine = clientCtx.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new SSLEngineFilterLayer(clientEngine, session -> {
-                            throw new ConnectionRefusalException("Bad server");
-                        }))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(clientEngine, session -> {
+                    throw new ConnectionRefusalException("Bad server");
+                }))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
                         serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .build(new IOBufferMatcherLayer());
 
         IOBufferMatcher clientMatcher = client.get();
         IOBufferMatcher serverMatcher = server.get();
@@ -243,13 +237,13 @@ public class SSLEngineFilterLayerTest {
         assertThat(serverMatcher.getCloseCause(), instanceOf(ClosedChannelException.class));
     }
 
-
     @Theory
-    public void serverRejectsClient(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        Logger.getLogger(name.getMethodName()).log(
-                Level.INFO, "Starting test with server {0} client {1}", new Object[]{
-                        serverFactory.getClass().getSimpleName(),
-                        clientFactory.getClass().getSimpleName(),
+    public void serverRejectsClient(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
+            throws Exception {
+        Logger.getLogger(name.getMethodName())
+                .log(Level.INFO, "Starting test with server {0} client {1}", new Object[] {
+                    serverFactory.getClass().getSimpleName(),
+                    clientFactory.getClass().getSimpleName(),
                 });
         SSLEngine serverEngine = serverCtx.createSSLEngine();
         serverEngine.setUseClientMode(false);
@@ -257,20 +251,17 @@ public class SSLEngineFilterLayerTest {
         SSLEngine clientEngine = clientCtx.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
                         serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new SSLEngineFilterLayer(serverEngine, session -> {
-                            throw new ConnectionRefusalException("Bad client");
-                        }))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(serverEngine, session -> {
+                    throw new ConnectionRefusalException("Bad client");
+                }))
+                .build(new IOBufferMatcherLayer());
 
         IOBufferMatcher clientMatcher = client.get();
         IOBufferMatcher serverMatcher = server.get();
@@ -293,18 +284,15 @@ public class SSLEngineFilterLayerTest {
         SSLEngine clientEngine = untrustingClientCtx.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
                         serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .build(new IOBufferMatcherLayer());
 
         IOBufferMatcher clientMatcher = client.get();
         IOBufferMatcher serverMatcher = server.get();
@@ -324,18 +312,15 @@ public class SSLEngineFilterLayerTest {
         SSLEngine clientEngine = expiredClientCtx.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
                         serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .build(new IOBufferMatcherLayer());
 
         IOBufferMatcher clientMatcher = client.get();
         IOBufferMatcher serverMatcher = server.get();
@@ -347,26 +332,23 @@ public class SSLEngineFilterLayerTest {
     }
 
     @Theory
-    public void clientDoesNotConnectToNotYetValidServer(NetworkLayerFactory serverFactory,
-                                                        NetworkLayerFactory clientFactory) throws Exception {
+    public void clientDoesNotConnectToNotYetValidServer(
+            NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
         SSLEngine serverEngine = notYetValidServerCtx.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
         SSLEngine clientEngine = expiredClientCtx.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
                         serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .build(new IOBufferMatcherLayer());
 
         IOBufferMatcher clientMatcher = client.get();
         IOBufferMatcher serverMatcher = server.get();
@@ -461,33 +443,34 @@ public class SSLEngineFilterLayerTest {
         concurrentStress(serverFactory, clientFactory, 65536, 65536);
     }
 
-    private void concurrentStress(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory, int serverLimit,
-                                  int clientLimit)
+    private void concurrentStress(
+            NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory, int serverLimit, int clientLimit)
             throws IOException, InterruptedException, ExecutionException {
-        Logger.getLogger(name.getMethodName()).log(
-                Level.INFO, "Starting test with server {0} client {1} serverLimit {2} clientLimit {3}", new Object[]{
-                        serverFactory.getClass().getSimpleName(),
-                        clientFactory.getClass().getSimpleName(),
-                        serverLimit, clientLimit
-                });
+        Logger.getLogger(name.getMethodName())
+                .log(
+                        Level.INFO,
+                        "Starting test with server {0} client {1} serverLimit {2} clientLimit {3}",
+                        new Object[] {
+                            serverFactory.getClass().getSimpleName(),
+                            clientFactory.getClass().getSimpleName(),
+                            serverLimit,
+                            clientLimit
+                        });
         SSLEngine serverEngine = serverCtx.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
         SSLEngine clientEngine = clientCtx.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> clientStack =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> clientStack = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> serverStack =
-                ProtocolStack.on(
+        ProtocolStack<IOBufferMatcher> serverStack = ProtocolStack.on(
                         serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .build(new IOBufferMatcherLayer());
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .build(new IOBufferMatcherLayer());
 
         final IOBufferMatcher client = clientStack.get();
         final IOBufferMatcher server = serverStack.get();
@@ -511,14 +494,14 @@ public class SSLEngineFilterLayerTest {
     }
 
     @Theory
-    public void sendingBiggerAndBiggerBatches(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory,
-                                              BatchSendBufferingFilterLayer batch)
+    public void sendingBiggerAndBiggerBatches(
+            NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory, BatchSendBufferingFilterLayer batch)
             throws IOException, InterruptedException, ExecutionException {
-        Logger.getLogger(name.getMethodName()).log(
-                Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[]{
-                        serverFactory.getClass().getSimpleName(),
-                        clientFactory.getClass().getSimpleName(),
-                        batch
+        Logger.getLogger(name.getMethodName())
+                .log(Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[] {
+                    serverFactory.getClass().getSimpleName(),
+                    clientFactory.getClass().getSimpleName(),
+                    batch
                 });
         SSLEngine serverEngine = serverCtx.createSSLEngine();
         serverEngine.setUseClientMode(false);
@@ -526,19 +509,16 @@ public class SSLEngineFilterLayerTest {
         SSLEngine clientEngine = clientCtx.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> clientStack =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> clientStack = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> serverStack =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(batch)
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> serverStack = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .filter(batch)
+                .build(new IOBufferMatcherLayer());
 
         final IOBufferMatcher client = clientStack.get();
         final IOBufferMatcher server = serverStack.get();
@@ -560,14 +540,14 @@ public class SSLEngineFilterLayerTest {
     }
 
     @Theory
-    public void bidiSendingBiggerAndBiggerBatches(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory,
-                                                  BatchSendBufferingFilterLayer batch)
+    public void bidiSendingBiggerAndBiggerBatches(
+            NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory, BatchSendBufferingFilterLayer batch)
             throws IOException, InterruptedException, ExecutionException {
-        Logger.getLogger(name.getMethodName()).log(
-                Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[]{
-                        serverFactory.getClass().getSimpleName(),
-                        clientFactory.getClass().getSimpleName(),
-                        batch
+        Logger.getLogger(name.getMethodName())
+                .log(Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[] {
+                    serverFactory.getClass().getSimpleName(),
+                    clientFactory.getClass().getSimpleName(),
+                    batch
                 });
         SSLEngine serverEngine = serverCtx.createSSLEngine();
         serverEngine.setUseClientMode(false);
@@ -576,24 +556,21 @@ public class SSLEngineFilterLayerTest {
         clientEngine.setUseClientMode(true);
 
         BatchSendBufferingFilterLayer clientBatch = batch.clone();
-        ProtocolStack<IOBufferMatcher> clientStack =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new NoOpFilterLayer())
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(clientBatch)
-                        .filter(new NoOpFilterLayer())
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> clientStack = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new NoOpFilterLayer())
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .filter(clientBatch)
+                .filter(new NoOpFilterLayer())
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> serverStack =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new NoOpFilterLayer())
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(batch)
-                        .filter(new NoOpFilterLayer())
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> serverStack = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new NoOpFilterLayer())
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .filter(batch)
+                .filter(new NoOpFilterLayer())
+                .build(new IOBufferMatcherLayer());
 
         final IOBufferMatcher client = clientStack.get();
         final IOBufferMatcher server = serverStack.get();
@@ -610,5 +587,4 @@ public class SSLEngineFilterLayerTest {
         client.awaitByteContent(SequentialSender.matcher(clientAmount));
         server.awaitByteContent(SequentialSender.matcher(serverAmount));
     }
-
 }

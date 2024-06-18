@@ -35,8 +35,7 @@ import java.util.IllegalFormatException;
  */
 public class ConnectionRefusalException extends IOException {
 
-    public ConnectionRefusalException() {
-    }
+    public ConnectionRefusalException() {}
 
     public ConnectionRefusalException(String message) {
         super(message);
@@ -74,7 +73,9 @@ public class ConnectionRefusalException extends IOException {
      *                                          insufficient arguments given the format string, or other
      *                                          illegal conditions.
      */
-    @SuppressFBWarnings(value = "FORMAT_STRING_MANIPULATION", justification = "This is only used with String conversion to hex string.")
+    @SuppressFBWarnings(
+            value = "FORMAT_STRING_MANIPULATION",
+            justification = "This is only used with String conversion to hex string.")
     public ConnectionRefusalException(Throwable cause, String message, Object... args) {
         super(String.format(message, args), cause);
     }

@@ -19,5 +19,6 @@ public class DumbReceiver {
             }
         }
     }
+
     public static final int PORT = 9533;
 }

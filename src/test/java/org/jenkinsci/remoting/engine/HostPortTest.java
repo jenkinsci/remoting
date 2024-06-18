@@ -101,7 +101,7 @@ public class HostPortTest {
     public void testSeparatorNoPort() {
         HostPort hostPort = new HostPort("hostname:", null, 7777);
         assertThat(hostPort.getHost(), is("hostname"));
-        assertThat(hostPort.getPort(), is( 7777));
+        assertThat(hostPort.getPort(), is(7777));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -118,12 +118,11 @@ public class HostPortTest {
     public void testOnlySeparator() {
         HostPort hostPort = new HostPort(":", "hostname", 7777);
         assertThat(hostPort.getHost(), is("hostname"));
-        assertThat(hostPort.getPort(), is( 7777));
+        assertThat(hostPort.getPort(), is(7777));
     }
 
     @Test(expected = NumberFormatException.class)
     public void testPortNotANumber() {
         new HostPort("hostname:notAPort");
     }
-
 }

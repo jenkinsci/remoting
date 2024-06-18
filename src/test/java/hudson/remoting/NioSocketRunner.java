@@ -47,12 +47,12 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
                         }
                     });
                 } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Failed to accept a socket",e);
+                    LOGGER.log(Level.WARNING, "Failed to accept a socket", e);
                     failure = e;
                 }
             }
         };
-        nio.setFrameSize(115);  // force unaligned boundaries to shake things up a bit
+        nio.setFrameSize(115); // force unaligned boundaries to shake things up a bit
 
         ss.register(nio.getSelector(), SelectionKey.OP_ACCEPT);
         LOGGER.info("Waiting for connection");
@@ -60,13 +60,14 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
             try {
                 nio.run();
             } catch (Throwable e) {
-                LOGGER.log(Level.WARNING, "Failed to keep the NIO selector thread going",e);
+                LOGGER.log(Level.WARNING, "Failed to keep the NIO selector thread going", e);
                 failure = e;
             }
         });
 
         // create a client channel that connects to the same hub
-        SocketChannel client = SocketChannel.open(new InetSocketAddress("localhost", ss.socket().getLocalPort()));
+        SocketChannel client = SocketChannel.open(
+                new InetSocketAddress("localhost", ss.socket().getLocalPort()));
         Channel north = configureNorth().build(client);
         south = southHandoff.poll(10, TimeUnit.SECONDS);
         return north;
@@ -79,7 +80,6 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
     protected NioChannelBuilder configureSouth() {
         return nio.newChannelBuilder("south", executor).withHeaderStream(System.out);
     }
-
 
     @Override
     public String getName() {

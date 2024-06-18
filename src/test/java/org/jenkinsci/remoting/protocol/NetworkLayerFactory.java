@@ -30,10 +30,9 @@ import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
 
 public interface NetworkLayerFactory {
 
-    NetworkLayerFactory[] ALL = new NetworkLayerFactory[]{new NIO(), new BIO()};
+    NetworkLayerFactory[] ALL = new NetworkLayerFactory[] {new NIO(), new BIO()};
 
-    NetworkLayer create(IOHub selector, ReadableByteChannel in,
-                        WritableByteChannel out);
+    NetworkLayer create(IOHub selector, ReadableByteChannel in, WritableByteChannel out);
 
     class NIO implements NetworkLayerFactory {
 

@@ -92,8 +92,8 @@ public class PublicKeyMatchingX509ExtendedTrustManager extends X509ExtendedTrust
      *                     have trusted any public keys.
      * @param publicKeys   the initial list of trusted public keys.
      */
-    public PublicKeyMatchingX509ExtendedTrustManager(boolean strictClient, boolean strictServer,
-                                                     PublicKey... publicKeys) {
+    public PublicKeyMatchingX509ExtendedTrustManager(
+            boolean strictClient, boolean strictServer, PublicKey... publicKeys) {
         this.publicKeys = new ArrayList<>(Arrays.asList(publicKeys));
         this.strictClient = strictClient;
         this.strictServer = strictServer;
@@ -202,20 +202,19 @@ public class PublicKeyMatchingX509ExtendedTrustManager extends X509ExtendedTrust
         PublicKey chainKey = chain[0].getPublicKey();
         byte[] chainKeyEncoded = chainKey.getEncoded();
         if (chainKeyEncoded == null) {
-            throw new CertificateException(
-                    String.format("Public key of the first certificate in chain (subject: '%s') "
-                                    + "(algorithm: '%s'; format: '%s') does not support binary encoding",
-                            chain[0].getSubjectDN(), chainKey.getAlgorithm(), chainKey.getFormat()));
+            throw new CertificateException(String.format(
+                    "Public key of the first certificate in chain (subject: '%s') "
+                            + "(algorithm: '%s'; format: '%s') does not support binary encoding",
+                    chain[0].getSubjectDN(), chainKey.getAlgorithm(), chainKey.getFormat()));
         }
         synchronized (publicKeys) {
             if (publicKeys.isEmpty() ? (client ? !strictClient : !strictServer) : isTrusted(chainKey)) {
                 return;
             }
         }
-        throw new CertificateException(
-                String.format("Public key of the first certificate in chain (subject: %s) "
-                                + "is not in the list of trusted keys",
-                        chain[0].getSubjectDN()));
+        throw new CertificateException(String.format(
+                "Public key of the first certificate in chain (subject: %s) " + "is not in the list of trusted keys",
+                chain[0].getSubjectDN()));
     }
 
     /**

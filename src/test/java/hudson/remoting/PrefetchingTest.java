@@ -34,12 +34,12 @@ public class PrefetchingTest implements Serializable {
     private File dir;
 
     // checksum of the jar files to force loading
-    private Checksum sum1,sum2;
+    private Checksum sum1, sum2;
 
-    void withChannel(ChannelRunner channelRunner, ChannelRunner.ConsumerThrowable<Channel, Exception> f) throws Exception {
+    void withChannel(ChannelRunner channelRunner, ChannelRunner.ConsumerThrowable<Channel, Exception> f)
+            throws Exception {
         channelRunner.withChannel(((ChannelRunner.ConsumerThrowable<Channel, Exception>) this::setUp).andThen(f));
     }
-
 
     protected void setUp(Channel channel) throws Exception {
         URL jar1 = getClass().getClassLoader().getResource("remoting-test-client.jar");
@@ -82,12 +82,14 @@ public class PrefetchingTest implements Serializable {
         // because the dir is used by FIleSystemJarCache to asynchronously load stuff
         // we might fail to shut it down right away
         if (dir != null) {
-            for (int i=0; ; i++) {
+            for (int i = 0; ; i++) {
                 try {
                     FileUtils.deleteDirectory(dir);
                     return;
                 } catch (IOException e) {
-                    if (i==3)   throw e;
+                    if (i == 3) {
+                        throw e;
+                    }
                     Thread.sleep(1000);
                 }
             }
@@ -105,13 +107,16 @@ public class PrefetchingTest implements Serializable {
             channel.call(new ForceJarLoad(sum1));
             channel.call(new ForceJarLoad(sum2));
 
-            Callable<Void, IOException> sc = (Callable<Void, IOException>) cl.loadClass("test.ClassLoadingFromJarTester").getDeclaredConstructor().newInstance();
+            Callable<Void, IOException> sc =
+                    (Callable<Void, IOException>) cl.loadClass("test.ClassLoadingFromJarTester")
+                            .getDeclaredConstructor()
+                            .newInstance();
             ((Function<Function<Object, Object>, Void>) sc).apply(new Verifier());
             assertNull(channel.call(sc));
         });
     }
 
-    private static class Verifier implements Function<Object,Object>, Serializable {
+    private static class Verifier implements Function<Object, Object>, Serializable {
         @Override
         public Object apply(Object o) {
             try {
@@ -124,6 +129,7 @@ public class PrefetchingTest implements Serializable {
                 throw new Error(e);
             }
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -135,7 +141,9 @@ public class PrefetchingTest implements Serializable {
             channel.call(new ForceJarLoad(sum1));
             channel.call(new ForceJarLoad(sum2));
 
-            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResource").getDeclaredConstructor().newInstance();
+            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResource")
+                    .getDeclaredConstructor()
+                    .newInstance();
             String v = channel.call(c);
             System.out.println(v);
 
@@ -147,7 +155,9 @@ public class PrefetchingTest implements Serializable {
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testGetResource_precache(ChannelRunner channelRunner) throws Exception {
         withChannel(channelRunner, channel -> {
-            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResource").getDeclaredConstructor().newInstance();
+            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResource")
+                    .getDeclaredConstructor()
+                    .newInstance();
             String v = channel.call(c);
             System.out.println(v);
 
@@ -159,7 +169,10 @@ public class PrefetchingTest implements Serializable {
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testGetResourceAsStream(ChannelRunner channelRunner) throws Exception {
         withChannel(channelRunner, channel -> {
-            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResourceAsStream").getDeclaredConstructor().newInstance();
+            Callable<String, IOException> c =
+                    (Callable<String, IOException>) cl.loadClass("test.HelloGetResourceAsStream")
+                            .getDeclaredConstructor()
+                            .newInstance();
             String v = channel.call(c);
             assertEquals("hello", v);
         });
@@ -169,9 +182,7 @@ public class PrefetchingTest implements Serializable {
      * Validates that the resource is coming from a jar.
      */
     private void verifyResource(String v) {
-        assertThat(v, allOf(startsWith("jar:file:"), 
-                                   containsString(dir.toURI().getPath()), 
-                                   endsWith("::hello")));
+        assertThat(v, allOf(startsWith("jar:file:"), containsString(dir.toURI().getPath()), endsWith("::hello")));
     }
 
     /**
@@ -193,31 +204,36 @@ public class PrefetchingTest implements Serializable {
             channel.call(new ForceJarLoad(sum1));
             channel.call(new ForceJarLoad(sum2));
 
-            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResources").getDeclaredConstructor().newInstance();
+            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResources")
+                    .getDeclaredConstructor()
+                    .newInstance();
             String v = channel.call(c);
-            System.out.println(v);  // should find two resources
+            System.out.println(v); // should find two resources
 
             String[] lines = v.split("\n");
 
             verifyResource(lines[0]);
 
-            assertThat(lines[1], allOf(startsWith("jar:file:"),
-                    containsString(dir.toURI().getPath()),
-                    endsWith("::hello2")));
+            assertThat(
+                    lines[1],
+                    allOf(startsWith("jar:file:"), containsString(dir.toURI().getPath()), endsWith("::hello2")));
         });
     }
 
     /**
      * Unlike {@link #testGetResources(ChannelRunner)}, the URL should begin with file:... before the jar file gets cached
      */
-    @Disabled("TODO flakes: jar:file:/tmp/remoting-cache….jar!/test/hello.txt::hello ==> expected: <true> but was: <false>")
+    @Disabled(
+            "TODO flakes: jar:file:/tmp/remoting-cache….jar!/test/hello.txt::hello ==> expected: <true> but was: <false>")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testGetResources_precache(ChannelRunner channelRunner) throws Exception {
         withChannel(channelRunner, channel -> {
-            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResources").getDeclaredConstructor().newInstance();
+            Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResources")
+                    .getDeclaredConstructor()
+                    .newInstance();
             String v = channel.call(c);
-            System.out.println(v);  // should find two resources
+            System.out.println(v); // should find two resources
 
             String[] lines = v.split("\n");
 
@@ -241,21 +257,22 @@ public class PrefetchingTest implements Serializable {
         });
     }
 
-    private static final class Echo<V> extends CallableBase<V,IOException> implements Serializable {
+    private static final class Echo<V> extends CallableBase<V, IOException> implements Serializable {
         V value;
 
         @Override
         public V call() {
             return value;
         }
+
         private static final long serialVersionUID = 1L;
     }
 
     /**
      * Force the remote side to fetch the retrieval of the specific jar file.
      */
-    private static final class ForceJarLoad extends CallableBase<Void,IOException> implements Serializable{
-        private final long sum1,sum2;
+    private static final class ForceJarLoad extends CallableBase<Void, IOException> implements Serializable {
+        private final long sum1, sum2;
 
         private ForceJarLoad(Checksum sum) {
             this.sum1 = sum.sum1;
@@ -270,12 +287,13 @@ public class PrefetchingTest implements Serializable {
                 if (jarCache == null) {
                     throw new IOException("Cannot Force JAR load, JAR cache is disabled");
                 }
-                jarCache.resolve(ch,sum1,sum2).get();
+                jarCache.resolve(ch, sum1, sum2).get();
                 return null;
             } catch (InterruptedException | ExecutionException e) {
                 throw new IOException(e);
             }
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -285,7 +303,9 @@ public class PrefetchingTest implements Serializable {
             Channel.currentOrFail().setJarCache(new FileSystemJarCache(dir, true));
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
+
     private static final long serialVersionUID = 1L;
 }

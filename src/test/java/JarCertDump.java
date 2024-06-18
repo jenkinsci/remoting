@@ -15,7 +15,9 @@ public class JarCertDump {
     public static void main(String[] args) throws IOException {
         try (JarFile j = new JarFile(new File(args[0]))) {
             JarEntry je = j.getJarEntry("hudson/remoting/Channel.class");
-            if (je==null)   throw new IllegalArgumentException();
+            if (je == null) {
+                throw new IllegalArgumentException();
+            }
             IOUtils.readLines(j.getInputStream(je), StandardCharsets.UTF_8);
             for (Certificate c : je.getCertificates()) {
                 System.out.println("################# Certificate #################");

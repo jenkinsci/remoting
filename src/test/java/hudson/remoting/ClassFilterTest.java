@@ -60,8 +60,7 @@ public class ClassFilterTest implements Serializable {
         setUp(new InProcessRunner() {
             @Override
             protected ChannelBuilder configureNorth() {
-                return super.configureNorth()
-                        .withClassFilter(new TestFilter());
+                return super.configureNorth().withClassFilter(new TestFilter());
             }
         });
     }
@@ -75,9 +74,7 @@ public class ClassFilterTest implements Serializable {
         setUp(new InProcessRunner() {
             @Override
             protected ChannelBuilder configureNorth() {
-                return super.configureNorth()
-                        .withCapability(Capability.NONE)
-                        .withClassFilter(new TestFilter());
+                return super.configureNorth().withCapability(Capability.NONE).withClassFilter(new TestFilter());
             }
 
             @Override
@@ -96,8 +93,9 @@ public class ClassFilterTest implements Serializable {
 
     @After
     public void tearDown() throws Exception {
-        if (runner!=null)
+        if (runner != null) {
             runner.stop(north);
+        }
     }
 
     /**
@@ -110,8 +108,8 @@ public class ClassFilterTest implements Serializable {
             oos.writeObject(new Security218("rifle"));
         }
 
-        final SecurityException e = assertThrows(SecurityException.class,
-                () -> Capability.read(new ByteArrayInputStream(baos.toByteArray())));
+        final SecurityException e = assertThrows(
+                SecurityException.class, () -> Capability.read(new ByteArrayInputStream(baos.toByteArray())));
         assertEquals("Rejected: " + Security218.class.getName(), e.getMessage());
     }
 
@@ -188,8 +186,7 @@ public class ClassFilterTest implements Serializable {
         setUp(new NioSocketRunner() {
             @Override
             protected NioChannelBuilder configureNorth() {
-                return super.configureNorth()
-                        .withClassFilter(new TestFilter());
+                return super.configureNorth().withClassFilter(new TestFilter());
             }
         });
         commandStreamTestSequence();
@@ -207,19 +204,19 @@ public class ClassFilterTest implements Serializable {
         try {
             south.send(new Security218("hitler"));
             north.syncIO(); // transport_chunking hangs if this is 'south.syncIO', because somehow south
-                            // doesn't notice that the north has aborted and the connection is lost.
-                            // this is indicative of a larger problem, but one that's not related to
-                            // SECURITY-218 at hand, so I'm going to leave this with 'north.syncIO'
-                            // it still achieves the effect of blocking until the command is processed by north,
-                            // because the response from south back to north would have to come after Security218
-                            // command.
+            // doesn't notice that the north has aborted and the connection is lost.
+            // this is indicative of a larger problem, but one that's not related to
+            // SECURITY-218 at hand, so I'm going to leave this with 'north.syncIO'
+            // it still achieves the effect of blocking until the command is processed by north,
+            // because the response from south back to north would have to come after Security218
+            // command.
 
             // fail("the receiving end will abort after receiving Security218, so syncIO should fail");
             // ... except for NIO, which just discards that command and keeps on
-//        } catch (RequestAbortedException e) {
-//            // other transport kills the connection
-//            String msg = toString(e);
-//            assertTrue(msg, msg.contains("Rejected: " + Security218.class.getName()));
+            //        } catch (RequestAbortedException e) {
+            //            // other transport kills the connection
+            //            String msg = toString(e);
+            //            assertTrue(msg, msg.contains("Rejected: " + Security218.class.getName()));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -248,7 +245,8 @@ public class ClassFilterTest implements Serializable {
 
         private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
             ois.defaultReadObject();
-            System.setProperty("attack", attack + ">" + getChannelForSerialization().getName());
+            System.setProperty(
+                    "attack", attack + ">" + getChannelForSerialization().getName());
         }
 
         @Override
@@ -260,6 +258,7 @@ public class ClassFilterTest implements Serializable {
         public String toString() {
             return "Security218";
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -280,10 +279,12 @@ public class ClassFilterTest implements Serializable {
 
         @Override
         public Void call() {
-            a.toString();   // this will ensure 'a' gets sent over
+            a.toString(); // this will ensure 'a' gets sent over
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
+
     private static final long serialVersionUID = 1L;
 }

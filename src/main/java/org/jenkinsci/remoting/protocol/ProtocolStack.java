@@ -158,10 +158,12 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      * @param filters     the filters.
      * @param application the application layer.
      */
-    private ProtocolStack(String name, NetworkLayer network,
-                          List<FilterLayer> filters,
-                          ApplicationLayer<T> application,
-                          List<Listener> listeners) {
+    private ProtocolStack(
+            String name,
+            NetworkLayer network,
+            List<FilterLayer> filters,
+            ApplicationLayer<T> application,
+            List<Listener> listeners) {
         this.name = name;
         this.network = network;
         this.application = application;
@@ -210,7 +212,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
             } catch (IOException e) {
                 if (LOGGER.isLoggable(Level.FINEST)) {
                     LogRecord record = new LogRecord(Level.FINEST, "[{0}] Start failure");
-                    record.setParameters(new Object[]{name()});
+                    record.setParameters(new Object[] {name()});
                     record.setThrown(e);
                     LOGGER.log(record);
                 }
@@ -254,7 +256,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
     public void name(String name) {
         if (!(Objects.equals(this.name, name))) {
             if (LOGGER.isLoggable(Level.FINER)) {
-                LOGGER.log(Level.FINER, "[{0}] is now known as [{1}]", new Object[]{this.name, name});
+                LOGGER.log(Level.FINER, "[{0}] is now known as [{1}]", new Object[] {this.name, name});
             }
             this.name = name != null && !name.isEmpty() ? name : this.name;
         }
@@ -273,7 +275,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINEST)) {
                 LogRecord record = new LogRecord(Level.FINEST, "[{0}] Abnormal close");
-                record.setParameters(new Object[]{name()});
+                record.setParameters(new Object[] {name()});
                 record.setThrown(e);
                 LOGGER.log(record);
             }
@@ -380,7 +382,6 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
         for (Listener listener : listeners) {
             listener.onClosed(this, cause);
         }
-
     }
 
     /**
@@ -553,13 +554,12 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
             }
             checkNotBuilt();
             built = true;
-            ProtocolStack<T> stack =
-                    new ProtocolStack<>(
-                            name == null || name.isEmpty() ? String.format("Stack-%d", id.incrementAndGet()) : name,
-                            network,
-                            filters,
-                            application,
-                            listeners);
+            ProtocolStack<T> stack = new ProtocolStack<>(
+                    name == null || name.isEmpty() ? String.format("Stack-%d", id.incrementAndGet()) : name,
+                    network,
+                    filters,
+                    application,
+                    listeners);
             stack.init();
             return stack;
         }
@@ -572,7 +572,6 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
                 throw new IllegalStateException("Builder is single-shot as Network layers cannot be reused");
             }
         }
-
     }
 
     /**
@@ -865,7 +864,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
                     while (this.nextSend != nextSend && this.nextSend != null && this.nextSend.removed) {
                         assert this.nextSend.layer instanceof FilterLayer
                                 : "this is the layer before and there is a layer after nextSend thus nextSend "
-                                + "*must* be a FilterLayer";
+                                        + "*must* be a FilterLayer";
                         ((FilterLayer) this.nextSend.layer).onSendRemoved();
                         // remove this.nextSend from the stack as it has set it's removed flag
                         Ptr tmp = this.nextSend.nextSend;
@@ -918,7 +917,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
                     while (this.nextRecv != nextRecv && this.nextRecv != null && this.nextRecv.removed) {
                         assert this.nextRecv.layer instanceof FilterLayer
                                 : "this is the layer before and there is a layer after nextRecv thus nextRecv "
-                                + "*must* be a FilterLayer";
+                                        + "*must* be a FilterLayer";
                         ((FilterLayer) this.nextRecv.layer).onRecvRemoved();
                         // remove this.nextRecv from the stack as it has set it's removed flag
                         Ptr tmp = this.nextRecv.nextRecv;
@@ -931,7 +930,6 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
             }
             return nextRecv;
         }
-
     }
 
     /**
@@ -948,5 +946,4 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
          */
         void onClosed(ProtocolStack<?> stack, IOException cause);
     }
-
 }
