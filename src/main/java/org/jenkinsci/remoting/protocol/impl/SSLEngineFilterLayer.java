@@ -15,6 +15,8 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -29,9 +31,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
-
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
 import org.jenkinsci.remoting.util.ThrowableUtils;

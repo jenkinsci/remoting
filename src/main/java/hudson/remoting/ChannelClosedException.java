@@ -12,7 +12,7 @@ import org.jenkinsci.remoting.ChannelStateException;
 public class ChannelClosedException extends ChannelStateException {
     /**
      * @deprecated
-     *      Use {@link #ChannelClosedException(Throwable)} or {@link #ChannelClosedException(java.lang.String, java.lang.Throwable)}.
+     *      Use {@link #ChannelClosedException(Throwable)} or {@link #ChannelClosedException(String, Throwable)}.
      *      This constructor will not include cause of the termination.
      */
     @Deprecated

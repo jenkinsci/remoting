@@ -25,7 +25,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.URL;
@@ -36,8 +35,8 @@ import java.net.URLStreamHandler;
  * SECURITY-637, this helper wraps the URL into a "safe" version if the url has a non-empty host 
  * and the JVM configuration is standard.
  *
- * Essentially the wrap does not provide the same logic for {@link java.net.URLStreamHandler#hashCode(URL)}
- * and {@link java.net.URLStreamHandler#equals(URL, URL)} but a version that use directly the {@code String} representation
+ * Essentially the wrap does not provide the same logic for {@link URLStreamHandler#hashCode(URL)}
+ * and {@link URLStreamHandler#equals(URL, URL)} but a version that use directly the {@code String} representation
  * instead of requesting the DNS to have name equivalence.
  * 
  * @since 3.25

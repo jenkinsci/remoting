@@ -1,7 +1,7 @@
 package hudson.remoting;
 
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.jenkinsci.remoting.CallableDecorator;
-import java.util.concurrent.*;
 
 /**
  * List of {@link CallableDecorator} that provides aggregated decoration operation.

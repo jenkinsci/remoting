@@ -26,11 +26,6 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.ExportTable.ExportList;
-import hudson.remoting.RemoteClassLoader.IClassLoader;
-import hudson.remoting.RemoteInvocationHandler.RPCRequest;
-import org.jenkinsci.remoting.util.AnonymousClassWarnings;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -40,6 +35,7 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link Request} that can take {@link Callable} whose actual implementation
@@ -59,14 +55,14 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
 
     @NonNull
     @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "RemoteClassLoader.export() always returns a serializable instance, but we cannot check it statically due to the java.lang.reflect.Proxy")
-    private final IClassLoader classLoaderProxy;
+    private final RemoteClassLoader.IClassLoader classLoaderProxy;
     private final String toString;
     /**
      * Objects exported by the request. This value will remain local
      * and won't be sent over to the remote side.
      */
     @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with default null")
-    private transient final ExportList exports;
+    private transient final ExportTable.ExportList exports;
 
     /**
      * Creates a user request to be executed on the remote side.
@@ -163,7 +159,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                 // java.lang classes can only be instantiated by the bootstrap Classloader.
                 // Guarantees that *all* threads with whatever Classloader in use, have the
                 // same mutex instance:    an intance of java.lang.Class<java.lang.Object>
-                synchronized(java.lang.Object.class)
+                synchronized(Object.class)
                 {
                     workaroundDone = true;
                     try {
@@ -196,7 +192,7 @@ final class UserRequest<RSP,EXC extends Throwable> extends Request<UserRequest.R
                 }
 
                 Callable<RSP,EXC> callable = (Callable<RSP,EXC>)o;
-                if(!channel.isArbitraryCallableAllowed() && !(callable instanceof RPCRequest))
+                if(!channel.isArbitraryCallableAllowed() && !(callable instanceof RemoteInvocationHandler.RPCRequest))
                     // if we allow restricted channel to execute arbitrary Callable, the remote JVM can pick up many existing
                     // Callable implementations (such as ones in Hudson's FilePath) and do quite a lot. So restrict that.
                     // OTOH, we need to allow RPCRequest so that method invocations on exported objects will go through.

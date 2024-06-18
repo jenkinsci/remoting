@@ -16,12 +16,11 @@
  */
 package org.jenkinsci.remoting.org.apache.commons.validator.routines;
 
+import static org.junit.Assert.assertThrows;
+
 import java.util.Arrays;
 import java.util.regex.PatternSyntaxException;
-
 import junit.framework.TestCase;
-
-import static org.junit.Assert.assertThrows;
 
 /**
  * Test Case for RegexValidatorTest.

@@ -24,7 +24,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;

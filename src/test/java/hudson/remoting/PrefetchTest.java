@@ -26,11 +26,10 @@ package hudson.remoting;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.objectweb.asm.ClassReader;
-
-import java.io.IOException;
 
 /**
  * @author Kohsuke Kawaguchi

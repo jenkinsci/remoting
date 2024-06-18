@@ -24,8 +24,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -34,6 +32,7 @@ import java.io.OutputStream;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 /**
  * Pipe for the remote {@link Callable} and the local program to talk to each other.

@@ -24,8 +24,8 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
+import java.util.IllegalFormatException;
 
 /**
  * An exception to flag that the connection has been refused.
@@ -49,7 +49,7 @@ public class ConnectionRefusalException extends IOException {
      * @param message The detail message format string.
      * @param args    Arguments referenced by the format specifiers in the format
      *                string.
-     * @throws java.util.IllegalFormatException If a format string contains an illegal syntax, a format
+     * @throws IllegalFormatException If a format string contains an illegal syntax, a format
      *                                          specifier that is incompatible with the given arguments,
      *                                          insufficient arguments given the format string, or other
      *                                          illegal conditions.
@@ -69,7 +69,7 @@ public class ConnectionRefusalException extends IOException {
      * @param message The detail message format string.
      * @param args    Arguments referenced by the format specifiers in the format
      *                string.
-     * @throws java.util.IllegalFormatException If a format string contains an illegal syntax, a format
+     * @throws IllegalFormatException If a format string contains an illegal syntax, a format
      *                                          specifier that is incompatible with the given arguments,
      *                                          insufficient arguments given the format string, or other
      *                                          illegal conditions.

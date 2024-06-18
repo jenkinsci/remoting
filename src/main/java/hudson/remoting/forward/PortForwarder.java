@@ -29,9 +29,6 @@ import hudson.remoting.Channel;
 import hudson.remoting.RemoteOutputStream;
 import hudson.remoting.SocketChannelStream;
 import hudson.remoting.VirtualChannel;
-import org.jenkinsci.remoting.Role;
-import org.jenkinsci.remoting.RoleChecker;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,8 +37,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.util.logging.Level.*;
+import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
 
 /**
  * Port forwarder over a remote channel.
@@ -63,11 +60,11 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
         // the caller can explicitly cancel this by doing "setDaemon(false)"
         setDaemon(true);
         setUncaughtExceptionHandler((t, e) -> {
-            LOGGER.log(SEVERE, e, () -> "Uncaught exception in PortForwarder thread " + t);
+            LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in PortForwarder thread " + t);
             try {
                 socket.close();
             } catch (IOException e1) {
-                LOGGER.log(SEVERE, "Could not close socket after uncaught exception");
+                LOGGER.log(Level.SEVERE, "Could not close socket after uncaught exception");
             }
         });
     }
@@ -105,7 +102,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
                                         }).start();
                             } catch (IOException e) {
                                 // this happens if the socket connection is terminated abruptly.
-                                LOGGER.log(FINE,"Port forwarding session was shut down abnormally",e);
+                                LOGGER.log(Level.FINE, "Port forwarding session was shut down abnormally", e);
                             }
                         }
                     }.start();
@@ -114,7 +111,7 @@ public class PortForwarder extends Thread implements Closeable, ListeningPort {
                 socket.close();
             }
         } catch (IOException e) {
-            LOGGER.log(FINE,"Port forwarding was shut down abnormally",e);
+            LOGGER.log(Level.FINE, "Port forwarding was shut down abnormally", e);
         }
     }
 

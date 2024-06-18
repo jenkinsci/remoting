@@ -1,9 +1,8 @@
 package hudson.remoting;
 
-import org.jenkinsci.remoting.nio.NioChannelHub;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.jenkinsci.remoting.nio.NioChannelHub;
 
 /**
  * @author Kohsuke Kawaguchi

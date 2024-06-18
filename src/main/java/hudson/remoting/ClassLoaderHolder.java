@@ -2,12 +2,10 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.RemoteClassLoader.IClassLoader;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 /**
  * Remoting-aware holder of {@link ClassLoader} that replaces ClassLoader by its {@link RemoteClassLoader}.
@@ -37,7 +35,7 @@ public class ClassLoaderHolder implements SerializableOnlyOverRemoting {
     }
 
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
-        IClassLoader proxy = (IClassLoader)ois.readObject();
+        RemoteClassLoader.IClassLoader proxy = (RemoteClassLoader.IClassLoader) ois.readObject();
         classLoader = proxy==null ? null : getChannelForSerialization().importedClassLoaders.get(proxy);
     }
 
@@ -47,7 +45,7 @@ public class ClassLoaderHolder implements SerializableOnlyOverRemoting {
         if (classLoader==null)
             oos.writeObject(null);
         else {
-            IClassLoader proxy = RemoteClassLoader.export(classLoader, getChannelForSerialization());
+            RemoteClassLoader.IClassLoader proxy = RemoteClassLoader.export(classLoader, getChannelForSerialization());
             oos.writeObject(proxy);
         }
     }

@@ -3,18 +3,13 @@ package org.jenkinsci.remoting.nio;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.AbstractByteArrayCommandTransport;
-import hudson.remoting.AbstractByteArrayCommandTransport.ByteArrayReceiver;
 import hudson.remoting.Callable;
 import hudson.remoting.Capability;
 import hudson.remoting.Channel;
-import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.ChunkHeader;
 import hudson.remoting.CommandTransport;
 import hudson.remoting.SingleLaneExecutorService;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.util.ExecutorServiceUtils;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,12 +31,10 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.nio.channels.SelectionKey.OP_READ;
-import static java.nio.channels.SelectionKey.OP_WRITE;
-import static java.util.logging.Level.SEVERE;
-import static java.util.logging.Level.WARNING;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 
 /**
  * Switch board of multiple {@link Channel}s through NIO select.
@@ -107,7 +100,7 @@ public class NioChannelHub implements Runnable, Closeable {
         private final Capability remoteCapability;
 
         /**
-         * Where we pools bytes read from {@link #rr()} but not yet passed to {@link ByteArrayReceiver}.
+         * Where we pools bytes read from {@link #rr()} but not yet passed to {@link AbstractByteArrayCommandTransport.ByteArrayReceiver}.
          *
          * The receiver buffer has to be big enough to accommodate a single command in its entirety.
          * There's no size restriction in a command, so we'll just buffer as much as we can.
@@ -119,7 +112,7 @@ public class NioChannelHub implements Runnable, Closeable {
         final FifoBuffer wb = new FifoBuffer(16*1024,256*1024);
 
         @CheckForNull
-        private ByteArrayReceiver receiver = null;
+        private AbstractByteArrayCommandTransport.ByteArrayReceiver receiver = null;
 
         /**
          * To ensure serial execution order within each {@link Channel}, we submit
@@ -239,7 +232,7 @@ public class NioChannelHub implements Runnable, Closeable {
         }
 
         @Override
-        public void setup(ByteArrayReceiver receiver) {
+        public void setup(AbstractByteArrayCommandTransport.ByteArrayReceiver receiver) {
             this.receiver = receiver;
             scheduleReregister();   // ready to read bytes now
         }
@@ -344,7 +337,7 @@ public class NioChannelHub implements Runnable, Closeable {
         @Override
         @SelectorThreadOnly
         public void reregister() throws IOException {
-            int flag = (wantsToWrite() && isWopen() ? OP_WRITE : 0) + (wantsToRead() && isRopen() ? OP_READ : 0);
+            int flag = (wantsToWrite() && isWopen() ? SelectionKey.OP_WRITE : 0) + (wantsToRead() && isRopen() ? SelectionKey.OP_READ : 0);
             if (ch.isOpen()) {
                 ch.configureBlocking(false);
                 ch.register(selector, flag).attach(this);
@@ -422,12 +415,12 @@ public class NioChannelHub implements Runnable, Closeable {
         public void reregister() throws IOException {
             if (isRopen()) {
                 r.configureBlocking(false);
-                r.register(selector, wantsToRead() ? OP_READ : 0).attach(this);
+                r.register(selector, wantsToRead() ? SelectionKey.OP_READ : 0).attach(this);
             }
 
             if (isWopen()) {
                 w.configureBlocking(false);
-                w.register(selector, wantsToWrite() ? OP_WRITE : 0).attach(this);
+                w.register(selector, wantsToWrite() ? SelectionKey.OP_WRITE : 0).attach(this);
             }
         }
 
@@ -442,7 +435,7 @@ public class NioChannelHub implements Runnable, Closeable {
     /**
      *
      * @param commandProcessor
-     *      Executor pool that delivers received command packets to {@link ByteArrayReceiver}.
+     *      Executor pool that delivers received command packets to {@link AbstractByteArrayCommandTransport.ByteArrayReceiver}.
      *      This pool will handle the deserialization (which may block due to classloading from the other side).
      */
     public NioChannelHub(ExecutorService commandProcessor) throws IOException {
@@ -467,11 +460,11 @@ public class NioChannelHub implements Runnable, Closeable {
             // TODO: handle text mode
 
             @Override
-            protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
+            protected CommandTransport makeTransport(InputStream is, OutputStream os, Channel.Mode mode, Capability cap) throws IOException {
                 if (r==null)    r = factory.create(is);
                 if (w==null)    w = factory.create(os);
                 boolean disableNio = Boolean.getBoolean(NioChannelHub.class.getName()+".disabled");
-                if (r!=null && w!=null && mode==Mode.BINARY && cap.supportsChunking() && !disableNio) {
+                if (r != null && w != null && mode == Channel.Mode.BINARY && cap.supportsChunking() && !disableNio) {
                     try {
                         // run() might be called asynchronously from another thread, so wait until that gets going
                         // if you see the execution hanging here forever, that means you forgot to call run()
@@ -579,7 +572,7 @@ public class NioChannelHub implements Runnable, Closeable {
                         try {
                             t.call();
                         } catch (IOException e) {
-                            LOGGER.log(WARNING, "Failed to process selectorTasks", e);
+                            LOGGER.log(Level.WARNING, "Failed to process selectorTasks", e);
                             // but keep on at the next task
                         }
                     }
@@ -588,7 +581,7 @@ public class NioChannelHub implements Runnable, Closeable {
                     selector.select();
                 } catch (IOException e) {
                     whatKilledSelectorThread = e;
-                    LOGGER.log(WARNING, "Failed to select", e);
+                    LOGGER.log(Level.WARNING, "Failed to select", e);
                     abortAll(e);
                     return;
                 }
@@ -636,7 +629,7 @@ public class NioChannelHub implements Runnable, Closeable {
                                         assert packetSize==0;
                                         if (packet.length > 0) {
                                             ExecutorServiceUtils.submitAsync(t.swimLane, () -> {
-                                                final ByteArrayReceiver receiver = t.receiver;
+                                                final AbstractByteArrayCommandTransport.ByteArrayReceiver receiver = t.receiver;
                                                 if (receiver == null) {
                                                     throw new IllegalStateException("NIO transport layer has not been set up yet");
                                                 }
@@ -649,7 +642,7 @@ public class NioChannelHub implements Runnable, Closeable {
 
                                 if (t.rb.writable()==0 && t.rb.readable()>0) {
                                     String msg = "Command buffer overflow. Read " + t.rb.readable() + " bytes but still too small for a single command";
-                                    LOGGER.log(WARNING, msg);
+                                    LOGGER.log(Level.WARNING, msg);
                                     // to avoid infinite hang, abort this connection
                                     t.abort(new IOException(msg));
                                 }
@@ -674,18 +667,18 @@ public class NioChannelHub implements Runnable, Closeable {
                             t.reregister();
                         } catch (IOException e) {
                             // It causes the channel failure, hence it is severe
-                            LOGGER.log(SEVERE, "Communication problem in " + t + ". NIO Transport will be aborted.", e);
+                            LOGGER.log(Level.SEVERE, "Communication problem in " + t + ". NIO Transport will be aborted.", e);
                             t.abort(e);
                         } catch (ExecutorServiceUtils.ExecutionRejectedException e) {
                             // TODO: should we try to reschedule the task if the issue is not fatal?
                             // The swimlane has rejected the execution, e.g. due to the "shutting down" state.
-                            LOGGER.log(SEVERE, "The underlying executor service rejected the task in " + t + ". NIO Transport will be aborted.", e);
+                            LOGGER.log(Level.SEVERE, "The underlying executor service rejected the task in " + t + ". NIO Transport will be aborted.", e);
                             t.abort(e);
                         } catch (CancelledKeyException e) {
                             // see JENKINS-24050. I don't understand how this can happen, given that the selector
                             // thread is the only thread that cancels keys. So to better understand what's going on,
                             // report the problem.
-                            LOGGER.log(SEVERE, "Unexpected key cancellation for " + t + ". NIO Transport will be aborted.", e);
+                            LOGGER.log(Level.SEVERE, "Unexpected key cancellation for " + t + ". NIO Transport will be aborted.", e);
                             // to be on the safe side, abort the communication. if we don't do this, it's possible
                             // that the key never gets re-registered to the selector, and the traffic will hang
                             // on this channel.
@@ -702,7 +695,7 @@ public class NioChannelHub implements Runnable, Closeable {
             whatKilledSelectorThread = e;
         } catch (RuntimeException | Error e) {
             whatKilledSelectorThread = e;
-            LOGGER.log(WARNING, "Unexpected shutdown of the selector thread", e);
+            LOGGER.log(Level.WARNING, "Unexpected shutdown of the selector thread", e);
             abortAll(e);
             throw e;
         } finally {

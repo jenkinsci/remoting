@@ -1,10 +1,8 @@
 package hudson.remoting;
 
-import hudson.remoting.RemoteInvocationHandler.RPCRequest;
-
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.DataInputStream;
 import java.io.ObjectInputStream;
 
 /**
@@ -25,8 +23,8 @@ public class TrafficAnalyzer {
             for (int n=0; ; n++) {
                 Command o = (Command)ois.readObject();
                 System.out.println("#"+n+" : "+o);
-                if (o instanceof RPCRequest) {
-                    RPCRequest request = (RPCRequest) o;
+                if (o instanceof RemoteInvocationHandler.RPCRequest) {
+                    RemoteInvocationHandler.RPCRequest request = (RemoteInvocationHandler.RPCRequest) o;
                     System.out.print("  (");
                     boolean first=true;
                     for (Object argument : request.getArguments()) {

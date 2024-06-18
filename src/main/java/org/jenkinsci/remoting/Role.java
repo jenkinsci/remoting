@@ -2,7 +2,6 @@ package org.jenkinsci.remoting;
 
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
-
 import java.util.Collection;
 import java.util.Set;
 

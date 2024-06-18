@@ -25,7 +25,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;

@@ -1,14 +1,13 @@
 package hudson.remoting;
 
 
-import java.io.File;
+import static org.junit.Assert.assertEquals;
+
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import static org.junit.Assert.*;
 
 /**
  * Runs a channel in a separate JVM by launching a new JVM.

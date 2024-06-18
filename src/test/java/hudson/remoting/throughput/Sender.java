@@ -1,13 +1,13 @@
 package hudson.remoting.throughput;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import hudson.remoting.CallableBase;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.Future;
 import hudson.remoting.Pipe;
 import hudson.remoting.SocketChannelStream;
-import org.apache.commons.io.IOUtils;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
@@ -21,8 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.*;
+import org.apache.commons.io.IOUtils;
 
 /**
  * @author Kohsuke Kawaguchi

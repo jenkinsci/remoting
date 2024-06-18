@@ -29,7 +29,6 @@ package org.jenkinsci.remoting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
-
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 

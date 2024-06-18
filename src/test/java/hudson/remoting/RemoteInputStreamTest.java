@@ -1,8 +1,5 @@
 package hudson.remoting;
 
-import static hudson.remoting.RemoteInputStream.Flag.GREEDY;
-import static hudson.remoting.RemoteInputStream.Flag.NOT_GREEDY;
-import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -13,6 +10,7 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 import org.apache.commons.io.input.BrokenInputStream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -29,7 +27,7 @@ public class RemoteInputStreamTest {
     public void testNonGreedy(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
-            channel.call(new Read(new RemoteInputStream(in, NOT_GREEDY), toBytes("1234")));
+            channel.call(new Read(new RemoteInputStream(in, RemoteInputStream.Flag.NOT_GREEDY), toBytes("1234")));
             assertArrayEquals(readFully(in, 4), "5678".getBytes());
         });
     }
@@ -42,7 +40,7 @@ public class RemoteInputStreamTest {
     public void testGreedy(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
-            channel.call(new Read(new RemoteInputStream(in, GREEDY), toBytes("1234")));
+            channel.call(new Read(new RemoteInputStream(in, RemoteInputStream.Flag.GREEDY), toBytes("1234")));
             // not very reliable but the intention is to have it greedily read
             Thread.sleep(100);
 
@@ -84,7 +82,7 @@ public class RemoteInputStreamTest {
     public void testGreedy2(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
-            final RemoteInputStream i = new RemoteInputStream(in, GREEDY);
+            final RemoteInputStream i = new RemoteInputStream(in, RemoteInputStream.Flag.GREEDY);
 
             channel.call(new TestGreedy2(i));
             assertEquals(-1, in.read());
@@ -116,7 +114,7 @@ public class RemoteInputStreamTest {
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testErrorPropagation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
-            for (RemoteInputStream.Flag f : asList(GREEDY, NOT_GREEDY)) {
+            for (RemoteInputStream.Flag f : List.of(RemoteInputStream.Flag.GREEDY, RemoteInputStream.Flag.NOT_GREEDY)) {
                 InputStream in = new SequenceInputStream(
                         new ByteArrayInputStream(toBytes("1234")),
                         new BrokenInputStream(new SkyIsFalling())

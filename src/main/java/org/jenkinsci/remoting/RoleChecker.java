@@ -3,7 +3,6 @@ package org.jenkinsci.remoting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Callable;
 import hudson.remoting.ChannelBuilder;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;

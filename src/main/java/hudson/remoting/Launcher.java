@@ -26,32 +26,6 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.Channel.Mode;
-import java.time.Duration;
-import java.time.Instant;
-import org.jenkinsci.remoting.DurationOptionHandler;
-import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
-import org.jenkinsci.remoting.engine.WorkDirManager;
-import org.jenkinsci.remoting.util.DurationFormatter;
-import org.jenkinsci.remoting.util.PathUtils;
-import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
-import org.kohsuke.args4j.Argument;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLHandshakeException;
-import javax.net.ssl.SSLSocketFactory;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
@@ -77,6 +51,8 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -88,6 +64,28 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLHandshakeException;
+import javax.net.ssl.SSLSocketFactory;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import org.jenkinsci.remoting.DurationOptionHandler;
+import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
+import org.jenkinsci.remoting.engine.WorkDirManager;
+import org.jenkinsci.remoting.util.DurationFormatter;
+import org.jenkinsci.remoting.util.PathUtils;
+import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 /**
  * Entry point for running a {@link Channel}. This is the main method of the agent JVM.
@@ -100,7 +98,7 @@ import java.util.logging.Logger;
  */
 @SuppressFBWarnings(value = "DM_EXIT", justification = "This class is runnable. It is eligible to exit in the case of wrong params")
 public class Launcher {
-    public Mode mode = Mode.BINARY;
+    public Channel.Mode mode = Channel.Mode.BINARY;
 
     /**
      * @deprecated removed without replacement
@@ -121,7 +119,7 @@ public class Launcher {
     @Option(name="-text",usage="encode communication with the controller with base64. " +
             "Useful for running agent over 8-bit unsafe protocol like telnet")
     public void setTextMode(boolean b) {
-        mode = b?Mode.TEXT:Mode.BINARY;
+        mode = b ? Channel.Mode.TEXT : Channel.Mode.BINARY;
         System.out.println("Running in "+mode.name().toLowerCase(Locale.ENGLISH)+" mode");
     }
 
@@ -220,7 +218,7 @@ public class Launcher {
     private SSLSocketFactory sslSocketFactory;
 
     /**
-     * Disables HTTPs Certificate validation of the server when using {@link org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver}.
+     * Disables HTTPs Certificate validation of the server when using {@link JnlpAgentEndpointResolver}.
      * This option is managed by the {@code -noCertificateCheck} option.
      */
     @Option(name="-noCertificateCheck", aliases = "-disableHttpsCertValidation", forbids = "-cert", usage="Ignore SSL validation errors - use as a last resort only.")
@@ -886,7 +884,7 @@ public class Launcher {
     }
 
     /**
-     * Checks if there is any {@link java.io.Console Console} object associated with JVM.
+     * Checks if there is any {@link Console} object associated with JVM.
      * If yes, prints a warning to STDOUT.
      */
     private static void ttyCheck() {
@@ -902,19 +900,19 @@ public class Launcher {
     }
 
     public static void main(InputStream is, OutputStream os) throws IOException, InterruptedException {
-        main(is,os,Mode.BINARY);
+        main(is, os, Channel.Mode.BINARY);
     }
 
-    public static void main(InputStream is, OutputStream os, Mode mode) throws IOException, InterruptedException {
+    public static void main(InputStream is, OutputStream os, Channel.Mode mode) throws IOException, InterruptedException {
         main(is,os,mode,false);
     }
 
     /**
      * @deprecated
-     *      Use {@link #main(InputStream, OutputStream, Mode, boolean, JarCache)}
+     *      Use {@link #main(InputStream, OutputStream, Channel.Mode, boolean, JarCache)}
      */
     @Deprecated
-    public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing) throws IOException, InterruptedException {
+    public static void main(InputStream is, OutputStream os, Channel.Mode mode, boolean performPing) throws IOException, InterruptedException {
         main(is, os, mode, performPing, null);
     }
     /**
@@ -923,7 +921,7 @@ public class Launcher {
      *              If {@code null}, a default value will be used.
      * @since 2.24
      */
-    public static void main(InputStream is, OutputStream os, Mode mode, boolean performPing, @CheckForNull JarCache cache) throws IOException, InterruptedException {
+    public static void main(InputStream is, OutputStream os, Channel.Mode mode, boolean performPing, @CheckForNull JarCache cache) throws IOException, InterruptedException {
         ExecutorService executor = Executors.newCachedThreadPool();
         ChannelBuilder cb = new ChannelBuilder("channel", executor)
                 .withMode(mode)

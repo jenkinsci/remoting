@@ -3,7 +3,6 @@ package hudson.remoting;
 import java.io.IOException;
 import java.net.Proxy;
 import java.net.URL;
-
 import org.junit.Test;
 
 public class URLDeserializatinHelperTest

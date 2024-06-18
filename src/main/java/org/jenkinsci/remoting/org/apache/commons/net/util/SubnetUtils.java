@@ -16,11 +16,10 @@
  */
 package org.jenkinsci.remoting.org.apache.commons.net.util;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Performs some subnet calculations given a network address and a subnet mask.

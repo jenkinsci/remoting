@@ -1,7 +1,6 @@
 package org.jenkinsci.remoting.nio;
 
 import hudson.remoting.Channel;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -12,8 +11,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.nio.channels.SelectionKey.*;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -51,7 +48,7 @@ public class SocketServerMain {
                 }
             }
         };
-        ss.register(nio.getSelector(), OP_ACCEPT);
+        ss.register(nio.getSelector(), SelectionKey.OP_ACCEPT);
         LOGGER.info("Waiting for connection");
         nio.run();
     }

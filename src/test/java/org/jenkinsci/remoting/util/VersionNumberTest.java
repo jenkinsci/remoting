@@ -23,9 +23,9 @@
  */
 package org.jenkinsci.remoting.util;
 
-import junit.framework.TestCase;
-
 import static org.junit.Assert.assertNotEquals;
+
+import junit.framework.TestCase;
 
 /**
  * @author Xavier Le Vourch

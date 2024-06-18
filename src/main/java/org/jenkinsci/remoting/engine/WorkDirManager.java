@@ -29,10 +29,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.TeeOutputStream;
-import org.jenkinsci.remoting.util.PathUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -51,6 +47,9 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import org.jenkinsci.remoting.util.PathUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Performs working directory management in remoting.
@@ -150,7 +149,7 @@ public class WorkDirManager {
 
     /**
      * Gets path to the property file with JUL settings.
-     * This method checks the value passed from {@link #setLoggingConfig(java.io.File)} first.
+     * This method checks the value passed from {@link #setLoggingConfig(File)} first.
      * If the value is not specified, it also checks the standard {@code java.util.logging.config.file} System property.
      * @return Path to the logging config file.
      *         {@code null} if it cannot be found.

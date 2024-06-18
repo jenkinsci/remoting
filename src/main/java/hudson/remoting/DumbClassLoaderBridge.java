@@ -1,17 +1,12 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.remoting.RemoteClassLoader.ClassFile;
-import hudson.remoting.RemoteClassLoader.ClassFile2;
-import hudson.remoting.RemoteClassLoader.IClassLoader;
-import hudson.remoting.RemoteClassLoader.ResourceFile;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.Map;
 
 /**
- * Implements full {@link IClassLoader} from a legacy one
+ * Implements full {@link RemoteClassLoader.IClassLoader} from a legacy one
  * that doesn't support prefetching methods.
  *
  * <p>
@@ -21,11 +16,11 @@ import java.util.Map;
  * @author Kohsuke Kawaguchi
  * @see Capability#supportsPrefetch()
  */
-class DumbClassLoaderBridge implements IClassLoader {
+class DumbClassLoaderBridge implements RemoteClassLoader.IClassLoader {
     @NonNull
-    private final IClassLoader base;
+    private final RemoteClassLoader.IClassLoader base;
 
-    DumbClassLoaderBridge(@NonNull IClassLoader base) {
+    DumbClassLoaderBridge(@NonNull RemoteClassLoader.IClassLoader base) {
         this.base = base;
     }
 
@@ -40,7 +35,7 @@ class DumbClassLoaderBridge implements IClassLoader {
     }
 
     @Override
-    public ClassFile fetch2(String className) throws ClassNotFoundException {
+    public RemoteClassLoader.ClassFile fetch2(String className) throws ClassNotFoundException {
         return base.fetch2(className);
     }
 
@@ -56,26 +51,26 @@ class DumbClassLoaderBridge implements IClassLoader {
     }
 
     @Override
-    public Map<String,ClassFile2> fetch3(String className) throws ClassNotFoundException {
-        ClassFile cf = fetch2(className);
+    public Map<String, RemoteClassLoader.ClassFile2> fetch3(String className) throws ClassNotFoundException {
+        RemoteClassLoader.ClassFile cf = fetch2(className);
         return Map.of(className,
-                new ClassFile2(cf.classLoader,new ResourceImageDirect(cf.classImage),null,null,null));
+                new RemoteClassLoader.ClassFile2(cf.classLoader, new ResourceImageDirect(cf.classImage), null, null, null));
     }
 
     @Override
-    public ResourceFile getResource2(String name) throws IOException {
+    public RemoteClassLoader.ResourceFile getResource2(String name) throws IOException {
         byte[] img = base.getResource(name);
         if (img==null)  return null;
-        return new ResourceFile(new ResourceImageDirect(img), null); // we are on the receiving side, so null is ok
+        return new RemoteClassLoader.ResourceFile(new ResourceImageDirect(img), null); // we are on the receiving side, so null is ok
     }
 
     @Override
     @NonNull
-    public ResourceFile[] getResources2(String name) throws IOException {
+    public RemoteClassLoader.ResourceFile[] getResources2(String name) throws IOException {
         byte[][] r = base.getResources(name);
-        ResourceFile[] res = new ResourceFile[r.length];
+        RemoteClassLoader.ResourceFile[] res = new RemoteClassLoader.ResourceFile[r.length];
         for (int i = 0; i < res.length; i++) {
-            res[i] = new ResourceFile(new ResourceImageDirect(r[i]),null); // we are on the receiving side, so null is ok
+            res[i] = new RemoteClassLoader.ResourceFile(new ResourceImageDirect(r[i]), null); // we are on the receiving side, so null is ok
         }
         return res;
     }

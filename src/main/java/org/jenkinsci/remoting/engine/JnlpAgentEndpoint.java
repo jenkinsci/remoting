@@ -26,9 +26,6 @@ package org.jenkinsci.remoting.engine;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.remoting.util.KeyUtils;
-import org.jenkinsci.remoting.util.ThrowableUtils;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -45,6 +42,8 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import org.jenkinsci.remoting.util.KeyUtils;
+import org.jenkinsci.remoting.util.ThrowableUtils;
 
 /**
  * Represents a {@code TcpSlaveAgentListener} endpoint details.
@@ -81,7 +80,7 @@ public class JnlpAgentEndpoint {
     private final String proxyCredentials;
 
     /**
-     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.net.URL, java.lang.String)}
+     * @deprecated Use {@link #JnlpAgentEndpoint(String, int, RSAPublicKey, Set, URL, String)}
      */
     @Deprecated
     public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,
@@ -90,7 +89,7 @@ public class JnlpAgentEndpoint {
     }
 
     /**
-     * @deprecated Use {@link #JnlpAgentEndpoint(java.lang.String, int, java.security.interfaces.RSAPublicKey, java.util.Set, java.net.URL, java.lang.String)}
+     * @deprecated Use {@link #JnlpAgentEndpoint(String, int, RSAPublicKey, Set, URL, String)}
      */
     @Deprecated
     public JnlpAgentEndpoint(@NonNull String host, int port, @CheckForNull RSAPublicKey publicKey,

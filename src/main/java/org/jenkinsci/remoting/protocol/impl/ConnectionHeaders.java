@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.ObjectInputStream;
 import java.util.Map;
 import java.util.TreeMap;

@@ -24,17 +24,16 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils;
-import org.jenkinsci.remoting.org.apache.commons.validator.routines.InetAddressValidator;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils;
+import org.jenkinsci.remoting.org.apache.commons.validator.routines.InetAddressValidator;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 @Restricted(NoExternalUse.class)
 public class NoProxyEvaluator {

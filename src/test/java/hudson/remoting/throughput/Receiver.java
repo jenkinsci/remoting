@@ -3,7 +3,6 @@ package hudson.remoting.throughput;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.SocketChannelStream;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.net.ServerSocket;

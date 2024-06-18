@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.engine;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.security.cert.X509Certificate;
 
 /**

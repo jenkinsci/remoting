@@ -26,9 +26,6 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,17 +45,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.concurrent.Future;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static hudson.remoting.Util.getBaseName;
-import static hudson.remoting.Util.makeResource;
-import static hudson.remoting.Util.readFully;
-import java.io.InvalidObjectException;
-import static java.util.logging.Level.FINE;
-import static java.util.logging.Level.WARNING;
+import org.jenkinsci.constant_pool_scanner.ConstantPoolScanner;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 /**
  * Loads class files from the other peer through {@link Channel}.
@@ -691,8 +683,8 @@ final class RemoteClassLoader extends URLClassLoader {
             }
 
             String p = jar.getPath().replace('\\', '/');
-            p = getBaseName(p);
-            File localJar = makeResource(p, proxy.fetchJar(jar));
+            p = Util.getBaseName(p);
+            File localJar = Util.makeResource(p, proxy.fetchJar(jar));
             addURL(localJar.toURI().toURL());
             prefetchedJars.add(jar);
             return true;
@@ -966,7 +958,7 @@ final class RemoteClassLoader extends URLClassLoader {
         @Override
         @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files.")
         public byte[] fetchJar(URL url) throws IOException {
-            return readFully(url.openStream());
+            return Util.readFully(url.openStream());
         }
 
         @Override
@@ -981,7 +973,7 @@ final class RemoteClassLoader extends URLClassLoader {
             }
 
             try {
-                return readFully(in);
+                return Util.readFully(in);
             } catch (IOException e) {
                 throw new ClassNotFoundException();
             }
@@ -1005,7 +997,7 @@ final class RemoteClassLoader extends URLClassLoader {
                 }
                 return new ClassFile(
                         exportId(ecl, channel),
-                        readFully(in));
+                        Util.readFully(in));
             } catch (IOException e) {
                 throw new ClassNotFoundException();
             }
@@ -1052,7 +1044,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     }
                 } catch (IllegalArgumentException e) {
                     // we determined that 'c' isn't in a jar file
-                    LOGGER.log(FINE, c + " isn't in a jar file: " + urlOfClassFile, e);
+                    LOGGER.log(Level.FINE, c + " isn't in a jar file: " + urlOfClassFile, e);
                 }
                 return fetch2(className).upconvert(referer, c, urlOfClassFile);
             } catch (IOException e) {
@@ -1087,7 +1079,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     }
                 }
             } catch (IOException e) {
-                LOGGER.log(WARNING, "Failed to analyze the class file: " + cf.local, e);
+                LOGGER.log(Level.WARNING, "Failed to analyze the class file: " + cf.local, e);
                 // ignore
             }
             return all;
@@ -1135,7 +1127,7 @@ final class RemoteClassLoader extends URLClassLoader {
                     return new ResourceFile(ir, resource);
                 }
             } catch (IllegalArgumentException e) {
-                LOGGER.log(FINE, name + " isn't in a jar file: " + resource, e);
+                LOGGER.log(Level.FINE, name + " isn't in a jar file: " + resource, e);
             }
             return new ResourceFile(resource);
         }
@@ -1149,7 +1141,7 @@ final class RemoteClassLoader extends URLClassLoader {
             if (resource == null) {
                 return null;
             }
-            return readFully(resource.openStream());
+            return Util.readFully(resource.openStream());
         }
 
         public List<URL> getResourcesURL(String name) throws IOException {
@@ -1181,7 +1173,7 @@ final class RemoteClassLoader extends URLClassLoader {
             List<URL> x = getResourcesURL(name);
             byte[][] r = new byte[x.size()][];
             for (int i = 0; i < r.length; i++) {
-                r[i] = readFully(x.get(i).openStream());
+                r[i] = Util.readFully(x.get(i).openStream());
             }
             return r;
         }
@@ -1377,7 +1369,7 @@ final class RemoteClassLoader extends URLClassLoader {
         try {
             return ConstantPoolScanner.dependencies(bytecode);
         } catch (IOException x) {
-            LOGGER.log(WARNING, "could not parse bytecode", x);
+            LOGGER.log(Level.WARNING, "could not parse bytecode", x);
             return Collections.emptySet();
         }
     }

@@ -26,7 +26,6 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.CancellationException;

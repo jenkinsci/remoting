@@ -1,7 +1,6 @@
 package org.jenkinsci.remoting;
 
 import hudson.remoting.Callable;
-
 import java.util.Collection;
 
 /**

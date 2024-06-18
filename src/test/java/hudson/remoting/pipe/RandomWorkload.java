@@ -1,11 +1,10 @@
 package hudson.remoting.pipe;
 
-import org.junit.Assert;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Random;
+import org.junit.Assert;
 
 /**
  * Use {@link Random} with the fixed seed as the data stream to detect corruption.

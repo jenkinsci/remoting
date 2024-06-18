@@ -1,13 +1,13 @@
 package hudson.remoting;
 
-import org.jenkinsci.remoting.CallableDecorator;
-import java.io.IOException;
-import java.util.concurrent.Callable;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.io.IOException;
+import java.util.concurrent.Callable;
+import org.jenkinsci.remoting.CallableDecorator;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 /**
  * @author Kohsuke Kawaguchi

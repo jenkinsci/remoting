@@ -24,11 +24,6 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.protocol.IOHub;
-import org.jenkinsci.remoting.protocol.IOHubReadyListener;
-import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
-import org.jenkinsci.remoting.protocol.NetworkLayer;
-import org.jenkinsci.remoting.util.ByteBufferQueue;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -44,6 +39,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.protocol.IOHub;
+import org.jenkinsci.remoting.protocol.IOHubReadyListener;
+import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
+import org.jenkinsci.remoting.protocol.NetworkLayer;
+import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.IOUtils;
 
 /**

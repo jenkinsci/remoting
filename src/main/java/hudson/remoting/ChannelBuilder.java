@@ -1,18 +1,7 @@
 package hudson.remoting;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.CallableDecorator;
-import hudson.remoting.Channel.Mode;
-import org.jenkinsci.remoting.Role;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.RoleSensitive;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.EOFException;
@@ -27,11 +16,19 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import org.jenkinsci.remoting.CallableDecorator;
+import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.RoleSensitive;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
@@ -64,7 +61,7 @@ public class ChannelBuilder {
     private final String name;
     private final ExecutorService executors;
     private ClassLoader base = this.getClass().getClassLoader();
-    private Mode mode = Mode.NEGOTIATE;
+    private Channel.Mode mode = Channel.Mode.NEGOTIATE;
     private Capability capability = new Capability();
     @CheckForNull
     private OutputStream header;
@@ -117,12 +114,12 @@ public class ChannelBuilder {
     /**
      * The encoding to be used over the stream.
      */
-    public ChannelBuilder withMode(Mode mode) {
+    public ChannelBuilder withMode(Channel.Mode mode) {
         this.mode = mode;
         return this;
     }
 
-    public Mode getMode() {
+    public Channel.Mode getMode() {
         return mode;
     }
 
@@ -437,9 +434,9 @@ public class ChannelBuilder {
         LOGGER.log(Level.FINER, "Sending capability preamble: {0}", capability);
         capability.writePreamble(os);
 
-        Mode mode = this.getMode();
+        Channel.Mode mode = this.getMode();
 
-        if(mode!= Mode.NEGOTIATE) {
+        if (mode != Channel.Mode.NEGOTIATE) {
             LOGGER.log(Level.FINER, "Sending mode preamble: {0}", mode);
             os.write(mode.preamble);
             os.flush();    // make sure that stream preamble is sent to the other end. avoids dead-lock
@@ -448,8 +445,8 @@ public class ChannelBuilder {
         }
 
         {// read the input until we hit preamble
-            Mode[] modes={Mode.BINARY,Mode.TEXT};
-            byte[][] preambles = new byte[][]{Mode.BINARY.preamble, Mode.TEXT.preamble, Capability.PREAMBLE};
+            Channel.Mode[] modes = {Channel.Mode.BINARY, Channel.Mode.TEXT};
+            byte[][] preambles = new byte[][]{Channel.Mode.BINARY.preamble, Channel.Mode.TEXT.preamble, Capability.PREAMBLE};
             int[] ptr=new int[3];
             Capability cap = new Capability(0); // remote capacity that we obtained. If we don't hear from remote, assume no capability
 
@@ -467,7 +464,7 @@ public class ChannelBuilder {
                             case 1:
                                 LOGGER.log(Level.FINER, "Received mode preamble: {0}", modes[i]);
                                 // transmission mode negotiation
-                                if(mode==Mode.NEGOTIATE) {
+                                if (mode == Channel.Mode.NEGOTIATE) {
                                     // now we know what the other side wants, so send the consistent preamble
                                     mode = modes[i];
                                     LOGGER.log(Level.FINER, "Sending agreed mode preamble: {0}", mode);
@@ -515,7 +512,7 @@ public class ChannelBuilder {
      * @param cap
      *      Capabilities of the other side, as determined during the handshaking.
      */
-    protected CommandTransport makeTransport(InputStream is, OutputStream os, Mode mode, Capability cap) throws IOException {
+    protected CommandTransport makeTransport(InputStream is, OutputStream os, Channel.Mode mode, Capability cap) throws IOException {
         FlightRecorderInputStream fis = new FlightRecorderInputStream(is);
 
         if (cap.supportsChunking())

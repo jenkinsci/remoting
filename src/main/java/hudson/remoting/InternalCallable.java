@@ -28,9 +28,9 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
- * For remoting internal use only: {@link hudson.remoting.Callable}s implement
+ * For remoting internal use only: {@link Callable}s implement
  * this marker interface to be allowed to bypass the required role check of
- * {@link hudson.remoting.RequiredRoleCheckerWrapper}, as the application-defined
+ * {@link RequiredRoleCheckerWrapper}, as the application-defined
  * roles are unknown to remoting.
  * Callables defined in Jenkins need to extend {@code MasterToSlaveCallable} or
  * (rarely) {@code SlaveToMasterCallable}, or (almost never) implement

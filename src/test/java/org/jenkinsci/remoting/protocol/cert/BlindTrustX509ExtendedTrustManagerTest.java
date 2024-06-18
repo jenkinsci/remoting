@@ -23,6 +23,9 @@
  */
 package org.jenkinsci.remoting.protocol.cert;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.notNullValue;
+
 import java.net.Socket;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
@@ -30,9 +33,6 @@ import javax.net.ssl.SSLEngine;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
-
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class BlindTrustX509ExtendedTrustManagerTest {
 

@@ -23,20 +23,19 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import java.net.SocketTimeoutException;
-import java.nio.Buffer;
-import java.util.logging.LogRecord;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.EOFException;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.NetworkLayer;
 import org.jenkinsci.remoting.protocol.ProtocolStack;

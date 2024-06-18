@@ -23,6 +23,24 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.Pipe;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLHandshakeException;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
@@ -46,23 +64,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLHandshakeException;
-import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.Pipe;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(Theories.class)
 public class SSLEngineFilterLayerTest {
@@ -462,7 +463,7 @@ public class SSLEngineFilterLayerTest {
 
     private void concurrentStress(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory, int serverLimit,
                                   int clientLimit)
-            throws java.io.IOException, InterruptedException, java.util.concurrent.ExecutionException {
+            throws IOException, InterruptedException, ExecutionException {
         Logger.getLogger(name.getMethodName()).log(
                 Level.INFO, "Starting test with server {0} client {1} serverLimit {2} clientLimit {3}", new Object[]{
                         serverFactory.getClass().getSimpleName(),
@@ -512,7 +513,7 @@ public class SSLEngineFilterLayerTest {
     @Theory
     public void sendingBiggerAndBiggerBatches(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory,
                                               BatchSendBufferingFilterLayer batch)
-            throws java.io.IOException, InterruptedException, java.util.concurrent.ExecutionException {
+            throws IOException, InterruptedException, ExecutionException {
         Logger.getLogger(name.getMethodName()).log(
                 Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[]{
                         serverFactory.getClass().getSimpleName(),
@@ -561,7 +562,7 @@ public class SSLEngineFilterLayerTest {
     @Theory
     public void bidiSendingBiggerAndBiggerBatches(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory,
                                                   BatchSendBufferingFilterLayer batch)
-            throws java.io.IOException, InterruptedException, java.util.concurrent.ExecutionException {
+            throws IOException, InterruptedException, ExecutionException {
         Logger.getLogger(name.getMethodName()).log(
                 Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[]{
                         serverFactory.getClass().getSimpleName(),

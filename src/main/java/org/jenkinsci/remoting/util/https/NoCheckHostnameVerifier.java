@@ -27,11 +27,10 @@
 package org.jenkinsci.remoting.util.https;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Hostname verifier, which accepts any hostname.

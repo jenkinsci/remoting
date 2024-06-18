@@ -2,9 +2,7 @@ package org.jenkinsci.remoting.nio;
 
 import hudson.remoting.CallableBase;
 import hudson.remoting.Channel;
-import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChannelBuilder;
-
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,7 +18,7 @@ public class SocketClientMain {
         LOGGER.info("Cnonected");
         Channel ch = new ChannelBuilder("client", es)
                 .withHeaderStream(new FlushEveryByteStream(System.out))
-                .withMode(Mode.BINARY)
+                .withMode(Channel.Mode.BINARY)
                 .build(s);
         LOGGER.info("Established.");
 

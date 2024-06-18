@@ -23,35 +23,8 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import java.util.concurrent.CompletableFuture;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
-import org.apache.commons.io.IOUtils;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.X500NameBuilder;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
-import org.jenkinsci.remoting.protocol.impl.AckFilterLayer;
-import org.jenkinsci.remoting.protocol.impl.BIONetworkLayer;
-import org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer;
-import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
-import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
-import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
@@ -75,12 +48,38 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
+import org.apache.commons.io.IOUtils;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
+import org.jenkinsci.remoting.protocol.impl.AckFilterLayer;
+import org.jenkinsci.remoting.protocol.impl.BIONetworkLayer;
+import org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer;
+import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
+import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
+import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 
 public class ProtocolStackLoopbackLoadStress {
 
