@@ -23,10 +23,9 @@
  */
 package hudson.remoting;
 
-import org.jenkinsci.remoting.RoleChecker;
-
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import org.jenkinsci.remoting.RoleChecker;
 
 /**
  * {@link Callable} used to verify the classloader used.

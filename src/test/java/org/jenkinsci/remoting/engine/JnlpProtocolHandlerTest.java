@@ -1,9 +1,14 @@
 package org.jenkinsci.remoting.engine;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.fail;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
 import hudson.remoting.TestCallable;
-
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -16,11 +21,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
-
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.protocol.IOHub;
@@ -39,12 +44,6 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
-
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
 
 @RunWith(Theories.class)
 public class JnlpProtocolHandlerTest {
@@ -290,7 +289,7 @@ public class JnlpProtocolHandlerTest {
 
     private void assertChannelFails(Future<Channel> clientChannelFuture,
                                     Future<Channel> serverChannelFuture,
-                                    Class<? extends Exception> serverExceptionType) throws InterruptedException, java.util.concurrent.TimeoutException {
+                                    Class<? extends Exception> serverExceptionType) throws InterruptedException, TimeoutException {
         try {
             serverRemotingChannel = serverChannelFuture.get(10, TimeUnit.SECONDS);
             fail();

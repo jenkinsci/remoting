@@ -1,11 +1,10 @@
-import org.apache.commons.io.IOUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import org.apache.commons.io.IOUtils;
 
 /**
  * Tool to parse the certificate chain in the jar file.

@@ -25,7 +25,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-
 import java.io.IOException;
 
 /**

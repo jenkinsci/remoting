@@ -1,11 +1,10 @@
 package hudson.remoting.throughput;
 
-import org.apache.commons.io.IOUtils;
-
 import java.io.ByteArrayInputStream;
 import java.net.Socket;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.io.IOUtils;
 
 /**
  * @author Kohsuke Kawaguchi

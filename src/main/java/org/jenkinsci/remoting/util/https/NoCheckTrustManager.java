@@ -27,11 +27,10 @@
 package org.jenkinsci.remoting.util.https;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.X509TrustManager;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-import javax.net.ssl.X509TrustManager;
-import java.security.cert.X509Certificate;
 
 /**
  * {@link X509TrustManager} that performs no check at all.

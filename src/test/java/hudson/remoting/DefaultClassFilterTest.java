@@ -23,20 +23,18 @@
  */
 package hudson.remoting;
 
-import static hudson.remoting.DefaultClassFilterTest.BlackListMatcher.blacklisted;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-
 import org.apache.commons.io.IOUtils;
-
+import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.junit.After;
@@ -70,9 +68,9 @@ public class DefaultClassFilterTest {
     @Test
     public void testDefaultsNoOverride() {
         assertThat("Default blacklist is not blacklisting some classes", defaultBadClasses,
-                                        everyItem(is(blacklisted())));
+                                        everyItem(is(BlackListMatcher.blacklisted())));
         assertThat("Default blacklist is not allowing some classes", defaultOKClasses,
-                                        everyItem(is(not(blacklisted()))));
+                                        everyItem(is(not(BlackListMatcher.blacklisted()))));
     }
 
     /**
@@ -89,9 +87,9 @@ public class DefaultClassFilterTest {
             }
         }
         setOverrideProperty(f.getAbsolutePath());
-        assertThat("Default blacklist should not be used", defaultBadClasses, everyItem(is(not(blacklisted()))));
-        assertThat("Custom blacklist should be used", badClasses, everyItem(is(blacklisted())));
-        assertThat("Custom blacklist is not allowing some classes", defaultOKClasses, everyItem(is(not(blacklisted()))));
+        assertThat("Default blacklist should not be used", defaultBadClasses, everyItem(is(not(BlackListMatcher.blacklisted()))));
+        assertThat("Custom blacklist should be used", badClasses, everyItem(is(BlackListMatcher.blacklisted())));
+        assertThat("Custom blacklist is not allowing some classes", defaultOKClasses, everyItem(is(not(BlackListMatcher.blacklisted()))));
     }
 
     /**
@@ -124,14 +122,14 @@ public class DefaultClassFilterTest {
 
     public static void setOverrideProperty(String value) {
         if (value == null) {
-            System.clearProperty(hudson.remoting.ClassFilter.FILE_OVERRIDE_LOCATION_PROPERTY);
+            System.clearProperty(ClassFilter.FILE_OVERRIDE_LOCATION_PROPERTY);
         } else {
-            System.setProperty(hudson.remoting.ClassFilter.FILE_OVERRIDE_LOCATION_PROPERTY, value);
+            System.setProperty(ClassFilter.FILE_OVERRIDE_LOCATION_PROPERTY, value);
         }
     }
 
     /** Simple hamcrest matcher that checks if the provided className is blacklisted. */
-    static class BlackListMatcher extends org.hamcrest.BaseMatcher<String> {
+    static class BlackListMatcher extends BaseMatcher<String> {
 
         @Override
         public void describeMismatch(Object item, Description description) {

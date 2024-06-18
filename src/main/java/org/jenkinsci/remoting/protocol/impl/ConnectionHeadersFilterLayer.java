@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -33,8 +34,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
 import org.jenkinsci.remoting.util.ByteBufferQueue;

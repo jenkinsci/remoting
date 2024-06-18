@@ -28,11 +28,10 @@ package org.jenkinsci.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.ProtectedExternally;
-
 import java.io.NotSerializableException;
 import java.io.Serializable;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.ProtectedExternally;
 
 /**
  * This interface indicates objects which are {@link Serializable} only for sending over the Remoting {@link Channel}.

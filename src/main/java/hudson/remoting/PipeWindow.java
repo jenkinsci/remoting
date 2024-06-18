@@ -25,12 +25,10 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.util.logging.Level.*;
 
 /**
  * Keeps track of the number of bytes that the sender can send without overwhelming the receiver of the pipe.
@@ -206,7 +204,7 @@ abstract class PipeWindow {
 
         @Override
         public synchronized void increase(int delta) {
-            if (LOGGER.isLoggable(FINER))
+            if (LOGGER.isLoggable(Level.FINER))
                 LOGGER.finer(String.format("increase(%d,%d)->%d",oid,delta,delta+available));
             available += delta;
             acked += delta;
@@ -239,7 +237,7 @@ abstract class PipeWindow {
 
         @Override
         public synchronized void decrease(int delta) {
-            if (LOGGER.isLoggable(FINER))
+            if (LOGGER.isLoggable(Level.FINER))
                 LOGGER.finer(String.format("decrease(%d,%d)->%d",oid,delta,available-delta));
             available -= delta;
             written+= delta;

@@ -23,7 +23,7 @@
  */
 package hudson.remoting;
 
-import javax.swing.*;
+import javax.swing.SwingUtilities;
 
 /**
  * Receives status notification from {@link Engine}.

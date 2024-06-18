@@ -28,10 +28,6 @@ import hudson.remoting.Callable;
 import hudson.remoting.RemoteOutputStream;
 import hudson.remoting.SocketChannelStream;
 import hudson.remoting.VirtualChannel;
-import org.jenkinsci.remoting.Role;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectStreamException;
@@ -39,6 +35,9 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 /**
  * Creates {@link Forwarder}.

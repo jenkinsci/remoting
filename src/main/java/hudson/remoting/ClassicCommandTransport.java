@@ -2,8 +2,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import hudson.remoting.Channel.Mode;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -16,7 +14,7 @@ import java.io.StreamCorruptedException;
  * 
  * <p>
  * This implementation builds a {@link SynchronousCommandTransport} on top of a plain bi-directional byte stream.
- * {@link Mode} support allows this to be built on 8-bit unsafe transport, such as telnet.
+ * {@link Channel.Mode} support allows this to be built on 8-bit unsafe transport, such as telnet.
  * 
  * @author Kohsuke Kawaguchi
  * @since 2.13

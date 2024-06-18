@@ -29,17 +29,15 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.util.logging.Level.*;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -400,7 +398,7 @@ final class ExportTable {
                 try {
                     ((ErrorPropagatingOutputStream)v.object).error(e);
                 } catch (Throwable x) {
-                    LOGGER.log(INFO, "Failed to propagate a channel termination error",x);
+                    LOGGER.log(Level.INFO, "Failed to propagate a channel termination error",x);
                 }
             }
         }
@@ -453,14 +451,14 @@ final class ExportTable {
      * Removes the exported object for the specified oid from the table.
      * @param oid Object ID. If {@code null} the method will do nothing.
      * @param callSite Unexport command caller
-     * @param severeErrorIfMissing Consider missing object as {@code SEVERE} error. {@code FINE} otherwise
+     * @param severeErrorIfMissing Consider missing object as {@link Level#SEVERE} error. {@link Level#FINE} otherwise
      * @since 2.62
      */
     synchronized void unexportByOid(@CheckForNull Integer oid, @CheckForNull Throwable callSite, boolean severeErrorIfMissing) {
         if(oid==null)     return;
         Entry<?> e = table.get(oid);
         if(e==null) {
-            Level loggingLevel = severeErrorIfMissing ? SEVERE : FINE;
+            Level loggingLevel = severeErrorIfMissing ? Level.SEVERE : Level.FINE;
             LOGGER.log(loggingLevel, "Trying to unexport an object that's already unexported", diagnoseInvalidObjectId(oid));
             if (callSite!=null)
                 LOGGER.log(loggingLevel, "2nd unexport attempt is here", callSite);

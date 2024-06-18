@@ -1,8 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import hudson.remoting.RemoteClassLoader.IClassLoader;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -23,7 +21,7 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  * multiple classloaders.
  *
  * <p>
- * To pass around ClassLoaders, this class uses OID instead of {@link IClassLoader}, since doing so
+ * To pass around ClassLoaders, this class uses OID instead of {@link RemoteClassLoader.IClassLoader}, since doing so
  * can results in recursive class resolution that may end up with NPE in ObjectInputStream.defaultReadFields like
  * described in the comment from huybrechts in HUDSON-4293.
  *
@@ -66,7 +64,7 @@ class MultiClassLoaderSerializer {
                 }
 
                 // tell the receiving side that they need to import a new classloader
-                // this reference count is released when RemoteInvocationHandler backing IClassLoader is GCed on the remote node.
+                // this reference count is released when RemoteInvocationHandler backing RemoteClassLoader.IClassLoader is GCed on the remote node.
                 writeInt(TAG_EXPORTED_CLASSLOADER);
                 writeInt(RemoteClassLoader.exportId(cl,channel));
             } else {// reference to a classloader that's already written

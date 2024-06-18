@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;

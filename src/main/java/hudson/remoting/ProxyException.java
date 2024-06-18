@@ -24,7 +24,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;

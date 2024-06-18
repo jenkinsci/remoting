@@ -45,7 +45,6 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
 import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.protocol.ApplicationLayer;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;

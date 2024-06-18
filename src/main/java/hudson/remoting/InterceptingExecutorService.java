@@ -1,8 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.CallableDecorator;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -12,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.jenkinsci.remoting.CallableDecorator;
 
 /**
  * {@link ExecutorService} that runs all the tasks in a given set of {@link CallableDecorator}s.

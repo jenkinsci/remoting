@@ -24,8 +24,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.util.IOUtils;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -33,6 +31,7 @@ import java.io.Serializable;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.util.IOUtils;
 
 /**
  * {@link InputStream} that reads bits from an exported

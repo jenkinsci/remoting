@@ -17,16 +17,16 @@
 /* Copied from commons-validator:commons-validator:1.7, with [PATCH] modifications */
 package org.jenkinsci.remoting.org.apache.commons.validator.routines;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
- * <p><b>InetAddress</b> validation and conversion routines ({@code java.net.InetAddress}).</p>
+ * <p><b>InetAddress</b> validation and conversion routines ({@link InetAddress}).</p>
  *
  * <p>This class provides methods to validate a candidate IP address.
  *

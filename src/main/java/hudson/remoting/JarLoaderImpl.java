@@ -1,8 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.NotSerializableException;
@@ -16,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 /**
  * Implements {@link JarLoader} to be called from the other side.

@@ -27,18 +27,9 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.CommandTransport.CommandReceiver;
-import hudson.remoting.PipeWindow.Key;
-import hudson.remoting.PipeWindow.Real;
 import hudson.remoting.forward.ForwarderFactory;
 import hudson.remoting.forward.ListeningPort;
 import hudson.remoting.forward.PortForwarder;
-import org.jenkinsci.remoting.CallableDecorator;
-import org.jenkinsci.remoting.nio.NioChannelHub;
-import org.jenkinsci.remoting.util.LoggingChannelListener;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.File;
@@ -65,10 +56,17 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
+import org.jenkinsci.remoting.CallableDecorator;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+import org.jenkinsci.remoting.nio.NioChannelHub;
+import org.jenkinsci.remoting.util.LoggingChannelListener;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Represents a communication channel to the remote peer.
@@ -594,7 +592,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         this.decorators.addAll(settings.getDecorators());
         this.properties.putAll(settings.getProperties());
 
-        transport.setup(this, new CommandReceiver() {
+        transport.setup(this, new CommandTransport.CommandReceiver() {
             @Override
             public void handle(Command cmd) {
                 commandsReceived.incrementAndGet();
@@ -716,7 +714,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      *
      * If the result is {@code true}, it means that the channel will be closed at some point by Remoting,
      * and that it makes no sense to send any new {@link UserRequest}s to the remote side.
-     * Invocations like {@link #call(hudson.remoting.Callable)} and {@link #callAsync(hudson.remoting.Callable)}
+     * Invocations like {@link #call(Callable)} and {@link #callAsync(Callable)}
      * will just fail as well.
      * @since 2.33
      */
@@ -965,7 +963,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /*package*/ PipeWindow getPipeWindow(int oid) {
         synchronized (pipeWindows) {
-            Key k = new Key(oid);
+            PipeWindow.Key k = new PipeWindow.Key(oid);
             WeakReference<PipeWindow> v = pipeWindows.get(k);
             if (v!=null) {
                 PipeWindow w = v.get();
@@ -975,7 +973,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
             PipeWindow w;
             if (remoteCapability.supportsPipeThrottling())
-                w = new Real(k, PIPE_WINDOW_SIZE);
+                w = new PipeWindow.Real(k, PIPE_WINDOW_SIZE);
             else
                 w = new PipeWindow.Fake();
             pipeWindows.put(k, new WeakReference<>(w));
@@ -1854,7 +1852,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @return Current channel
      * @throws IllegalStateException the calling thread has no associated channel.
      * @since 3.14
-     * @see org.jenkinsci.remoting.SerializableOnlyOverRemoting
+     * @see SerializableOnlyOverRemoting
      */
     @NonNull
     public static Channel currentOrFail() throws IllegalStateException {
@@ -2051,7 +2049,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
 
     /**
      * A reference for the {@link Channel} that can be cleared out on {@link #close()}/{@link #terminate(IOException)}.
-     * Could probably be replaced with {@link java.util.concurrent.atomic.AtomicReference} but then we would not retain the only change being
+     * Could probably be replaced with {@link AtomicReference} but then we would not retain the only change being
      * from valid channel to {@code null} channel semantics of this class.
      * @since 2.52
      * @see #reference

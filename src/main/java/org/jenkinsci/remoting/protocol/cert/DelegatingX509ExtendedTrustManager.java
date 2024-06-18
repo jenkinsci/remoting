@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.protocol.cert;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.net.Socket;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;

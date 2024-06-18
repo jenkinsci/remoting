@@ -24,8 +24,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.remoting.RemoteClassLoader.IClassLoader;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -37,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 final class ImportedClassLoaderTable {
     final Channel channel;
-    final Map<IClassLoader,ClassLoader> classLoaders = new ConcurrentHashMap<>();
+    final Map<RemoteClassLoader.IClassLoader, ClassLoader> classLoaders = new ConcurrentHashMap<>();
 
     ImportedClassLoaderTable(Channel channel) {
         this.channel = channel;
@@ -51,7 +49,7 @@ final class ImportedClassLoaderTable {
      */
     @NonNull
     public ClassLoader get(int oid) {
-        return get(RemoteInvocationHandler.wrap(channel, oid, IClassLoader.class, false, false, false, false));
+        return get(RemoteInvocationHandler.wrap(channel, oid, RemoteClassLoader.IClassLoader.class, false, false, false, false));
     }
 
     /**
@@ -61,7 +59,7 @@ final class ImportedClassLoaderTable {
      * @return Classloader instance
      */
     @NonNull
-    public ClassLoader get(@NonNull IClassLoader classLoaderProxy) {
+    public ClassLoader get(@NonNull RemoteClassLoader.IClassLoader classLoaderProxy) {
         // we need to be able to use the same hudson.remoting classes, hence delegate to this class loader.
         return classLoaders.computeIfAbsent(classLoaderProxy, proxy -> RemoteClassLoader.create(channel.baseClassLoader, proxy));
     }

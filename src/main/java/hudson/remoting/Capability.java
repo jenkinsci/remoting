@@ -1,7 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.Channel.Mode;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -140,7 +139,7 @@ public final class Capability implements Serializable {
      * Writes this capability to a stream.
      */
     private void write(OutputStream os) throws IOException {
-        try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(os)) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(Channel.Mode.TEXT.wrap(os)) {
             @Override
             public void close() throws IOException {
                 flush();
@@ -163,7 +162,7 @@ public final class Capability implements Serializable {
      */
     @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "Capability is used for negotiating channel between authorized agent and server. Whitelisting and proper deserialization hygiene are used.")
     public static Capability read(InputStream is) throws IOException {
-        try (ObjectInputStream ois = new ObjectInputStream(Mode.TEXT.wrap(is)) {
+        try (ObjectInputStream ois = new ObjectInputStream(Channel.Mode.TEXT.wrap(is)) {
                 // during deserialization, only accept Capability to protect ourselves
                 // from malicious payload. Allow java.lang.String so that
                 // future versions of Capability can send more complex data structure.

@@ -1,7 +1,6 @@
 package hudson.remoting.util;
 
 import hudson.remoting.CallableBase;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;

@@ -1,12 +1,11 @@
 package hudson.remoting;
 
-import org.jenkinsci.remoting.util.AnonymousClassWarnings;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
  * {@link CommandTransport} that works with {@code byte[]} instead of command object.

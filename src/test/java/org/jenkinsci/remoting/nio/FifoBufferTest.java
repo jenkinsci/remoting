@@ -1,8 +1,5 @@
 package org.jenkinsci.remoting.nio;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -11,6 +8,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * @author Kohsuke Kawaguchi

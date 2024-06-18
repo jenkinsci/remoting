@@ -30,17 +30,6 @@ import hudson.remoting.Engine;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
 import hudson.remoting.Util;
-import java.time.Duration;
-import java.time.Instant;
-import org.jenkinsci.remoting.util.DurationFormatter;
-import org.jenkinsci.remoting.util.VersionNumber;
-import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.Authenticator;
 import java.net.ConnectException;
@@ -50,7 +39,6 @@ import java.net.MalformedURLException;
 import java.net.NoRouteToHostException;
 import java.net.PasswordAuthentication;
 import java.net.Proxy;
-import java.net.Proxy.Type;
 import java.net.ProxySelector;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -61,6 +49,8 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
@@ -75,9 +65,15 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static java.util.logging.Level.INFO;
-import static org.jenkinsci.remoting.util.ThrowableUtils.chain;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSocketFactory;
+import org.jenkinsci.remoting.util.DurationFormatter;
+import org.jenkinsci.remoting.util.ThrowableUtils;
+import org.jenkinsci.remoting.util.VersionNumber;
+import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * @author Stephen Connolly
@@ -220,12 +216,12 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     con.setReadTimeout(60000);
                     con.connect();
                 } catch (IOException x) {
-                    firstError = chain(firstError,
+                    firstError = ThrowableUtils.chain(firstError,
                             new IOException("Failed to connect to " + salURL + ": " + x.getMessage(), x));
                     continue;
                 }
                 if (con.getResponseCode() != 200) {
-                    firstError = chain(firstError, new IOException(
+                    firstError = ThrowableUtils.chain(firstError, new IOException(
                             salURL + " is invalid: " + con.getResponseCode() + " " + con.getResponseMessage()));
                     continue;
                 }
@@ -236,7 +232,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                     VersionNumber minimumSupportedVersion = new VersionNumber(minimumSupportedVersionHeader);
                     VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
                     if (currentVersion.isOlderThan(minimumSupportedVersion)) {
-                        firstError = chain(firstError, new IOException(
+                        firstError = ThrowableUtils.chain(firstError, new IOException(
                                 "Agent version " + minimumSupportedVersion + " or newer is required."
                         ));
                         continue;
@@ -281,34 +277,34 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 try {
                     identity = getIdentity(idHeader);
                     if (identity == null) {
-                        firstError = chain(firstError, new IOException(
+                        firstError = ThrowableUtils.chain(firstError, new IOException(
                                 salURL + " appears to be publishing an invalid X-Instance-Identity."));
                         continue;
                     }
                 } catch (InvalidKeySpecException e) {
-                    firstError = chain(firstError, new IOException(
+                    firstError = ThrowableUtils.chain(firstError, new IOException(
                             salURL + " appears to be publishing an invalid X-Instance-Identity."));
                     continue;
                 }
 
                 if (portStr == null) {
-                    firstError = chain(firstError, new IOException(jenkinsUrl + " is not Jenkins"));
+                    firstError = ThrowableUtils.chain(firstError, new IOException(jenkinsUrl + " is not Jenkins"));
                     continue;
                 }
                 int port;
                 try {
                     port = Integer.parseInt(portStr);
                 } catch (NumberFormatException e) {
-                    firstError = chain(firstError, new IOException(jenkinsUrl + " is publishing an invalid port", e));
+                    firstError = ThrowableUtils.chain(firstError, new IOException(jenkinsUrl + " is publishing an invalid port", e));
                     continue;
                 }
                 if (port <= 0 || 65536 <= port) {
-                    firstError = chain(firstError, new IOException(jenkinsUrl + " is publishing an invalid port"));
+                    firstError = ThrowableUtils.chain(firstError, new IOException(jenkinsUrl + " is publishing an invalid port"));
                     continue;
                 }
                 if (tunnel == null) {
                     if (!isPortVisible(host, port)) {
-                        firstError = chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
+                        firstError = ThrowableUtils.chain(firstError, new IOException(jenkinsUrl + " provided port:" + port
                                 + " is not reachable on host " + host));
                         continue;
                     } else {
@@ -373,7 +369,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 });
             }
             InetSocketAddress proxyToUse = getResolvedHttpProxyAddress(hostname,port);
-            s = proxyToUse == null ? new Socket() : new Socket(new Proxy(Type.HTTP, proxyToUse)); 
+            s = proxyToUse == null ? new Socket() : new Socket(new Proxy(Proxy.Type.HTTP, proxyToUse));
             s.setReuseAddress(true);
             SocketAddress sa = new InetSocketAddress(hostname, port);
             s.connect(sa, 5000);
@@ -441,11 +437,11 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                             "Controller isn''t ready to talk to us on {0}. Will try again: response code={1}",
                             new Object[]{url, con.getResponseCode()});
                 } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
-                    LOGGER.log(INFO, "Failed to connect to {0}. Will try again: {1} {2}",
+                    LOGGER.log(Level.INFO, "Failed to connect to {0}. Will try again: {1} {2}",
                             new String[] {firstUrl, e.getClass().getName(), e.getMessage()});
                 } catch (IOException e) {
                     // report the failure
-                    LOGGER.log(INFO, e, () -> "Failed to connect to " + firstUrl + ". Will try again");
+                    LOGGER.log(Level.INFO, e, () -> "Failed to connect to " + firstUrl + ". Will try again");
                 }
             }
         } finally {

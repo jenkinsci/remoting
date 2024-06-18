@@ -1,8 +1,6 @@
 package hudson.remoting;
 
-import hudson.remoting.Channel.Mode;
-import org.jenkinsci.remoting.nio.NioChannelBuilder;
-import org.jenkinsci.remoting.nio.NioChannelHub;
+import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -14,9 +12,8 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static java.nio.channels.SelectionKey.OP_ACCEPT;
-import static org.junit.Assert.*;
+import org.jenkinsci.remoting.nio.NioChannelBuilder;
+import org.jenkinsci.remoting.nio.NioChannelHub;
 
 /**
  * Runs a channel over NIO+socket.
@@ -57,7 +54,7 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
         };
         nio.setFrameSize(115);  // force unaligned boundaries to shake things up a bit
 
-        ss.register(nio.getSelector(), OP_ACCEPT);
+        ss.register(nio.getSelector(), SelectionKey.OP_ACCEPT);
         LOGGER.info("Waiting for connection");
         executor.submit(() -> {
             try {
@@ -76,7 +73,7 @@ public class NioSocketRunner extends AbstractNioChannelRunner {
     }
 
     protected NioChannelBuilder configureNorth() {
-        return nio.newChannelBuilder("north", executor).withMode(Mode.BINARY);
+        return nio.newChannelBuilder("north", executor).withMode(Channel.Mode.BINARY);
     }
 
     protected NioChannelBuilder configureSouth() {

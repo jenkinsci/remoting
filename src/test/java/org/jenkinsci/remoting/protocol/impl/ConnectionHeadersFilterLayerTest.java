@@ -23,7 +23,23 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
@@ -41,23 +57,6 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
-
-import java.nio.ByteBuffer;
-import java.nio.channels.Pipe;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 
 @RunWith(Theories.class)
 public class ConnectionHeadersFilterLayerTest {

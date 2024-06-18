@@ -3,11 +3,6 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.pipe.RandomWorkload;
 import hudson.remoting.pipe.Workload;
-import org.jenkinsci.remoting.nio.FifoBuffer;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
-
 import java.io.ByteArrayOutputStream;
 import java.io.FilterOutputStream;
 import java.io.IOException;
@@ -17,6 +12,10 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import org.jenkinsci.remoting.nio.FifoBuffer;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Test;
 
 /**
  * @author Kohsuke Kawaguchi

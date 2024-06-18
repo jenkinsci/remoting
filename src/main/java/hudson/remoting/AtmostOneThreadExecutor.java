@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -7,9 +8,7 @@ import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
+import org.jenkinsci.remoting.util.ExecutorServiceUtils;
 
 /**
  * {@link ExecutorService} that uses at most one executor.
@@ -96,7 +95,7 @@ public class AtmostOneThreadExecutor extends AbstractExecutorService {
         synchronized (q) {
             if (isShutdown()) {
                 // No way this executor service can be recovered
-                throw new FatalRejectedExecutionException("This executor has been shutdown.");
+                throw new ExecutorServiceUtils.FatalRejectedExecutionException("This executor has been shutdown.");
             }
             q.add(command);
             if (!isAlive()) {

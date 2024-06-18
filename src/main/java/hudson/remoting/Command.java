@@ -26,7 +26,6 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -46,8 +45,8 @@ import java.util.concurrent.ExecutionException;
  * need to have the definition of {@link Command}-implementation.
  * 
  * @author Kohsuke Kawaguchi
- * @see hudson.remoting.Channel.Listener#onRead
- * @see hudson.remoting.Channel.Listener#onWrite
+ * @see Channel.Listener#onRead
+ * @see Channel.Listener#onWrite
  * @since 3.17
  */
 public abstract class Command implements Serializable {
@@ -170,7 +169,7 @@ public abstract class Command implements Serializable {
     }
 
     /**
-     * Should provide concise information useful for {@link hudson.remoting.Channel.Listener}.
+     * Should provide concise information useful for {@link Channel.Listener}.
      */
     @Override
     public abstract String toString();

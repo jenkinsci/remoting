@@ -1,7 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.Future;

@@ -2,11 +2,9 @@ package org.jenkinsci.remoting.nio;
 
 import hudson.remoting.Capability;
 import hudson.remoting.Channel;
-import hudson.remoting.Channel.Mode;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.ClassFilter;
 import hudson.remoting.JarCache;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
@@ -61,7 +59,7 @@ public abstract class NioChannelBuilder extends ChannelBuilder {
     }
 
     @Override
-    public NioChannelBuilder withMode(Mode mode) {
+    public NioChannelBuilder withMode(Channel.Mode mode) {
         return (NioChannelBuilder)super.withMode(mode);
     }
 

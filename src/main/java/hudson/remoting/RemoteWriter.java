@@ -24,12 +24,11 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Writer;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 /**
  * {@link Writer} that can be sent over to the remote {@link Channel},

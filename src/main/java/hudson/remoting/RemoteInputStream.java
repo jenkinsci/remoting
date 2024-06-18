@@ -25,22 +25,19 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.io.ObjectOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.StringWriter;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static hudson.remoting.RemoteInputStream.Flag.*;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 /**
  * Wraps {@link InputStream} so that it can be sent over the remoting channel.
@@ -66,7 +63,7 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
      */
     @Deprecated
     public RemoteInputStream(InputStream core) {
-        this(core, NOT_GREEDY);
+        this(core, RemoteInputStream.Flag.NOT_GREEDY);
     }
 
     /**
@@ -81,7 +78,7 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
      */
     @Deprecated
     public RemoteInputStream(InputStream core, boolean autoUnexport) {
-        this(core, NOT_GREEDY, autoUnexport?NOT_GREEDY:MANUAL_UNEXPORT);
+        this(core, RemoteInputStream.Flag.NOT_GREEDY, autoUnexport ? RemoteInputStream.Flag.NOT_GREEDY : RemoteInputStream.Flag.MANUAL_UNEXPORT);
     }
 
     /**
@@ -103,10 +100,10 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
      */
     public RemoteInputStream(InputStream core, Set<Flag> flags) {
         this.core = core;
-        greedy = flags.contains(GREEDY);
+        greedy = flags.contains(RemoteInputStream.Flag.GREEDY);
         if (greedy)
             greedyAt = new Greedy();
-        autoUnexport = !flags.contains(MANUAL_UNEXPORT);
+        autoUnexport = !flags.contains(RemoteInputStream.Flag.MANUAL_UNEXPORT);
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {

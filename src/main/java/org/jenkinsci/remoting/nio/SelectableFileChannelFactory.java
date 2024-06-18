@@ -1,7 +1,6 @@
 package org.jenkinsci.remoting.nio;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;

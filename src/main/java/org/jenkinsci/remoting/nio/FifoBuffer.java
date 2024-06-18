@@ -2,7 +2,6 @@ package org.jenkinsci.remoting.nio;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;

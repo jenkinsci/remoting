@@ -27,8 +27,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.Channel.Ref;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -192,7 +190,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     @CheckForNull
     private Channel channel() {
-        final Ref ch = this.channel;
+        final Channel.Ref ch = this.channel;
         return ch == null ? null : ch.channel();
     }
 
@@ -206,7 +204,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     @NonNull
     private Channel channelOrFail() throws IOException {
-        final Ref ch = this.channel;
+        final Channel.Ref ch = this.channel;
         if (ch == null) {
             throw new IOException("Not connected to any channel");
         }

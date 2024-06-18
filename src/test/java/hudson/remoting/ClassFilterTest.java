@@ -1,13 +1,10 @@
 package hudson.remoting;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.remoting.Channel.Mode;
-import hudson.remoting.CommandTransport.CommandReceiver;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-import org.jenkinsci.remoting.nio.NioChannelBuilder;
-import org.junit.After;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,8 +15,10 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
-
-import static org.junit.Assert.*;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
+import org.jenkinsci.remoting.nio.NioChannelBuilder;
+import org.junit.After;
+import org.junit.Test;
 
 /**
  * Tests the effect of {@link ClassFilter}.
@@ -31,8 +30,8 @@ import static org.junit.Assert.*;
  * <ul>
  * <li>{@link Capability#read(InputStream)}
  * <li>{@link UserRequest#deserialize(Channel, byte[], ClassLoader)},
- * <li>{@link ChannelBuilder#makeTransport(InputStream, OutputStream, Mode, Capability)}
- * <li>{@link AbstractByteArrayCommandTransport#setup(Channel, CommandReceiver)}
+ * <li>{@link ChannelBuilder#makeTransport(InputStream, OutputStream, Channel.Mode, Capability)}
+ * <li>{@link AbstractByteArrayCommandTransport#setup(Channel, CommandTransport.CommandReceiver)}
  * <li>{@link AbstractSynchronousByteArrayCommandTransport#read()}
  * </ul>
  *
@@ -107,7 +106,7 @@ public class ClassFilterTest implements Serializable {
     @Test
     public void capabilityRead() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (ObjectOutputStream oos = new ObjectOutputStream(Mode.TEXT.wrap(baos))) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(Channel.Mode.TEXT.wrap(baos))) {
             oos.writeObject(new Security218("rifle"));
         }
 
@@ -171,7 +170,7 @@ public class ClassFilterTest implements Serializable {
 
     /**
      * This test case targets command stream created in
-     * {@link ChannelBuilder#makeTransport(InputStream, OutputStream, Mode, Capability)}
+     * {@link ChannelBuilder#makeTransport(InputStream, OutputStream, Channel.Mode, Capability)}
      * by not having the chunking capability.
      */
     @Test
@@ -182,7 +181,7 @@ public class ClassFilterTest implements Serializable {
 
     /**
      * This test case targets command stream created in
-     * {@link AbstractByteArrayCommandTransport#setup(Channel, CommandReceiver)}
+     * {@link AbstractByteArrayCommandTransport#setup(Channel, CommandTransport.CommandReceiver)}
      */
     @Test
     public void transport_nio() throws Exception {

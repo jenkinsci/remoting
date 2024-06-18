@@ -43,7 +43,7 @@ public class ExecutorServiceUtils {
     
     /**
      * Submits a task to the executor service without further handling. 
-     * The original {@link ExecutorService#submit(java.lang.Runnable)} method actually expects this return value 
+     * The original {@link ExecutorService#submit(Runnable)} method actually expects this return value 
      * to be handled, but this method explicitly relies on the external logic to handle the future operation.
      * Use on your own risk.
      * @param es Executor service

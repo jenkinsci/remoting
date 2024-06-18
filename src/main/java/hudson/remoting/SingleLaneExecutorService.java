@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -10,10 +11,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils;
-import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
 
 /**
  * Creates an {@link ExecutorService} that executes submitted tasks sequentially
@@ -113,7 +111,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
     @Override
     public synchronized void execute(@NonNull Runnable command) {
         if (shuttingDown) {
-            throw new FatalRejectedExecutionException("Cannot execute the command " + command +
+            throw new ExecutorServiceUtils.FatalRejectedExecutionException("Cannot execute the command " + command +
                     ". The executor service is shutting down");
         }
             

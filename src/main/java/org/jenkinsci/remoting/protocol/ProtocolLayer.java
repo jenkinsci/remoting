@@ -23,11 +23,10 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import org.jenkinsci.remoting.util.ByteBufferUtils;
 
 /**

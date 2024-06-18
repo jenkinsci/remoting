@@ -130,7 +130,7 @@ public class TeeOutputStreamTest {
         }
 
         /**
-         * @see java.io.OutputStream#close()
+         * @see OutputStream#close
          */
         @Override
         public void close() throws IOException {

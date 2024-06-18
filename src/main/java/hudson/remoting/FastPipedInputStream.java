@@ -21,13 +21,13 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PipedInputStream;
 import java.lang.ref.WeakReference;
 
 /**
- * This class is equivalent to <code>java.io.PipedInputStream</code>. In the
+ * This class is equivalent to {@link PipedInputStream}. In the
  * interface it only adds a constructor which allows for specifying the buffer
  * size. Its implementation, however, is much simpler and a lot more efficient
  * than its equivalent. It doesn't rely on polling. Instead it uses proper

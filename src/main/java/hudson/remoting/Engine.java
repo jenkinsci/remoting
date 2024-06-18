@@ -26,7 +26,14 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.Channel.Mode;
+import jakarta.websocket.ClientEndpointConfig;
+import jakarta.websocket.CloseReason;
+import jakarta.websocket.ContainerProvider;
+import jakarta.websocket.Endpoint;
+import jakarta.websocket.EndpointConfig;
+import jakarta.websocket.HandshakeResponse;
+import jakarta.websocket.Session;
+import jakarta.websocket.WebSocketContainer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -75,14 +82,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
-import jakarta.websocket.ClientEndpointConfig;
-import jakarta.websocket.CloseReason;
-import jakarta.websocket.ContainerProvider;
-import jakarta.websocket.Endpoint;
-import jakarta.websocket.EndpointConfig;
-import jakarta.websocket.HandshakeResponse;
-import jakarta.websocket.Session;
-import jakarta.websocket.WebSocketContainer;
 import net.jcip.annotations.NotThreadSafe;
 import org.glassfish.tyrus.client.ClientManager;
 import org.glassfish.tyrus.client.ClientProperties;
@@ -1202,7 +1201,7 @@ public class Engine extends Thread {
 
         @Override
         public void beforeChannel(@NonNull JnlpConnectionState event) {
-            ChannelBuilder bldr = event.getChannelBuilder().withMode(Mode.BINARY);
+            ChannelBuilder bldr = event.getChannelBuilder().withMode(Channel.Mode.BINARY);
             if (jarCache != null) {
                 bldr.withJarCache(jarCache);
             }

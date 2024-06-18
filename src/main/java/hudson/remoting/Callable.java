@@ -24,11 +24,10 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.io.Serializable;
 import org.jenkinsci.remoting.ChannelStateException;
 import org.jenkinsci.remoting.RoleSensitive;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
-import java.io.Serializable;
 
 //TODO: Make it SerializableOnlyOverRemoting?
 // Oleg Nenashev: Formally there is no reason for that, you can serialize object over whatever binary stream and then
