@@ -669,8 +669,12 @@ final class RemoteClassLoader extends URLClassLoader {
      * @param jar Jar to be prefetched. Note that this file is an file on the other end,
      *            and doesn't point to anything meaningful locally.
      * @return true if the prefetch happened. false if the jar is already prefetched.
+     * @deprecated Only left in for compatibility with pre-2024-08 remoting. Use {@link #prefetch(java.net.URL, byte[])} instead.
      * @see Channel#preloadJar(Callable, Class[])
+     * @see hudson.remoting.PreloadJarTask
+     * @see hudson.remoting.PreloadJarTask2
      */
+    @Deprecated
     /*package*/ boolean prefetch(URL jar) throws IOException {
         synchronized (prefetchedJars) {
             if (prefetchedJars.contains(jar)) {
@@ -680,6 +684,31 @@ final class RemoteClassLoader extends URLClassLoader {
             String p = jar.getPath().replace('\\', '/');
             p = getBaseName(p);
             File localJar = makeResource(p, proxy.fetchJar(jar));
+            addURL(localJar.toURI().toURL());
+            prefetchedJars.add(jar);
+            return true;
+        }
+    }
+
+    /**
+     * Prefetches the specified jar with the specified content into this classloader.
+     * @param jar Jar to be prefetched. Note that this file is an file on the other end,
+     *            and doesn't point to anything meaningful locally.
+     * @param content the jar content
+     * @return true if the prefetch happened. false if the jar is already prefetched.
+     * @see Channel#preloadJar(Callable, Class[])
+     * @see hudson.remoting.PreloadJarTask2
+     * @since TODO 2024-08
+     */
+    /*package*/ boolean prefetch(URL jar, byte[] content) throws IOException {
+        synchronized (prefetchedJars) {
+            if (prefetchedJars.contains(jar)) {
+                return false;
+            }
+
+            String p = jar.getPath().replace('\\', '/');
+            p = Util.getBaseName(p);
+            File localJar = Util.makeResource(p, content);
             addURL(localJar.toURI().toURL());
             prefetchedJars.add(jar);
             return true;
@@ -828,6 +857,7 @@ final class RemoteClassLoader extends URLClassLoader {
      * Remoting interface.
      */
     public interface IClassLoader {
+        @Deprecated
         byte[] fetchJar(URL url) throws IOException;
 
         /**
@@ -945,8 +975,27 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         @Override
-        @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files.")
+        @SuppressFBWarnings(
+                value = "URLCONNECTION_SSRF_FD",
+                justification = "URL validation is being done through JarURLValidator")
         public byte[] fetchJar(URL url) throws IOException {
+            final Object o = channel.getProperty(JarURLValidator.class);
+            if (o == null) {
+                final boolean disabled = Boolean.getBoolean(Channel.class.getName() + ".DISABLE_JAR_URL_VALIDATOR");
+                LOGGER.log(Level.FINE, "Default behavior for URL: " + url + " with disabled flag: " + disabled);
+                if (!disabled) {
+                    throw new IOException(
+                            "No hudson.remoting.JarURLValidator has been set for this channel, so all #fetchJar calls are rejected."
+                                    + " This is likely a bug in Jenkins."
+                                    + " As a workaround, try updating the agent.jar file.");
+                }
+            } else {
+                if (o instanceof JarURLValidator) {
+                    ((JarURLValidator) o).validate(url);
+                } else {
+                    throw new IOException("Unexpected channel property hudson.remoting.JarURLValidator value: " + o);
+                }
+            }
             return readFully(url.openStream());
         }
 
