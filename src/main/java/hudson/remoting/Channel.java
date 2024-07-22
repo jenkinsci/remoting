@@ -52,11 +52,14 @@ import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.nio.channels.ClosedChannelException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -925,15 +928,51 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         return preloadJar(UserRequest.getClassLoader(classLoaderRef), classesInJar);
     }
 
+    @SuppressFBWarnings(
+            value = "DMI_COLLECTION_OF_URLS",
+            justification = "All URLs point to local files, so no DNS lookup.")
     public boolean preloadJar(ClassLoader local, Class<?>... classesInJar) throws IOException, InterruptedException {
-        URL[] jars = new URL[classesInJar.length];
-        for (int i = 0; i < classesInJar.length; i++)
-            jars[i] = Which.jarFile(classesInJar[i]).toURI().toURL();
-        return call(new PreloadJarTask(jars, local));
+        Set<URL> jarSet = new HashSet<>();
+        for (Class<?> clazz : classesInJar) {
+            jarSet.add(Which.jarFile(clazz).toURI().toURL());
+        }
+        URL[] jars = jarSet.toArray(new URL[0]);
+        return preloadJar(local, jars);
     }
 
+    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Callers are privileged controller-side code.")
     public boolean preloadJar(ClassLoader local, URL... jars) throws IOException, InterruptedException {
-        return call(new PreloadJarTask(jars,local));
+        byte[][] contents = new byte[jars.length][0];
+
+        List<URL> jarList = Arrays.asList(jars);
+        for (int i = 0; i < jarList.size(); i++) {
+            final URL url = jarList.get(i);
+            jars[i] = url;
+            contents[i] = Util.readFully(url.openStream());
+        }
+        try {
+            return call(new PreloadJarTask2(jars, contents, local));
+        } catch (IOException ex) {
+            if (ex.getCause() instanceof IllegalAccessError) {
+                logger.log(
+                        Level.FINE,
+                        ex,
+                        () -> "Failed to call PreloadJarTask2 on " + this + ", retrying with PreloadJarTask");
+                // When the agent is running an outdated version of remoting, we cannot access nonpublic classes in the
+                // same package, as PreloadJarTask2 would be loaded from the controller, and hence a different module/
+                // classloader, than the rest of remoting. As a result PreloadJarTask2 will throw IllegalAccessError:
+                //
+                // java.lang.IllegalAccessError: failed to access class hudson.remoting.RemoteClassLoader from class
+                // hudson.remoting.PreloadJarTask2 (hudson.remoting.RemoteClassLoader is in unnamed module of loader
+                // 'app'; hudson.remoting.PreloadJarTask2 is in unnamed module of loader 'Jenkins v${project.version}'
+                // @795f104a)
+                //
+                // Identify this error here and fall back to PreloadJarTask, relying on the restrictive controller-side
+                // implementation of IClassLoader#fetchJar.
+                return call(new PreloadJarTask(jars, local));
+            }
+            throw ex;
+        }
     }
 
     /**

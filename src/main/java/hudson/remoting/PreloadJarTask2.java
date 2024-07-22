@@ -24,33 +24,40 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import java.io.IOException;
+import java.net.URL;
 import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 
-import java.io.IOException;
-import java.net.URL;
-
 /**
  * {@link Callable} used to deliver a jar file to {@link RemoteClassLoader}.
- *
- * @author Kohsuke Kawaguchi
- * @deprecated Retained for compatibility with pre-2024-08 remoting only (see {@link Channel#preloadJar(ClassLoader, java.net.URL...)}), use {@link hudson.remoting.PreloadJarTask2}.
+ * <p>
+ *  This replaces {@link hudson.remoting.PreloadJarTask} and delivers the jar contents as part of the Callable rather
+ *  than needing to call {@link hudson.remoting.RemoteClassLoader#prefetch(java.net.URL)}.
+ * </p>
+ * @since TODO 2024-08
  */
-@Deprecated
-final class PreloadJarTask implements DelegatingCallable<Boolean, IOException> {
+final class PreloadJarTask2 implements DelegatingCallable<Boolean, IOException> {
     /**
      * Jar file to be preloaded.
      */
     private final URL[] jars;
 
-    //TODO: This implementation exists starting from https://github.com/jenkinsci/remoting/commit/f3d0a81fdf46a10c3c6193faf252efaeaee98823
-    // Since this time nothing has blown up, but it still seems to be suspicious.
-    // The solution for null classloaders is available in RemoteDiagnostics.Script#call() in the Jenkins core codebase
+    private final byte[][] contents;
+
+    // TODO: This implementation exists starting from
+    //  https://github.com/jenkinsci/remoting/commit/f3d0a81fdf46a10c3c6193faf252efaeaee98823
+    //  Since this time nothing has blown up, but it still seems to be suspicious.
+    //  The solution for null classloaders is available in RemoteDiagnostics.Script#call() in the Jenkins core codebase
     @CheckForNull
     private transient ClassLoader target = null;
 
-    PreloadJarTask(URL[] jars, @CheckForNull ClassLoader target) {
+    PreloadJarTask2(URL[] jars, byte[][] contents, @CheckForNull ClassLoader target) {
+        if (jars.length != contents.length) {
+            throw new IllegalArgumentException("Got " + jars.length + " jars and " + contents.length + " contents");
+        }
         this.jars = jars;
+        this.contents = contents;
         this.target = target;
     }
 
@@ -62,14 +69,22 @@ final class PreloadJarTask implements DelegatingCallable<Boolean, IOException> {
     @Override
     public Boolean call() throws IOException {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        if (!(cl instanceof RemoteClassLoader))
-            return false;
 
-        RemoteClassLoader rcl = (RemoteClassLoader) cl;
-        boolean r = false;
-        for (URL jar : jars)
-            r |= rcl.prefetch(jar);
-        return r;
+        try {
+            if (!(cl instanceof RemoteClassLoader)) {
+                return false;
+            }
+            final RemoteClassLoader rcl = (RemoteClassLoader) cl;
+
+            boolean r = false;
+            for (int i = 0; i < jars.length; i++) {
+                r |= rcl.prefetch(jars[i], contents[i]);
+            }
+            return r;
+        } catch (IllegalAccessError iae) {
+            // Catch the IAE instead of letting it be wrapped by remoting to suppress warnings logged on the agent-side
+            throw new IOException(iae);
+        }
     }
 
     /**
@@ -78,7 +93,7 @@ final class PreloadJarTask implements DelegatingCallable<Boolean, IOException> {
      */
     @Override
     public void checkRoles(RoleChecker checker) throws SecurityException {
-        checker.check(this,Role.UNKNOWN);
+        checker.check(this, Role.UNKNOWN);
     }
 
     private static final long serialVersionUID = -773448303394727271L;
