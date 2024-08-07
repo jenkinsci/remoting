@@ -1018,29 +1018,7 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
             jars[i] = url;
             contents[i] = Util.readFully(url.openStream());
         }
-        try {
-            return call(new PreloadJarTask2(jars, contents, local));
-        } catch (IOException ex) {
-            if (ex.getCause() instanceof IllegalAccessError) {
-                logger.log(
-                        Level.FINE,
-                        ex,
-                        () -> "Failed to call PreloadJarTask2 on " + this + ", retrying with PreloadJarTask");
-                // When the agent is running an outdated version of remoting, we cannot access nonpublic classes in the
-                // same package, as PreloadJarTask2 would be loaded from the controller, and hence a different module/
-                // classloader, than the rest of remoting. As a result PreloadJarTask2 will throw IllegalAccessError:
-                //
-                // java.lang.IllegalAccessError: failed to access class hudson.remoting.RemoteClassLoader from class
-                // hudson.remoting.PreloadJarTask2 (hudson.remoting.RemoteClassLoader is in unnamed module of loader
-                // 'app'; hudson.remoting.PreloadJarTask2 is in unnamed module of loader 'Jenkins v${project.version}'
-                // @795f104a)
-                //
-                // Identify this error here and fall back to PreloadJarTask, relying on the restrictive controller-side
-                // implementation of IClassLoader#fetchJar.
-                return call(new PreloadJarTask(jars, local));
-            }
-            throw ex;
-        }
+        return call(new PreloadJarTask2(jars, contents, local));
     }
 
     /**
