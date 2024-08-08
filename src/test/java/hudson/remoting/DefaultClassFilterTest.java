@@ -113,6 +113,14 @@ public class DefaultClassFilterTest {
      */
     @Test(expected = Error.class)
     public void testDefaultsAreUsedIfOverridesAreGarbage() throws Exception {
+        /* initialize ClassFilter class to avoid `java.lang.NoClassDefFoundError` */
+        try {
+            ClassFilter.createDefaultInstance();
+            clearProperty();
+        } catch (Throwable t) {
+             System.err.println("First initialization: " + t.getMessage());
+        }
+        
         List<String> badClasses = List.of("Z{100,0}" /* min > max for repetition */);
         File f = folder.newFile("overrides.txt");
         try (FileOutputStream fos = new FileOutputStream(f)) {
