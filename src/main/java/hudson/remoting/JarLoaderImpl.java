@@ -46,6 +46,7 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
         if (channel != null) {
             if (url.getProtocol().equals("file")) {
                 try {
+                    LOGGER.log(Level.FINE, () -> "sending " + url + " to " + channel.getName());
                     channel.notifyJar(new File(url.toURI()));
                 } catch (URISyntaxException | IllegalArgumentException x) {
                     LOGGER.log(Level.WARNING, x, () -> "cannot properly report " + url);
