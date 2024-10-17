@@ -44,6 +44,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
@@ -486,9 +487,13 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
     @CheckForNull
     static InetSocketAddress getResolvedHttpProxyAddress(@NonNull String host, int port) throws IOException {
         InetSocketAddress targetAddress = null;
-        Iterator<Proxy> proxies = ProxySelector.getDefault()
-                .select(URI.create(String.format("http://%s:%d", host, port)))
-                .iterator();
+        URI uri;
+        try {
+            uri = new URI("http", null, host, port, null, null, null);
+        } catch (URISyntaxException x) {
+            throw new IOException(x);
+        }
+        Iterator<Proxy> proxies = ProxySelector.getDefault().select(uri).iterator();
         while (targetAddress == null && proxies.hasNext()) {
             Proxy proxy = proxies.next();
             if (proxy.type() == Proxy.Type.DIRECT) {
