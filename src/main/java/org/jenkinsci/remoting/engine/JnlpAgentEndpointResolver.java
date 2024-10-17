@@ -493,9 +493,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
         } catch (URISyntaxException x) {
             throw new IOException(x);
         }
-        Iterator<Proxy> proxies = ProxySelector.getDefault()
-                .select(uri)
-                .iterator();
+        Iterator<Proxy> proxies = ProxySelector.getDefault().select(uri).iterator();
         while (targetAddress == null && proxies.hasNext()) {
             Proxy proxy = proxies.next();
             if (proxy.type() == Proxy.Type.DIRECT) {

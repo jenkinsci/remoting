@@ -37,5 +37,4 @@ public final class JnlpAgentEndpointResolverTest {
         // Ignore return value, just assert that it does not throw an exception:
         JnlpAgentEndpointResolver.getResolvedHttpProxyAddress("0:0:0:0:0:0:0:1%lo", 12345);
     }
-
 }
