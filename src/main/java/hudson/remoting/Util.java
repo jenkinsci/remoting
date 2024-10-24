@@ -1,11 +1,8 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.remoting.util.PathUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -15,9 +12,14 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Enumeration;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import org.jenkinsci.remoting.util.PathUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Misc. I/O utilities
@@ -32,13 +34,13 @@ public class Util {
      * Acts like basename(1)
      */
     static String getBaseName(String path) {
-        return path.substring(path.lastIndexOf('/')+1);
+        return path.substring(path.lastIndexOf('/') + 1);
     }
 
     static byte[] readFully(InputStream in) throws IOException {
         // TODO perhaps replace by in.readAllBytes() after checking close behavior
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        copy(in,baos);
+        copy(in, baos);
         return baos.toByteArray();
     }
 
@@ -53,14 +55,16 @@ public class Util {
     }
 
     @NonNull
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "This path exists within a temp directory so the potential traversal is limited.")
+    @SuppressFBWarnings(
+            value = "PATH_TRAVERSAL_IN",
+            justification = "This path exists within a temp directory so the potential traversal is limited.")
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
         File resource = new File(tmpDir.toFile(), name);
         Files.createDirectories(PathUtils.fileToPath(resource.getParentFile()));
         Files.createFile(PathUtils.fileToPath(resource));
 
-        try(FileOutputStream fos = new FileOutputStream(resource)) {
+        try (FileOutputStream fos = new FileOutputStream(resource)) {
             fos.write(image);
         }
 
@@ -83,7 +87,9 @@ public class Util {
         if (dir.isDirectory()) {
             File[] childFiles = dir.listFiles();
             if (childFiles != null) { // listFiles may return null if there's an IO error
-                for (File f: childFiles) { deleteDirectoryOnExit(f); }
+                for (File f : childFiles) {
+                    deleteDirectoryOnExit(f);
+                }
             }
         }
     }
@@ -92,17 +98,18 @@ public class Util {
         return "    " + s.trim().replace("\n", "\n    ");
     }
 
-    static public String getVersion() {
+    public static String getVersion() {
         String version = "unknown";
         try {
-            Enumeration<URL> resEnum = Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
+            Enumeration<URL> resEnum =
+                    Thread.currentThread().getContextClassLoader().getResources(JarFile.MANIFEST_NAME);
             while (resEnum.hasMoreElements()) {
                 URL url = resEnum.nextElement();
-                try(InputStream is = url.openStream()) {
+                try (InputStream is = url.openStream()) {
                     if (is != null) {
                         Manifest manifest = new Manifest(is);
                         version = manifest.getMainAttributes().getValue("Version");
-                        if(version != null) {
+                        if (version != null) {
                             break;
                         }
                     }
@@ -114,7 +121,12 @@ public class Util {
         return version;
     }
 
-    private Util() {
+    public static boolean shouldBailOut(@NonNull Instant firstAttempt, @CheckForNull Duration noReconnectAfter) {
+        if (noReconnectAfter == null) {
+            return false;
+        }
+        return Duration.between(firstAttempt, Instant.now()).compareTo(noReconnectAfter) > 0;
     }
 
+    private Util() {}
 }

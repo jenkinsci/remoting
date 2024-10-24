@@ -15,7 +15,6 @@ public final class ChannelRunners {
                 new NioPipeRunner(),
                 new InProcessCompatibilityRunner(),
                 new ForkRunner(),
-                new ForkEBCDICRunner()
-        );
+                new ForkEBCDICRunner());
     }
 }

@@ -23,18 +23,18 @@
  */
 package hudson.remoting;
 
-import java.net.SocketException;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.SocketException;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 /**
  * @author Kohsuke Kawaguchi
  */
-public class NonSerializableExceptionTest  {
+public class NonSerializableExceptionTest {
     /**
      * Makes sure non-serializable exceptions are gracefully handled.
      *
@@ -62,14 +62,16 @@ public class NonSerializableExceptionTest  {
         private NoneSerializableException(String msg, Throwable cause) {
             super(msg, cause);
         }
+
         private static final long serialVersionUID = 1L;
     }
 
     private static final class Failure extends CallableBase<Object, Throwable> {
         @Override
         public Object call() throws Throwable {
-            throw new NoneSerializableException("message1",new SocketException("message2"));
+            throw new NoneSerializableException("message1", new SocketException("message2"));
         }
+
         private static final long serialVersionUID = 1L;
     }
 }

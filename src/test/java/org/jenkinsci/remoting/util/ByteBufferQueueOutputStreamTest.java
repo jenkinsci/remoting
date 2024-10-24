@@ -23,13 +23,12 @@
  */
 package org.jenkinsci.remoting.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ByteBufferQueueOutputStreamTest {
     @Test
@@ -77,5 +76,4 @@ public class ByteBufferQueueOutputStreamTest {
         }
         return r.toString();
     }
-
 }

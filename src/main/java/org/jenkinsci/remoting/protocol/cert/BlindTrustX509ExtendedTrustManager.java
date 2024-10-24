@@ -24,11 +24,10 @@
 package org.jenkinsci.remoting.protocol.cert;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.X509ExtendedTrustManager;
 import java.net.Socket;
 import java.security.cert.X509Certificate;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.X509ExtendedTrustManager;
 
 /**
  * An {@link X509ExtendedTrustManager} that trusts everything always.

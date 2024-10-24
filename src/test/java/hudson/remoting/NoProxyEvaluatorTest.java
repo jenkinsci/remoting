@@ -1,8 +1,9 @@
 package hudson.remoting;
 
-import org.junit.Test;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 public class NoProxyEvaluatorTest {
 
@@ -79,7 +80,8 @@ public class NoProxyEvaluatorTest {
 
     @Test
     public void testSubFWDNWithDotMinimalSuffixMixedCase() {
-        NoProxyEvaluator evaluator = new NoProxyEvaluator(".svc,.default,.local,localhost,.boehringer.com,10.250.0.0/16,10.251.0.0/16,10.183.195.106,10.183.195.107,10.183.195.108,10.183.195.109,10.183.195.11,10.183.195.111,10.183.195.112,10.183.195.113,10.183.195.13,10.250.127.");
+        NoProxyEvaluator evaluator = new NoProxyEvaluator(
+                ".svc,.default,.local,localhost,.boehringer.com,10.250.0.0/16,10.251.0.0/16,10.183.195.106,10.183.195.107,10.183.195.108,10.183.195.109,10.183.195.11,10.183.195.111,10.183.195.112,10.183.195.113,10.183.195.13,10.250.127.");
 
         assertFalse(evaluator.shouldProxyHost("bn-myproj.svc"));
     }
@@ -246,5 +248,4 @@ public class NoProxyEvaluatorTest {
         assertFalse(evaluator.shouldProxyHost("2001:0db8:0a0b:12f0:0000:0000:0000:0001"));
         assertFalse(evaluator.shouldProxyHost("2001:0db8:0a0b:12f0::0001"));
     }
-
 }

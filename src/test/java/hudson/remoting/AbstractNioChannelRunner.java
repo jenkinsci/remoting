@@ -1,9 +1,8 @@
 package hudson.remoting;
 
-import org.jenkinsci.remoting.nio.NioChannelHub;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.jenkinsci.remoting.nio.NioChannelHub;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -17,7 +16,6 @@ public abstract class AbstractNioChannelRunner implements DualSideChannelRunner 
     protected Throwable failure;
 
     protected Channel south;
-
 
     @Override
     public void stop(Channel channel) throws Exception {
@@ -35,8 +33,9 @@ public abstract class AbstractNioChannelRunner implements DualSideChannelRunner 
         nio.close();
         executor.shutdown();
 
-        if(failure!=null)
-            throw new AssertionError(failure);  // report a failure in the south side
+        if (failure != null) {
+            throw new AssertionError(failure); // report a failure in the south side
+        }
     }
 
     @Override

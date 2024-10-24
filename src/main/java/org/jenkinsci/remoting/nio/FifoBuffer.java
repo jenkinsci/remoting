@@ -2,7 +2,6 @@ package org.jenkinsci.remoting.nio;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,13 +56,13 @@ public class FifoBuffer implements Closeable {
         }
 
         Pointer copy() {
-            return new Pointer(p,off);
+            return new Pointer(p, off);
         }
 
         void forward(int offset) {
-            while (offset>0) {
-                int ch = Math.min(offset,chunk());
-                assert 0<ch && ch<=offset;
+            while (offset > 0) {
+                int ch = Math.min(offset, chunk());
+                assert 0 < ch && ch <= offset;
                 offset -= ch;
                 off += ch;
             }
@@ -73,53 +72,56 @@ public class FifoBuffer implements Closeable {
          * Figure out the number of bytes that can be read/written in one array copy.
          */
         private int chunk() {
-            int sz = pageSize-off;
-            assert sz>=0;
+            int sz = pageSize - off;
+            assert sz >= 0;
 
-            if (sz>0)   return sz;
+            if (sz > 0) {
+                return sz;
+            }
 
             Page q = p.next;
-            if (q==null)
+            if (q == null) {
                 q = p.next = newPage();
+            }
             p = q;
             off = 0;
             return pageSize;
         }
 
         public void write(ByteBuffer buf, int len) {
-            while (len>0) {
-                int chunk = Math.min(len,chunk());
+            while (len > 0) {
+                int chunk = Math.min(len, chunk());
                 buf.get(p.buf, off, chunk);
 
-                off+=chunk;
-                len-=chunk;
+                off += chunk;
+                len -= chunk;
             }
         }
 
         public void write(byte[] buf, int start, int len) {
-            while (len>0) {
-                int chunk = Math.min(len,chunk());
-                System.arraycopy(buf,start,p.buf,off,chunk);
+            while (len > 0) {
+                int chunk = Math.min(len, chunk());
+                System.arraycopy(buf, start, p.buf, off, chunk);
 
-                off+=chunk;
-                len-=chunk;
-                start+=chunk;
+                off += chunk;
+                len -= chunk;
+                start += chunk;
             }
         }
 
         public void read(byte[] buf, int start, int len) {
-            while (len>0) {
-                int chunk = Math.min(len,chunk());
-                assert off+chunk <= p.buf.length;
-                assert start+chunk <= buf.length;
-                assert off>=0;
-                assert start>=0;
-                assert chunk>=0;
-                System.arraycopy(p.buf,off,buf,start,chunk);
+            while (len > 0) {
+                int chunk = Math.min(len, chunk());
+                assert off + chunk <= p.buf.length;
+                assert start + chunk <= buf.length;
+                assert off >= 0;
+                assert start >= 0;
+                assert chunk >= 0;
+                System.arraycopy(p.buf, off, buf, start, chunk);
 
-                off+=chunk;
-                len-=chunk;
-                start+=chunk;
+                off += chunk;
+                len -= chunk;
+                start += chunk;
             }
         }
 
@@ -127,19 +129,21 @@ public class FifoBuffer implements Closeable {
          * Returns the current page as a {@link ByteBuffer}.
          */
         private ByteBuffer asBuffer(int max) {
-            int ch = chunk();   // this needs to be done first
-            return ByteBuffer.wrap(p.buf,off,Math.min(ch,max));
+            int ch = chunk(); // this needs to be done first
+            return ByteBuffer.wrap(p.buf, off, Math.min(ch, max));
         }
 
         public int send(WritableByteChannel ch, int max) throws IOException {
             int n = ch.write(asBuffer(max));
-            off+=n;
+            off += n;
             return n;
         }
 
         public int receive(ReadableByteChannel ch, int max) throws IOException {
             int n = ch.read(asBuffer(max));
-            if (n>=0)   off+=n;
+            if (n >= 0) {
+                off += n;
+            }
             return n;
         }
     }
@@ -155,12 +159,13 @@ public class FifoBuffer implements Closeable {
      */
     @GuardedBy("lock")
     private int limit;
+
     private final int pageSize;
 
     /**
      * The position at which the next read/write will happen.
      */
-    private Pointer r,w;
+    private Pointer r, w;
 
     /**
      * Set to true when the writer closes the write end.
@@ -180,21 +185,21 @@ public class FifoBuffer implements Closeable {
     private boolean closeRequested = false;
 
     public FifoBuffer(int pageSize, int limit) {
-        this(null,pageSize,limit);
+        this(null, pageSize, limit);
     }
 
     public FifoBuffer(int limit) {
-        this(Math.max(limit/256,1024),limit);
+        this(Math.max(limit / 256, 1024), limit);
     }
 
     public FifoBuffer(Object lock, int pageSize, int limit) {
-        this.lock = lock==null ? this : lock;
+        this.lock = lock == null ? this : lock;
         this.limit = limit;
         this.pageSize = pageSize;
 
         Page p = newPage();
-        r = new Pointer(p,0);
-        w = new Pointer(p,0);
+        r = new Pointer(p, 0);
+        w = new Pointer(p, 0);
     }
 
     /**
@@ -223,21 +228,25 @@ public class FifoBuffer implements Closeable {
      */
     public int readable() {
         synchronized (lock) {
-            if (sz>0)   return sz;
-            if (closed) return -1;
+            if (sz > 0) {
+                return sz;
+            }
+            if (closed) {
+                return -1;
+            }
             return 0;
         }
     }
 
-    //TODO: Value beyond the limit is actually a bug (JENKINS-37514)
+    // TODO: Value beyond the limit is actually a bug (JENKINS-37514)
     /**
      * Number of bytes writable.
      * @return Number of bytes we can write to the buffer.
      *         If the buffer is closed, may return the value beyond the limit (JENKINS-37514)
      */
     public int writable() {
-        synchronized(lock) {
-            return Math.max(0,limit-readable());
+        synchronized (lock) {
+            return Math.max(0, limit - readable());
         }
     }
 
@@ -271,32 +280,35 @@ public class FifoBuffer implements Closeable {
      *      any more data to write.
      */
     public int send(WritableByteChannel ch) throws IOException {
-        int read = 0;   // total # of bytes read
+        int read = 0; // total # of bytes read
 
         while (true) {
             synchronized (lock) {
                 int chunk = readable();
-                if (chunk<=0) {
+                if (chunk <= 0) {
                     // there's nothing we can immediately read
 
-                    if (read>0)     return read;    // we've already read some
+                    if (read > 0) {
+                        return read; // we've already read some
+                    }
 
                     if (closeRequested) { // Somebody requested the close operation in parallel thread
                         handleCloseRequest();
-                        return -1;  // no more data
+                        return -1; // no more data
                     }
-                    return 0;   // no data to read
+                    return 0; // no data to read
                 }
                 try {
-                    int sent = r.send(ch, chunk);  // bytes actually written
+                    int sent = r.send(ch, chunk); // bytes actually written
 
                     read += sent;
                     sz -= sent;
 
                     lock.notifyAll();
 
-                    if (sent == 0)    // channel filled up
+                    if (sent == 0) { // channel filled up
                         return read;
+                    }
                 } catch (ClosedChannelException e) {
                     // If the underlying channel is closed, we should close the buffer as well
                     close();
@@ -306,7 +318,6 @@ public class FifoBuffer implements Closeable {
         }
     }
 
-
     /**
      * Non-blocking write.
      *
@@ -315,10 +326,12 @@ public class FifoBuffer implements Closeable {
      */
     public int writeNonBlock(ByteBuffer buf) {
         synchronized (lock) {
-            int chunk = Math.min(buf.remaining(),writable());
-            if (chunk==0)   return 0;
+            int chunk = Math.min(buf.remaining(), writable());
+            if (chunk == 0) {
+                return 0;
+            }
 
-            w.write(buf,chunk);
+            w.write(buf, chunk);
 
             sz += chunk;
 
@@ -337,15 +350,17 @@ public class FifoBuffer implements Closeable {
      *      receive error
      */
     public int receive(ReadableByteChannel ch) throws IOException {
-        if (closed)
+        if (closed) {
             throw new IOException("already closed");
+        }
 
         int written = 0;
         while (true) {
             synchronized (lock) {
                 int chunk = writable();
-                if (chunk==0)
+                if (chunk == 0) {
                     return written; // no more space to write
+                }
 
                 // If the buffer gets closed before we acquire lock, we are at risk of null "w" and NPE.
                 // So in such case we just interrupt the receive process
@@ -355,10 +370,13 @@ public class FifoBuffer implements Closeable {
 
                 try {
                     int received = w.receive(ch, chunk);
-                    if (received==0)
+                    if (received == 0) {
                         return written; // channel is fully drained
-                    if (received==-1) {
-                        if (written==0)     return -1; // propagate EOF
+                    }
+                    if (received == -1) {
+                        if (written == 0) {
+                            return -1; // propagate EOF
+                        }
                         return written;
                     }
 
@@ -367,29 +385,31 @@ public class FifoBuffer implements Closeable {
                 } catch (ClosedChannelException e) {
                     // If the underlying channel is closed, we should close the buffer as well
                     close();
-                    if (written == 0) return -1; // propagate EOF
+                    if (written == 0) {
+                        return -1; // propagate EOF
+                    }
                     return written;
                 }
 
                 lock.notifyAll();
-
             }
         }
     }
 
     public void write(byte[] buf) throws InterruptedException, IOException {
-        write(buf,0,buf.length);
+        write(buf, 0, buf.length);
     }
 
     public void write(byte[] buf, int start, int len) throws InterruptedException, IOException {
-        if (closed)
+        if (closed) {
             throw new IOException("already closed");
+        }
 
-        while (len>0) {
+        while (len > 0) {
             int chunk;
 
             synchronized (lock) {
-                while ((chunk = Math.min(len,writable()))==0) {
+                while ((chunk = Math.min(len, writable())) == 0) {
                     if (closeRequested) {
                         handleCloseRequest();
                         throw new IOException("closed during write() operation");
@@ -449,8 +469,9 @@ public class FifoBuffer implements Closeable {
      * If the ring is no longer needed, release the buffer.
      */
     private void releaseRing() {
-        if (readable()<0)
+        if (readable() < 0) {
             r = w = null;
+        }
     }
 
     /**
@@ -463,22 +484,24 @@ public class FifoBuffer implements Closeable {
      */
     public int peek(int offset, byte[] data, int start, int len) {
         synchronized (lock) {
-            len = Math.min(len, readable()-offset); // can't read beyond the end of the readable buffer
-            if (len<=0) return 0;
+            len = Math.min(len, readable() - offset); // can't read beyond the end of the readable buffer
+            if (len <= 0) {
+                return 0;
+            }
 
             Pointer v = this.r.copy();
             v.forward(offset);
-            v.read(data,start,len);
+            v.read(data, start, len);
             return len;
         }
     }
 
     public int peek(int offset, byte[] data) {
-        return peek(offset,data,0,data.length);
+        return peek(offset, data, 0, data.length);
     }
 
     public int read(byte[] buf) throws InterruptedException {
-        return read(buf,0,buf.length);
+        return read(buf, 0, buf.length);
     }
 
     /**
@@ -486,12 +509,16 @@ public class FifoBuffer implements Closeable {
      * @see InputStream#read(byte[],int,int)
      */
     public int read(byte[] buf, int start, int len) throws InterruptedException {
-        if (len==0)     return 0;   // the only case where we can legally return 0
+        if (len == 0) {
+            return 0; // the only case where we can legally return 0
+        }
         synchronized (lock) {
             while (true) {
-                int r = readNonBlocking(buf,start,len);
-                if (r!=0)   return r;
-                lock.wait();    // wait until the writer gives us something
+                int r = readNonBlocking(buf, start, len);
+                if (r != 0) {
+                    return r;
+                }
+                lock.wait(); // wait until the writer gives us something
             }
         }
     }
@@ -505,31 +532,37 @@ public class FifoBuffer implements Closeable {
      * @see InputStream#read(byte[],int,int)
      */
     public int readNonBlocking(byte[] buf, int start, int len) {
-        if (len==0)     return 0;
+        if (len == 0) {
+            return 0;
+        }
 
-        int read = 0;   // total # of bytes read
+        int read = 0; // total # of bytes read
 
         while (true) {
             int chunk;
 
             synchronized (lock) {
                 while (true) {
-                    chunk = Math.min(len,readable());
-                    if (chunk>0)    break;
+                    chunk = Math.min(len, readable());
+                    if (chunk > 0) {
+                        break;
+                    }
 
                     // there's nothing we can immediately read
 
-                    if (read>0)     return read;    // we've already read some
+                    if (read > 0) {
+                        return read; // we've already read some
+                    }
 
                     if (closeRequested) {
                         handleCloseRequest();
-                        return -1;  // no more data
+                        return -1; // no more data
                     }
 
                     return 0; // nothing to read
                 }
 
-                r.read(buf,start,chunk);
+                r.read(buf, start, chunk);
 
                 start += chunk;
                 len -= chunk;
@@ -549,21 +582,21 @@ public class FifoBuffer implements Closeable {
             @Override
             public void write(int b) throws IOException {
                 try {
-                    byte[] buf = new byte[]{(byte)b};
+                    byte[] buf = new byte[] {(byte) b};
                     FifoBuffer.this.write(buf);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw (InterruptedIOException)new InterruptedIOException().initCause(e);
+                    throw (InterruptedIOException) new InterruptedIOException().initCause(e);
                 }
             }
 
             @Override
             public void write(@NonNull byte[] b, int off, int len) throws IOException {
                 try {
-                    FifoBuffer.this.write(b,off,len);
+                    FifoBuffer.this.write(b, off, len);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw (InterruptedIOException)new InterruptedIOException().initCause(e);
+                    throw (InterruptedIOException) new InterruptedIOException().initCause(e);
                 }
             }
 
@@ -584,12 +617,16 @@ public class FifoBuffer implements Closeable {
                 try {
                     byte[] b = new byte[1];
                     int n = FifoBuffer.this.read(b);
-                    if (n<0)    return -1;
-                    if (n==0)   throw new AssertionError();
-                    return ((int)b[0])&0xFF;
+                    if (n < 0) {
+                        return -1;
+                    }
+                    if (n == 0) {
+                        throw new AssertionError();
+                    }
+                    return ((int) b[0]) & 0xFF;
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw (InterruptedIOException)new InterruptedIOException().initCause(e);
+                    throw (InterruptedIOException) new InterruptedIOException().initCause(e);
                 }
             }
 
@@ -599,7 +636,7 @@ public class FifoBuffer implements Closeable {
                     return FifoBuffer.this.read(b, off, len);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw (InterruptedIOException)new InterruptedIOException().initCause(e);
+                    throw (InterruptedIOException) new InterruptedIOException().initCause(e);
                 }
             }
         };

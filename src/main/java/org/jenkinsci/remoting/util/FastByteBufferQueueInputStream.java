@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.util;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -114,15 +113,13 @@ public class FastByteBufferQueueInputStream extends InputStream {
      * {@inheritDoc}
      */
     @Override
-    public synchronized void mark(int readlimit) {
-    }
+    public synchronized void mark(int readlimit) {}
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public synchronized void reset() throws IOException {
-    }
+    public synchronized void reset() throws IOException {}
 
     /**
      * {@inheritDoc}

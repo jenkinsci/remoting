@@ -27,7 +27,6 @@ package org.jenkinsci.remoting.util;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
-
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
@@ -61,7 +60,8 @@ public class AnonymousClassWarnings {
         if (channel == null) {
             doCheck(clazz);
         } else {
-            // May not call methods like Class#isAnonymousClass synchronously, since these can in turn trigger remote class loading.
+            // May not call methods like Class#isAnonymousClass synchronously, since these can in turn trigger remote
+            // class loading.
             try {
                 channel.executor.submit(() -> doCheck(clazz));
             } catch (RejectedExecutionException x) {
@@ -71,7 +71,8 @@ public class AnonymousClassWarnings {
     }
 
     private static void doCheck(@NonNull Class<?> c) {
-        if (Enum.class.isAssignableFrom(c)) { // e.g., com.cloudbees.plugins.credentials.CredentialsScope$1 ~ CredentialsScope.SYSTEM
+        if (Enum.class.isAssignableFrom(
+                c)) { // e.g., com.cloudbees.plugins.credentials.CredentialsScope$1 ~ CredentialsScope.SYSTEM
             // ignore, enums serialize specially
         } else if (c.isAnonymousClass()) { // e.g., pkg.Outer$1
             warn(c, "anonymous");
@@ -86,15 +87,16 @@ public class AnonymousClassWarnings {
         String name = c.getName();
         String codeSource = codeSource(c);
         if (codeSource == null) {
-            LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
+            LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name
+                    + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
         } else {
             // most easily tracked back to source using javap -classpath <location> -l '<name>'
-            LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name + " in " + codeSource + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
+            LOGGER.warning("Attempt to (de-)serialize " + kind + " class " + name + " in " + codeSource
+                    + "; see: https://jenkins.io/redirect/serialization-of-anonymous-classes/");
         }
     }
 
-    private static @CheckForNull
-    String codeSource(@NonNull Class<?> c) {
+    private static @CheckForNull String codeSource(@NonNull Class<?> c) {
         CodeSource cs = c.getProtectionDomain().getCodeSource();
         if (cs == null) {
             return null;
@@ -109,7 +111,8 @@ public class AnonymousClassWarnings {
     /**
      * Like {@link ObjectOutputStream#ObjectOutputStream(OutputStream)} but applies {@link #check} when writing classes.
      */
-    public static @NonNull ObjectOutputStream checkingObjectOutputStream(@NonNull OutputStream outputStream) throws IOException {
+    public static @NonNull ObjectOutputStream checkingObjectOutputStream(@NonNull OutputStream outputStream)
+            throws IOException {
         return new ObjectOutputStream(outputStream) {
             @Override
             protected void annotateClass(Class<?> c) throws IOException {
@@ -120,5 +123,4 @@ public class AnonymousClassWarnings {
     }
 
     private AnonymousClassWarnings() {}
-
 }

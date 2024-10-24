@@ -37,7 +37,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @deprecated Use {@link java.util.Base64} instead
  */
 @Deprecated
-public final class  Base64 {
+public final class Base64 {
 
     /**
      * Encodes hex octets into Base64
@@ -48,8 +48,9 @@ public final class  Base64 {
     @Nullable
     public static String encode(byte[] binaryData) {
 
-        if (binaryData == null)
+        if (binaryData == null) {
             return null;
+        }
 
         return java.util.Base64.getEncoder().encodeToString(binaryData);
     }
@@ -61,12 +62,14 @@ public final class  Base64 {
      * @return Array containing decoded data. {@code null} if the data cannot be decoded.
      */
     @CheckForNull
-    @SuppressFBWarnings(value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS",
+    @SuppressFBWarnings(
+            value = "PZLA_PREFER_ZERO_LENGTH_ARRAYS",
             justification = "Null arrays are the part of the library API")
     public static byte[] decode(String encoded) {
 
-        if (encoded == null)
+        if (encoded == null) {
             return null;
+        }
 
         return java.util.Base64.getDecoder().decode(encoded);
     }

@@ -24,17 +24,16 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils;
-import org.jenkinsci.remoting.org.apache.commons.validator.routines.InetAddressValidator;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
+import org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils;
+import org.jenkinsci.remoting.org.apache.commons.validator.routines.InetAddressValidator;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 @Restricted(NoExternalUse.class)
 public class NoProxyEvaluator {
@@ -93,16 +92,15 @@ public class NoProxyEvaluator {
     }
 
     private boolean matchesIpAddress(InetAddress hostAddress) {
-        return noProxyIpAddresses.stream().
-                anyMatch(inetAddress -> inetAddress.equals(hostAddress));
+        return noProxyIpAddresses.stream().anyMatch(inetAddress -> inetAddress.equals(hostAddress));
     }
 
     private void processSpecificationsIntoTypes(String noProxySpecification) {
         noProxySpecification = noProxySpecification.trim();
         String[] noProxySpecifications = splitComponents(noProxySpecification);
-        for (String specification : noProxySpecifications){
+        for (String specification : noProxySpecifications) {
             specification = stripLeadingStarDot(stripLeadingDot(specification.trim()));
-            if (specification.isEmpty() ) {
+            if (specification.isEmpty()) {
                 continue;
             }
             if (isIpAddress(specification)) {
@@ -150,12 +148,10 @@ public class NoProxyEvaluator {
     }
 
     private boolean matchesDomainHost(String host) {
-        return noProxyDomainsHosts.stream().
-               anyMatch(host::endsWith);
+        return noProxyDomainsHosts.stream().anyMatch(host::endsWith);
     }
 
     private boolean isIpAddress(String host) {
         return InetAddressValidator.getInstance().isValid(host);
     }
-
 }

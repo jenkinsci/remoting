@@ -17,12 +17,11 @@
 /* Copied from commons-validator:commons-validator:1.7, with [PATCH] modifications */
 package org.jenkinsci.remoting.org.apache.commons.validator.routines;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.io.Serializable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * <b>Regular Expression</b> validation (using JDK 1.4+ regex support).
@@ -71,7 +70,7 @@ import java.util.regex.Pattern;
  * @version $Revision$
  * @since Validator 1.4
  */
-//[PATCH]
+// [PATCH]
 @Restricted(NoExternalUse.class)
 // end of [PATCH]
 public class RegexValidator implements Serializable {
@@ -134,7 +133,7 @@ public class RegexValidator implements Serializable {
             if (regexs[i] == null || regexs[i].isEmpty()) {
                 throw new IllegalArgumentException("Regular expression[" + i + "] is missing");
             }
-            patterns[i] =  Pattern.compile(regexs[i], flags);
+            patterns[i] = Pattern.compile(regexs[i], flags);
         }
     }
 
@@ -182,7 +181,6 @@ public class RegexValidator implements Serializable {
         }
         return null;
     }
-
 
     /**
      * Validate a value against the set of regular expressions
@@ -233,5 +231,4 @@ public class RegexValidator implements Serializable {
         buffer.append("}");
         return buffer.toString();
     }
-
 }

@@ -1,8 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import hudson.remoting.RemoteClassLoader.IClassLoader;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -23,7 +21,7 @@ import org.jenkinsci.remoting.util.AnonymousClassWarnings;
  * multiple classloaders.
  *
  * <p>
- * To pass around ClassLoaders, this class uses OID instead of {@link IClassLoader}, since doing so
+ * To pass around ClassLoaders, this class uses OID instead of {@link RemoteClassLoader.IClassLoader}, since doing so
  * can results in recursive class resolution that may end up with NPE in ObjectInputStream.defaultReadFields like
  * described in the comment from huybrechts in HUDSON-4293.
  *
@@ -36,7 +34,7 @@ class MultiClassLoaderSerializer {
         /**
          * Encountered Classloaders, to their indices.
          */
-        private final Map<ClassLoader,Integer> classLoaders = new HashMap<>();
+        private final Map<ClassLoader, Integer> classLoaders = new HashMap<>();
 
         Output(Channel channel, OutputStream out) throws IOException {
             super(out);
@@ -47,17 +45,17 @@ class MultiClassLoaderSerializer {
         protected void annotateClass(Class<?> c) throws IOException {
             AnonymousClassWarnings.check(c);
             ClassLoader cl = c.getClassLoader();
-            if (cl==null) {// bootstrap classloader. no need to export.
+            if (cl == null) { // bootstrap classloader. no need to export.
                 writeInt(TAG_SYSTEMCLASSLOADER);
                 return;
             }
 
             Integer idx = classLoaders.get(cl);
-            if (idx==null) {
-                classLoaders.put(cl,classLoaders.size());
+            if (idx == null) {
+                classLoaders.put(cl, classLoaders.size());
                 if (cl instanceof RemoteClassLoader) {
                     int oid = ((RemoteClassLoader) cl).getOid(channel);
-                    if (oid>=0) {
+                    if (oid >= 0) {
                         // this classloader came from where we are sending this classloader to.
                         writeInt(TAG_LOCAL_CLASSLOADER);
                         writeInt(oid);
@@ -66,10 +64,11 @@ class MultiClassLoaderSerializer {
                 }
 
                 // tell the receiving side that they need to import a new classloader
-                // this reference count is released when RemoteInvocationHandler backing IClassLoader is GCed on the remote node.
+                // this reference count is released when RemoteInvocationHandler backing RemoteClassLoader.IClassLoader
+                // is GCed on the remote node.
                 writeInt(TAG_EXPORTED_CLASSLOADER);
-                writeInt(RemoteClassLoader.exportId(cl,channel));
-            } else {// reference to a classloader that's already written
+                writeInt(RemoteClassLoader.exportId(cl, channel));
+            } else { // reference to a classloader that's already written
                 writeInt(idx);
             }
         }
@@ -97,28 +96,30 @@ class MultiClassLoaderSerializer {
             ClassLoader cl;
             int code = readInt();
             switch (code) {
-            case TAG_SYSTEMCLASSLOADER:
-                return null;
+                case TAG_SYSTEMCLASSLOADER:
+                    return null;
 
-            case TAG_LOCAL_CLASSLOADER:
-                Object proxyObject;
-                int oid = readInt();
-                try {
-                    proxyObject = channel.getExportedObject(oid);
-                } catch (ExecutionException ex) {
-                    throw new IOException("Cannot locate RemoteClassLoader.ClassLoaderProxy(" +
-                            oid + ") in the channel exported table", ex);
-                }
-                cl = ((RemoteClassLoader.ClassLoaderProxy)proxyObject).cl;
-                classLoaders.add(cl);
-                return cl;
+                case TAG_LOCAL_CLASSLOADER:
+                    Object proxyObject;
+                    int oid = readInt();
+                    try {
+                        proxyObject = channel.getExportedObject(oid);
+                    } catch (ExecutionException ex) {
+                        throw new IOException(
+                                "Cannot locate RemoteClassLoader.ClassLoaderProxy(" + oid
+                                        + ") in the channel exported table",
+                                ex);
+                    }
+                    cl = ((RemoteClassLoader.ClassLoaderProxy) proxyObject).cl;
+                    classLoaders.add(cl);
+                    return cl;
 
-            case TAG_EXPORTED_CLASSLOADER:
-                cl = channel.importedClassLoaders.get(readInt());
-                classLoaders.add(cl);
-                return cl;
-            default:
-                return classLoaders.get(code);
+                case TAG_EXPORTED_CLASSLOADER:
+                    cl = channel.importedClassLoaders.get(readInt());
+                    classLoaders.add(cl);
+                    return cl;
+                default:
+                    return classLoaders.get(code);
             }
         }
 
@@ -142,9 +143,10 @@ class MultiClassLoaderSerializer {
             ClassLoader cl = readClassLoader();
 
             Class<?>[] classes = new Class[interfaces.length];
-            for (int i = 0; i < interfaces.length; i++)
+            for (int i = 0; i < interfaces.length; i++) {
                 // TODO: handle null classloader as a System one?
                 classes[i] = Class.forName(interfaces[i], false, cl);
+            }
 
             /*
                  dead lock prevention.
@@ -164,15 +166,16 @@ class MultiClassLoaderSerializer {
                  So this is somewhat hack-ish, but in this change we look for a specific
                  proxy type that we use and resolve them outside Proxy.getProxyClass.
             */
-            if (classes.length==2 && classes[0]==JarLoader.class && classes[1]==IReadResolve.class)
+            if (classes.length == 2 && classes[0] == JarLoader.class && classes[1] == IReadResolve.class) {
                 return Channel.jarLoaderProxy;
+            }
 
             return Proxy.getProxyClass(cl, classes);
         }
 
         @Override
         protected Object resolveObject(Object obj) throws IOException {
-            if(obj instanceof URL){
+            if (obj instanceof URL) {
                 // SECURITY-637, URL deserialization could lead to DNS query
                 return URLDeserializationHelper.wrapIfRequired((URL) obj);
             }

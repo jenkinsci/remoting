@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -26,7 +26,6 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,10 +43,10 @@ import java.util.concurrent.ExecutionException;
  * <p>
  * At this level, remoting of class files are not provided, so both {@link Channel}s
  * need to have the definition of {@link Command}-implementation.
- * 
+ *
  * @author Kohsuke Kawaguchi
- * @see hudson.remoting.Channel.Listener#onRead
- * @see hudson.remoting.Channel.Listener#onWrite
+ * @see Channel.Listener#onRead
+ * @see Channel.Listener#onWrite
  * @since 3.17
  */
 public abstract class Command implements Serializable {
@@ -77,10 +76,11 @@ public abstract class Command implements Serializable {
      *      transferred.
      */
     Command(boolean recordCreatedAt) {
-        if(recordCreatedAt)
+        if (recordCreatedAt) {
             this.createdAt = new Source();
-        else
+        } else {
             this.createdAt = null;
+        }
     }
 
     /**
@@ -92,7 +92,6 @@ public abstract class Command implements Serializable {
      */
     abstract void execute(Channel channel) throws ExecutionException;
 
-
     /**
      * Chains the {@link #createdAt} cause.
      * It will happen if and only if cause recording is enabled.
@@ -103,7 +102,7 @@ public abstract class Command implements Serializable {
             createdAt.initCause(initCause);
         }
     }
-      
+
     /** Consider calling {@link Channel#notifyWrite} afterwards. */
     void writeTo(Channel channel, ObjectOutputStream oos) throws IOException {
         Channel old = Channel.setCurrent(channel);
@@ -139,20 +138,22 @@ public abstract class Command implements Serializable {
      */
     /*package*/ static Command readFrom(@NonNull Channel channel, @NonNull InputStream istream, int payloadSize)
             throws IOException, ClassNotFoundException {
-        Command cmd = Command.readFromObjectStream(channel, new ObjectInputStreamEx(
-                istream,
-                channel.baseClassLoader,channel.classFilter));
+        Command cmd = Command.readFromObjectStream(
+                channel, new ObjectInputStreamEx(istream, channel.baseClassLoader, channel.classFilter));
         channel.notifyRead(cmd, payloadSize);
         return cmd;
     }
 
-
     /** Consider calling {@link Channel#notifyRead} afterwards. */
-    @SuppressFBWarnings(value = "OBJECT_DESERIALIZATION", justification = "Used for sending commands between authorized agent and server. Class filtering is done through JEP-200.")
-    static Command readFromObjectStream(Channel channel, ObjectInputStream ois) throws IOException, ClassNotFoundException {
+    @SuppressFBWarnings(
+            value = "OBJECT_DESERIALIZATION",
+            justification =
+                    "Used for sending commands between authorized agent and server. Class filtering is done through JEP-200.")
+    static Command readFromObjectStream(Channel channel, ObjectInputStream ois)
+            throws IOException, ClassNotFoundException {
         Channel old = Channel.setCurrent(channel);
         try {
-            return (Command)ois.readObject();
+            return (Command) ois.readObject();
         } finally {
             Channel.setCurrent(old);
         }
@@ -170,7 +171,7 @@ public abstract class Command implements Serializable {
     }
 
     /**
-     * Should provide concise information useful for {@link hudson.remoting.Channel.Listener}.
+     * Should provide concise information useful for {@link Channel.Listener}.
      */
     @Override
     public abstract String toString();
@@ -178,8 +179,7 @@ public abstract class Command implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final class Source extends Exception {
-        public Source() {
-        }
+        public Source() {}
 
         private Source(@CheckForNull Throwable cause) {
             super(cause);

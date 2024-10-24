@@ -3,7 +3,6 @@ package org.jenkinsci.remoting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Callable;
 import hudson.remoting.ChannelBuilder;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
@@ -33,7 +32,8 @@ public abstract class RoleChecker {
      *      Any exception thrown will prevent the callable from getting executed, but we recommend
      *      {@link SecurityException}
      */
-    public abstract void check(@NonNull RoleSensitive subject, @NonNull Collection<Role> expected) throws SecurityException;
+    public abstract void check(@NonNull RoleSensitive subject, @NonNull Collection<Role> expected)
+            throws SecurityException;
 
     public void check(@NonNull RoleSensitive subject, @NonNull Role expected) throws SecurityException {
         check(subject, Set.of(expected));

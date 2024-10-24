@@ -24,11 +24,6 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.protocol.IOHub;
-import org.jenkinsci.remoting.protocol.IOHubReadyListener;
-import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
-import org.jenkinsci.remoting.protocol.NetworkLayer;
-import org.jenkinsci.remoting.util.ByteBufferQueue;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -44,6 +39,11 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.protocol.IOHub;
+import org.jenkinsci.remoting.protocol.IOHubReadyListener;
+import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
+import org.jenkinsci.remoting.protocol.NetworkLayer;
+import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.IOUtils;
 
 /**
@@ -93,8 +93,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
      * @param in    the source of data.
      * @param out   the sink for data.
      */
-    public NIONetworkLayer(IOHub ioHub, ReadableByteChannel in,
-                           WritableByteChannel out) {
+    public NIONetworkLayer(IOHub ioHub, ReadableByteChannel in, WritableByteChannel out) {
         super(ioHub);
         if (!(in instanceof SelectableChannel)) {
             throw new IllegalArgumentException("Input channel must be a SelectableChannel");
@@ -125,8 +124,9 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
     @Override
     public void ready(boolean accept, boolean connect, boolean read, boolean write) {
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "{0} - entering ready({1}, {2}, {3}, {4})",
-                    new Object[] { Thread.currentThread().getName(), accept, connect, read, write });
+            LOGGER.log(Level.FINEST, "{0} - entering ready({1}, {2}, {3}, {4})", new Object[] {
+                Thread.currentThread().getName(), accept, connect, read, write
+            });
         }
         if (read) {
             recvLock.lock();
@@ -154,8 +154,9 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                                 default:
                                     ((Buffer) recv).flip();
                                     if (logFinest) {
-                                        LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes",
-                                                new Object[]{stack().name(), recv.remaining()});
+                                        LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes", new Object[] {
+                                            stack().name(), recv.remaining()
+                                        });
                                     }
                                     while (recv.hasRemaining()) {
                                         onRead(recv);
@@ -173,7 +174,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                             // will be reported elsewhere, so we just trace this at FINER
                             LogRecord record = new LogRecord(Level.FINER, "[{0}] Unexpected I/O exception");
                             record.setThrown(e);
-                            record.setParameters(new Object[]{stack().name()});
+                            record.setParameters(new Object[] {stack().name()});
                             LOGGER.log(record);
                         }
                         recvKey.cancel();
@@ -184,7 +185,9 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                             if (LOGGER.isLoggable(Level.SEVERE)) {
                                 LogRecord record = new LogRecord(Level.SEVERE, "[{0}] Uncaught {1}");
                                 record.setThrown(t);
-                                record.setParameters(new Object[]{stack().name(), t.getClass().getSimpleName()});
+                                record.setParameters(new Object[] {
+                                    stack().name(), t.getClass().getSimpleName()
+                                });
                                 LOGGER.log(record);
                             }
                         } finally {
@@ -213,15 +216,17 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                     sendHasRemaining = sendQueue.hasRemaining();
                 }
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "[{0}] sendHasRemaining - has remaining: {1}",
-                            new Object[] { Thread.currentThread().getName(), sendHasRemaining });
+                    LOGGER.log(Level.FINEST, "[{0}] sendHasRemaining - has remaining: {1}", new Object[] {
+                        Thread.currentThread().getName(), sendHasRemaining
+                    });
                 }
                 ((Buffer) send).flip();
                 try {
                     final int sentBytes = out.write(send);
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "[{0}] sentBytes - sent {1} bytes",
-                                new Object[] { Thread.currentThread().getName(), sentBytes });
+                        LOGGER.log(Level.FINEST, "[{0}] sentBytes - sent {1} bytes", new Object[] {
+                            Thread.currentThread().getName(), sentBytes
+                        });
                     }
                     if (sentBytes == -1) {
                         sendKey.cancel();
@@ -235,7 +240,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
                         // will be reported elsewhere, so we just trace this at FINER
                         LogRecord record = new LogRecord(Level.FINER, "[{0}] Unexpected I/O exception");
                         record.setThrown(e);
-                        record.setParameters(new Object[]{stack().name()});
+                        record.setParameters(new Object[] {stack().name()});
                         LOGGER.log(record);
                     }
                     sendKey.cancel();
@@ -258,7 +263,10 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
             }
         }
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "{0} - leaving ready(...)", Thread.currentThread().getName());
+            LOGGER.log(
+                    Level.FINEST,
+                    "{0} - leaving ready(...)",
+                    Thread.currentThread().getName());
         }
     }
 
@@ -268,7 +276,7 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
     @Override
     protected void write(@NonNull ByteBuffer data) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "[{0}] SEND: {1} bytes", new Object[]{stack().name(), data.remaining()});
+            LOGGER.log(Level.FINEST, "[{0}] SEND: {1} bytes", new Object[] {stack().name(), data.remaining()});
         }
         if (!data.hasRemaining()) {
             return;
@@ -315,15 +323,27 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
         final SelectableChannel out = (SelectableChannel) this.out;
         if (in == out) {
             in.configureBlocking(false);
-            getIoHub().register(in, this, false, false, true, pendingWrite,
-                    new RegistrationCallbackImpl(true, true, pendingWrite)
-            );
+            getIoHub()
+                    .register(
+                            in,
+                            this,
+                            false,
+                            false,
+                            true,
+                            pendingWrite,
+                            new RegistrationCallbackImpl(true, true, pendingWrite));
         } else {
             in.configureBlocking(false);
             out.configureBlocking(false);
-            getIoHub().register(out, this, false, false, false, pendingWrite,
-                    new RegistrationCallbackImpl(true, false, pendingWrite)
-            );
+            getIoHub()
+                    .register(
+                            out,
+                            this,
+                            false,
+                            false,
+                            false,
+                            pendingWrite,
+                            new RegistrationCallbackImpl(true, false, pendingWrite));
             getIoHub().register(in, this, false, false, true, false, new RegistrationCallbackImpl(false, true, false));
         }
         super.start();
@@ -416,5 +436,4 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
             onRecvClosed();
         }
     }
-
 }

@@ -23,20 +23,19 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import java.net.SocketTimeoutException;
-import java.nio.Buffer;
-import java.util.logging.LogRecord;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.EOFException;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.NetworkLayer;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
@@ -101,7 +100,7 @@ public class BIONetworkLayer extends NetworkLayer {
     @Override
     protected void write(@NonNull ByteBuffer data) throws IOException {
         if (LOGGER.isLoggable(Level.FINEST)) {
-            LOGGER.log(Level.FINEST, "[{0}] SEND: {1} bytes", new Object[]{stack().name(), data.remaining()});
+            LOGGER.log(Level.FINEST, "[{0}] SEND: {1} bytes", new Object[] {stack().name(), data.remaining()});
         }
         if (!data.hasRemaining()) {
             // no-op return immediately
@@ -268,7 +267,7 @@ public class BIONetworkLayer extends NetworkLayer {
                                 // will likely be reported elsewhere, so we just trace this at FINER
                                 LogRecord record = new LogRecord(Level.FINER, "[{0}] Unexpected I/O exception");
                                 record.setThrown(e);
-                                record.setParameters(new Object[]{stack().name()});
+                                record.setParameters(new Object[] {stack().name()});
                                 LOGGER.log(record);
                             }
                             onRecvClosed();
@@ -278,15 +277,18 @@ public class BIONetworkLayer extends NetworkLayer {
                             if (LOGGER.isLoggable(Level.WARNING)) {
                                 LogRecord record = new LogRecord(Level.WARNING, "[{0}] Uncaught {1}");
                                 record.setThrown(e);
-                                record.setParameters(new Object[]{stack().name(), e.getClass().getSimpleName()});
+                                record.setParameters(new Object[] {
+                                    stack().name(), e.getClass().getSimpleName()
+                                });
                             }
                             onRecvClosed();
                             return;
                         }
                         ((Buffer) buffer).flip();
                         if (buffer.hasRemaining() && LOGGER.isLoggable(Level.FINEST)) {
-                            LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes",
-                                    new Object[]{stack().name(), buffer.remaining()});
+                            LOGGER.log(Level.FINEST, "[{0}] RECV: {1} bytes", new Object[] {
+                                stack().name(), buffer.remaining()
+                            });
                         }
                         while (buffer.hasRemaining()) {
                             try {
@@ -305,7 +307,8 @@ public class BIONetworkLayer extends NetworkLayer {
                 if (LOGGER.isLoggable(Level.SEVERE)) {
                     LogRecord record = new LogRecord(Level.SEVERE, "[{0}] Reader thread killed by {1}");
                     record.setThrown(e);
-                    record.setParameters(new Object[]{stack().name(), e.getClass().getSimpleName()});
+                    record.setParameters(
+                            new Object[] {stack().name(), e.getClass().getSimpleName()});
                     LOGGER.log(record);
                 }
                 if (e instanceof Error) {
@@ -320,6 +323,5 @@ public class BIONetworkLayer extends NetworkLayer {
                 }
             }
         }
-
     }
 }

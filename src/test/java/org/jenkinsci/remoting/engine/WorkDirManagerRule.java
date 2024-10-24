@@ -44,7 +44,7 @@ public class WorkDirManagerRule extends ExternalResource {
         instance = WorkDirManager.getInstance();
         return super.apply(base, description);
     }
-    
+
     @Override
     protected void after() {
         WorkDirManager.reset();

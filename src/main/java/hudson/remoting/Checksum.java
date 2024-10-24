@@ -1,7 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
@@ -29,13 +28,14 @@ final class Checksum {
     private Checksum(byte[] arrayOf16bytes, int numOfLong) {
         try {
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(arrayOf16bytes));
-            long l1=0,l2=0;
-            for (int i=0; i<numOfLong; i++) {
+            long l1 = 0, l2 = 0;
+            for (int i = 0; i < numOfLong; i++) {
                 long l = in.readLong();
-                if (i%2==0)
+                if (i % 2 == 0) {
                     l1 ^= l;
-                else
+                } else {
                     l2 ^= l;
+                }
             }
             sum1 = l1;
             sum2 = l2;
@@ -49,8 +49,9 @@ final class Checksum {
         if (o instanceof Checksum) {
             Checksum that = (Checksum) o;
             return sum1 == that.sum1 && sum2 == that.sum2;
-        } else
+        } else {
             return false;
+        }
     }
 
     @Override
@@ -61,7 +62,7 @@ final class Checksum {
 
     @Override
     public String toString() {
-        return String.format("%016X%016X",sum1,sum2);
+        return String.format("%016X%016X", sum1, sum2);
     }
 
     /**
@@ -74,11 +75,14 @@ final class Checksum {
     /**
      * Returns the checksum for the given URL.
      */
-    @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files, not URLs.")
+    @SuppressFBWarnings(
+            value = "URLCONNECTION_SSRF_FD",
+            justification = "This is only used for managing the jar cache as files, not URLs.")
     static Checksum forURL(URL url) throws IOException {
         try {
             MessageDigest md = MessageDigest.getInstance(JarLoaderImpl.DIGEST_ALGORITHM);
-            try(InputStream istream = url.openStream(); OutputStream ostream = new DigestOutputStream(OutputStream.nullOutputStream(), md)) {
+            try (InputStream istream = url.openStream();
+                    OutputStream ostream = new DigestOutputStream(OutputStream.nullOutputStream(), md)) {
                 Util.copy(istream, ostream);
                 return new Checksum(md.digest(), md.getDigestLength() / 8);
             }

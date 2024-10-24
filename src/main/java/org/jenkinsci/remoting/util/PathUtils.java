@@ -27,13 +27,12 @@
 package org.jenkinsci.remoting.util;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Utilities for {@link Path} handling.

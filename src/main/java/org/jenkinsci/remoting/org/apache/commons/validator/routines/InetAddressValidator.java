@@ -17,16 +17,16 @@
 /* Copied from commons-validator:commons-validator:1.7, with [PATCH] modifications */
 package org.jenkinsci.remoting.org.apache.commons.validator.routines;
 
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.io.Serializable;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
- * <p><b>InetAddress</b> validation and conversion routines ({@code java.net.InetAddress}).</p>
+ * <p><b>InetAddress</b> validation and conversion routines ({@link InetAddress}).</p>
  *
  * <p>This class provides methods to validate a candidate IP address.
  *
@@ -37,7 +37,7 @@ import java.util.List;
  * @version $Revision$
  * @since Validator 1.4
  */
-//[PATCH]
+// [PATCH]
 @Restricted(NoExternalUse.class)
 // end of [PATCH]
 public class InetAddressValidator implements Serializable {
@@ -50,8 +50,7 @@ public class InetAddressValidator implements Serializable {
 
     private static final long serialVersionUID = -919201640201914789L;
 
-    private static final String IPV4_REGEX =
-            "^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$";
+    private static final String IPV4_REGEX = "^(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})$";
 
     // Max number of hex groups (separated by :) in an IPV6 address
     private static final int IPV6_MAX_HEX_GROUPS = 8;
@@ -118,7 +117,6 @@ public class InetAddressValidator implements Serializable {
             if (ipSegment.length() > 1 && ipSegment.startsWith("0")) {
                 return false;
             }
-
         }
 
         return true;

@@ -1,8 +1,5 @@
 package hudson.remoting;
 
-import static hudson.remoting.RemoteInputStream.Flag.GREEDY;
-import static hudson.remoting.RemoteInputStream.Flag.NOT_GREEDY;
-import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -13,6 +10,7 @@ import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.List;
 import org.apache.commons.io.input.BrokenInputStream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -29,7 +27,7 @@ public class RemoteInputStreamTest {
     public void testNonGreedy(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
-            channel.call(new Read(new RemoteInputStream(in, NOT_GREEDY), toBytes("1234")));
+            channel.call(new Read(new RemoteInputStream(in, RemoteInputStream.Flag.NOT_GREEDY), toBytes("1234")));
             assertArrayEquals(readFully(in, 4), "5678".getBytes());
         });
     }
@@ -42,13 +40,13 @@ public class RemoteInputStreamTest {
     public void testGreedy(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
-            channel.call(new Read(new RemoteInputStream(in, GREEDY), toBytes("1234")));
+            channel.call(new Read(new RemoteInputStream(in, RemoteInputStream.Flag.GREEDY), toBytes("1234")));
             // not very reliable but the intention is to have it greedily read
             Thread.sleep(100);
 
-            if (channel.remoteCapability.supportsGreedyRemoteInputStream())
+            if (channel.remoteCapability.supportsGreedyRemoteInputStream()) {
                 assertEquals(-1, in.read());
-            else {
+            } else {
                 // if we are dealing with version that doesn't support GREEDY, we should be reading '5'
                 assertEquals('5', in.read());
             }
@@ -58,7 +56,7 @@ public class RemoteInputStreamTest {
     /**
      * Reads N bytes and verify that it matches what's expected.
      */
-    private static class Read extends CallableBase<Object,IOException> {
+    private static class Read extends CallableBase<Object, IOException> {
         private final RemoteInputStream in;
         private final byte[] expected;
 
@@ -72,9 +70,9 @@ public class RemoteInputStreamTest {
             assertArrayEquals(readFully(in, expected.length), expected);
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
-
 
     /**
      * Read in multiple chunks.
@@ -84,14 +82,14 @@ public class RemoteInputStreamTest {
     public void testGreedy2(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
-            final RemoteInputStream i = new RemoteInputStream(in, GREEDY);
+            final RemoteInputStream i = new RemoteInputStream(in, RemoteInputStream.Flag.GREEDY);
 
             channel.call(new TestGreedy2(i));
             assertEquals(-1, in.read());
         });
     }
 
-    private static class TestGreedy2 extends CallableBase<Void,IOException> {
+    private static class TestGreedy2 extends CallableBase<Void, IOException> {
         private final RemoteInputStream i;
 
         public TestGreedy2(RemoteInputStream i) {
@@ -105,9 +103,9 @@ public class RemoteInputStreamTest {
             assertEquals(-1, i.read());
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
-
 
     /**
      * Greedy {@link RemoteInputStream} should propagate error.
@@ -116,11 +114,9 @@ public class RemoteInputStreamTest {
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testErrorPropagation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
-            for (RemoteInputStream.Flag f : asList(GREEDY, NOT_GREEDY)) {
+            for (RemoteInputStream.Flag f : List.of(RemoteInputStream.Flag.GREEDY, RemoteInputStream.Flag.NOT_GREEDY)) {
                 InputStream in = new SequenceInputStream(
-                        new ByteArrayInputStream(toBytes("1234")),
-                        new BrokenInputStream(new SkyIsFalling())
-                );
+                        new ByteArrayInputStream(toBytes("1234")), new BrokenInputStream(new SkyIsFalling()));
                 final RemoteInputStream i = new RemoteInputStream(in, f);
 
                 channel.call(new TestErrorPropagation(i));
@@ -128,7 +124,9 @@ public class RemoteInputStreamTest {
         });
     }
 
-    private static class SkyIsFalling extends IOException {private static final long serialVersionUID = 1L;}
+    private static class SkyIsFalling extends IOException {
+        private static final long serialVersionUID = 1L;
+    }
 
     private static class TestErrorPropagation extends CallableBase<Void, IOException> {
         private final RemoteInputStream i;
@@ -148,14 +146,15 @@ public class RemoteInputStreamTest {
                 // but in case someone is using it as a signal I'm not changing that behaviour.
                 return null;
             } catch (IOException e) {
-                if (e.getCause() instanceof SkyIsFalling)
+                if (e.getCause() instanceof SkyIsFalling) {
                     return null;
+                }
                 throw e;
             }
         }
+
         private static final long serialVersionUID = 1L;
     }
-
 
     private static byte[] readFully(InputStream in, int n) throws IOException {
         byte[] actual = new byte[n];
@@ -164,8 +163,8 @@ public class RemoteInputStreamTest {
     }
 
     private static void assertArrayEquals(byte[] b1, byte[] b2) {
-        if (!Arrays.equals(b1,b2)) {
-            fail("Expected "+ HexDump.toHex(b1)+" but got "+ HexDump.toHex(b2));
+        if (!Arrays.equals(b1, b2)) {
+            fail("Expected " + HexDump.toHex(b1) + " but got " + HexDump.toHex(b2));
         }
     }
 

@@ -23,6 +23,13 @@
  */
 package org.jenkinsci.remoting.protocol;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -39,13 +46,6 @@ import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
 
 public class ProtocolStackTest {
 
@@ -77,91 +77,85 @@ public class ProtocolStackTest {
             final AtomicInteger state = new AtomicInteger();
             ProtocolStack.on(new NetworkLayer(selector) {
 
-                @Override
-                protected void write(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        protected void write(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void start() {
-                    state.compareAndSet(0, 1);
-                }
+                        @Override
+                        public void start() {
+                            state.compareAndSet(0, 1);
+                        }
 
-                @Override
-                public void doCloseSend() {
-                }
+                        @Override
+                        public void doCloseSend() {}
 
-                @Override
-                public void doCloseRecv() {
-                }
+                        @Override
+                        public void doCloseRecv() {}
 
-                @Override
-                public boolean isSendOpen() {
-                    return true;
-                }
+                        @Override
+                        public boolean isSendOpen() {
+                            return true;
+                        }
+                    })
+                    .filter(new FilterLayer() {
+                        @Override
+                        public void start() {
+                            state.compareAndSet(1, 2);
+                        }
 
-            }).filter(new FilterLayer() {
-                @Override
-                public void start() {
-                    state.compareAndSet(1, 2);
-                }
+                        @Override
+                        public void onRecv(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void onRecv(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void doSend(@NonNull ByteBuffer data) {}
+                    })
+                    .filter(new FilterLayer() {
+                        @Override
+                        public void start() {
+                            state.compareAndSet(2, 3);
+                        }
 
-                @Override
-                public void doSend(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void onRecv(@NonNull ByteBuffer data) {}
 
-            }).filter(new FilterLayer() {
-                @Override
-                public void start() {
-                    state.compareAndSet(2, 3);
-                }
+                        @Override
+                        public void doSend(@NonNull ByteBuffer data) {}
+                    })
+                    .named("initSeq")
+                    .build(new ApplicationLayer<Void>() {
+                        @Override
+                        public Void get() {
+                            return null;
+                        }
 
-                @Override
-                public void onRecv(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void onRead(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void doSend(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void start() {
+                            state.compareAndSet(3, 4);
+                        }
 
-            }).named("initSeq").build(new ApplicationLayer<Void>() {
-                @Override
-                public Void get() {
-                    return null;
-                }
+                        @Override
+                        public void onReadClosed(IOException cause) {}
 
-                @Override
-                public void onRead(@NonNull ByteBuffer data) {
-                }
-
-                @Override
-                public void start() {
-                    state.compareAndSet(3, 4);
-                }
-
-
-                @Override
-                public void onReadClosed(IOException cause) {
-                }
-
-                @Override
-                public boolean isReadOpen() {
-                    return true;
-                }
-
-            });
+                        @Override
+                        public boolean isReadOpen() {
+                            return true;
+                        }
+                    });
             assertThat("Init in sequence", state.get(), is(4));
-            assertThat(handler.logRecords, contains(
-                    allOf(hasProperty("message", is("[{0}] Initializing")),
-                            hasProperty("parameters", is(new Object[]{"initSeq"}))),
-                    allOf(hasProperty("message", is("[{0}] Starting")),
-                            hasProperty("parameters", is(new Object[]{"initSeq"}))),
-                    allOf(hasProperty("message", is("[{0}] Started")),
-                            hasProperty("parameters", is(new Object[]{"initSeq"})))
-            ));
+            assertThat(
+                    handler.logRecords,
+                    contains(
+                            allOf(
+                                    hasProperty("message", is("[{0}] Initializing")),
+                                    hasProperty("parameters", is(new Object[] {"initSeq"}))),
+                            allOf(
+                                    hasProperty("message", is("[{0}] Starting")),
+                                    hasProperty("parameters", is(new Object[] {"initSeq"}))),
+                            allOf(
+                                    hasProperty("message", is("[{0}] Started")),
+                                    hasProperty("parameters", is(new Object[] {"initSeq"})))));
         } finally {
             logger.removeHandler(handler);
             logger.setLevel(oldLevel);
@@ -181,101 +175,96 @@ public class ProtocolStackTest {
             final AtomicInteger state = new AtomicInteger();
             final IOException e = assertThrows(IOException.class, () -> ProtocolStack.on(new NetworkLayer(selector) {
 
-                @Override
-                protected void write(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        protected void write(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void start() {
-                    state.compareAndSet(0, 1);
-                }
+                        @Override
+                        public void start() {
+                            state.compareAndSet(0, 1);
+                        }
 
-                @Override
-                public void doCloseSend() {
-                }
+                        @Override
+                        public void doCloseSend() {}
 
-                @Override
-                public void doCloseRecv() {
-                }
+                        @Override
+                        public void doCloseRecv() {}
 
+                        @Override
+                        public boolean isSendOpen() {
+                            return true;
+                        }
+                    })
+                    .filter(new FilterLayer() {
+                        @Override
+                        public void start() throws IOException {
+                            state.compareAndSet(1, 2);
+                            throw new IOException("boom");
+                        }
 
-                @Override
-                public boolean isSendOpen() {
-                    return true;
-                }
+                        @Override
+                        public void onRecv(@NonNull ByteBuffer data) {}
 
-            }).filter(new FilterLayer() {
-                @Override
-                public void start() throws IOException {
-                    state.compareAndSet(1, 2);
-                    throw new IOException("boom");
-                }
+                        @Override
+                        public void doSend(@NonNull ByteBuffer data) {}
+                    })
+                    .filter(new FilterLayer() {
+                        @Override
+                        public void start() {
+                            state.set(-2);
+                        }
 
-                @Override
-                public void onRecv(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void onRecv(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void doSend(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void doSend(@NonNull ByteBuffer data) {}
 
-            }).filter(new FilterLayer() {
-                @Override
-                public void start() {
-                    state.set(-2);
-                }
+                        @Override
+                        public void onRecvClosed(IOException cause) throws IOException {
+                            state.compareAndSet(2, 3);
+                            super.onRecvClosed(cause);
+                        }
+                    })
+                    .named("initSeq")
+                    .build(new ApplicationLayer<Void>() {
+                        @Override
+                        public Void get() {
+                            return null;
+                        }
 
-                @Override
-                public void onRecv(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void onRead(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void doSend(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void start() {
+                            state.set(-3);
+                        }
 
-                @Override
-                public void onRecvClosed(IOException cause) throws IOException {
-                    state.compareAndSet(2, 3);
-                    super.onRecvClosed(cause);
-                }
-            }).named("initSeq").build(new ApplicationLayer<Void>() {
-                @Override
-                public Void get() {
-                    return null;
-                }
+                        @Override
+                        public void onReadClosed(IOException cause) {
+                            state.compareAndSet(3, 4);
+                        }
 
-                @Override
-                public void onRead(@NonNull ByteBuffer data) {
-                }
-
-                @Override
-                public void start() {
-                    state.set(-3);
-                }
-
-
-                @Override
-                public void onReadClosed(IOException cause) {
-                    state.compareAndSet(3, 4);
-                }
-
-                @Override
-                public boolean isReadOpen() {
-                    return true;
-                }
-
-            }));
+                        @Override
+                        public boolean isReadOpen() {
+                            return true;
+                        }
+                    }));
             assertThat(e.getMessage(), is("boom"));
 
-            assertThat(handler.logRecords, contains(
-                    allOf(hasProperty("message", is("[{0}] Initializing")),
-                            hasProperty("parameters", is(new Object[]{"initSeq"}))),
-                    allOf(hasProperty("message", is("[{0}] Starting")),
-                            hasProperty("parameters", is(new Object[]{"initSeq"}))),
-                    allOf(hasProperty("message", is("[{0}] Start failure")),
-                            hasProperty("parameters", is(new Object[]{"initSeq"})),
-                            hasProperty("thrown", hasProperty("message", is("boom"))))
-            ));
+            assertThat(
+                    handler.logRecords,
+                    contains(
+                            allOf(
+                                    hasProperty("message", is("[{0}] Initializing")),
+                                    hasProperty("parameters", is(new Object[] {"initSeq"}))),
+                            allOf(
+                                    hasProperty("message", is("[{0}] Starting")),
+                                    hasProperty("parameters", is(new Object[] {"initSeq"}))),
+                            allOf(
+                                    hasProperty("message", is("[{0}] Start failure")),
+                                    hasProperty("parameters", is(new Object[] {"initSeq"})),
+                                    hasProperty("thrown", hasProperty("message", is("boom"))))));
             assertThat("Init in sequence", state.get(), is(4));
         } finally {
             logger.removeHandler(handler);
@@ -297,118 +286,116 @@ public class ProtocolStackTest {
             final AtomicInteger state = new AtomicInteger();
             ProtocolStack.on(new NetworkLayer(selector) {
 
-                @Override
-                public void start() {
-                }
+                        @Override
+                        public void start() {}
 
-                @Override
-                protected void write(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        protected void write(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void doCloseRecv() {
-                    state.compareAndSet(3, 4);
-                    onRecvClosed();
-                }
+                        @Override
+                        public void doCloseRecv() {
+                            state.compareAndSet(3, 4);
+                            onRecvClosed();
+                        }
 
-                @Override
-                public void doCloseSend() {
-                    state.compareAndSet(2, 3);
-                    doCloseRecv();
-                }
+                        @Override
+                        public void doCloseSend() {
+                            state.compareAndSet(2, 3);
+                            doCloseRecv();
+                        }
 
-                @Override
-                public boolean isSendOpen() {
-                    return true;
-                }
+                        @Override
+                        public boolean isSendOpen() {
+                            return true;
+                        }
+                    })
+                    .filter(new FilterLayer() {
+                        @Override
+                        public void start() {}
 
-            }).filter(new FilterLayer() {
-                @Override
-                public void start() {
-                }
+                        @Override
+                        public void onRecv(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void onRecv(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void doSend(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void doSend(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void doCloseSend() throws IOException {
+                            state.compareAndSet(1, 2);
+                            super.doCloseSend();
+                        }
 
-                @Override
-                public void doCloseSend() throws IOException {
-                    state.compareAndSet(1, 2);
-                    super.doCloseSend();
-                }
+                        @Override
+                        public void onRecvClosed(IOException cause) throws IOException {
+                            state.compareAndSet(4, 5);
+                            super.onRecvClosed(cause);
+                        }
+                    })
+                    .filter(new FilterLayer() {
+                        @Override
+                        public void start() {}
 
-                @Override
-                public void onRecvClosed(IOException cause) throws IOException {
-                    state.compareAndSet(4, 5);
-                    super.onRecvClosed(cause);
-                }
-            }).filter(new FilterLayer() {
-                @Override
-                public void start() {
-                }
+                        @Override
+                        public void onRecv(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void onRecv(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void doSend(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void doSend(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public void doCloseSend() throws IOException {
+                            state.compareAndSet(0, 1);
+                            super.doCloseSend();
+                        }
 
-                @Override
-                public void doCloseSend() throws IOException {
-                    state.compareAndSet(0, 1);
-                    super.doCloseSend();
-                }
+                        @Override
+                        public void onRecvClosed(IOException cause) throws IOException {
+                            state.compareAndSet(5, 6);
+                            super.onRecvClosed(cause);
+                        }
+                    })
+                    .named("closeSeq")
+                    .build(new ApplicationLayer<Void>() {
+                        @Override
+                        public boolean isReadOpen() {
+                            return true;
+                        }
 
-                @Override
-                public void onRecvClosed(IOException cause) throws IOException {
-                    state.compareAndSet(5, 6);
-                    super.onRecvClosed(cause);
-                }
-            }).named("closeSeq").build(new ApplicationLayer<Void>() {
-                @Override
-                public boolean isReadOpen() {
-                    return true;
-                }
+                        @Override
+                        public void onRead(@NonNull ByteBuffer data) {}
 
-                @Override
-                public void onRead(@NonNull ByteBuffer data) {
-                }
+                        @Override
+                        public Void get() {
+                            return null;
+                        }
 
-                @Override
-                public Void get() {
-                    return null;
-                }
+                        @Override
+                        public void start() {}
 
-                @Override
-                public void start() {
-                }
-
-
-                @Override
-                public void onReadClosed(IOException cause) {
-                    state.compareAndSet(6, 7);
-                }
-
-            }).close();
+                        @Override
+                        public void onReadClosed(IOException cause) {
+                            state.compareAndSet(6, 7);
+                        }
+                    })
+                    .close();
             assertThat("Close in sequence", state.get(), is(7));
-            assertThat(handler.logRecords, contains(
-                    allOf(hasProperty("message", is("[{0}] Initializing")),
-                            hasProperty("parameters", is(new Object[]{"closeSeq"}))),
-                    allOf(hasProperty("message", is("[{0}] Starting")),
-                            hasProperty("parameters", is(new Object[]{"closeSeq"}))),
-                    allOf(hasProperty("message", is("[{0}] Started")),
-                            hasProperty("parameters", is(new Object[]{"closeSeq"}))),
-                    allOf(hasProperty("message", is("[{0}] Closing")),
-                            hasProperty("parameters", is(new Object[]{"closeSeq"}))),
-                    allOf(hasProperty("message", is("[{0}] Closed")),
-                            hasProperty("parameters", is(new Object[]{"closeSeq"})))
-            ));
+            assertThat(
+                    handler.logRecords,
+                    contains(
+                            allOf(
+                                    hasProperty("message", is("[{0}] Initializing")),
+                                    hasProperty("parameters", is(new Object[] {"closeSeq"}))),
+                            allOf(
+                                    hasProperty("message", is("[{0}] Starting")),
+                                    hasProperty("parameters", is(new Object[] {"closeSeq"}))),
+                            allOf(
+                                    hasProperty("message", is("[{0}] Started")),
+                                    hasProperty("parameters", is(new Object[] {"closeSeq"}))),
+                            allOf(
+                                    hasProperty("message", is("[{0}] Closing")),
+                                    hasProperty("parameters", is(new Object[] {"closeSeq"}))),
+                            allOf(
+                                    hasProperty("message", is("[{0}] Closed")),
+                                    hasProperty("parameters", is(new Object[] {"closeSeq"})))));
         } finally {
             logger.removeHandler(handler);
             logger.setLevel(oldLevel);
@@ -429,11 +416,9 @@ public class ProtocolStackTest {
         }
 
         @Override
-        public void flush() {
-        }
+        public void flush() {}
 
         @Override
-        public void close() throws SecurityException {
-        }
+        public void close() throws SecurityException {}
     }
 }

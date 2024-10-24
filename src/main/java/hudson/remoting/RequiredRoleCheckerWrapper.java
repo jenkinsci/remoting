@@ -24,11 +24,10 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.util.Collection;
 import org.jenkinsci.remoting.Role;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.RoleSensitive;
-
-import java.util.Collection;
 
 /**
  * Implementation that can tell whether a {@code #check} method was invoked.

@@ -9,25 +9,25 @@ import java.util.logging.Logger;
 
 /**
  * {@link CommandTransport} that implements the read operation in a synchronous fashion.
- * 
+ *
  * <p>
  * This class uses a thread to pump commands and pass them to {@link CommandReceiver}.
- *     
+ *
  * @author Kohsuke Kawaguchi
  */
 public abstract class SynchronousCommandTransport extends CommandTransport {
     protected Channel channel;
 
-    private static final String RDR_SOCKET_TIMEOUT_PROPERTY_NAME = 
+    private static final String RDR_SOCKET_TIMEOUT_PROPERTY_NAME =
             SynchronousCommandTransport.class.getName() + ".failOnSocketTimeoutInReader";
-    
+
     /**
-     * Enables the original aggressive behavior, when the channel reader gets 
+     * Enables the original aggressive behavior, when the channel reader gets
      * interrupted on any {@link SocketTimeoutException}.
      * @since 2.60
      */
     private static boolean RDR_FAIL_ON_SOCKET_TIMEOUT = Boolean.getBoolean(RDR_SOCKET_TIMEOUT_PROPERTY_NAME);
-    
+
     /**
      * Called by {@link Channel} to read the next command to arrive from the stream.
      */
@@ -43,17 +43,18 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
         private final CommandReceiver receiver;
 
         public ReaderThread(CommandReceiver receiver) {
-            super("Channel reader thread: "+channel.getName());
+            super("Channel reader thread: " + channel.getName());
             this.receiver = receiver;
             setUncaughtExceptionHandler((t, e) -> {
-                LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in SynchronousCommandTransport.ReaderThread " + t);
+                LOGGER.log(
+                        Level.SEVERE, e, () -> "Uncaught exception in SynchronousCommandTransport.ReaderThread " + t);
                 channel.terminate(new IOException("Unexpected reader termination", e));
             });
         }
 
         @Override
         public void run() {
-            final String name =channel.getName();
+            final String name = channel.getName();
             try {
                 while (!channel.isInClosed()) {
                     Command cmd;
@@ -61,9 +62,13 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
                         cmd = read();
                     } catch (SocketTimeoutException ex) {
                         if (RDR_FAIL_ON_SOCKET_TIMEOUT) {
-                            LOGGER.log(Level.SEVERE, ex, () -> "Socket timeout in the Synchronous channel reader."
-                                    + " The channel will be interrupted, because " + RDR_SOCKET_TIMEOUT_PROPERTY_NAME
-                                    + " is set");
+                            LOGGER.log(
+                                    Level.SEVERE,
+                                    ex,
+                                    () -> "Socket timeout in the Synchronous channel reader."
+                                            + " The channel will be interrupted, because "
+                                            + RDR_SOCKET_TIMEOUT_PROPERTY_NAME
+                                            + " is set");
                             throw ex;
                         }
                         // Timeout happened during the read operation.
@@ -82,14 +87,14 @@ public abstract class SynchronousCommandTransport extends CommandTransport {
                 }
                 closeRead();
             } catch (InterruptedException e) {
-                LOGGER.log(Level.SEVERE, e, () -> "I/O error in channel "+name);
+                LOGGER.log(Level.SEVERE, e, () -> "I/O error in channel " + name);
                 Thread.currentThread().interrupt();
                 channel.terminate((InterruptedIOException) new InterruptedIOException().initCause(e));
             } catch (IOException e) {
-                LOGGER.log(Level.INFO, e, () -> "I/O error in channel "+name);
+                LOGGER.log(Level.INFO, e, () -> "I/O error in channel " + name);
                 channel.terminate(e);
             } catch (RuntimeException | Error e) {
-                LOGGER.log(Level.SEVERE, e, () -> "Unexpected error in channel "+name);
+                LOGGER.log(Level.SEVERE, e, () -> "Unexpected error in channel " + name);
                 channel.terminate(new IOException("Unexpected reader termination", e));
                 throw e;
             } finally {

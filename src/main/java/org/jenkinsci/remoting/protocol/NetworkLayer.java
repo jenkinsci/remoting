@@ -253,7 +253,7 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
         } catch (IOException e) {
             if (LOGGER.isLoggable(Level.FINEST)) {
                 LogRecord record = new LogRecord(Level.FINEST, "[{0}] Could not complete start");
-                record.setParameters(new Object[]{ptr.stack().name()});
+                record.setParameters(new Object[] {ptr.stack().name()});
                 record.setThrown(e);
                 LOGGER.log(record);
             }
@@ -306,5 +306,4 @@ public abstract class NetworkLayer implements ProtocolLayer, ProtocolLayer.Send 
     protected ProtocolStack<?> stack() {
         return ptr == null ? null : ptr.stack();
     }
-
 }

@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.Buffer;
@@ -30,9 +32,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
 import org.jenkinsci.remoting.util.ByteBufferQueueOutputStream;
@@ -70,12 +69,14 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * Our channel.
      */
     private Channel channel;
+
     @Deprecated
     private final ByteBuffer writeChunkHeader;
     /**
      * The transport frame size.
      */
     private int transportFrameSize = 8192;
+
     @Deprecated
     private ByteBuffer writeChunkBody;
     /**
@@ -355,5 +356,4 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
     public void terminate(IOException e) {
         receiver.terminate(e);
     }
-
 }

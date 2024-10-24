@@ -23,6 +23,14 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
@@ -35,15 +43,6 @@ import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
-
-import java.nio.ByteBuffer;
-import java.nio.channels.Pipe;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 @RunWith(Theories.class)
 public class NetworkLayerTest {
@@ -82,17 +81,15 @@ public class NetworkLayerTest {
     }
 
     @Theory
-    public void doBasicSendReceive(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(hub, serverToClient.source(), clientToServer.sink()))
-                        .build(new IOBufferMatcherLayer());
+    public void doBasicSendReceive(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
+            throws Exception {
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(hub, serverToClient.source(), clientToServer.sink()))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(hub, clientToServer.source(), serverToClient.sink()))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(hub, clientToServer.source(), serverToClient.sink()))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -104,5 +101,4 @@ public class NetworkLayerTest {
         server.get().close(null);
         client.get().awaitClose();
     }
-
 }

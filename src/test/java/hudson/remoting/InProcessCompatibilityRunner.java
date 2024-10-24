@@ -1,8 +1,8 @@
 package hudson.remoting;
 
 /**
-* @author Kohsuke Kawaguchi
-*/
+ * @author Kohsuke Kawaguchi
+ */
 public class InProcessCompatibilityRunner extends InProcessRunner {
     @Override
     public String getName() {

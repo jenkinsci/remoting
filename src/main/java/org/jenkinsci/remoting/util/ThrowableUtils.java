@@ -51,8 +51,12 @@ public class ThrowableUtils {
      */
     @CheckForNull
     public static <T extends Throwable, T1 extends T, T2 extends T> T chain(@CheckForNull T1 e1, @CheckForNull T2 e2) {
-        if (e1 == null) return e2;
-        if (e2 == null) return e1;
+        if (e1 == null) {
+            return e2;
+        }
+        if (e2 == null) {
+            return e1;
+        }
         e1.addSuppressed(e2);
         return e1;
     }

@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -29,7 +28,7 @@ abstract class URLish {
 
     @NonNull
     static URLish from(@NonNull final URL url) {
-        
+
         return new URLish() {
             @Override
             @NonNull
@@ -46,8 +45,9 @@ abstract class URLish {
             URL toURL() throws MalformedURLException {
                 // be defensive against external factors that might have deleted this file, since we use /tmp
                 // see http://www.nabble.com/Surefire-reports-tt17554215.html
-                if (f.exists())
+                if (f.exists()) {
                     return f.toURI().toURL();
+                }
                 return null;
             }
         };

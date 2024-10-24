@@ -55,7 +55,7 @@ public class BinarySafeStreamTest {
             int ch = in.read();
             assertEquals(b, ch);
         }
-        assertEquals(-1,in.read());
+        assertEquals(-1, in.read());
     }
 
     @Test
@@ -67,7 +67,7 @@ public class BinarySafeStreamTest {
         try (OutputStream o = BinarySafeStream.wrap(buf)) {
             o.write(ds, 0, ds.length);
         }
-        assertEquals(buf.toString(),master);
+        assertEquals(buf.toString(), master);
     }
 
     @Test
@@ -76,11 +76,11 @@ public class BinarySafeStreamTest {
         String master = Base64.getEncoder().encodeToString(ds);
 
         Random r = new Random(0);
-        for( int i=0; i<16; i++) {
+        for (int i = 0; i < 16; i++) {
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
             OutputStream o = BinarySafeStream.wrap(buf);
-            randomCopy(r,new ByteArrayInputStream(ds),o,false);
-            assertEquals(buf.toString(),master);
+            randomCopy(r, new ByteArrayInputStream(ds), o, false);
+            assertEquals(buf.toString(), master);
         }
     }
 
@@ -98,30 +98,34 @@ public class BinarySafeStreamTest {
         byte[] dataSet = getDataSet(65536);
         Random r = new Random(0);
 
-        for(int i=0; i<16; i++) {
-            if(dump)
+        for (int i = 0; i < 16; i++) {
+            if (dump) {
                 System.out.println("test started");
+            }
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
-            randomCopy(r,new ByteArrayInputStream(dataSet), BinarySafeStream.wrap(buf), flush);
+            randomCopy(r, new ByteArrayInputStream(dataSet), BinarySafeStream.wrap(buf), flush);
 
-            decodeByMaster(buf.toString(),dataSet);
+            decodeByMaster(buf.toString(), dataSet);
 
-            if(dump)
+            if (dump) {
                 System.out.println("------");
+            }
 
             ByteArrayOutputStream dst = new ByteArrayOutputStream();
-            randomCopy(r,BinarySafeStream.wrap(new ByteArrayInputStream(buf.toByteArray())), dst,flush);
+            randomCopy(r, BinarySafeStream.wrap(new ByteArrayInputStream(buf.toByteArray())), dst, flush);
 
             byte[] result = dst.toByteArray();
-            if(!Arrays.equals(dataSet, result)) {
+            if (!Arrays.equals(dataSet, result)) {
                 String msg = print(result, 0, result.length);
-                for( int j=0; j<result.length; j++ )
-                    assertEquals(result[j],dataSet[j], "offset "+j+" at "+msg);
+                for (int j = 0; j < result.length; j++) {
+                    assertEquals(result[j], dataSet[j], "offset " + j + " at " + msg);
+                }
                 fail(msg);
             }
 
-            if(dump)
+            if (dump) {
                 System.out.println("------");
+            }
         }
     }
 
@@ -129,13 +133,14 @@ public class BinarySafeStreamTest {
      * Decodes by the JDK base64 code and make sure the encoded string looks correct.
      */
     private void decodeByMaster(String s, byte[] dataSet) {
-        int ptr=0;
+        int ptr = 0;
 
-        for( int i=0; i<s.length(); i+=4 ) {
-            byte[] buf = Base64.getDecoder().decode(s.substring(i,i+4));
+        for (int i = 0; i < s.length(); i += 4) {
+            byte[] buf = Base64.getDecoder().decode(s.substring(i, i + 4));
             for (byte b : buf) {
-                if (b != dataSet[ptr])
+                if (b != dataSet[ptr]) {
                     fail("encoding error at offset " + ptr);
+                }
                 ptr++;
             }
         }
@@ -146,8 +151,9 @@ public class BinarySafeStreamTest {
      */
     private byte[] getDataSet(int len) {
         byte[] dataSet = new byte[len];
-        for( int i=0; i<dataSet.length; i++ )
-            dataSet[i] = (byte)i;
+        for (int i = 0; i < dataSet.length; i++) {
+            dataSet[i] = (byte) i;
+        }
         return dataSet;
     }
 
@@ -160,7 +166,7 @@ public class BinarySafeStreamTest {
                         if (dump) {
                             System.out.println("read1(" + ch + ')');
                         }
-                        assertTrue(255 >= ch && ch >= -1);  // make sure the range is [-1,255]
+                        assertTrue(255 >= ch && ch >= -1); // make sure the range is [-1,255]
                         if (ch == -1) {
                             return;
                         }
@@ -175,7 +181,8 @@ public class BinarySafeStreamTest {
                         byte[] tmp = new byte[start + chunk + trail];
                         int len = in.read(tmp, start, chunk);
                         if (dump) {
-                            System.out.println("read2(" + print(tmp, start, len) + ",len=" + len + ",chunk=" + chunk + ")");
+                            System.out.println(
+                                    "read2(" + print(tmp, start, len) + ",len=" + len + ",chunk=" + chunk + ")");
                         }
                         if (len == -1) {
                             return;
@@ -219,9 +226,11 @@ public class BinarySafeStreamTest {
         StringBuilder out = new StringBuilder();
         out.append('{');
         for (int i = 0; i < len; i++) {
-            byte b = buf[i+start];
-            if(i>0) out.append(',');
-            out.append(((int)b)&0xFF);
+            byte b = buf[i + start];
+            if (i > 0) {
+                out.append(',');
+            }
+            out.append(((int) b) & 0xFF);
         }
         return out.append('}').toString();
     }

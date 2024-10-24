@@ -55,9 +55,8 @@ public class DeadRemoteOutputStreamTest implements Serializable {
             System.gc();
             Thread.sleep(1000);
 
-
             final IOException e = assertThrows(IOException.class, () -> {
-                for (int i=0; i<100; i++) {
+                for (int i = 0; i < 100; i++) {
                     os.write(0);
                     System.gc();
                     Thread.sleep(10);
@@ -69,7 +68,9 @@ public class DeadRemoteOutputStreamTest implements Serializable {
             assertThat(whole, allOf(containsString(MESSAGE), containsString("hudson.rem0ting.TestCallable")));
             return null;
         }
+
         private static final long serialVersionUID = 1L;
     }
+
     private static final long serialVersionUID = 1L;
 }

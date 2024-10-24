@@ -1,10 +1,9 @@
 package org.jenkinsci.remoting.nio;
 
+import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.RetentionPolicy.*;
 
 /**
  * Marks the methods that can be only executed by the NIO selector thread.
@@ -17,7 +16,6 @@ import static java.lang.annotation.RetentionPolicy.*;
  *
  * @author Kohsuke Kawaguchi
  */
-@Target(METHOD)
-@Retention(SOURCE)
-@interface SelectorThreadOnly {
-}
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.SOURCE)
+@interface SelectorThreadOnly {}

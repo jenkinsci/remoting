@@ -39,5 +39,6 @@ public class TestLinkage extends CallableBase<Object, Throwable> {
     }
 
     public static class B {}
+
     private static final long serialVersionUID = 1L;
 }

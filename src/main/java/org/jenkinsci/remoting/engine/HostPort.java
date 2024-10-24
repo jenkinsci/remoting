@@ -32,7 +32,8 @@ class HostPort {
         if (portString.length() > 0) {
             port = Integer.parseInt(portString);
             if (port <= PORT_MIN || port > PORT_MAX) {
-                throw new IllegalArgumentException("Port " + value + " out of valid range [" + PORT_MIN + ", " + PORT_MAX + ")");
+                throw new IllegalArgumentException(
+                        "Port " + value + " out of valid range [" + PORT_MIN + ", " + PORT_MAX + ")");
             }
         } else {
             port = defaultPort;
@@ -59,5 +60,4 @@ class HostPort {
     public int getPort() {
         return port;
     }
-
 }

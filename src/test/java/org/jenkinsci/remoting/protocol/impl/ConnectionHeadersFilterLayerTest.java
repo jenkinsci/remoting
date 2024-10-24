@@ -23,7 +23,23 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
@@ -42,33 +58,17 @@ import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
-import java.nio.ByteBuffer;
-import java.nio.channels.Pipe;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
-
 @RunWith(Theories.class)
 public class ConnectionHeadersFilterLayerTest {
 
     @Rule
     public TestName name = new TestName();
+
     private IOHubRule selector = new IOHubRule();
+
     @Rule
-    public RuleChain chain = RuleChain.outerRule(selector)
-            .around(new RepeatRule())
-            .around(new Timeout(10, TimeUnit.SECONDS));
+    public RuleChain chain =
+            RuleChain.outerRule(selector).around(new RepeatRule()).around(new Timeout(10, TimeUnit.SECONDS));
 
     private Pipe clientToServer;
     private Pipe serverToClient;
@@ -99,19 +99,15 @@ public class ConnectionHeadersFilterLayerTest {
 
     @Theory
     public void smokes(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -126,21 +122,17 @@ public class ConnectionHeadersFilterLayerTest {
 
     @Theory
     public void clientRejects(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {
-                                    throw new PermanentConnectionRefusalException("Go away");
-                                }))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
+                    throw new PermanentConnectionRefusalException("Go away");
+                }))
+                .build(new IOBufferMatcherLayer());
 
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(), instanceOf(PermanentConnectionRefusalException.class));
@@ -150,21 +142,17 @@ public class ConnectionHeadersFilterLayerTest {
 
     @Theory
     public void serverRejects(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {
-                                    throw new PermanentConnectionRefusalException("Go away");
-                                }))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
+                    throw new PermanentConnectionRefusalException("Go away");
+                }))
+                .build(new IOBufferMatcherLayer());
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(), instanceOf(PermanentConnectionRefusalException.class));
@@ -174,116 +162,110 @@ public class ConnectionHeadersFilterLayerTest {
 
     @Theory
     public void bothReject(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {
-                                    throw new PermanentConnectionRefusalException("Go away");
-                                }))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
+                    throw new PermanentConnectionRefusalException("Go away");
+                }))
+                .build(new IOBufferMatcherLayer());
 
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {
-                                    throw new PermanentConnectionRefusalException("Go away");
-                                }))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
+                    throw new PermanentConnectionRefusalException("Go away");
+                }))
+                .build(new IOBufferMatcherLayer());
 
         client.get().awaitClose();
-        assertThat(client.get().getCloseCause(),
-                instanceOf(PermanentConnectionRefusalException.class)
-        );
+        assertThat(client.get().getCloseCause(), instanceOf(PermanentConnectionRefusalException.class));
         server.get().awaitClose();
-        assertThat(server.get().getCloseCause(),
-                instanceOf(PermanentConnectionRefusalException.class)
-        );
+        assertThat(server.get().getCloseCause(), instanceOf(PermanentConnectionRefusalException.class));
     }
 
     @Theory
     public void clientRefuses(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {
-                                    throw new ConnectionRefusalException("Go away");
-                                }))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
+                    throw new ConnectionRefusalException("Go away");
+                }))
+                .build(new IOBufferMatcherLayer());
 
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
         client.get().awaitClose();
-        assertThat(client.get().getCloseCause(),
-                allOf(instanceOf(ConnectionRefusalException.class), not(instanceOf(PermanentConnectionRefusalException.class))));
+        assertThat(
+                client.get().getCloseCause(),
+                allOf(
+                        instanceOf(ConnectionRefusalException.class),
+                        not(instanceOf(PermanentConnectionRefusalException.class))));
         server.get().awaitClose();
-        assertThat(server.get().getCloseCause(),
-                allOf(instanceOf(ConnectionRefusalException.class), not(instanceOf(PermanentConnectionRefusalException.class)))
-        );
+        assertThat(
+                server.get().getCloseCause(),
+                allOf(
+                        instanceOf(ConnectionRefusalException.class),
+                        not(instanceOf(PermanentConnectionRefusalException.class))));
     }
 
     @Theory
     public void serverRefuses(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {
-                                    throw new ConnectionRefusalException("Go away");
-                                }))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
+                    throw new ConnectionRefusalException("Go away");
+                }))
+                .build(new IOBufferMatcherLayer());
 
         client.get().awaitClose();
-        assertThat(client.get().getCloseCause(),
-                allOf(instanceOf(ConnectionRefusalException.class), not(instanceOf(PermanentConnectionRefusalException.class)))
-        );
+        assertThat(
+                client.get().getCloseCause(),
+                allOf(
+                        instanceOf(ConnectionRefusalException.class),
+                        not(instanceOf(PermanentConnectionRefusalException.class))));
         server.get().awaitClose();
-        assertThat(server.get().getCloseCause(),
-                allOf(instanceOf(ConnectionRefusalException.class), not(instanceOf(PermanentConnectionRefusalException.class))));
+        assertThat(
+                server.get().getCloseCause(),
+                allOf(
+                        instanceOf(ConnectionRefusalException.class),
+                        not(instanceOf(PermanentConnectionRefusalException.class))));
     }
 
     @Theory
     public void bothRefuse(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {
-                                    throw new ConnectionRefusalException("Go away");
-                                }))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
+                    throw new ConnectionRefusalException("Go away");
+                }))
+                .build(new IOBufferMatcherLayer());
 
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(),
-                                headers -> {
-                                    throw new ConnectionRefusalException("Go away");
-                                }))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
+                    throw new ConnectionRefusalException("Go away");
+                }))
+                .build(new IOBufferMatcherLayer());
 
         client.get().awaitClose();
-        assertThat(client.get().getCloseCause(),
-                allOf(instanceOf(ConnectionRefusalException.class), not(instanceOf(PermanentConnectionRefusalException.class)))
-        );
+        assertThat(
+                client.get().getCloseCause(),
+                allOf(
+                        instanceOf(ConnectionRefusalException.class),
+                        not(instanceOf(PermanentConnectionRefusalException.class))));
         server.get().awaitClose();
-        assertThat(server.get().getCloseCause(),
-                allOf(instanceOf(ConnectionRefusalException.class), not(instanceOf(PermanentConnectionRefusalException.class)))
-        );
+        assertThat(
+                server.get().getCloseCause(),
+                allOf(
+                        instanceOf(ConnectionRefusalException.class),
+                        not(instanceOf(PermanentConnectionRefusalException.class))));
     }
 
     @Theory
@@ -294,24 +276,20 @@ public class ConnectionHeadersFilterLayerTest {
         for (int i = 1 + entropy.nextInt(50); i > 0; i--) {
             clientExpectedHeaders.put(Long.toHexString(entropy.nextLong()), Long.toHexString(entropy.nextLong()));
         }
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders,
-                                serverActualHeaders::complete))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders, serverActualHeaders::complete))
+                .build(new IOBufferMatcherLayer());
 
         final CompletableFuture<Map<String, String>> clientActualHeaders = new CompletableFuture<>();
         Map<String, String> serverExpectedHeaders = new HashMap<>();
         for (int i = 1 + entropy.nextInt(50); i > 0; i--) {
             serverExpectedHeaders.put(Long.toHexString(entropy.nextLong()), Long.toHexString(entropy.nextLong()));
         }
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new ConnectionHeadersFilterLayer(serverExpectedHeaders,
-                                clientActualHeaders::complete))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new ConnectionHeadersFilterLayer(serverExpectedHeaders, clientActualHeaders::complete))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -335,13 +313,10 @@ public class ConnectionHeadersFilterLayerTest {
         }
 
         final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
-            ProtocolStack
-                    .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                    .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders,
-                            serverActualHeaders::complete))
+            ProtocolStack.on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                    .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders, serverActualHeaders::complete))
                     .build(new IOBufferMatcherLayer());
         });
         assertThat(e.getMessage(), containsString("less than 65536"));
     }
-
 }

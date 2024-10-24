@@ -29,10 +29,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.TeeOutputStream;
-import org.jenkinsci.remoting.util.PathUtils;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -51,6 +47,9 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
+import org.jenkinsci.remoting.util.PathUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Performs working directory management in remoting.
@@ -97,7 +96,6 @@ public class WorkDirManager {
      * Cache of initialized directory locations.
      */
     private final Map<DirType, File> directories = new HashMap<>();
-
 
     private WorkDirManager() {
         // Cannot be instantiated outside
@@ -150,7 +148,7 @@ public class WorkDirManager {
 
     /**
      * Gets path to the property file with JUL settings.
-     * This method checks the value passed from {@link #setLoggingConfig(java.io.File)} first.
+     * This method checks the value passed from {@link #setLoggingConfig(File)} first.
      * If the value is not specified, it also checks the standard {@code java.util.logging.config.file} System property.
      * @return Path to the logging config file.
      *         {@code null} if it cannot be found.
@@ -169,7 +167,7 @@ public class WorkDirManager {
         return null;
     }
 
-    //TODO: New interfaces should ideally use Path instead of File
+    // TODO: New interfaces should ideally use Path instead of File
     /**
      * Initializes the working directory for the agent.
      * Within the working directory the method also initializes a working directory for internal needs (like logging)
@@ -185,16 +183,20 @@ public class WorkDirManager {
      */
     @CheckForNull
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
-    public Path initializeWorkDir(final @CheckForNull File workDir, final @NonNull String internalDir, final boolean failIfMissing) throws IOException {
+    public Path initializeWorkDir(
+            final @CheckForNull File workDir, final @NonNull String internalDir, final boolean failIfMissing)
+            throws IOException {
 
         if (!internalDir.matches(SUPPORTED_INTERNAL_DIR_NAME_MASK)) {
-            throw new IOException(String.format("Name of %s ('%s') is not compliant with the required format: %s",
+            throw new IOException(String.format(
+                    "Name of %s ('%s') is not compliant with the required format: %s",
                     DirType.INTERNAL_DIR, internalDir, SUPPORTED_INTERNAL_DIR_NAME_MASK));
         }
 
         if (workDir == null) {
             // TODO: this message likely suppresses the connection setup on CI
-            // LOGGER.log(Level.WARNING, "Agent working directory is not specified. Some functionality introduced in Remoting 3 may be disabled");
+            // LOGGER.log(Level.WARNING, "Agent working directory is not specified. Some functionality introduced in
+            // Remoting 3 may be disabled");
             return null;
         } else {
             // Verify working directory
@@ -220,8 +222,7 @@ public class WorkDirManager {
     }
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Value supplied by user / administrator.")
-    private void createInternalDirIfRequired(File internalDir, DirType type)
-            throws IOException {
+    private void createInternalDirIfRequired(File internalDir, DirType type) throws IOException {
         if (!disabledDirectories.contains(type)) {
             final File directory = new File(internalDir, type.getDefaultLocation());
             verifyDirectory(directory, type, false);
@@ -240,13 +241,16 @@ public class WorkDirManager {
      * @param failIfMissing Fail if the directory is missing
      * @throws IOException Verification failure
      */
-    private static void verifyDirectory(@NonNull File dir, @NonNull DirType type, boolean failIfMissing) throws IOException {
+    private static void verifyDirectory(@NonNull File dir, @NonNull DirType type, boolean failIfMissing)
+            throws IOException {
         if (dir.exists()) {
             if (!dir.isDirectory()) {
-                throw new IOException("The specified " + type + " path points to a non-directory file: " + dir.getPath());
+                throw new IOException(
+                        "The specified " + type + " path points to a non-directory file: " + dir.getPath());
             }
             if (!dir.canWrite() || !dir.canRead() || !dir.canExecute()) {
-                throw new IOException("The specified " + type + " should be fully accessible to the remoting executable (RWX): " + dir.getPath());
+                throw new IOException("The specified " + type
+                        + " should be fully accessible to the remoting executable (RWX): " + dir.getPath());
             }
         } else if (failIfMissing) {
             throw new IOException("The " + type + " is missing, but it is expected to exist: " + dir.getPath());
@@ -264,7 +268,8 @@ public class WorkDirManager {
      *                        If {@code null}, the behavior is defined by {@code internalDirPath}.
      * @throws IOException Initialization error
      */
-    public void setupLogging(@CheckForNull Path internalDirPath, @CheckForNull Path overrideLogPath) throws IOException {
+    public void setupLogging(@CheckForNull Path internalDirPath, @CheckForNull Path overrideLogPath)
+            throws IOException {
         if (loggingInitialized) {
             // Do nothing, in Remoting initialization there may be two calls due to the
             // legacy -agentLog behavior implementation.
@@ -274,15 +279,19 @@ public class WorkDirManager {
 
         final File configFile = getLoggingConfigFile();
         if (configFile != null) {
-            // TODO: There is a risk of second configuration call in the case of java.util.logging.config.file, but it's safe
+            // TODO: There is a risk of second configuration call in the case of java.util.logging.config.file, but it's
+            // safe
             LOGGER.log(Level.FINE, "Reading Logging configuration from file: {0}", configFile);
-            try(FileInputStream fis =  new FileInputStream(configFile)) {
+            try (FileInputStream fis = new FileInputStream(configFile)) {
                 LogManager.getLogManager().readConfiguration(fis);
             }
         }
 
         if (overrideLogPath != null) { // Legacy behavior
-            LOGGER.log(Level.INFO, "Using {0} as an agent error log destination; output log will not be generated", overrideLogPath);
+            LOGGER.log(
+                    Level.INFO,
+                    "Using {0} as an agent error log destination; output log will not be generated",
+                    overrideLogPath);
             System.out.flush(); // Just in case the channel
             System.err.flush();
             System.setErr(legacyCreateTeeStream(System.err, overrideLogPath));
@@ -300,8 +309,7 @@ public class WorkDirManager {
             if (configFile == null) {
                 final Logger rootLogger = Logger.getLogger("");
                 final File julLog = new File(logsDir, "remoting.log");
-                final FileHandler logHandler = new FileHandler(julLog.getAbsolutePath(),
-                                         10*1024*1024, 5, false);
+                final FileHandler logHandler = new FileHandler(julLog.getAbsolutePath(), 10 * 1024 * 1024, 5, false);
                 logHandler.setFormatter(new SimpleFormatter());
                 logHandler.setLevel(Level.INFO);
                 rootLogger.addHandler(logHandler);
@@ -311,7 +319,10 @@ public class WorkDirManager {
         }
     }
 
-    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "It is a legacy logging mode. Relying on the default is not fine, but it just behaves as it used to behave for years")
+    @SuppressFBWarnings(
+            value = "DM_DEFAULT_ENCODING",
+            justification =
+                    "It is a legacy logging mode. Relying on the default is not fine, but it just behaves as it used to behave for years")
     private PrintStream legacyCreateTeeStream(OutputStream ostream, Path destination) throws FileNotFoundException {
         return new PrintStream(new TeeOutputStream(ostream, new FileOutputStream(destination.toFile())));
     }
@@ -371,6 +382,5 @@ public class WorkDirManager {
         public String getName() {
             return name;
         }
-
     }
 }

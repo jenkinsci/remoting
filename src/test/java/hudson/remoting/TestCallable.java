@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,10 +23,9 @@
  */
 package hudson.remoting;
 
-import org.jenkinsci.remoting.RoleChecker;
-
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import org.jenkinsci.remoting.RoleChecker;
 
 /**
  * {@link Callable} used to verify the classloader used.
@@ -52,8 +51,9 @@ public class TestCallable extends Exception implements Callable<Object, Throwabl
 
         byte[] buf = new byte[8192];
         int len;
-        while((len=in.read(buf))>0)
-            baos.write(buf,0,len);
+        while ((len = in.read(buf)) > 0) {
+            baos.write(buf, 0, len);
+        }
         in.close();
 
         r[1] = baos.toByteArray();
@@ -66,9 +66,11 @@ public class TestCallable extends Exception implements Callable<Object, Throwabl
     }
 
     @Override
-    public void checkRoles(RoleChecker checker) throws SecurityException {
+    public void checkRoles(RoleChecker checker) throws SecurityException {}
+
+    public static class Sub extends TestCallable {
+        private static final long serialVersionUID = 1L;
     }
 
-    public static class Sub extends TestCallable {private static final long serialVersionUID = 1L;}
     private static final long serialVersionUID = 1L;
 }

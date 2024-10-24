@@ -1,24 +1,5 @@
 package hudson.remoting;
 
-import com.google.common.hash.Hashing;
-import com.google.common.io.FileWriteMode;
-import com.google.common.io.Files;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.jvnet.hudson.test.Issue;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.stubbing.Answer;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -33,6 +14,24 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import com.google.common.hash.Hashing;
+import com.google.common.io.FileWriteMode;
+import com.google.common.io.Files;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.jvnet.hudson.test.Issue;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.stubbing.Answer;
+
 /**
  * Tests for {@link FileSystemJarCache}.
  *
@@ -42,10 +41,15 @@ public class FileSystemJarCacheTest {
 
     private static final String CONTENTS = "These are the contents";
 
-    @Rule public TemporaryFolder tmp = new TemporaryFolder();
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
 
-    @Mock private Channel mockChannel;
-    @Mock private JarLoader mockJarLoader;
+    @Mock
+    private Channel mockChannel;
+
+    @Mock
+    private JarLoader mockJarLoader;
+
     private FileSystemJarCache fileSystemJarCache;
     private Checksum expectedChecksum;
 
@@ -72,15 +76,13 @@ public class FileSystemJarCacheTest {
         assertTrue(expectedFile.createNewFile());
         writeToFile(expectedFile, CONTENTS);
 
-        URL url = fileSystemJarCache.retrieve(
-                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+        URL url = fileSystemJarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
         assertEquals(expectedFile.toURI().toURL(), url);
 
         // Changing the content after successfully cached is not an expected use-case.
         // Here used to verity checksums are cached.
         writeToFile(expectedFile, "Something else");
-        url = fileSystemJarCache.retrieve(
-                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+        url = fileSystemJarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
         assertEquals(expectedFile.toURI().toURL(), url);
     }
 
@@ -88,8 +90,7 @@ public class FileSystemJarCacheTest {
     public void testSuccessfulRetrieve() throws Exception {
         mockCorrectLoad();
 
-        URL url = fileSystemJarCache.retrieve(
-                mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
+        URL url = fileSystemJarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2);
         assertEquals(expectedChecksum, Checksum.forURL(url));
     }
 
@@ -97,15 +98,15 @@ public class FileSystemJarCacheTest {
     public void testRetrieveChecksumDifferent() throws Exception {
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
         doAnswer((Answer<Void>) invocationOnMock -> {
-            RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-            o.write("Some other contents".getBytes(StandardCharsets.UTF_8));
-            return null;
-        }).when(mockJarLoader).writeJarTo(
-                eq(expectedChecksum.sum1),
-                eq(expectedChecksum.sum2),
-                any(RemoteOutputStream.class));
+                    RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
+                    o.write("Some other contents".getBytes(StandardCharsets.UTF_8));
+                    return null;
+                })
+                .when(mockJarLoader)
+                .writeJarTo(eq(expectedChecksum.sum1), eq(expectedChecksum.sum2), any(RemoteOutputStream.class));
 
-        final IOException ex = assertThrows(IOException.class,
+        final IOException ex = assertThrows(
+                IOException.class,
                 () -> fileSystemJarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2));
         assertThat(ex.getCause(), hasMessage(containsString("Incorrect checksum of retrieved jar")));
     }
@@ -143,8 +144,8 @@ public class FileSystemJarCacheTest {
         when(spy.renameTo(expectedFile)).thenReturn(false);
         assertFalse(expectedFile.exists());
 
-        final IOException ex = assertThrows(IOException.class,
-                () -> jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2));
+        final IOException ex = assertThrows(
+                IOException.class, () -> jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2));
         assertThat(ex.getCause(), hasMessage(containsString("Unable to create")));
     }
 
@@ -157,26 +158,28 @@ public class FileSystemJarCacheTest {
 
         mockCorrectLoad();
         doAnswer((Answer<Boolean>) invocationOnMock -> {
-            Files.createParentDirs(expectedFile);
-            expectedFile.createNewFile();
-            Files.asCharSink(expectedFile, StandardCharsets.UTF_8, FileWriteMode.APPEND).write("Some other contents");
-            return false;
-        }).when(fileSpy).renameTo(expectedFile);
+                    Files.createParentDirs(expectedFile);
+                    expectedFile.createNewFile();
+                    Files.asCharSink(expectedFile, StandardCharsets.UTF_8, FileWriteMode.APPEND)
+                            .write("Some other contents");
+                    return false;
+                })
+                .when(fileSpy)
+                .renameTo(expectedFile);
 
-        final IOException ex = assertThrows(IOException.class,
-                () -> jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2));
+        final IOException ex = assertThrows(
+                IOException.class, () -> jarCache.retrieve(mockChannel, expectedChecksum.sum1, expectedChecksum.sum2));
         assertThat(ex.getCause(), hasMessage(containsString("Incorrect checksum of previous jar")));
     }
 
     private void mockCorrectLoad() throws IOException, InterruptedException {
         when(mockChannel.getProperty(JarLoader.THEIRS)).thenReturn(mockJarLoader);
         doAnswer((Answer<Void>) invocationOnMock -> {
-            RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
-            o.write(CONTENTS.getBytes(StandardCharsets.UTF_8));
-            return null;
-        }).when(mockJarLoader).writeJarTo(
-                eq(expectedChecksum.sum1),
-                eq(expectedChecksum.sum2),
-                any(RemoteOutputStream.class));
+                    RemoteOutputStream o = (RemoteOutputStream) invocationOnMock.getArguments()[2];
+                    o.write(CONTENTS.getBytes(StandardCharsets.UTF_8));
+                    return null;
+                })
+                .when(mockJarLoader)
+                .writeJarTo(eq(expectedChecksum.sum1), eq(expectedChecksum.sum2), any(RemoteOutputStream.class));
     }
 }

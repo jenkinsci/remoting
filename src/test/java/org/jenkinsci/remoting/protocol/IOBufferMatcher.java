@@ -23,13 +23,9 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import java.util.concurrent.CompletableFuture;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.CheckReturnValue;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.apache.commons.io.IOUtils;
-import org.hamcrest.Matcher;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -39,6 +35,7 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -48,6 +45,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.io.IOUtils;
+import org.hamcrest.Matcher;
 
 /**
  * An {@link IOBufferMatcher} can {@link #send(ByteBuffer)} and {@link #receive(ByteBuffer)} streams of data as
@@ -69,6 +68,7 @@ public abstract class IOBufferMatcher {
      * A name to differentiate multiple instances.
      */
     private final String name;
+
     private final ByteArrayOutputStream recv = new ByteArrayOutputStream();
     private final WritableByteChannel channel = Channels.newChannel(recv);
     private final CompletableFuture<IOException> closed = new CompletableFuture<>();
@@ -137,7 +137,7 @@ public abstract class IOBufferMatcher {
     public void receive(@NonNull ByteBuffer data) {
         int r = data.remaining();
         if (name != null) {
-            LOGGER.log(Level.INFO, "[{0}] Receiving {1} bytes", new Object[]{name, r});
+            LOGGER.log(Level.INFO, "[{0}] Receiving {1} bytes", new Object[] {name, r});
         }
         try {
             channel.write(data);
@@ -152,7 +152,7 @@ public abstract class IOBufferMatcher {
             // ignore
         }
         if (name != null) {
-            LOGGER.log(Level.INFO, "[{0}] Received {1} bytes: «{2}»", new Object[]{name, r - data.remaining(), this});
+            LOGGER.log(Level.INFO, "[{0}] Received {1} bytes: «{2}»", new Object[] {name, r - data.remaining(), this});
         }
     }
 
@@ -166,9 +166,7 @@ public abstract class IOBufferMatcher {
 
     @Override
     public String toString() {
-        return "SimpleBufferReceiver{" + "name='" + name + '\'' +
-                ", content='" + asString() + '\'' +
-                '}';
+        return "SimpleBufferReceiver{" + "name='" + name + '\'' + ", content='" + asString() + '\'' + '}';
     }
 
     /**
@@ -226,7 +224,6 @@ public abstract class IOBufferMatcher {
         } finally {
             state.unlock();
         }
-
     }
 
     public boolean awaitStringContent(Matcher<String> matcher, long timeout, TimeUnit unit)
@@ -256,11 +253,9 @@ public abstract class IOBufferMatcher {
         } finally {
             state.unlock();
         }
-
     }
 
-    public boolean awaitByteContent(Matcher<byte[]> matcher, long timeout, TimeUnit unit)
-            throws InterruptedException {
+    public boolean awaitByteContent(Matcher<byte[]> matcher, long timeout, TimeUnit unit) throws InterruptedException {
         long giveUp = System.nanoTime() + unit.toNanos(timeout);
         state.lock();
         try {
@@ -276,5 +271,4 @@ public abstract class IOBufferMatcher {
             state.unlock();
         }
     }
-
 }

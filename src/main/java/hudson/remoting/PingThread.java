@@ -27,9 +27,8 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Logger;
-
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Periodically perform a ping.
@@ -60,7 +59,7 @@ public abstract class PingThread extends Thread {
     private final long interval;
 
     public PingThread(Channel channel, long timeout, long interval) {
-        super("Ping thread for channel "+channel);
+        super("Ping thread for channel " + channel);
         this.channel = channel;
         this.timeout = timeout;
         this.interval = interval;
@@ -82,24 +81,24 @@ public abstract class PingThread extends Thread {
     @Override
     public void run() {
         try {
-            while(true) {
+            while (true) {
                 long nextCheck = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(interval);
 
                 ping();
 
                 // wait until the next check
                 long diff;
-                while((diff = nextCheck - System.nanoTime()) > 0) {
+                while ((diff = nextCheck - System.nanoTime()) > 0) {
                     TimeUnit.NANOSECONDS.sleep(diff);
                 }
             }
         } catch (ChannelClosedException e) {
-            LOGGER.fine(getName()+" is closed. Terminating");
+            LOGGER.fine(getName() + " is closed. Terminating");
         } catch (IOException e) {
             onDead(e);
         } catch (InterruptedException e) {
             // use interruption as a way to terminate the ping thread.
-            LOGGER.fine(getName()+" is interrupted. Terminating");
+            LOGGER.fine(getName() + " is interrupted. Terminating");
         }
     }
 
@@ -112,14 +111,17 @@ public abstract class PingThread extends Thread {
         long remaining = end - System.nanoTime();
 
         do {
-            LOGGER.log(Level.FINE, "waiting {0}s on {1}", new Object[] {TimeUnit.NANOSECONDS.toSeconds(remaining), channel.getName()});
+            LOGGER.log(Level.FINE, "waiting {0}s on {1}", new Object[] {
+                TimeUnit.NANOSECONDS.toSeconds(remaining), channel.getName()
+            });
             try {
-                f.get(Math.max(1,remaining),TimeUnit.NANOSECONDS);
+                f.get(Math.max(1, remaining), TimeUnit.NANOSECONDS);
                 LOGGER.log(Level.FINE, "ping succeeded on {0}", channel.getName());
                 return;
             } catch (ExecutionException e) {
-                if (e.getCause() instanceof RequestAbortedException)
+                if (e.getCause() instanceof RequestAbortedException) {
                     return; // connection has shut down orderly.
+                }
                 onDead(e);
                 return;
             } catch (TimeoutException e) {
@@ -127,9 +129,10 @@ public abstract class PingThread extends Thread {
                 // so let's make sure that it really waited enough
             }
             remaining = end - System.nanoTime();
-        } while(remaining>0);
+        } while (remaining > 0);
 
-        onDead(new TimeoutException("Ping started at "+start+" hasn't completed by "+System.currentTimeMillis()));//.initCause(e)
+        onDead(new TimeoutException(
+                "Ping started at " + start + " hasn't completed by " + System.currentTimeMillis())); // .initCause(e)
     }
 
     /**
@@ -148,7 +151,7 @@ public abstract class PingThread extends Thread {
      * @since 2.9
      */
     protected void onDead(Throwable diagnosis) {
-        onDead();   // fall back
+        onDead(); // fall back
     }
 
     private static final class Ping implements InternalCallable<Void, IOException> {

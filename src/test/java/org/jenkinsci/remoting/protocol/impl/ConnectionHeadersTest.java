@@ -23,33 +23,32 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
-import org.junit.Test;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThrows;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
+import org.junit.Test;
 
 public class ConnectionHeadersTest {
 
     @Test
     public void emptyRoundTrip() throws Exception {
-        assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(Collections.emptyMap())),
+        assertThat(
+                ConnectionHeaders.fromString(ConnectionHeaders.toString(Collections.emptyMap())),
                 is(Collections.<String, String>emptyMap()));
     }
 
     @Test
     public void singleValueRoundTrip() throws Exception {
-        assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(Map.of("a", "b"))),
-                is(Map.of("a", "b")));
+        assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(Map.of("a", "b"))), is(Map.of("a", "b")));
     }
 
     @Test
@@ -63,14 +62,12 @@ public class ConnectionHeadersTest {
         payload.put("e\u0009", "'hi\u0008there'");
         payload.put("\f\b\n\r\t/\\", "null");
         payload.put("a/b/c/d", "e\\f\\g\\h");
-        assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(payload)),
-                is(payload));
+        assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(payload)), is(payload));
     }
 
     @Test
     public void newlineEscaping() {
-        assertThat(ConnectionHeaders.toString(Map.of("a\nmultiline\nkey", "b")),
-                not(containsString("\n")));
+        assertThat(ConnectionHeaders.toString(Map.of("a\nmultiline\nkey", "b")), not(containsString("\n")));
     }
 
     @Test
@@ -78,7 +75,8 @@ public class ConnectionHeadersTest {
         Map<String, String> expected = new TreeMap<>();
         expected.put("key", "value");
         expected.put("foo", "bar");
-        assertThat(ConnectionHeaders.fromString("\n{\n  \"key\"\t:\f\"value\"\n,\n\"foo\"   :   \"bar\"\n}\n\n"),
+        assertThat(
+                ConnectionHeaders.fromString("\n{\n  \"key\"\t:\f\"value\"\n,\n\"foo\"   :   \"bar\"\n}\n\n"),
                 is(expected));
     }
 
@@ -87,9 +85,10 @@ public class ConnectionHeadersTest {
         Map<String, String> expected = new TreeMap<>();
         expected.put("key", "value/other");
         expected.put("foo", "bar\\manchu");
-        assertThat(ConnectionHeaders.fromString(
-                " \b\t\n\r\f{ \b\t\n\r\f\"key\" \b\t\n\r\f: \b\t\n\r\f\"value\\/other\" \b\t\n\r\f, \b\t\n\r\f\"foo\" "
-                        + "\b\t\n\r\f: \b\t\n\r\f\"bar\\\\manchu\" \b\t\n\r\f} \b\t\n\r\f"),
+        assertThat(
+                ConnectionHeaders.fromString(
+                        " \b\t\n\r\f{ \b\t\n\r\f\"key\" \b\t\n\r\f: \b\t\n\r\f\"value\\/other\" \b\t\n\r\f, \b\t\n\r\f\"foo\" "
+                                + "\b\t\n\r\f: \b\t\n\r\f\"bar\\\\manchu\" \b\t\n\r\f} \b\t\n\r\f"),
                 is(expected));
     }
 
@@ -206,5 +205,4 @@ public class ConnectionHeadersTest {
         final InvocationTargetException e = assertThrows(InvocationTargetException.class, constructor::newInstance);
         assertThat(e.getCause(), instanceOf(IllegalAccessError.class));
     }
-
 }

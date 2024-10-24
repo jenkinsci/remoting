@@ -2,7 +2,6 @@ package org.jenkinsci.remoting;
 
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
-
 import java.util.Collection;
 import java.util.Set;
 
@@ -70,14 +69,16 @@ public final class Role {
 
     @Override
     public String toString() {
-        return super.toString()+"["+name+"]";
+        return super.toString() + "[" + name + "]";
     }
 
-    @Override public boolean equals(Object obj) {
+    @Override
+    public boolean equals(Object obj) {
         return obj instanceof Role && ((Role) obj).name.equals(name);
     }
 
-    @Override public int hashCode() {
+    @Override
+    public int hashCode() {
         return name.hashCode();
     }
 

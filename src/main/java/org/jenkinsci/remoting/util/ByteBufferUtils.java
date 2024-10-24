@@ -29,7 +29,6 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-
 /**
  * Utility methods to help working with {@link ByteBuffer}s.
  *

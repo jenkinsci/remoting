@@ -1,7 +1,6 @@
 package hudson.remoting.util;
 
 import hudson.remoting.CallableBase;
-
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
@@ -24,7 +23,7 @@ public class GCTask extends CallableBase<Object, IOException> {
     public Object call() throws IOException {
         if (agressive) {
             Set<Object[]> objects = new HashSet<>();
-            int size = ((int)Math.min(Runtime.getRuntime().freeMemory(), Integer.MAX_VALUE)) / 32;
+            int size = ((int) Math.min(Runtime.getRuntime().freeMemory(), Integer.MAX_VALUE)) / 32;
             while (true) {
                 try {
                     objects.add(new Object[size]);

@@ -27,8 +27,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import hudson.remoting.Channel.Ref;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -60,7 +58,7 @@ import java.util.logging.Logger;
  *
  * @author Kohsuke Kawaguchi
  */
-//TODO: Likely should be serializable over Remoting logic, but this class has protection logic
+// TODO: Likely should be serializable over Remoting logic, but this class has protection logic
 // Use-cases need to be investigated
 @SuppressFBWarnings(value = "DESERIALIZATION_GADGET", justification = "This class has protection logic.")
 final class RemoteInvocationHandler implements InvocationHandler, Serializable {
@@ -134,9 +132,14 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     /**
      * Creates a proxy that wraps an existing OID on the remote.
      */
-    private RemoteInvocationHandler(Channel channel, int id, boolean userProxy,
-                            boolean autoUnexportByCaller, boolean userSpace,
-                            Class<?> proxyType, boolean recordCreatedAt) {
+    private RemoteInvocationHandler(
+            Channel channel,
+            int id,
+            boolean userProxy,
+            boolean autoUnexportByCaller,
+            boolean userSpace,
+            Class<?> proxyType,
+            boolean recordCreatedAt) {
         this.channel = channel == null ? null : channel.ref();
         this.oid = id;
         this.userProxy = userProxy;
@@ -154,18 +157,27 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      * @param recordCreatedAt as in {@link Command#Command(boolean)}
      */
     @NonNull
-    static <T> T wrap(Channel channel, int id, Class<T> type, boolean userProxy, boolean autoUnexportByCaller, boolean userSpace, boolean recordCreatedAt) {
+    static <T> T wrap(
+            Channel channel,
+            int id,
+            Class<T> type,
+            boolean userProxy,
+            boolean autoUnexportByCaller,
+            boolean userSpace,
+            boolean recordCreatedAt) {
         ClassLoader cl = type.getClassLoader();
         // if the type is a JDK-defined type, classloader should be for IReadResolve
-        if(cl==null || cl==ClassLoader.getSystemClassLoader())
+        if (cl == null || cl == ClassLoader.getSystemClassLoader()) {
             cl = IReadResolve.class.getClassLoader();
-        RemoteInvocationHandler handler = new RemoteInvocationHandler(channel, id, userProxy, autoUnexportByCaller, userSpace, type, recordCreatedAt);
+        }
+        RemoteInvocationHandler handler = new RemoteInvocationHandler(
+                channel, id, userProxy, autoUnexportByCaller, userSpace, type, recordCreatedAt);
         if (channel != null) {
             if (!autoUnexportByCaller) {
                 UNEXPORTER.watch(handler);
             }
         }
-        return type.cast(Proxy.newProxyInstance(cl, new Class[]{type, IReadResolve.class}, handler));
+        return type.cast(Proxy.newProxyInstance(cl, new Class[] {type, IReadResolve.class}, handler));
     }
 
     /**
@@ -192,7 +204,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     @CheckForNull
     private Channel channel() {
-        final Ref ch = this.channel;
+        final Channel.Ref ch = this.channel;
         return ch == null ? null : ch.channel();
     }
 
@@ -206,13 +218,13 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     @NonNull
     private Channel channelOrFail() throws IOException {
-        final Ref ch = this.channel;
+        final Channel.Ref ch = this.channel;
         if (ch == null) {
             throw new IOException("Not connected to any channel");
         }
         Channel c = ch.channel();
         if (c == null) {
-            throw new IOException("Backing channel '"+ch.name()+"' is disconnected.",ch.cause());
+            throw new IOException("Backing channel '" + ch.name() + "' is disconnected.", ch.cause());
         }
         return c;
     }
@@ -228,8 +240,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         InvocationHandler h = Proxy.getInvocationHandler(proxy);
         if (h instanceof RemoteInvocationHandler) {
             RemoteInvocationHandler rih = (RemoteInvocationHandler) h;
-            if(rih.channel()==src)
+            if (rih.channel() == src) {
                 return rih.oid;
+            }
         }
         return -1;
     }
@@ -251,23 +264,29 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     @Override
     @Nullable
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        if(method.getDeclaringClass()==IReadResolve.class) {
+        if (method.getDeclaringClass() == IReadResolve.class) {
             // readResolve on the proxy.
             // if we are going back to where we came from, replace the proxy by the real object
-            if(goingHome)   return Channel.currentOrFail().getExportedObject(oid);
-            else            return proxy;
+            if (goingHome) {
+                return Channel.currentOrFail().getExportedObject(oid);
+            } else {
+                return proxy;
+            }
         }
 
-        if(channel==null)
+        if (channel == null) {
             throw new IllegalStateException("proxy is not connected to a channel");
+        }
 
-        if(args==null)  args = EMPTY_ARRAY;
+        if (args == null) {
+            args = EMPTY_ARRAY;
+        }
 
         Class<?> dc = method.getDeclaringClass();
-        if(dc ==Object.class) {
+        if (dc == Object.class) {
             // handle equals and hashCode by ourselves
             try {
-                return method.invoke(this,args);
+                return method.invoke(this, args);
             } catch (InvocationTargetException e) {
                 throw e.getTargetException();
             }
@@ -280,21 +299,29 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                 ? new UserRPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null, recordCreatedAt)
                 : new RPCRequest(oid, method, args, userProxy ? dc.getClassLoader() : null, recordCreatedAt);
         try {
-            if(userProxy) {
-                if (async)  channelOrFail().callAsync(req);
-                else        return channelOrFail().call(req);
+            if (userProxy) {
+                if (async) {
+                    channelOrFail().callAsync(req);
+                } else {
+                    return channelOrFail().call(req);
+                }
             } else {
-                if (async)  req.callAsync(channelOrFail());
-                else        return req.call(channelOrFail());
+                if (async) {
+                    req.callAsync(channelOrFail());
+                } else {
+                    return req.call(channelOrFail());
+                }
             }
             return null;
         } catch (Throwable e) {
             for (Class<?> exc : method.getExceptionTypes()) {
-                if (exc.isInstance(e))
-                    throw e;    // signature explicitly lists this exception
+                if (exc.isInstance(e)) {
+                    throw e; // signature explicitly lists this exception
+                }
             }
-            if (e instanceof RuntimeException || e instanceof Error)
-                throw e;    // these can be thrown from any methods
+            if (e instanceof RuntimeException || e instanceof Error) {
+                throw e; // these can be thrown from any methods
+            }
 
             // if the thrown exception type isn't compatible with the method signature
             // wrap it to RuntimeException to avoid UndeclaredThrowableException
@@ -321,7 +348,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        goingHome = channel!=null;
+        goingHome = channel != null;
         oos.defaultWriteObject();
     }
 
@@ -330,16 +357,20 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      */
     @Override
     public boolean equals(Object o) {
-        if(o!=null && Proxy.isProxyClass(o.getClass()))
+        if (o != null && Proxy.isProxyClass(o.getClass())) {
             o = Proxy.getInvocationHandler(o);
+        }
 
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         RemoteInvocationHandler that = (RemoteInvocationHandler) o;
 
-        return this.oid==that.oid && this.channel==that.channel;
-
+        return this.oid == that.oid && this.channel == that.channel;
     }
 
     @Override
@@ -375,8 +406,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * @param referent       the {@link RemoteInvocationHandler} we will clean up.
          * @param referenceQueue the {@link ReferenceQueue}
          */
-        private PhantomReferenceImpl(RemoteInvocationHandler referent,
-                                    ReferenceQueue<? super RemoteInvocationHandler> referenceQueue) {
+        private PhantomReferenceImpl(
+                RemoteInvocationHandler referent, ReferenceQueue<? super RemoteInvocationHandler> referenceQueue) {
             super(referent, referenceQueue);
             this.oid = referent.oid;
             this.origin = Unexporter.retainOrigin ? referent.origin : null;
@@ -452,29 +483,28 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * even if this means that the sweep gets delayed. This constant allows for tuning of the batch size,
          * if the current recommendation proves insufficient in real world scenarios.
          */
-        private static final int batchSize = Math.max(10, Math.min(10000, Integer.getInteger(
-                        Unexporter.class.getName() + ".batchSize", 256)));
+        private static final int batchSize =
+                Math.max(10, Math.min(10000, Integer.getInteger(Unexporter.class.getName() + ".batchSize", 256)));
         /**
          * The decay factor for a rolling average that expects to be updated every {@link #measureInterval} and
          * should have a lifetime of approx 1 minute.
          */
-        private static final double m1Alpha = 1.0 - Math.exp( -measureInterval * 1.0 / TimeUnit.MINUTES.toNanos(1));
+        private static final double m1Alpha = 1.0 - Math.exp(-measureInterval * 1.0 / TimeUnit.MINUTES.toNanos(1));
         /**
          * The decay factor for a rolling average that expects to be updated every {@link #measureInterval} and
          * should have a lifetime of approx 5 minutes.
          */
-        private static final double m5Alpha = 1.0 - Math.exp( -measureInterval * 1.0 / TimeUnit.MINUTES.toNanos(5));
+        private static final double m5Alpha = 1.0 - Math.exp(-measureInterval * 1.0 / TimeUnit.MINUTES.toNanos(5));
         /**
          * The decay factor for a rolling average that expects to be updated every {@link #measureInterval} and
          * should have a lifetime of approx 15 minutes.
          */
-        private static final double m15Alpha = 1.0 - Math.exp( -measureInterval * 1.0 / TimeUnit.MINUTES.toNanos(15));
+        private static final double m15Alpha = 1.0 - Math.exp(-measureInterval * 1.0 / TimeUnit.MINUTES.toNanos(15));
         /**
          * Our executor service, we use at most one thread for all {@link Channel} instances in the current classloader.
          */
         private final ExecutorService svc = new AtmostOneThreadExecutor(
-                new NamingThreadFactory(new DaemonThreadFactory(), RemoteInvocationHandler.class.getSimpleName())
-        );
+                new NamingThreadFactory(new DaemonThreadFactory(), RemoteInvocationHandler.class.getSimpleName()));
         /**
          * Flag to track that {@link #UNEXPORTER} has been queued for execution.
          */
@@ -491,8 +521,7 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         /**
          * The "live" {@link PhantomReferenceImpl} instances for each active {@link Channel}.
          */
-        private final ConcurrentMap<Channel.Ref,List<PhantomReferenceImpl>> referenceLists
-                = new ConcurrentHashMap<>();
+        private final ConcurrentMap<Channel.Ref, List<PhantomReferenceImpl>> referenceLists = new ConcurrentHashMap<>();
         /**
          * The 1 minute rolling average.
          */
@@ -564,10 +593,10 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             try {
                 seconds = value == null || value.isEmpty() ? def : Double.parseDouble(value);
             } catch (NumberFormatException e) {
-                logger.log(Level.WARNING,
+                logger.log(
+                        Level.WARNING,
                         String.format("The system property '%s'='%s' could not be parsed", name, value),
-                        e
-                );
+                        e);
                 seconds = def;
             }
             return (long) (1.0e9 * Math.max(min, Math.min(max, seconds)));
@@ -598,7 +627,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                         int batchIndex = 0;
                         while (nextSweep - System.nanoTime() > 0) {
                             while (batchIndex < batch.length
-                                    && (remaining = (nextSweep - System.nanoTime())/ NANOSECONDS_PER_MILLISECOND) > 0) {
+                                    && (remaining = (nextSweep - System.nanoTime()) / NANOSECONDS_PER_MILLISECOND)
+                                            > 0) {
                                 Reference<?> ref = queue.remove(remaining);
                                 if (ref == null) {
                                     break;
@@ -615,12 +645,20 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                                 } catch (ChannelClosedException e) {
                                     // ignore, the cleanup is a no-op
                                 } catch (Error e) {
-                                    logger.log(Level.SEVERE, String.format("Couldn't clean up oid=%d from %s",
-                                            batch[index].oid, batch[index].origin), e);
+                                    logger.log(
+                                            Level.SEVERE,
+                                            String.format(
+                                                    "Couldn't clean up oid=%d from %s",
+                                                    batch[index].oid, batch[index].origin),
+                                            e);
                                     throw e; // pass on as there is nothing we can do with an error
                                 } catch (Throwable e) {
-                                    logger.log(Level.WARNING, String.format("Couldn't clean up oid=%d from %s",
-                                            batch[index].oid, batch[index].origin), e);
+                                    logger.log(
+                                            Level.WARNING,
+                                            String.format(
+                                                    "Couldn't clean up oid=%d from %s",
+                                                    batch[index].oid, batch[index].origin),
+                                            e);
                                 } finally {
                                     if (channelRef != null) {
                                         final List<PhantomReferenceImpl> referenceList = referenceLists.get(channelRef);
@@ -643,9 +681,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
                         nextSweep = System.nanoTime() + sweepInterval;
                         // purge any dead channels, it does not matter if we spend a long time here as we are
                         // removing future potential work for us from ever entering the queue and freeing garbage
-                        for (Iterator<Map.Entry<Channel.Ref, List<PhantomReferenceImpl>>>
-                             iterator = referenceLists.entrySet().iterator();
-                             iterator.hasNext(); ) {
+                        for (Iterator<Map.Entry<Channel.Ref, List<PhantomReferenceImpl>>> iterator =
+                                        referenceLists.entrySet().iterator();
+                                iterator.hasNext(); ) {
                             final Map.Entry<Channel.Ref, List<PhantomReferenceImpl>> entry = iterator.next();
                             final Channel.Ref r = entry.getKey();
                             if (r == null || r.channel() == null) {
@@ -699,12 +737,14 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             double tStd = tCount <= 0 || tVarTimesCount < 0 ? 0 : Math.sqrt(tVarTimesCount / tCount);
             Level targetLevel = m15Avg > 100 ? Level.INFO : m15Avg > 50 ? Level.FINE : Level.FINER;
             if (logger.isLoggable(targetLevel)) {
-                logger.log(targetLevel, () -> String.format("rate(1min) = %.1f±%.1f/sec; "
-                                + "rate(5min) = %.1f±%.1f/sec; "
-                                + "rate(15min) = %.1f±%.1f/sec; "
-                                + "rate(total) = %.1f±%.1f/sec; N = %d",
-                                m1Avg, m1Std, m5Avg, m5Std, m15Avg, m15Std, tAvg, tStd, tCount
-                ));
+                logger.log(
+                        targetLevel,
+                        () -> String.format(
+                                "rate(1min) = %.1f±%.1f/sec; "
+                                        + "rate(5min) = %.1f±%.1f/sec; "
+                                        + "rate(15min) = %.1f±%.1f/sec; "
+                                        + "rate(total) = %.1f±%.1f/sec; N = %d",
+                                m1Avg, m1Std, m5Avg, m5Std, m15Avg, m15Std, tAvg, tStd, tCount));
             }
             if (tCount < 10L) {
                 // less than 10 reports is too soon to start alerting the user
@@ -713,64 +753,78 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             // now test if the average is above 100/sec
             if (m15Std > 1 && 100 < m15Avg - 2 * m15Std) {
                 if (tStd > 1 && 100 < tAvg - 2 * tStd) {
-                    logger.log(Level.SEVERE,
-                            String.format(retainOrigin ?
-                                    "The all time average rate is %.1f±%.1f/sec. "
-                                    + "The 15 minute average rate is %.1f±%.1f/sec. "
-                                            + "At the 95% confidence level both are above 100.0/sec. "
-                                            + "If this message is repeated often in the logs then PLEASE "
-                                            + "seriously consider setting system property 'hudson.remoting"
-                                            + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
-                                            + "'false' to trade debug diagnostics for reduced memory "
-                                            + "pressure."
-                                    : "The all time average rate is %.1f±%.1f/sec. "
+                    logger.log(
+                            Level.SEVERE,
+                            String.format(
+                                    retainOrigin
+                                            ? "The all time average rate is %.1f±%.1f/sec. "
+                                                    + "The 15 minute average rate is %.1f±%.1f/sec. "
+                                                    + "At the 95% confidence level both are above 100.0/sec. "
+                                                    + "If this message is repeated often in the logs then PLEASE "
+                                                    + "seriously consider setting system property 'hudson.remoting"
+                                                    + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                                    + "'false' to trade debug diagnostics for reduced memory "
+                                                    + "pressure."
+                                            : "The all time average rate is %.1f±%.1f/sec. "
                                                     + "The 15 minute average rate is %.1f±%.1f/sec. "
                                                     + "At the 95%% confidence level both are above 100.0/sec. ",
-                                    tAvg, tStd, m15Avg, m15Std));
+                                    tAvg,
+                                    tStd,
+                                    m15Avg,
+                                    m15Std));
                     return;
                 }
-                logger.log(Level.WARNING,
-                        String.format(retainOrigin ?
-                                "The 15 minute average rate is %.1f±%.1f/sec. "
-                                        + "At the 95% confidence level this is above 100.0/sec. "
-                                        + "If this message is repeated often in the logs then very "
-                                        + "seriously consider setting system property 'hudson.remoting"
-                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
-                                        + "'false' to trade debug diagnostics for reduced memory "
-                                        + "pressure."
-                                : "The 15 minute average rate is %.1f±%.1f/sec. "
-                                        + "At the 95%% confidence level this is above 100.0/sec. ",
-                                m15Avg, m15Std));
+                logger.log(
+                        Level.WARNING,
+                        String.format(
+                                retainOrigin
+                                        ? "The 15 minute average rate is %.1f±%.1f/sec. "
+                                                + "At the 95% confidence level this is above 100.0/sec. "
+                                                + "If this message is repeated often in the logs then very "
+                                                + "seriously consider setting system property 'hudson.remoting"
+                                                + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                                + "'false' to trade debug diagnostics for reduced memory "
+                                                + "pressure."
+                                        : "The 15 minute average rate is %.1f±%.1f/sec. "
+                                                + "At the 95%% confidence level this is above 100.0/sec. ",
+                                m15Avg,
+                                m15Std));
                 return;
             }
             if (m5Std > 1 && 100 < m5Avg - 2 * m5Std) {
-                logger.log(Level.WARNING,
-                        String.format(retainOrigin ?
-                                "The 5 minute average rate is %.1f±%.1f/sec. "
-                                        + "At the 95% confidence level this is above 100.0/sec. "
-                                        + "If this message is repeated often in the logs then "
-                                        + "seriously consider setting system property 'hudson.remoting"
-                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
-                                        + "'false' to trade debug diagnostics for reduced memory "
-                                        + "pressure."
-                                : "The 5 minute average rate is %.1f±%.1f/sec. "
-                                        + "At the 95%% confidence level this is above 100.0/sec. ",
-                                m5Avg, m5Std));
+                logger.log(
+                        Level.WARNING,
+                        String.format(
+                                retainOrigin
+                                        ? "The 5 minute average rate is %.1f±%.1f/sec. "
+                                                + "At the 95% confidence level this is above 100.0/sec. "
+                                                + "If this message is repeated often in the logs then "
+                                                + "seriously consider setting system property 'hudson.remoting"
+                                                + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                                + "'false' to trade debug diagnostics for reduced memory "
+                                                + "pressure."
+                                        : "The 5 minute average rate is %.1f±%.1f/sec. "
+                                                + "At the 95%% confidence level this is above 100.0/sec. ",
+                                m5Avg,
+                                m5Std));
                 return;
             }
             if (m1Std > 1 && 100 < m1Avg - 2 * m1Std) {
-                logger.log(Level.INFO,
-                        String.format(retainOrigin ?
-                                "The 1 minute average rate is %.1f±%.1f/sec. "
-                                        + "At the 95% confidence level this is above 100.0/sec. "
-                                        + "If this message is repeated often in the logs then "
-                                        + "consider setting system property 'hudson.remoting"
-                                        + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
-                                        + "'false' to trade debug diagnostics for reduced memory "
-                                        + "pressure."
-                                : "The 1 minute average rate is %.1f±%.1f/sec. "
-                                        + "At the 95%% confidence level this is above 100.0/sec. ",
-                                m1Avg, m1Std));
+                logger.log(
+                        Level.INFO,
+                        String.format(
+                                retainOrigin
+                                        ? "The 1 minute average rate is %.1f±%.1f/sec. "
+                                                + "At the 95% confidence level this is above 100.0/sec. "
+                                                + "If this message is repeated often in the logs then "
+                                                + "consider setting system property 'hudson.remoting"
+                                                + ".RemoteInvocationHandler.Unexporter.retainOrigin' to "
+                                                + "'false' to trade debug diagnostics for reduced memory "
+                                                + "pressure."
+                                        : "The 1 minute average rate is %.1f±%.1f/sec. "
+                                                + "At the 95%% confidence level this is above 100.0/sec. ",
+                                m1Avg,
+                                m1Std));
             }
         }
 
@@ -850,7 +904,8 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
      *
      * @see UserRPCRequest
      */
-    static class RPCRequest extends Request<Serializable,Throwable> implements DelegatingCallable<Serializable,Throwable>, InternalCallable<Serializable, Throwable> {
+    static class RPCRequest extends Request<Serializable, Throwable>
+            implements DelegatingCallable<Serializable, Throwable>, InternalCallable<Serializable, Throwable> {
         // this callable only executes public methods exported by this side, so these methods are assumed to be safe
         /**
          * Target object id to invoke.
@@ -880,10 +935,13 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * to be used to serialize the request and the response.
          */
         @CheckForNull
-        @SuppressFBWarnings(value = "SE_TRANSIENT_FIELD_NOT_RESTORED", justification = "We're fine with the default null on the recipient side")
+        @SuppressFBWarnings(
+                value = "SE_TRANSIENT_FIELD_NOT_RESTORED",
+                justification = "We're fine with the default null on the recipient side")
         private final transient ClassLoader classLoader;
 
-        private RPCRequest(int oid, Method m, Object[] arguments, @CheckForNull ClassLoader cl, boolean recordCreatedAt) {
+        private RPCRequest(
+                int oid, Method m, Object[] arguments, @CheckForNull ClassLoader cl, boolean recordCreatedAt) {
             super(recordCreatedAt);
             this.oid = oid;
             this.arguments = arguments;
@@ -893,8 +951,9 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
             this.types = new String[arguments.length];
             Class<?>[] params = m.getParameterTypes();
-            for( int i=0; i<arguments.length; i++ )
+            for (int i = 0; i < arguments.length; i++) {
                 types[i] = params[i].getName();
+            }
         }
 
         @Override
@@ -904,10 +963,11 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         @Override
         public ClassLoader getClassLoader() {
-            if(classLoader!=null)
+            if (classLoader != null) {
                 return classLoader;
-            else
+            } else {
                 return getClass().getClassLoader();
+            }
         }
 
         @Override
@@ -916,19 +976,24 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
             Class<?>[] clazz = channel.getExportedTypes(oid);
             try {
                 Method m = choose(clazz);
-                if(m==null)
-                    throw new IllegalStateException("Unable to call " + methodName + ". No matching method found in " + Arrays.toString(clazz) + " for " + o);
-                m.setAccessible(true);  // in case the class is not public
+                if (m == null) {
+                    throw new IllegalStateException("Unable to call " + methodName + ". No matching method found in "
+                            + Arrays.toString(clazz) + " for " + o);
+                }
+                m.setAccessible(true); // in case the class is not public
                 Object r;
                 try {
                     r = m.invoke(o, arguments);
                 } catch (IllegalArgumentException x) {
-                    throw new RemotingSystemException("failed to invoke " + m + " on " + o + Arrays.toString(arguments), x);
+                    throw new RemotingSystemException(
+                            "failed to invoke " + m + " on " + o + Arrays.toString(arguments), x);
                 }
-                if (r==null || r instanceof Serializable)
+                if (r == null || r instanceof Serializable) {
                     return (Serializable) r;
-                else
-                    throw new RemotingSystemException(new ClassCastException(r.getClass()+" is returned from "+m+" on "+o.getClass()+" but it's not serializable"));
+                } else {
+                    throw new RemotingSystemException(new ClassCastException(r.getClass() + " is returned from " + m
+                            + " on " + o.getClass() + " but it's not serializable"));
+                }
             } catch (InvocationTargetException e) {
                 throw e.getTargetException();
             }
@@ -938,17 +1003,20 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
          * Chooses the method to invoke.
          */
         private Method choose(Class<?>[] interfaces) {
-            for(Class<?> clazz: interfaces) {
+            for (Class<?> clazz : interfaces) {
                 OUTER:
                 for (Method m : clazz.getMethods()) {
-                    if (!m.getName().equals(methodName))
+                    if (!m.getName().equals(methodName)) {
                         continue;
+                    }
                     Class<?>[] paramTypes = m.getParameterTypes();
-                    if (paramTypes.length != arguments.length)
+                    if (paramTypes.length != arguments.length) {
                         continue;
+                    }
                     for (int i = 0; i < types.length; i++) {
-                        if (!types[i].equals(paramTypes[i].getName()))
+                        if (!types[i].equals(paramTypes[i].getName())) {
                             continue OUTER;
+                        }
                     }
                     return m;
                 }
@@ -962,7 +1030,12 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
         @Override
         public String toString() {
-            StringBuilder b = new StringBuilder(getClass().getSimpleName()).append(':').append(declaringClassName).append('.').append(methodName).append('[');
+            StringBuilder b = new StringBuilder(getClass().getSimpleName())
+                    .append(':')
+                    .append(declaringClassName)
+                    .append('.')
+                    .append(methodName)
+                    .append('[');
             for (int i = 0; i < types.length; i++) {
                 if (i > 0) {
                     b.append(',');
@@ -1002,8 +1075,11 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
 
             // We also do not want to run UserRequests when the channel is being closed
             if (channel.isClosingOrClosed()) {
-                throw new ChannelClosedException(channel, "The request cannot be executed on channel " + channel + ". "
-                        + "The channel is closing down or has closed down", channel.getCloseRequestCause());
+                throw new ChannelClosedException(
+                        channel,
+                        "The request cannot be executed on channel " + channel + ". "
+                                + "The channel is closing down or has closed down",
+                        channel.getCloseRequestCause());
             }
         }
     }

@@ -1,10 +1,9 @@
 package hudson.remoting.throughput;
 
-import org.apache.commons.io.IOUtils;
-
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import org.apache.commons.io.IOUtils;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -20,5 +19,6 @@ public class DumbReceiver {
             }
         }
     }
+
     public static final int PORT = 9533;
 }

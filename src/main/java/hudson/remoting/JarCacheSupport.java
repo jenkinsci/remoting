@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.CompletableFuture;
@@ -13,9 +15,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * Default partial implementation of {@link JarCache}.
  *
@@ -26,7 +25,7 @@ public abstract class JarCacheSupport extends JarCache {
     /**
      * Remember in-progress jar file resolution to avoid retrieving the same jar file twice.
      */
-    private final ConcurrentMap<Checksum,CompletableFuture<URL>> inprogress = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Checksum, CompletableFuture<URL>> inprogress = new ConcurrentHashMap<>();
 
     /**
      * Look up the local cache and return URL if found.
@@ -45,8 +44,7 @@ public abstract class JarCacheSupport extends JarCache {
      * Throttle the jar downloading activity so that it won't eat up all the channel bandwidth.
      */
     private final ExecutorService downloader = newCachingSingleThreadExecutor(
-            new NamingThreadFactory(new DaemonThreadFactory(), JarCacheSupport.class.getSimpleName())
-    );
+            new NamingThreadFactory(new DaemonThreadFactory(), JarCacheSupport.class.getSimpleName()));
 
     private static ExecutorService newCachingSingleThreadExecutor(ThreadFactory threadFactory) {
         ThreadPoolExecutor threadPoolExecutor =
@@ -57,9 +55,10 @@ public abstract class JarCacheSupport extends JarCache {
 
     @Override
     @NonNull
-    public CompletableFuture<URL> resolve(@NonNull final Channel channel, final long sum1, final long sum2) throws IOException, InterruptedException {
-        URL jar = lookInCache(channel,sum1, sum2);
-        if (jar!=null) {
+    public CompletableFuture<URL> resolve(@NonNull final Channel channel, final long sum1, final long sum2)
+            throws IOException, InterruptedException {
+        URL jar = lookInCache(channel, sum1, sum2);
+        if (jar != null) {
             // already in the cache
             return CompletableFuture.completedFuture(jar);
         }
@@ -75,9 +74,9 @@ public abstract class JarCacheSupport extends JarCache {
         downloader.submit(new DownloadRunnable(channel, sum1, sum2, key, promise));
         return promise;
     }
-    
+
     private class DownloadRunnable implements Runnable {
-    
+
         final Channel channel;
         final long sum1;
         final long sum2;
@@ -91,7 +90,7 @@ public abstract class JarCacheSupport extends JarCache {
             this.key = key;
             this.promise = promise;
         }
-        
+
         @Override
         public void run() {
             try {
@@ -99,7 +98,8 @@ public abstract class JarCacheSupport extends JarCache {
                 if (inprogress.remove(key, promise)) {
                     promise.complete(url);
                 } else {
-                    promise.completeExceptionally(new IllegalStateException("Download is (unexpectedly) no longer in progress"));
+                    promise.completeExceptionally(
+                            new IllegalStateException("Download is (unexpectedly) no longer in progress"));
                 }
             } catch (ChannelClosedException | RequestAbortedException e) {
                 // the connection was killed while we were still resolving the file
@@ -126,19 +126,19 @@ public abstract class JarCacheSupport extends JarCache {
          * Report a failure of the retrieval and allows another thread to retry.
          */
         private void bailout(Throwable e) {
-            inprogress.remove(key, promise);     // this lets another thread to retry later
-            promise.completeExceptionally(e);             // then tell those who are waiting that we aborted
+            inprogress.remove(key, promise); // this lets another thread to retry later
+            promise.completeExceptionally(e); // then tell those who are waiting that we aborted
         }
     }
 
     protected JarLoader getJarLoader(Channel channel) throws InterruptedException {
         JarLoader jl = channel.getProperty(JarLoader.THEIRS);
-        if (jl==null) {// even if two threads run this simultaneously, it is harmless
+        if (jl == null) { // even if two threads run this simultaneously, it is harmless
             jl = (JarLoader) channel.waitForRemoteProperty(JarLoader.OURS);
-            channel.setProperty(JarLoader.THEIRS,jl);
+            channel.setProperty(JarLoader.THEIRS, jl);
         }
         return jl;
     }
-    
+
     private static final Logger LOGGER = Logger.getLogger(JarCacheSupport.class.getName());
 }

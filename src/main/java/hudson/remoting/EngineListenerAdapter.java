@@ -8,22 +8,17 @@ package hudson.remoting;
  */
 public abstract class EngineListenerAdapter implements EngineListener {
     @Override
-    public void status(String msg) {
-    }
+    public void status(String msg) {}
 
     @Override
-    public void status(String msg, Throwable t) {
-    }
+    public void status(String msg, Throwable t) {}
 
     @Override
-    public void error(Throwable t) {
-    }
+    public void error(Throwable t) {}
 
     @Override
-    public void onDisconnect() {
-    }
+    public void onDisconnect() {}
 
     @Override
-    public void onReconnect() {
-    }
+    public void onReconnect() {}
 }

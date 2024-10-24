@@ -119,17 +119,20 @@ public class AckFilterLayer extends FilterLayer {
         return expectHex.toString();
     }
 
-    @SuppressFBWarnings(value = "FORMAT_STRING_MANIPULATION", justification = "As this converts a String to a Hex string there is little that can be manipulated.")
+    @SuppressFBWarnings(
+            value = "FORMAT_STRING_MANIPULATION",
+            justification = "As this converts a String to a Hex string there is little that can be manipulated.")
     private void abort(String type) throws ConnectionRefusalException {
         aborted = true;
         if (LOGGER.isLoggable(Level.WARNING)) {
-            LOGGER.log(Level.WARNING,
-                    "[{0}] {1} acknowledgement sequence, expected 0x{2} got 0x{3}",
-                    new Object[]{stack().name(), type, toHexString(sendAck), toHexString(recvAck)});
+            LOGGER.log(Level.WARNING, "[{0}] {1} acknowledgement sequence, expected 0x{2} got 0x{3}", new Object[] {
+                stack().name(), type, toHexString(sendAck), toHexString(recvAck)
+            });
         }
-        ConnectionRefusalException cause = new ConnectionRefusalException(
-                String.format(type + " acknowledgement received, expected 0x%s got 0x%s",
-                        toHexString(sendAck), toHexString(recvAck)));
+        ConnectionRefusalException cause = new ConnectionRefusalException(String.format(
+                type + " acknowledgement received, expected 0x%s got 0x%s",
+                toHexString(sendAck),
+                toHexString(recvAck)));
         abort(cause);
         throw cause;
     }
@@ -172,17 +175,20 @@ public class AckFilterLayer extends FilterLayer {
     @Override
     public void start() throws IOException {
         synchronized (sendLock) {
-            timeout = stack().executeLater(() -> {
-                LOGGER.info("Timeout waiting for ACK");
-                IOException cause = new IOException("Timeout waiting for ACK");
-                abort(cause);
-                try {
-                    doCloseSend();
-                    onRecvClosed(cause);
-                } catch (IOException e) {
-                    // ignore
-                }
-            }, stack().getHandshakingTimeout(), stack().getHandshakingUnits());
+            timeout = stack().executeLater(
+                            () -> {
+                                LOGGER.info("Timeout waiting for ACK");
+                                IOException cause = new IOException("Timeout waiting for ACK");
+                                abort(cause);
+                                try {
+                                    doCloseSend();
+                                    onRecvClosed(cause);
+                                } catch (IOException e) {
+                                    // ignore
+                                }
+                            },
+                            stack().getHandshakingTimeout(),
+                            stack().getHandshakingUnits());
         }
         try {
             doSend(EMPTY_BUFFER);
@@ -199,9 +205,9 @@ public class AckFilterLayer extends FilterLayer {
         if (aborted) {
             // if aborted then the buffers are immutable, so no lock needed
             if (!sendAck.hasRemaining()) {
-                throw new ConnectionRefusalException(
-                        String.format("Incorrect acknowledgement received, expected 0x%s got 0x%s",
-                                toHexString(sendAck), toHexString(recvAck)));
+                throw new ConnectionRefusalException(String.format(
+                        "Incorrect acknowledgement received, expected 0x%s got 0x%s",
+                        toHexString(sendAck), toHexString(recvAck)));
             }
             throw new ConnectionRefusalException("Connection closed before acknowledgement send");
         }
@@ -213,8 +219,9 @@ public class AckFilterLayer extends FilterLayer {
                         abort("Incorrect");
                     } else {
                         if (LOGGER.isLoggable(Level.FINEST)) {
-                            LOGGER.log(Level.FINEST, "[{0}] Expecting {1} more bytes of acknowledgement",
-                                    new Object[]{stack().name(), recvAck.remaining()});
+                            LOGGER.log(Level.FINEST, "[{0}] Expecting {1} more bytes of acknowledgement", new Object[] {
+                                stack().name(), recvAck.remaining()
+                            });
                         }
                     }
                     return;
@@ -267,9 +274,11 @@ public class AckFilterLayer extends FilterLayer {
     public void onRecvClosed(IOException cause) throws IOException {
         synchronized (recvLock) {
             if (recvAck.hasRemaining() && recvAck.position() > 0) {
-                super.onRecvClosed(new ConnectionRefusalException(cause,
+                super.onRecvClosed(new ConnectionRefusalException(
+                        cause,
                         "Partial acknowledgement received, expecting 0x%s got 0x%s",
-                                toHexString(sendAck), toHexString(recvAck)));
+                        toHexString(sendAck),
+                        toHexString(recvAck)));
                 return;
             }
         }
@@ -301,9 +310,9 @@ public class AckFilterLayer extends FilterLayer {
     public void doSend(@NonNull ByteBuffer data) throws IOException {
         if (aborted) {
             if (!sendAck.hasRemaining()) {
-                throw new ConnectionRefusalException(
-                        String.format("Incorrect acknowledgement received, expected 0x%s got 0x%s",
-                                toHexString(sendAck), toHexString(recvAck)));
+                throw new ConnectionRefusalException(String.format(
+                        "Incorrect acknowledgement received, expected 0x%s got 0x%s",
+                        toHexString(sendAck), toHexString(recvAck)));
             }
             throw new ConnectionRefusalException("Connection closed before acknowledgement send");
         }
@@ -358,5 +367,4 @@ public class AckFilterLayer extends FilterLayer {
             completed();
         }
     }
-
 }

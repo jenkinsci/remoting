@@ -26,7 +26,6 @@ package hudson.remoting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.CancellationException;
@@ -48,7 +47,7 @@ import java.util.logging.Logger;
  * @see Response
  * @since 3.17
  */
-public abstract class Request<RSP extends Serializable,EXC extends Throwable> extends Command {
+public abstract class Request<RSP extends Serializable, EXC extends Throwable> extends Command {
     /**
      * Executed on a remote system to perform the task.
      *
@@ -80,20 +79,20 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      */
     private int lastIoId;
 
-    private volatile Response<RSP,? extends Throwable> response;
+    private volatile Response<RSP, ? extends Throwable> response;
 
     transient long startTime;
 
     /**
      * While executing the call this is set to the handle of the execution.
      */
-    volatile transient Future<?> future;
+    transient volatile Future<?> future;
 
     /**
      * Set by {@link Response} to point to the I/O ID issued from the other side that this request needs to
      * synchronize with, before declaring the call to be complete.
      */
-    /*package*/ volatile transient int responseIoId;
+    /*package*/ transient volatile int responseIoId;
 
     /**
      *
@@ -102,16 +101,18 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
      */
     @Deprecated
-    /*package*/ volatile transient Future<?> lastIo;
+    /*package*/ transient volatile Future<?> lastIo;
 
     Request() {
         this(true);
     }
 
-    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="That is why we synchronize on the class.")
+    @SuppressFBWarnings(
+            value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD",
+            justification = "That is why we synchronize on the class.")
     Request(boolean recordCreatedAt) {
         super(recordCreatedAt);
-        synchronized(Request.class) {
+        synchronized (Request.class) {
             id = nextId++;
         }
     }
@@ -152,65 +153,74 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
         String name = t.getName();
         try {
             t.setName(name + " / waiting for " + channel.getName() + " id=" + id);
-        checkIfCanBeExecutedOnChannel(channel);
-        lastIoId = channel.lastIoId();
+            checkIfCanBeExecutedOnChannel(channel);
+            lastIoId = channel.lastIoId();
 
-        // Channel.send() locks channel, and there are other call sequences
-        // (  like Channel.terminate()->Request.abort()->Request.onCompleted()  )
-        // that locks channel -> request, so lock objects in the same order
-        synchronized(channel) {
-            synchronized(this) {
-                response=null;
+            // Channel.send() locks channel, and there are other call sequences
+            // (  like Channel.terminate()->Request.abort()->Request.onCompleted()  )
+            // that locks channel -> request, so lock objects in the same order
+            synchronized (channel) {
+                synchronized (this) {
+                    response = null;
 
-                channel.pendingCalls.put(id,this);
-                startTime = System.nanoTime();
-                channel.send(this);
+                    channel.pendingCalls.put(id, this);
+                    startTime = System.nanoTime();
+                    channel.send(this);
+                }
             }
-        }
 
-        try {
-            synchronized(this) {
-                    while(response==null && !channel.isInClosed())
+            try {
+                synchronized (this) {
+                    while (response == null && !channel.isInClosed()) {
                         // I don't know exactly when this can happen, as pendingCalls are cleaned up by Channel,
-                        // but in production I've observed that in rare occasion it can block forever, even after a channel
+                        // but in production I've observed that in rare occasion it can block forever, even after a
+                        // channel
                         // is gone. So be defensive against that.
-                        wait(30*1000);
+                        wait(30 * 1000);
+                    }
 
-                    if (response==null)
+                    if (response == null) {
                         // channel is closed and we still don't have a response
                         throw new RequestAbortedException(null);
+                    }
 
-                if (lastIo != null)
+                    if (lastIo != null) {
+                        try {
+                            lastIo.get();
+                        } catch (ExecutionException e) {
+                            // ignore the I/O error
+                        }
+                    }
+
                     try {
-                        lastIo.get();
+                        channel.pipeWriter.get(responseIoId).get();
                     } catch (ExecutionException e) {
                         // ignore the I/O error
                     }
 
-                try {
-                    channel.pipeWriter.get(responseIoId).get();
-                } catch (ExecutionException e) {
-                    // ignore the I/O error
+                    Throwable exc = response.exception;
+
+                    if (exc != null) {
+                        channel.attachCallSiteStackTrace(exc);
+                        throw (EXC) exc; // some versions of JDK fails to compile this line. If so, upgrade your JDK.
+                    }
+
+                    return response.returnValue;
                 }
-
-                Throwable exc = response.exception;
-
-                if (exc!=null) {
-                    channel.attachCallSiteStackTrace(exc);
-                    throw (EXC)exc; // some versions of JDK fails to compile this line. If so, upgrade your JDK.
+            } catch (InterruptedException e) {
+                // if we are cancelled, abort the remote computation, too.
+                // do this outside the "synchronized(this)" block to prevent locking Request and Channel in a wrong
+                // order.
+                synchronized (
+                        channel) { // ... so that the close check and send won't be interrupted in the middle by a close
+                    if (!channel.isOutClosed()) {
+                        channel.send(new Cancel(
+                                id)); // only send a cancel if we can, or else ChannelClosedException will mask the
+                        // original cause
+                    }
                 }
-
-                return response.returnValue;
+                throw e;
             }
-        } catch (InterruptedException e) {
-            // if we are cancelled, abort the remote computation, too.
-            // do this outside the "synchronized(this)" block to prevent locking Request and Channel in a wrong order.
-            synchronized (channel) { // ... so that the close check and send won't be interrupted in the middle by a close
-                if (!channel.isOutClosed())
-                    channel.send(new Cancel(id));   // only send a cancel if we can, or else ChannelClosedException will mask the original cause
-            }
-            throw e;
-        }
         } finally {
             t.setName(name);
         }
@@ -230,10 +240,10 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
     final hudson.remoting.Future<RSP> callAsync(final Channel channel) throws IOException {
         checkIfCanBeExecutedOnChannel(channel);
 
-        response=null;
+        response = null;
         lastIoId = channel.lastIoId();
 
-        channel.pendingCalls.put(id,this);
+        channel.pendingCalls.put(id, this);
         startTime = System.nanoTime();
         channel.send(this);
 
@@ -302,7 +312,8 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
             }
 
             @Override
-            public RSP get(long timeout, @NonNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            public RSP get(long timeout, @NonNull TimeUnit unit)
+                    throws InterruptedException, ExecutionException, TimeoutException {
                 synchronized (Request.this) {
                     // wait until the response arrives
                     // Note that the wait method can wake up for no reasons at all (AKA spurious wakeup),
@@ -318,11 +329,13 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                         Request.this.wait(Math.min(30 * 1000, Math.max(1, TimeUnit.NANOSECONDS.toMillis(end - now))));
                         now = System.nanoTime();
                     }
-                    if (response == null)
+                    if (response == null) {
                         throw new TimeoutException();
+                    }
 
-                    if (response.exception != null)
+                    if (response.exception != null) {
                         throw new ExecutionException(response.exception);
+                    }
 
                     return response.returnValue;
                 }
@@ -330,11 +343,10 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
         };
     }
 
-
     /**
      * Called by the {@link Response} when we received it.
      */
-    /*package*/ synchronized void onCompleted(Response<RSP,? extends Throwable> response) {
+    /*package*/ synchronized void onCompleted(Response<RSP, ? extends Throwable> response) {
         this.response = response;
         notifyAll();
     }
@@ -351,21 +363,23 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      */
     @Override
     final void execute(final Channel channel) {
-        channel.executingCalls.put(id,this);
+        channel.executingCalls.put(id, this);
         future = channel.executor.submit(new Runnable() {
 
             private int startIoId;
 
             private int calcLastIoId() {
                 int endIoId = channel.lastIoId();
-                if (startIoId==endIoId) return 0;
+                if (startIoId == endIoId) {
+                    return 0;
+                }
                 return endIoId;
             }
 
             @Override
             public void run() {
                 String oldThreadName = Thread.currentThread().getName();
-                Thread.currentThread().setName(oldThreadName+" for "+channel.getName()+" id="+id);
+                Thread.currentThread().setName(oldThreadName + " for " + channel.getName() + " id=" + id);
                 try {
                     Command rsp;
                     CURRENT.set(Request.this);
@@ -383,7 +397,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                     } finally {
                         CURRENT.remove();
                     }
-                    if(chainCause) {
+                    if (chainCause) {
                         rsp.chainCause(createdAt);
                     }
 
@@ -395,7 +409,8 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
                         // TODO if this is from CloseCommand reduce level to FINE
                         logger.info(() -> "Failed to send back a reply to the request " + Request.this + ": " + e);
                     } else {
-                        logger.log(Level.WARNING, e, () -> "Failed to send back a reply to the request " + Request.this);
+                        logger.log(
+                                Level.WARNING, e, () -> "Failed to send back a reply to the request " + Request.this);
                     }
                 } finally {
                     channel.executingCalls.remove(id);
@@ -408,7 +423,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
     /**
      * Next request ID.
      */
-    private static int nextId=0;
+    private static int nextId = 0;
 
     private static final long serialVersionUID = 1L;
 
@@ -418,7 +433,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
      * Set to true to chain {@link Command#createdAt} to track request/response relationship.
      * This will substantially increase the network traffic, but useful for debugging.
      */
-    static boolean chainCause = Boolean.getBoolean(Request.class.getName()+".chainCause");
+    static boolean chainCause = Boolean.getBoolean(Request.class.getName() + ".chainCause");
 
     /**
      * Set to the {@link Request} object during {@linkplain #perform(Channel) the execution of the call}.
@@ -432,7 +447,7 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
 
     /*package*/ static int getCurrentRequestId() {
         Request<?, ?> r = CURRENT.get();
-        return r!=null ? r.id : 0;
+        return r != null ? r.id : 0;
     }
 
     /**
@@ -447,10 +462,14 @@ public abstract class Request<RSP extends Serializable,EXC extends Throwable> ex
 
         @Override
         protected void execute(Channel channel) {
-            Request<?,?> r = channel.executingCalls.get(id);
-            if(r==null)     return; // already completed
+            Request<?, ?> r = channel.executingCalls.get(id);
+            if (r == null) {
+                return; // already completed
+            }
             Future<?> f = r.future;
-            if(f!=null)     f.cancel(true);
+            if (f != null) {
+                f.cancel(true);
+            }
         }
 
         @Override

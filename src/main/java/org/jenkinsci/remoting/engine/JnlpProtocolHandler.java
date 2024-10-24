@@ -36,7 +36,7 @@ import java.util.concurrent.Future;
 
 /**
  * Consolidates the protocol handling for both the server and the client ends of the connection.
- * 
+ *
  * @param <STATE> State class for connection events
  * @since 3.0
  */
@@ -108,9 +108,8 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @throws IOException if something goes wrong.
      */
     @NonNull
-    protected abstract STATE createConnectionState(@NonNull Socket socket,
-                                                   @NonNull List<? extends JnlpConnectionStateListener> listeners)
-            throws IOException;
+    protected abstract STATE createConnectionState(
+            @NonNull Socket socket, @NonNull List<? extends JnlpConnectionStateListener> listeners) throws IOException;
 
     /**
      * Handles an incoming client connection on the supplied socket.
@@ -122,8 +121,10 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @throws IOException if the protocol cannot be initiated.
      */
     @NonNull
-    public final Future<Channel> handle(@NonNull Socket socket, @NonNull Map<String, String> headers,
-                                        @NonNull JnlpConnectionStateListener... listeners)
+    public final Future<Channel> handle(
+            @NonNull Socket socket,
+            @NonNull Map<String, String> headers,
+            @NonNull JnlpConnectionStateListener... listeners)
             throws IOException {
         return handle(socket, headers, Arrays.asList(listeners));
     }
@@ -138,8 +139,10 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @throws IOException if the protocol cannot be initiated.
      */
     @NonNull
-    public abstract Future<Channel> handle(@NonNull Socket socket, @NonNull Map<String, String> headers,
-                                           @NonNull List<? extends JnlpConnectionStateListener> listeners)
+    public abstract Future<Channel> handle(
+            @NonNull Socket socket,
+            @NonNull Map<String, String> headers,
+            @NonNull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException;
 
     /**
@@ -152,8 +155,11 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @throws IOException if the protocol cannot be initiated.
      */
     @NonNull
-    public final Future<Channel> connect(@NonNull Socket socket, @NonNull Map<String, String> headers,
-                                         @NonNull JnlpConnectionStateListener... listeners) throws IOException {
+    public final Future<Channel> connect(
+            @NonNull Socket socket,
+            @NonNull Map<String, String> headers,
+            @NonNull JnlpConnectionStateListener... listeners)
+            throws IOException {
         return connect(socket, headers, Arrays.asList(listeners));
     }
 
@@ -167,8 +173,9 @@ public abstract class JnlpProtocolHandler<STATE extends JnlpConnectionState> {
      * @throws IOException if the protocol cannot be initiated.
      */
     @NonNull
-    public abstract Future<Channel> connect(@NonNull Socket socket, @NonNull Map<String, String> headers,
-                                            @NonNull List<? extends JnlpConnectionStateListener> listeners)
+    public abstract Future<Channel> connect(
+            @NonNull Socket socket,
+            @NonNull Map<String, String> headers,
+            @NonNull List<? extends JnlpConnectionStateListener> listeners)
             throws IOException;
-
 }

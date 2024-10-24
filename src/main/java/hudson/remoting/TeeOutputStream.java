@@ -17,12 +17,11 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-
 import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Classic splitter of {@link OutputStream}. Named after the Unix 'tee' command. It allows a stream
@@ -119,5 +118,4 @@ public class TeeOutputStream extends FilterOutputStream {
             this.branch.close();
         }
     }
-
 }

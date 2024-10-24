@@ -23,6 +23,14 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.Pipe;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
@@ -42,25 +50,17 @@ import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 
-import java.nio.ByteBuffer;
-import java.nio.channels.Pipe;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 @RunWith(Theories.class)
 public class AckFilterLayerTest {
 
     @Rule
     public TestName name = new TestName();
+
     private IOHubRule selector = new IOHubRule();
+
     @Rule
-    public RuleChain chain = RuleChain.outerRule(selector)
-            .around(new RepeatRule())
-            .around(new Timeout(10, TimeUnit.SECONDS));
+    public RuleChain chain =
+            RuleChain.outerRule(selector).around(new RepeatRule()).around(new Timeout(10, TimeUnit.SECONDS));
 
     private Pipe clientToServer;
     private Pipe serverToClient;
@@ -91,18 +91,15 @@ public class AckFilterLayerTest {
 
     @Theory
     public void smokes(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new AckFilterLayer("ACK"))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new AckFilterLayer("ACK"))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new AckFilterLayer("ACK"))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new AckFilterLayer("ACK"))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -118,18 +115,15 @@ public class AckFilterLayerTest {
     @Theory
     public void clientSendsShortAck(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
             throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new AckFilterLayer("AC"))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new AckFilterLayer("AC"))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new AckFilterLayer("ACK"))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new AckFilterLayer("ACK"))
+                .build(new IOBufferMatcherLayer());
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(), instanceOf(ConnectionRefusalException.class));
@@ -141,18 +135,15 @@ public class AckFilterLayerTest {
     @Repeat(100)
     public void serverSendsShortAck(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
             throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new AckFilterLayer("ACK"))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new AckFilterLayer("ACK"))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new AckFilterLayer("AC"))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new AckFilterLayer("AC"))
+                .build(new IOBufferMatcherLayer());
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(), instanceOf(ConnectionRefusalException.class));
@@ -163,23 +154,19 @@ public class AckFilterLayerTest {
     @Theory
     @Repeat(100)
     public void ackMismatch(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        ProtocolStack<IOBufferMatcher> client =
-                ProtocolStack
-                        .on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new AckFilterLayer("AcK"))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new AckFilterLayer("AcK"))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> server =
-                ProtocolStack
-                        .on(serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new AckFilterLayer("ACK"))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> server = ProtocolStack.on(
+                        serverFactory.create(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new AckFilterLayer("ACK"))
+                .build(new IOBufferMatcherLayer());
 
         client.get().awaitClose();
         assertThat(client.get().getCloseCause(), instanceOf(ConnectionRefusalException.class));
         server.get().awaitClose();
         assertThat(server.get().getCloseCause(), instanceOf(ConnectionRefusalException.class));
     }
-
 }

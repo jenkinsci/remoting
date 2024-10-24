@@ -1,7 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

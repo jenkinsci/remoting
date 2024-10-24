@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -40,9 +40,10 @@ import net.jcip.annotations.GuardedBy;
  * {@link Writer} on a remote machine.
  */
 final class ProxyWriter extends Writer {
-    
+
     @GuardedBy("this")
     private Channel channel;
+
     private int oid;
 
     private PipeWindow window;
@@ -72,36 +73,38 @@ final class ProxyWriter extends Writer {
      *      The object id of the exported {@link Writer}.
      */
     public ProxyWriter(@NonNull Channel channel, int oid) throws IOException {
-        connect(channel,oid);
+        connect(channel, oid);
     }
 
     /**
      * Connects this stream to the specified remote object.
      */
     synchronized void connect(@NonNull Channel channel, int oid) throws IOException {
-        if(this.channel!=null)
+        if (this.channel != null) {
             throw new IllegalStateException("Cannot connect twice");
-        if(oid==0)
+        }
+        if (oid == 0) {
             throw new IllegalArgumentException("oid=0");
+        }
         this.channel = channel;
         this.oid = oid;
 
-        window =  channel.getPipeWindow(oid);
+        window = channel.getPipeWindow(oid);
 
         // if we already have bytes to write, do so now.
-        if(tmp!=null) {
+        if (tmp != null) {
             char[] b = tmp.toCharArray();
             tmp = null;
             _write(b, 0, b.length);
         }
-        if(closeCause != null) { // already closed asynchronously?
+        if (closeCause != null) { // already closed asynchronously?
             close();
         }
     }
 
     @Override
     public void write(int c) throws IOException {
-        write(new char[]{(char)c},0,1);
+        write(new char[] {(char) c}, 0, 1);
     }
 
     @Override
@@ -116,65 +119,67 @@ final class ProxyWriter extends Writer {
      * {@link #write(char[])} without the close check.
      */
     private synchronized void _write(char[] cbuf, int off, int len) throws IOException {
-        if(channel==null) {
-            if(tmp==null)
+        if (channel == null) {
+            if (tmp == null) {
                 tmp = new CharArrayWriter();
+            }
             tmp.write(cbuf);
         } else {
             final int max = window.max();
 
-            while (len>0) {
+            while (len > 0) {
                 int sendable;
                 try {
                     /*
-                        To avoid fragmentation of the pipe window, at least demand that 10% of the pipe window
-                        be reclaimed.
+                       To avoid fragmentation of the pipe window, at least demand that 10% of the pipe window
+                       be reclaimed.
 
-                        Imagine a large latency network where we are always low on the window size,
-                        and we are continuously sending data of irregular size. In such a circumstance,
-                        a fragmentation will happen. We start sending out a small Chunk at a time (say 4 bytes),
-                        and when its Ack comes back, it gets immediately consumed by another out-bound Chunk of 4 bytes.
+                       Imagine a large latency network where we are always low on the window size,
+                       and we are continuously sending data of irregular size. In such a circumstance,
+                       a fragmentation will happen. We start sending out a small Chunk at a time (say 4 bytes),
+                       and when its Ack comes back, it gets immediately consumed by another out-bound Chunk of 4 bytes.
 
-                        Clearly, it's better to wait a bit until we have a sizable pipe window, then send out
-                        a bigger Chunk, since Chunks have static overheads. This code does just that.
+                       Clearly, it's better to wait a bit until we have a sizable pipe window, then send out
+                       a bigger Chunk, since Chunks have static overheads. This code does just that.
 
-                        (Except when what we are trying to send as a whole is smaller than the current available
-                        window size, in which case there's no point in waiting.)
-                     */
-                    sendable = Math.min(window.get(Math.min(max/10,len)),len);
+                       (Except when what we are trying to send as a whole is smaller than the current available
+                       window size, in which case there's no point in waiting.)
+                    */
+                    sendable = Math.min(window.get(Math.min(max / 10, len)), len);
                     /*
-                        Imagine if we have a lot of data to send and the pipe window is fully available.
-                        If we create one Chunk that fully uses the window size, we need to wait for the
-                        whole Chunk to get to the other side, then the Ack to come back to this side,
-                        before we can send a next Chunk. While the Ack is traveling back to us, we have
-                        to sit idle. This fails to utilize available bandwidth.
+                       Imagine if we have a lot of data to send and the pipe window is fully available.
+                       If we create one Chunk that fully uses the window size, we need to wait for the
+                       whole Chunk to get to the other side, then the Ack to come back to this side,
+                       before we can send a next Chunk. While the Ack is traveling back to us, we have
+                       to sit idle. This fails to utilize available bandwidth.
 
-                        A better strategy is to create a smaller Chunk, say half the window size.
-                        This allows the other side to send back the ack while we are sending the second
-                        Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
-                        to overlap, and that improves the utilization.
+                       A better strategy is to create a smaller Chunk, say half the window size.
+                       This allows the other side to send back the ack while we are sending the second
+                       Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
+                       to overlap, and that improves the utilization.
 
-                        It's not clear what the best size of the chunk to send (there's a certain
-                        overhead in our Command structure, around 100-200 bytes), so I'm just starting
-                        with 2. Further analysis would be needed to determine the best value.
-                     */
-                    sendable = Math.min(sendable, max /2);
+                       It's not clear what the best size of the chunk to send (there's a certain
+                       overhead in our Command structure, around 100-200 bytes), so I'm just starting
+                       with 2. Further analysis would be needed to determine the best value.
+                    */
+                    sendable = Math.min(sendable, max / 2);
                 } catch (InterruptedException e) {
-                    throw (IOException)new InterruptedIOException().initCause(e);
+                    throw (IOException) new InterruptedIOException().initCause(e);
                 }
 
-                channel.send(new Chunk(channel.newIoId(),oid,cbuf,off,sendable));
+                channel.send(new Chunk(channel.newIoId(), oid, cbuf, off, sendable));
                 window.decrease(sendable);
-                off+=sendable;
-                len-=sendable;
+                off += sendable;
+                len -= sendable;
             }
         }
     }
 
     @Override
     public synchronized void flush() throws IOException {
-        if(channel!=null && channel.remoteCapability.supportsProxyWriter2_35())
-            channel.send(new Flush(channel.newIoId(),oid));
+        if (channel != null && channel.remoteCapability.supportsProxyWriter2_35()) {
+            channel.send(new Flush(channel.newIoId(), oid));
+        }
     }
 
     @Override
@@ -224,11 +229,13 @@ final class ProxyWriter extends Writer {
         }
 
         synchronized (this) {
-            //TODO: Bug. If the channel cannot send the command, the channel object will be never released and garbage collected
+            // TODO: Bug. If the channel cannot send the command, the channel object will be never released and garbage
+            // collected
             if (channel != null) {
-                // Close the writer on the remote side. This call may be invoked multiple times until the channel is released
-                //TODO: send cause over the channel
-                channel.send(new EOF(channel.newIoId(), oid/*,error*/));
+                // Close the writer on the remote side. This call may be invoked multiple times until the channel is
+                // released
+                // TODO: send cause over the channel
+                channel.send(new EOF(channel.newIoId(), oid /*,error*/));
                 channel = null;
                 channelReleased = true;
                 oid = -1;
@@ -237,17 +244,18 @@ final class ProxyWriter extends Writer {
     }
 
     @Override
-    //TODO: really?
+    // TODO: really?
     @SuppressFBWarnings(value = "FI_FINALIZER_NULLS_FIELDS", justification = "As designed")
     protected synchronized void finalize() throws Throwable {
         super.finalize();
         // if we haven't done so, release the exported object on the remote side.
         // if the object is auto-unexported, the export entry could have already been removed.
-        if(channel!=null) {
-            if (channel.remoteCapability.supportsProxyWriter2_35())
-                channel.send(new Unexport(channel.newIoId(),oid));
-            else
-                channel.send(new EOF(channel.newIoId(),oid));
+        if (channel != null) {
+            if (channel.remoteCapability.supportsProxyWriter2_35()) {
+                channel.send(new Unexport(channel.newIoId(), oid));
+            } else {
+                channel.send(new EOF(channel.newIoId(), oid));
+            }
             channel = null;
             oid = -1;
         }
@@ -268,11 +276,11 @@ final class ProxyWriter extends Writer {
             super(false);
             this.ioId = ioId;
             this.oid = oid;
-            if (start==0 && len==buf.length)
+            if (start == 0 && len == buf.length) {
                 this.buf = buf;
-            else {
+            } else {
                 this.buf = new char[len];
-                System.arraycopy(buf,start,this.buf,0,len);
+                System.arraycopy(buf, start, this.buf, 0, len);
             }
         }
 
@@ -284,8 +292,9 @@ final class ProxyWriter extends Writer {
                     os.write(buf);
                 } catch (IOException e) {
                     try {
-                        if (channel.remoteCapability.supportsProxyWriter2_35())
+                        if (channel.remoteCapability.supportsProxyWriter2_35()) {
                             channel.send(new NotifyDeadWriter(channel, e, oid));
+                        }
                     } catch (ChannelClosedException x) {
                         // the other direction can be already closed if the connection
                         // shut down is initiated from this side. In that case, remain silent.
@@ -312,7 +321,7 @@ final class ProxyWriter extends Writer {
 
         @Override
         public String toString() {
-            return "ProxyWriter.Chunk("+oid+","+buf.length+")";
+            return "ProxyWriter.Chunk(" + oid + "," + buf.length + ")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -346,7 +355,7 @@ final class ProxyWriter extends Writer {
 
         @Override
         public String toString() {
-            return "ProxyWriter.Flush("+oid+")";
+            return "ProxyWriter.Flush(" + oid + ")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -370,12 +379,12 @@ final class ProxyWriter extends Writer {
 
         @Override
         protected void execute(final Channel channel) {
-            channel.pipeWriter.submit(ioId, () -> channel.unexport(oid,createdAt,false));
+            channel.pipeWriter.submit(ioId, () -> channel.unexport(oid, createdAt, false));
         }
 
         @Override
         public String toString() {
-            return "ProxyWriter.Unexport("+oid+")";
+            return "ProxyWriter.Unexport(" + oid + ")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -388,7 +397,7 @@ final class ProxyWriter extends Writer {
         private final int oid;
         private final int ioId;
 
-        public EOF(int ioId,int oid) {
+        public EOF(int ioId, int oid) {
             this.ioId = ioId;
             this.oid = oid;
         }
@@ -402,7 +411,7 @@ final class ProxyWriter extends Writer {
                 return;
             }
             channel.pipeWriter.submit(ioId, () -> {
-                channel.unexport(oid,createdAt,false);
+                channel.unexport(oid, createdAt, false);
                 try {
                     os.close();
                 } catch (IOException e) {
@@ -413,7 +422,7 @@ final class ProxyWriter extends Writer {
 
         @Override
         public String toString() {
-            return "ProxyWriter.EOF("+oid+")";
+            return "ProxyWriter.EOF(" + oid + ")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -447,7 +456,7 @@ final class ProxyWriter extends Writer {
 
         @Override
         public String toString() {
-            return "ProxyWriter.Ack("+oid+','+size+")";
+            return "ProxyWriter.Ack(" + oid + ',' + size + ")";
         }
 
         private static final long serialVersionUID = 1L;
@@ -460,8 +469,8 @@ final class ProxyWriter extends Writer {
     private static final class NotifyDeadWriter extends Command {
         private final int oid;
 
-        private NotifyDeadWriter(Channel channel,Throwable cause, int oid) {
-            super(channel,cause);
+        private NotifyDeadWriter(Channel channel, Throwable cause, int oid) {
+            super(channel, cause);
             this.oid = oid;
         }
 
@@ -473,7 +482,7 @@ final class ProxyWriter extends Writer {
 
         @Override
         public String toString() {
-            return "ProxyWriter.Dead("+oid+")";
+            return "ProxyWriter.Dead(" + oid + ")";
         }
 
         private static final long serialVersionUID = 1L;

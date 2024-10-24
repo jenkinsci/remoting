@@ -1,5 +1,6 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -10,10 +11,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.util.ExecutorServiceUtils;
-import org.jenkinsci.remoting.util.ExecutorServiceUtils.FatalRejectedExecutionException;
 
 /**
  * Creates an {@link ExecutorService} that executes submitted tasks sequentially
@@ -49,7 +47,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
      * We have finished shut down. Every tasks are full executed.
      */
     private boolean shutDown;
-    
+
     private static final Logger LOGGER = Logger.getLogger(SingleLaneExecutorService.class.getName());
 
     /**
@@ -69,8 +67,9 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
     @Override
     public synchronized void shutdown() {
         shuttingDown = true;
-        if (tasks.isEmpty())
+        if (tasks.isEmpty()) {
             shutDown = true;
+        }
     }
 
     /**
@@ -113,12 +112,12 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
     @Override
     public synchronized void execute(@NonNull Runnable command) {
         if (shuttingDown) {
-            throw new FatalRejectedExecutionException("Cannot execute the command " + command +
-                    ". The executor service is shutting down");
+            throw new ExecutorServiceUtils.FatalRejectedExecutionException(
+                    "Cannot execute the command " + command + ". The executor service is shutting down");
         }
-            
+
         this.tasks.add(command);
-        
+
         // If we haven't been scheduled yet, do so now
         if (!scheduled) {
             scheduled = true;
@@ -127,7 +126,8 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
                 ExecutorServiceUtils.submitAsync(base, runner);
             } catch (ExecutorServiceUtils.ExecutionRejectedException ex) {
                 // Wrap by the runtime exception since there is no other solution here
-                throw new RejectedExecutionException("Base executor service " + base + " has rejected the task " + command, ex);
+                throw new RejectedExecutionException(
+                        "Base executor service " + base + " has rejected the task " + command, ex);
             }
         }
     }
@@ -139,7 +139,7 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
                 tasks.peek().run();
             } finally {
                 synchronized (SingleLaneExecutorService.this) {
-                    tasks.remove();// completed. this is needed because shutdown() looks at tasks.isEmpty()
+                    tasks.remove(); // completed. this is needed because shutdown() looks at tasks.isEmpty()
 
                     assert scheduled;
                     if (!tasks.isEmpty()) {
@@ -151,10 +151,14 @@ public class SingleLaneExecutorService extends AbstractExecutorService {
                             // So the code just logs the error and then throws RuntimeException as it
                             // used to do before the code migration to ExecutorServiceUtils.
                             // TODO: so this behavior still implies the BOOM risk, but there wil be a log entry at least
-                            LOGGER.log(Level.SEVERE, String.format(
-                                    "Base executor service %s has rejected the queue task %s. Propagating the RuntimeException to the caller.", 
-                                    ex.getExecutorServiceDisplayName(), ex.getRunnableDisplayName()), ex);
-                            throw ExecutorServiceUtils.createRuntimeException("Base executor service has rejected the task from the queue", ex);
+                            LOGGER.log(
+                                    Level.SEVERE,
+                                    String.format(
+                                            "Base executor service %s has rejected the queue task %s. Propagating the RuntimeException to the caller.",
+                                            ex.getExecutorServiceDisplayName(), ex.getRunnableDisplayName()),
+                                    ex);
+                            throw ExecutorServiceUtils.createRuntimeException(
+                                    "Base executor service has rejected the task from the queue", ex);
                         }
                     } else {
                         scheduled = false;

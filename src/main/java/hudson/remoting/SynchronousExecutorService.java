@@ -1,7 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
@@ -36,7 +35,7 @@ class SynchronousExecutorService extends AbstractExecutorService {
 
     @Override
     public synchronized boolean isTerminated() {
-        return shutdown && count==0;
+        return shutdown && count == 0;
     }
 
     @Override
@@ -44,9 +43,9 @@ class SynchronousExecutorService extends AbstractExecutorService {
         long now = System.nanoTime();
         long end = now + unit.toNanos(timeout);
 
-        while (count!=0) {
+        while (count != 0) {
             long d = end - now;
-            if (d<=0) {
+            if (d <= 0) {
                 return false;
             }
             wait(TimeUnit.NANOSECONDS.toMillis(d));
@@ -57,8 +56,9 @@ class SynchronousExecutorService extends AbstractExecutorService {
 
     @Override
     public void execute(@NonNull Runnable command) {
-        if (shutdown)
+        if (shutdown) {
             throw new IllegalStateException("Already shut down");
+        }
         touchCount(1);
         try {
             command.run();
@@ -69,7 +69,8 @@ class SynchronousExecutorService extends AbstractExecutorService {
 
     private synchronized void touchCount(int diff) {
         count += diff;
-        if (count==0)
+        if (count == 0) {
             notifyAll();
+        }
     }
 }

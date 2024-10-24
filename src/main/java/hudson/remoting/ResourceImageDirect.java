@@ -1,15 +1,12 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import static hudson.remoting.Util.*;
 
 /**
  * {@link ResourceImageRef} that directly encapsulates the resource as {@code byte[]}.
@@ -19,7 +16,9 @@ import static hudson.remoting.Util.*;
  *
  * @author Kohsuke Kawaguchi
  */
-@SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "Used by the agent as part of jar cache management.")
+@SuppressFBWarnings(
+        value = "URLCONNECTION_SSRF_FD",
+        justification = "Used by the agent as part of jar cache management.")
 class ResourceImageDirect extends ResourceImageRef {
     /**
      * The actual resource.
@@ -36,13 +35,13 @@ class ResourceImageDirect extends ResourceImageRef {
 
     @Override
     Future<byte[]> resolve(Channel channel, String resourcePath) throws IOException, InterruptedException {
-        LOGGER.log(Level.FINE, resourcePath+" image is direct");
+        LOGGER.log(Level.FINE, resourcePath + " image is direct");
         return CompletableFuture.completedFuture(payload);
     }
 
     @Override
     Future<URLish> resolveURL(Channel channel, String resourcePath) throws IOException, InterruptedException {
-        return CompletableFuture.completedFuture(URLish.from(makeResource(resourcePath, payload)));
+        return CompletableFuture.completedFuture(URLish.from(Util.makeResource(resourcePath, payload)));
     }
 
     private static final Logger LOGGER = Logger.getLogger(ResourceImageDirect.class.getName());

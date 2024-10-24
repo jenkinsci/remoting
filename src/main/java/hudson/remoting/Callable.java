@@ -24,15 +24,15 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.io.Serializable;
 import org.jenkinsci.remoting.ChannelStateException;
 import org.jenkinsci.remoting.RoleSensitive;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
-import java.io.Serializable;
-
-//TODO: Make it SerializableOnlyOverRemoting?
+// TODO: Make it SerializableOnlyOverRemoting?
 // Oleg Nenashev: Formally there is no reason for that, you can serialize object over whatever binary stream and then
-// execute it on remote side if it has channel instance. Likely YAGNI, but I can imagine such Pipeline context class implementation.
+// execute it on remote side if it has channel instance. Likely YAGNI, but I can imagine such Pipeline context class
+// implementation.
 /**
  * Represents computation to be done on a remote system.
  *
@@ -42,7 +42,7 @@ import java.io.Serializable;
  * @see Channel
  * @author Kohsuke Kawaguchi
  */
-public interface Callable<V,T extends Throwable> extends Serializable, RoleSensitive {
+public interface Callable<V, T extends Throwable> extends Serializable, RoleSensitive {
     /**
      * Performs computation and returns the result,
      * or throws some exception.
@@ -62,11 +62,13 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
             // This logic does not prevent from improperly serializing objects within Remoting calls.
             // If it happens in API calls in external usages, we wish good luck with diagnosing Remoting issues
             // and leaks in ExportTable.
-            //TODO: maybe there is a way to actually diagnose this case?
+            // TODO: maybe there is a way to actually diagnose this case?
             final Thread t = Thread.currentThread();
-            throw new ChannelStateException(null, "The calling thread " + t + " has no associated channel. "
-                    + "The current object " + this + " is " + SerializableOnlyOverRemoting.class +
-                    ", but it is likely being serialized/deserialized without the channel");
+            throw new ChannelStateException(
+                    null,
+                    "The calling thread " + t + " has no associated channel. "
+                            + "The current object " + this + " is " + SerializableOnlyOverRemoting.class
+                            + ", but it is likely being serialized/deserialized without the channel");
         }
         return ch;
     }
@@ -86,7 +88,10 @@ public interface Callable<V,T extends Throwable> extends Serializable, RoleSensi
     default Channel getOpenChannelOrFail() throws ChannelStateException {
         final Channel ch = getChannelOrFail();
         if (ch.isClosingOrClosed()) {
-            throw new ChannelClosedException(ch, "The associated channel " + ch + " is closing down or has closed down", ch.getCloseRequestCause());
+            throw new ChannelClosedException(
+                    ch,
+                    "The associated channel " + ch + " is closing down or has closed down",
+                    ch.getCloseRequestCause());
         }
         return ch;
     }

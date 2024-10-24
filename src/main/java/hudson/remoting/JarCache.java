@@ -1,7 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -26,9 +25,9 @@ public abstract class JarCache {
      * Default JAR cache location for disabled workspace Manager.
      */
     public static final File DEFAULT_NOWS_JAR_CACHE_LOCATION =
-        new File(System.getProperty("user.home"),".jenkins/cache/jars");
+            new File(System.getProperty("user.home"), ".jenkins/cache/jars");
 
-    //TODO: replace by checked exception
+    // TODO: replace by checked exception
     /**
      * Gets a default value for {@link FileSystemJarCache} to be initialized on agents.
      * @return Created JAR Cache
@@ -56,5 +55,6 @@ public abstract class JarCache {
      *      URL of the jar file.
      */
     @NonNull
-    public abstract CompletableFuture<URL> resolve(@NonNull Channel channel, long sum1, long sum2) throws IOException, InterruptedException;
+    public abstract CompletableFuture<URL> resolve(@NonNull Channel channel, long sum1, long sum2)
+            throws IOException, InterruptedException;
 }

@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.protocol.cert;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.net.Socket;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -151,8 +150,7 @@ public class DelegatingX509ExtendedTrustManager extends X509ExtendedTrustManager
      * {@inheritDoc}
      */
     @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType)
-            throws CertificateException {
+    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         validateAuthType(authType);
         validateChain(chain);
         delegate.checkClientTrusted(chain, authType);
@@ -162,8 +160,7 @@ public class DelegatingX509ExtendedTrustManager extends X509ExtendedTrustManager
      * {@inheritDoc}
      */
     @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType)
-            throws CertificateException {
+    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         validateAuthType(authType);
         validateChain(chain);
         delegate.checkServerTrusted(chain, authType);

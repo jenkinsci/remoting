@@ -1,7 +1,5 @@
 package hudson.remoting;
 
-import hudson.remoting.Channel.Mode;
-
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
@@ -18,6 +16,7 @@ public class InProcessRunner implements DualSideChannelRunner {
      * failure occurred in the other {@link Channel}.
      */
     private Exception failure;
+
     private Channel south;
 
     @Override
@@ -36,7 +35,7 @@ public class InProcessRunner implements DualSideChannelRunner {
             @Override
             public void run() {
                 try {
-                    Channel south = configureSouth().build(in2,out1);
+                    Channel south = configureSouth().build(in2, out1);
                     southHandoff.put(south);
                     south.join();
                     System.out.println("south completed");
@@ -55,13 +54,13 @@ public class InProcessRunner implements DualSideChannelRunner {
 
     protected ChannelBuilder configureNorth() {
         return new ChannelBuilder("north", executor)
-                .withMode(Mode.BINARY)
+                .withMode(Channel.Mode.BINARY)
                 .withCapability(createCapability());
     }
 
     protected ChannelBuilder configureSouth() {
         return new ChannelBuilder("south", executor)
-                .withMode(Mode.BINARY)
+                .withMode(Channel.Mode.BINARY)
                 .withCapability(createCapability());
     }
 
@@ -74,8 +73,9 @@ public class InProcessRunner implements DualSideChannelRunner {
 
         executor.shutdown();
 
-        if(failure!=null)
-            throw failure;  // report a failure in the south side
+        if (failure != null) {
+            throw failure; // report a failure in the south side
+        }
     }
 
     @Override

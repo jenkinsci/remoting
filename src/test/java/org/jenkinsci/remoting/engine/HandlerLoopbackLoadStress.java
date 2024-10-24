@@ -28,33 +28,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
 import hudson.remoting.SocketChannelStream;
-import org.apache.commons.io.IOUtils;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.X500NameBuilder;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.nio.NioChannelHub;
-import org.jenkinsci.remoting.protocol.IOHub;
-import org.jenkinsci.remoting.protocol.IOHubReadyListener;
-import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
-import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
-import java.util.concurrent.CompletableFuture;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileWriter;
@@ -96,6 +69,7 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -105,6 +79,31 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import org.apache.commons.io.IOUtils;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.nio.NioChannelHub;
+import org.jenkinsci.remoting.protocol.IOHub;
+import org.jenkinsci.remoting.protocol.IOHubReadyListener;
+import org.jenkinsci.remoting.protocol.IOHubRegistrationCallback;
+import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
 /**
  * A stress-testing client
@@ -141,7 +140,7 @@ public class HandlerLoopbackLoadStress {
 
     public HandlerLoopbackLoadStress(Config config)
             throws IOException, NoSuchAlgorithmException, CertificateException, KeyStoreException,
-            UnrecoverableKeyException, KeyManagementException, OperatorCreationException {
+                    UnrecoverableKeyException, KeyManagementException, OperatorCreationException {
         this.config = config;
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048); // maximum supported by JVM with export restrictions
@@ -161,20 +160,12 @@ public class HandlerLoopbackLoadStress {
                 .build();
 
         X509v3CertificateBuilder certGen = new X509v3CertificateBuilder(
-                subject,
-                BigInteger.ONE,
-                firstDate,
-                lastDate,
-                subject,
-                subjectPublicKeyInfo
-        );
+                subject, BigInteger.ONE, firstDate, lastDate, subject, subjectPublicKeyInfo);
 
         JcaX509ExtensionUtils instance = new JcaX509ExtensionUtils();
 
-        certGen.addExtension(Extension.subjectKeyIdentifier,
-                false,
-                instance.createSubjectKeyIdentifier(subjectPublicKeyInfo)
-        );
+        certGen.addExtension(
+                Extension.subjectKeyIdentifier, false, instance.createSubjectKeyIdentifier(subjectPublicKeyInfo));
 
         ContentSigner signer = new JcaContentSignerBuilder("SHA1withRSA")
                 .setProvider(BOUNCY_CASTLE_PROVIDER)
@@ -188,14 +179,13 @@ public class HandlerLoopbackLoadStress {
 
         KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
         store.load(null, password);
-        store.setKeyEntry("alias", keyPair.getPrivate(), password, new Certificate[]{certificate});
+        store.setKeyEntry("alias", keyPair.getPrivate(), password, new Certificate[] {certificate});
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(store, password);
 
         SSLContext context = SSLContext.getInstance("TLS");
-        context.init(kmf.getKeyManagers(),
-                new TrustManager[]{new BlindTrustX509ExtendedTrustManager()}, null);
+        context.init(kmf.getKeyManagers(), new TrustManager[] {new BlindTrustX509ExtendedTrustManager()}, null);
 
         mainHub = IOHub.create(executorService);
         // on windows there is a bug whereby you cannot mix ServerSockets and Sockets on the same selector
@@ -300,10 +290,15 @@ public class HandlerLoopbackLoadStress {
             p.printUsage(System.err);
             System.exit(0);
         }
-        System.out.printf("Starting stress test of %s with %d clients making calls (payload %d bytes) every %dms "
+        System.out.printf(
+                "Starting stress test of %s with %d clients making calls (payload %d bytes) every %dms "
                         + "(%.1f/sec) to give a total expected rate of %.1f/sec%n",
-                config.name, config.numClients, config.payload, config.clientIntervalMs,
-                1000.0 / config.clientIntervalMs, 1000.0 / config.clientIntervalMs * config.numClients);
+                config.name,
+                config.numClients,
+                config.payload,
+                config.clientIntervalMs,
+                1000.0 / config.clientIntervalMs,
+                1000.0 / config.clientIntervalMs * config.numClients);
         System.out.println(!config.bio ? "Preferring NIO" : "Prefering BIO");
         final HandlerLoopbackLoadStress stress = new HandlerLoopbackLoadStress(config);
         stress.mainHub.execute(stress.stats);
@@ -326,18 +321,16 @@ public class HandlerLoopbackLoadStress {
                         System.out.println("Starting client " + i);
                     }
                     final int clientNumber = i;
-                    clients.add(
-                    stress.executorService.submit(() -> {
+                    clients.add(stress.executorService.submit(() -> {
                         try {
-                            stress.startClient(clientNumber, serverAddress, config.clientIntervalMs,
-                                    config.payload);
+                            stress.startClient(clientNumber, serverAddress, config.clientIntervalMs, config.payload);
                         } finally {
                             started.countDown();
                         }
                         return null;
                     }));
                 }
-                for (Future<Void> future: clients) {
+                for (Future<Void> future : clients) {
                     future.get(60, TimeUnit.SECONDS);
                 }
                 started.await(60, TimeUnit.SECONDS);
@@ -390,7 +383,7 @@ public class HandlerLoopbackLoadStress {
     private Long getProcessCpuTime() {
         Object r = null;
         if (operatingSystemMXBean instanceof com.sun.management.OperatingSystemMXBean) {
-            r = ((com.sun.management.OperatingSystemMXBean)operatingSystemMXBean).getProcessCpuTime();
+            r = ((com.sun.management.OperatingSystemMXBean) operatingSystemMXBean).getProcessCpuTime();
         } else if (_getProcessCpuTime != null) {
             // Then we try reflection, if the method was located
             try {
@@ -417,52 +410,58 @@ public class HandlerLoopbackLoadStress {
         String clientName = runtimeMXBean.getName() + "-client-" + n;
         headers.put(JnlpConnectionState.CLIENT_NAME_KEY, clientName);
         headers.put(JnlpConnectionState.SECRET_KEY, secretFor(clientName));
-        final Channel clientChannel = handler.connect(toServer.socket(), headers, clientListener)
-                .get(15, TimeUnit.SECONDS);
-        timer[n % timer.length].scheduleAtFixedRate(new TimerTask() {
-            long start = System.currentTimeMillis();
-            int index = 0;
-            int times = 0;
-            private NoOpCallable callable = new NoOpCallable(payloadSize == -1 ? null : new byte[payloadSize]);
-
-            @Override
-            public void run() {
-                try {
+        final Channel clientChannel =
+                handler.connect(toServer.socket(), headers, clientListener).get(15, TimeUnit.SECONDS);
+        timer[n % timer.length].scheduleAtFixedRate(
+                new TimerTask() {
                     long start = System.currentTimeMillis();
-                    clientChannel.call(callable);
-                    if (config.client != null) {
-                        NoOpCallable.noops.incrementAndGet();
-                    }
-                    times++;
-                    if (times % 1000 == 0) {
-                        System.out.printf("  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s%n",
-                                clientChannel.getName(), times,
-                                times * 1000.0 / (System.currentTimeMillis() - this.start), 1000.0 / clientIntervalMs);
-                    }
-                    long duration = System.currentTimeMillis() - start;
-                    if (duration > 250L) {
-                        System.err.printf("  %s took %dms to complete a callable%n", clientChannel.getName(),
-                                duration);
-                    }
-                    if (callable.payload != null && callable.payload.length > 0) {
-                        // mutate the payload to prevent compression
-                        int count = callable.payload.length;
-                        if (count > 100) {
-                            count = 100;
+                    int index = 0;
+                    int times = 0;
+                    private NoOpCallable callable = new NoOpCallable(payloadSize == -1 ? null : new byte[payloadSize]);
+
+                    @Override
+                    public void run() {
+                        try {
+                            long start = System.currentTimeMillis();
+                            clientChannel.call(callable);
+                            if (config.client != null) {
+                                NoOpCallable.noops.incrementAndGet();
+                            }
+                            times++;
+                            if (times % 1000 == 0) {
+                                System.out.printf(
+                                        "  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s%n",
+                                        clientChannel.getName(),
+                                        times,
+                                        times * 1000.0 / (System.currentTimeMillis() - this.start),
+                                        1000.0 / clientIntervalMs);
+                            }
+                            long duration = System.currentTimeMillis() - start;
+                            if (duration > 250L) {
+                                System.err.printf(
+                                        "  %s took %dms to complete a callable%n", clientChannel.getName(), duration);
+                            }
+                            if (callable.payload != null && callable.payload.length > 0) {
+                                // mutate the payload to prevent compression
+                                int count = callable.payload.length;
+                                if (count > 100) {
+                                    count = 100;
+                                }
+                                for (int j = 0; j < count; j++) {
+                                    callable.payload[index] = (byte) (callable.payload[index] * 31 + times);
+                                    index = Math.abs(index + 1) % callable.payload.length;
+                                }
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace(System.err);
+                            IOUtils.closeQuietly(clientChannel);
+                            cancel();
+                            System.exit(2);
                         }
-                        for (int j = 0; j < count; j++) {
-                            callable.payload[index] = (byte) (callable.payload[index] * 31 + times);
-                            index = Math.abs(index + 1) % callable.payload.length;
-                        }
                     }
-                } catch (Exception e) {
-                    e.printStackTrace(System.err);
-                    IOUtils.closeQuietly(clientChannel);
-                    cancel();
-                    System.exit(2);
-                }
-            }
-        }, entropy.nextInt(clientIntervalMs), clientIntervalMs);
+                },
+                entropy.nextInt(clientIntervalMs),
+                clientIntervalMs);
     }
 
     public static class Config {
@@ -472,7 +471,8 @@ public class HandlerLoopbackLoadStress {
         @Option(name = "--clients", metaVar = "CLIENTS", usage = "The number of clients to simulate")
         public int numClients = 100;
 
-        @Option(name = "--interval",
+        @Option(
+                name = "--interval",
                 metaVar = "MILLISECONDS",
                 usage = "The number of milliseconds each client waits before sending a command")
         public int clientIntervalMs = 100;
@@ -480,12 +480,14 @@ public class HandlerLoopbackLoadStress {
         @Option(name = "--size", metaVar = "BYTES", usage = "The number of bytes to pad the command with")
         public int payload = -1;
 
-        @Option(name = "--warmup",
+        @Option(
+                name = "--warmup",
                 metaVar = "SECONDS",
                 usage = "The number of seconds after all connections are established to warm up before resetting stats")
         public int warmup = -1;
 
-        @Option(name = "--collect",
+        @Option(
+                name = "--collect",
                 metaVar = "SECONDS",
                 usage = "The number of seconds after all connections are established to collect stats for before "
                         + "stopping")
@@ -503,16 +505,21 @@ public class HandlerLoopbackLoadStress {
         @Option(name = "--server", usage = "Specify to run as a server only")
         public boolean server;
 
-        @Option(name = "--client",
+        @Option(
+                name = "--client",
                 metaVar = "HOST:PORT",
                 usage = "Specify to run as a client only and connect to a server on the specified HOST:PORT")
         public String client;
 
-        @Option(name="--connect", metaVar = "MILLIS",
+        @Option(
+                name = "--connect",
+                metaVar = "MILLIS",
                 usage = "The number of milliseconds to wait between client starts")
         public int connectDelay = -1;
 
-        @Option(name = "--help", aliases = {"-h", "-?"})
+        @Option(
+                name = "--help",
+                aliases = {"-h", "-?"})
         public boolean help;
     }
 
@@ -537,7 +544,8 @@ public class HandlerLoopbackLoadStress {
         public void afterChannel(@NonNull JnlpConnectionState event) {
             String clientName = event.getProperty(JnlpConnectionState.CLIENT_NAME_KEY);
             if (clientName != null) {
-                System.out.println("Accepted connection from client " + clientName + " on " + event.getRemoteEndpointDescription());
+                System.out.println("Accepted connection from client " + clientName + " on "
+                        + event.getRemoteEndpointDescription());
             }
         }
     }
@@ -559,9 +567,8 @@ public class HandlerLoopbackLoadStress {
         }
 
         @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
+        public void checkRoles(RoleChecker checker) throws SecurityException {}
 
-        }
         private static final long serialVersionUID = 1L;
     }
 
@@ -579,14 +586,22 @@ public class HandlerLoopbackLoadStress {
             memoryA = Runtime.getRuntime().totalMemory();
             memoryS = 0;
             memoryCount = 1;
-            System.out.printf("%n%-7s   %-29s   %-20s   %8s   %14s%n",
-                    "", "          Calls rate", "JVM CPU utilization", "", "");
-            System.out.printf("%-7s   %9s %9s %9s   %6s %6s %6s   %8s   %14s%n",
-                    "Time", "cur", "all", "expect", "cur", "all",
-                    "expect", "Sys load", "Average Memory");
-            System.out.printf("%7s   %9s %9s %9s   %6s %6s %6s   %8s   %14s%n",
-                    "=======", "=========", "=========", "=========", "======", "======",
-                    "======", "========", "==============");
+            System.out.printf(
+                    "%n%-7s   %-29s   %-20s   %8s   %14s%n", "", "          Calls rate", "JVM CPU utilization", "", "");
+            System.out.printf(
+                    "%-7s   %9s %9s %9s   %6s %6s %6s   %8s   %14s%n",
+                    "Time", "cur", "all", "expect", "cur", "all", "expect", "Sys load", "Average Memory");
+            System.out.printf(
+                    "%7s   %9s %9s %9s   %6s %6s %6s   %8s   %14s%n",
+                    "=======",
+                    "=========",
+                    "=========",
+                    "=========",
+                    "======",
+                    "======",
+                    "======",
+                    "========",
+                    "==============");
         }
 
         private synchronized void clientsStarted() {
@@ -626,7 +641,8 @@ public class HandlerLoopbackLoadStress {
                 double noopsPerSecond = current.noopsPerSecond(last);
                 double vmLoad0 = current.vmLoad(start);
                 double vmLoad = current.vmLoad(last);
-                System.out.printf("%-4.1fmin   %7.1f/s %7.1f/s %7.1f/s   %6.2f %6.2f %6.2f   %8.2f   %7.1fkB ± %.1f %ddf   %s%n",
+                System.out.printf(
+                        "%-4.1fmin   %7.1f/s %7.1f/s %7.1f/s   %6.2f %6.2f %6.2f   %8.2f   %7.1fkB ± %.1f %ddf   %s%n",
                         (current.uptime - start.uptime) / 60000.0,
                         noopsPerSecond,
                         noopsPerSecond0,
@@ -638,16 +654,18 @@ public class HandlerLoopbackLoadStress {
                         memoryCount > 0 ? memoryA / 1024 : Double.NaN,
                         memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
                         memoryCount,
-                        current.gcSummary(start)
-                );
+                        current.gcSummary(start));
                 System.out.flush();
                 last = current;
-                if (started && !warmed && (config.warmup <= 0
-                        || current.uptime - start.uptime > config.warmup * 1000L)) {
+                if (started
+                        && !warmed
+                        && (config.warmup <= 0 || current.uptime - start.uptime > config.warmup * 1000L)) {
                     System.out.println("Warmup completed");
                     clearStats();
                     warmed = true;
-                } else if (started && warmed && config.collect > 0
+                } else if (started
+                        && warmed
+                        && config.collect > 0
                         && current.uptime - start.uptime > config.collect * 1000L) {
                     if (config.file != null) {
                         try {
@@ -664,7 +682,8 @@ public class HandlerLoopbackLoadStress {
                                 pw = new PrintWriter(new FileWriter(f, true));
                             }
                             try {
-                                pw.printf("\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d,%.2f,%s%n",
+                                pw.printf(
+                                        "\"%s\",\"%s\",%d,%d,%d,%.1f,%.1f,%.2f,%.2f,%d,%.2f,%.2f,%d,%.2f,%s%n",
                                         config.name,
                                         config.bio ? "blocking" : "non-blocking",
                                         config.numClients,
@@ -679,8 +698,7 @@ public class HandlerLoopbackLoadStress {
                                         memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
                                         memoryCount,
                                         Runtime.getRuntime().maxMemory() / 1024.0,
-                                        current.gcData(start)
-                                );
+                                        current.gcData(start));
                             } finally {
                                 pw.close();
                             }
@@ -708,13 +726,11 @@ public class HandlerLoopbackLoadStress {
                             memoryCount > 1 ? Math.sqrt(memoryS / (memoryCount - 1)) / 1024 : Double.NaN,
                             memoryCount,
                             Runtime.getRuntime().maxMemory() / 1024.0,
-                            current.gcData(start)
-                    );
+                            current.gcData(start));
                     System.exit(0);
                 }
             }
         }
-
     }
 
     private static class GCStats {
@@ -732,7 +748,7 @@ public class HandlerLoopbackLoadStress {
         private long noops;
         private long uptime;
         private @CheckForNull Long cpu;
-        private Map<String,GCStats> gc;
+        private Map<String, GCStats> gc;
 
         public Metrics() {
             time = System.currentTimeMillis();
@@ -740,7 +756,7 @@ public class HandlerLoopbackLoadStress {
             uptime = runtimeMXBean.getUptime();
             cpu = getProcessCpuTime();
             gc = new TreeMap<>();
-            for (GarbageCollectorMXBean bean: garbageCollectorMXBeans) {
+            for (GarbageCollectorMXBean bean : garbageCollectorMXBeans) {
                 this.gc.put(bean.getName(), new GCStats(bean));
             }
         }
@@ -781,7 +797,7 @@ public class HandlerLoopbackLoadStress {
         public String gcData(Metrics reference) {
             StringBuilder result = new StringBuilder();
             boolean first = true;
-            for (GarbageCollectorMXBean g: garbageCollectorMXBeans) {
+            for (GarbageCollectorMXBean g : garbageCollectorMXBeans) {
                 String name = g.getName();
                 GCStats s = reference.gc.get(name);
                 GCStats x = gc.get(name);
@@ -793,8 +809,8 @@ public class HandlerLoopbackLoadStress {
                 result.append("\"").append(name).append("\",");
                 if (x == null) {
                     result.append(0).append(',').append(0.0);
-                } else  if (s == null) {
-                    result.append(x.count).append(',').append(x.time/1000.0);
+                } else if (s == null) {
+                    result.append(x.count).append(',').append(x.time / 1000.0);
                 } else {
                     result.append(x.count - s.count).append(',').append((x.time - s.time) / 1000.0);
                 }
@@ -806,7 +822,9 @@ public class HandlerLoopbackLoadStress {
             StringBuilder result = new StringBuilder();
             int i = 0;
             for (GarbageCollectorMXBean g : garbageCollectorMXBeans) {
-                if (i > 0) result.append(",");
+                if (i > 0) {
+                    result.append(",");
+                }
                 result.append("\"gc[").append(i).append("].name\",");
                 result.append("\"gc[").append(i).append("].count\",");
                 result.append("\"gc[").append(i).append("].time\"");
@@ -903,9 +921,6 @@ public class HandlerLoopbackLoadStress {
         }
 
         @Override
-        public void onClosedChannel(ClosedChannelException e) {
-
-        }
+        public void onClosedChannel(ClosedChannelException e) {}
     }
-
 }

@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,9 +22,6 @@
  * THE SOFTWARE.
  */
 package hudson.remoting;
-
-
-import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -36,6 +33,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.io.IOUtils;
 
 /**
  * Used to load a dummy class
@@ -88,7 +86,7 @@ class DummyClassLoader extends ClassLoader {
 
     public DummyClassLoader(ClassLoader parent, Class<?>... classes) {
         super(parent);
-        assert classes.length!=0;
+        assert classes.length != 0;
         for (Class<?> c : classes) {
             entries.add(new Entry(c));
         }
@@ -107,11 +105,14 @@ class DummyClassLoader extends ClassLoader {
      */
     public Object load(Class<?> c) {
         for (Entry e : entries) {
-            if (e.c==c) {
+            if (e.c == c) {
                 try {
                     return loadClass(e.logicalName).getConstructor().newInstance();
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException
-                        | NoSuchMethodException | InvocationTargetException x) {
+                } catch (InstantiationException
+                        | IllegalAccessException
+                        | ClassNotFoundException
+                        | NoSuchMethodException
+                        | InvocationTargetException x) {
                     throw new Error(x);
                 }
             }
@@ -119,24 +120,22 @@ class DummyClassLoader extends ClassLoader {
         throw new IllegalStateException();
     }
 
-
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         for (Entry e : entries) {
-            if(name.equals(e.logicalName)) {
+            if (name.equals(e.logicalName)) {
                 // rename a class
                 try {
                     byte[] bytes = e.loadTransformedClassImage();
-                    return defineClass(name,bytes,0,bytes.length);
+                    return defineClass(name, bytes, 0, bytes.length);
                 } catch (IOException x) {
-                    throw new ClassNotFoundException("Bytecode manipulation failed",x);
+                    throw new ClassNotFoundException("Bytecode manipulation failed", x);
                 }
             }
         }
 
         return super.findClass(name);
     }
-
 
     @Override
     protected URL findResource(String name) {
@@ -157,8 +156,8 @@ class DummyClassLoader extends ClassLoader {
         return super.findResource(name);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return super.toString() + "[" + entries + "]";
     }
-
 }

@@ -1,7 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,7 +15,8 @@ public class DaemonThreadFactory implements ThreadFactory {
     public Thread newThread(@NonNull Runnable r) {
         Thread thread = new Thread(r);
         thread.setDaemon(true);
-        thread.setUncaughtExceptionHandler((t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Unhandled exception in thread " + t));
+        thread.setUncaughtExceptionHandler(
+                (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Unhandled exception in thread " + t));
         return thread;
     }
 }

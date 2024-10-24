@@ -1,18 +1,18 @@
 /*
  * The MIT License
- * 
+ *
  * Copyright (c) 2004-2009, Sun Microsystems, Inc., Kohsuke Kawaguchi
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -24,12 +24,11 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Writer;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 /**
  * {@link Writer} that can be sent over to the remote {@link Channel},
@@ -65,7 +64,8 @@ public final class RemoteWriter extends Writer implements SerializableOnlyOverRe
     }
 
     private void writeObject(ObjectOutputStream oos) throws IOException {
-        int id = getChannelForSerialization().internalExport(Writer.class, core, false);  // this export is unexported in ProxyWriter.finalize()
+        int id = getChannelForSerialization()
+                .internalExport(Writer.class, core, false); // this export is unexported in ProxyWriter.finalize()
         oos.writeInt(id);
     }
 
@@ -76,12 +76,11 @@ public final class RemoteWriter extends Writer implements SerializableOnlyOverRe
 
     private static final long serialVersionUID = 1L;
 
-
-//
-//
-// delegation to core
-//
-//
+    //
+    //
+    // delegation to core
+    //
+    //
     @Override
     public void write(int c) throws IOException {
         core.write(c);

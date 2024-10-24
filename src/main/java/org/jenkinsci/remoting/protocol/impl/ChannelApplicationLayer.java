@@ -45,7 +45,6 @@ import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
 import org.jenkinsci.remoting.engine.JnlpConnectionState;
 import org.jenkinsci.remoting.protocol.ApplicationLayer;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
@@ -93,6 +92,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * Listener to notify when the {@link Channel} is connected.
      */
     private final Listener listener;
+
     private String cookie;
 
     /**
@@ -101,8 +101,7 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * @param executorService the {@link ExecutorService} to use for the {@link Channel}.
      * @param listener the {@link Listener} to notify when the {@link Channel} is available.
      */
-    public ChannelApplicationLayer(@NonNull ExecutorService executorService,
-                                   @CheckForNull Listener listener) {
+    public ChannelApplicationLayer(@NonNull ExecutorService executorService, @CheckForNull Listener listener) {
         this.executorService = executorService;
         this.listener = listener;
     }
@@ -115,8 +114,8 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
      * @param cookie a cookie to pass through the channel.
      */
     @Restricted(NoExternalUse.class)
-    public ChannelApplicationLayer(@NonNull ExecutorService executorService,
-                                   @CheckForNull Listener listener, String cookie) {
+    public ChannelApplicationLayer(
+            @NonNull ExecutorService executorService, @CheckForNull Listener listener, String cookie) {
         this.executorService = executorService;
         this.listener = listener;
         this.cookie = cookie;
@@ -150,8 +149,8 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
                 if (capabilityLength.hasRemaining()) {
                     return;
                 }
-                capabilityContent = ByteBuffer
-                        .allocate(((capabilityLength.get(0) & 0xff) << 8) + (capabilityLength.get(1) & 0xff));
+                capabilityContent =
+                        ByteBuffer.allocate(((capabilityLength.get(0) & 0xff) << 8) + (capabilityLength.get(1) & 0xff));
             }
             assert capabilityContent != null;
             if (capabilityContent.hasRemaining()) {
@@ -168,10 +167,11 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
                 final Capability remoteCapability = Capability.read(new ByteArrayInputStream(capabilityBytes));
                 transport = new ByteBufferCommandTransport(remoteCapability);
                 try {
-                    ChannelBuilder builder = new ChannelBuilder(stack().name(), executorService)
-                            .withMode(Channel.Mode.BINARY);
+                    ChannelBuilder builder =
+                            new ChannelBuilder(stack().name(), executorService).withMode(Channel.Mode.BINARY);
                     if (listener instanceof ChannelDecorator) {
-                        channel = decorate(((ChannelDecorator) listener).decorate(builder)).build(transport);
+                        channel = decorate(((ChannelDecorator) listener).decorate(builder))
+                                .build(transport);
                     } else {
                         channel = decorate(builder).build(transport);
                     }
@@ -252,7 +252,8 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
     public void start() {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            try (ObjectOutputStream oos = AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos))) {
+            try (ObjectOutputStream oos =
+                    AnonymousClassWarnings.checkingObjectOutputStream(BinarySafeStream.wrap(bos))) {
                 oos.writeObject(new Capability());
             }
             ByteBuffer buffer = ByteBufferUtils.wrapUTF8(bos.toString(StandardCharsets.US_ASCII));
@@ -322,16 +323,20 @@ public class ChannelApplicationLayer extends ApplicationLayer<Future<Channel>> {
          */
         @Override
         protected void write(ByteBuffer headerAndData) throws IOException {
-            //TODO: Any way to get channel information here
+            // TODO: Any way to get channel information here
             if (isWriteOpen()) {
                 try {
                     ChannelApplicationLayer.this.write(headerAndData);
                 } catch (ClosedChannelException e) {
                     // Probably it should be another exception type at all
-                    throw new ChannelClosedException(null, "Protocol stack cannot write data anymore. ChannelApplicationLayer reports that the NIO Channel is closed", e);
+                    throw new ChannelClosedException(
+                            null,
+                            "Protocol stack cannot write data anymore. ChannelApplicationLayer reports that the NIO Channel is closed",
+                            e);
                 }
             } else {
-                throw new ChannelClosedException(null, "Protocol stack cannot write data anymore. It is not open for write", null);
+                throw new ChannelClosedException(
+                        null, "Protocol stack cannot write data anymore. It is not open for write", null);
             }
         }
 

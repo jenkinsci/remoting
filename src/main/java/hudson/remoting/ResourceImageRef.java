@@ -1,7 +1,5 @@
 package hudson.remoting;
 
-import hudson.remoting.RemoteClassLoader.ClassReference;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.concurrent.Future;
@@ -28,22 +26,24 @@ import java.util.concurrent.Future;
      *      Fully qualified name of the resource being retrieved, that doesn't start with '/',
      *      such as 'java/lang/String.class' Identical to the name parameter in {@link ClassLoader#getResource(String)}.
      *
-     *      This parameter must be the same name you used to retrieve {@link ClassReference}.
+     *      This parameter must be the same name you used to retrieve {@link RemoteClassLoader.ClassReference}.
      *
      *      One {@link ResourceImageRef} represents a single resource, and that resource name
-     *      is specified when you retrieve {@link ClassReference}. Therefore from pure abstraction
+     *      is specified when you retrieve {@link RemoteClassLoader.ClassReference}. Therefore from pure abstraction
      *      point of view, this information is redundant. However, specifying that information reduces
      *      the amount of state {@link ResourceImageRef}s need to carry around, which helps reduce
      *      the bandwidth consumption.
      */
-    /*package*/ abstract Future<byte[]> resolve(Channel channel, String resourcePath) throws IOException, InterruptedException;
+    /*package*/ abstract Future<byte[]> resolve(Channel channel, String resourcePath)
+            throws IOException, InterruptedException;
 
     /**
      * Returns an URL that points to this resource.
      *
      * This may require creating a temporary file.
      */
-    /*package*/ abstract Future<URLish> resolveURL(Channel channel, String resourcePath) throws IOException, InterruptedException;
+    /*package*/ abstract Future<URLish> resolveURL(Channel channel, String resourcePath)
+            throws IOException, InterruptedException;
 
     private static final long serialVersionUID = 1L;
 }

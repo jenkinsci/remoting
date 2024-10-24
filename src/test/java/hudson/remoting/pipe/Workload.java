@@ -11,5 +11,6 @@ import java.io.OutputStream;
  */
 public interface Workload {
     void write(OutputStream o) throws IOException;
+
     void read(InputStream i) throws IOException;
 }

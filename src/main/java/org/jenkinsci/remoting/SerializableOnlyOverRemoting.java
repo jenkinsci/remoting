@@ -28,11 +28,10 @@ package org.jenkinsci.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.ProtectedExternally;
-
 import java.io.NotSerializableException;
 import java.io.Serializable;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.ProtectedExternally;
 
 /**
  * This interface indicates objects which are {@link Serializable} only for sending over the Remoting {@link Channel}.
@@ -62,11 +61,11 @@ public interface SerializableOnlyOverRemoting extends Serializable {
             // This logic does not prevent from improperly serializing objects within Remoting calls.
             // If it happens in API calls in external usages, we wish good luck with diagnosing Remoting issues
             // and leaks in ExportTable.
-            //TODO: maybe there is a way to actually diagnose this case?
+            // TODO: maybe there is a way to actually diagnose this case?
             final Thread t = Thread.currentThread();
             throw new NotSerializableException("The calling thread " + t + " has no associated channel. "
-                    + "The current object " + this + " is " + SerializableOnlyOverRemoting.class +
-                    ", but it is likely being serialized/deserialized without the channel");
+                    + "The current object " + this + " is " + SerializableOnlyOverRemoting.class
+                    + ", but it is likely being serialized/deserialized without the channel");
         }
         return ch;
     }

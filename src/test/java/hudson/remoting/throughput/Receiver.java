@@ -3,7 +3,6 @@ package hudson.remoting.throughput;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.SocketChannelStream;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.net.ServerSocket;
@@ -23,13 +22,15 @@ public class Receiver {
                 try (Socket s = ss.accept()) {
                     s.setTcpNoDelay(true);
                     System.out.println("Accepted");
-                    Channel ch = new ChannelBuilder("bogus", Executors.newCachedThreadPool()).build(
-                            new BufferedInputStream(SocketChannelStream.in(s)),
-                            new BufferedOutputStream(SocketChannelStream.out(s)));
+                    Channel ch = new ChannelBuilder("bogus", Executors.newCachedThreadPool())
+                            .build(
+                                    new BufferedInputStream(SocketChannelStream.in(s)),
+                                    new BufferedOutputStream(SocketChannelStream.out(s)));
                     ch.join();
                 }
             }
         }
     }
+
     public static final int PORT = 9532;
 }

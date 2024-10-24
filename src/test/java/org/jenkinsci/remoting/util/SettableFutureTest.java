@@ -23,6 +23,15 @@
  */
 package org.jenkinsci.remoting.util;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -30,19 +39,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-
-import edu.umd.cs.findbugs.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 /**
  * @author Stephen Connolly
@@ -143,8 +142,7 @@ public class SettableFutureTest {
         assertFalse(async.set(42));
     }
 
-    public void assertCompletedFuture(@Nullable Object expectedValue)
-            throws InterruptedException, ExecutionException {
+    public void assertCompletedFuture(@Nullable Object expectedValue) throws InterruptedException, ExecutionException {
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
 
@@ -155,8 +153,7 @@ public class SettableFutureTest {
         assertEquals(expectedValue, future.get());
     }
 
-    public void assertCancelledFuture()
-            throws InterruptedException, ExecutionException {
+    public void assertCancelledFuture() throws InterruptedException, ExecutionException {
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
@@ -164,12 +161,13 @@ public class SettableFutureTest {
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
-        assertThrows("Future should throw CancellationException on cancel.",
-                CancellationException.class, () -> future.get());
+        assertThrows(
+                "Future should throw CancellationException on cancel.",
+                CancellationException.class,
+                () -> future.get());
     }
 
-    public void assertFailedFuture(@Nullable String message)
-            throws InterruptedException {
+    public void assertFailedFuture(@Nullable String message) throws InterruptedException {
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
 
@@ -177,9 +175,8 @@ public class SettableFutureTest {
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
 
-        final ExecutionException e = assertThrows("Future should rethrow the exception.",
-                ExecutionException.class, () -> future.get());
+        final ExecutionException e =
+                assertThrows("Future should rethrow the exception.", ExecutionException.class, () -> future.get());
         assertThat(e.getCause().getMessage(), is(message));
     }
-
 }

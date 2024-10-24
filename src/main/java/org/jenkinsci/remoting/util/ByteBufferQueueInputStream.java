@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.util;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.Buffer;
@@ -44,6 +43,7 @@ public class ByteBufferQueueInputStream extends InputStream {
      * The backing queue.
      */
     private final ByteBufferQueue queue;
+
     private final int length;
     private int pos;
     /**
@@ -162,7 +162,7 @@ public class ByteBufferQueueInputStream extends InputStream {
         }
         int l = mark.limit();
         int p = mark.position();
-        ((Buffer) mark).limit(mark.position() + (int)n);
+        ((Buffer) mark).limit(mark.position() + (int) n);
         queue.get(mark);
         int skipped = mark.position() - p;
         ((Buffer) mark).limit(l);

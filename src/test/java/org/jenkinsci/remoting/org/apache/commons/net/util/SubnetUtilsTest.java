@@ -21,9 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils;
-import org.jenkinsci.remoting.org.apache.commons.net.util.SubnetUtils.SubnetInfo;
-
 import junit.framework.TestCase;
 
 @SuppressWarnings("deprecation") // deliberate use of deprecated methods
@@ -31,7 +28,7 @@ public class SubnetUtilsTest extends TestCase {
 
     public void testAddresses() {
         final SubnetUtils utils = new SubnetUtils("192.168.0.1/29");
-        final SubnetInfo info = utils.getInfo();
+        final SubnetUtils.SubnetInfo info = utils.getInfo();
         assertTrue(info.isInRange("192.168.0.1"));
         assertTrue(info.isInRange("192.168.0.2"));
         assertTrue(info.isInRange("192.168.0.3"));
@@ -48,7 +45,9 @@ public class SubnetUtilsTest extends TestCase {
         assertEquals(-1062731775, info.asInteger("192.168.0.1"));
         assertThrows(IllegalArgumentException.class, () -> info.asInteger("bad"));
         //
-        assertArrayEquals(new String[] { "192.168.0.1", "192.168.0.2", "192.168.0.3", "192.168.0.4", "192.168.0.5", "192.168.0.6" }, info.getAllAddresses());
+        assertArrayEquals(
+                new String[] {"192.168.0.1", "192.168.0.2", "192.168.0.3", "192.168.0.4", "192.168.0.5", "192.168.0.6"},
+                info.getAllAddresses());
     }
 
     public void testAddressIllegalArgument() {
@@ -61,7 +60,7 @@ public class SubnetUtilsTest extends TestCase {
     public void testCidrAddresses() {
         SubnetUtils utils = new SubnetUtils("192.168.0.1/8");
         utils.setInclusiveHostCount(true);
-        SubnetInfo info = utils.getInfo();
+        SubnetUtils.SubnetInfo info = utils.getInfo();
         assertEquals("255.0.0.0", info.getNetmask());
         assertEquals(16777216, info.getAddressCount());
 
@@ -220,7 +219,6 @@ public class SubnetUtilsTest extends TestCase {
         info = utils.getInfo();
         assertEquals("255.255.255.255", info.getNetmask());
         assertEquals(1, info.getAddressCount());
-
     }
 
     public void testInvalidMasks() {
@@ -246,7 +244,7 @@ public class SubnetUtilsTest extends TestCase {
     public void testNET520() {
         final SubnetUtils utils = new SubnetUtils("0.0.0.0/0");
         utils.setInclusiveHostCount(true);
-        final SubnetInfo info = utils.getInfo();
+        final SubnetUtils.SubnetInfo info = utils.getInfo();
         assertEquals("0.0.0.0", info.getNetworkAddress());
         assertEquals("255.255.255.255", info.getBroadcastAddress());
         assertTrue(info.isInRange("127.0.0.0"));
@@ -256,7 +254,7 @@ public class SubnetUtilsTest extends TestCase {
 
     public void testNET521() {
         SubnetUtils utils;
-        SubnetInfo info;
+        SubnetUtils.SubnetInfo info;
 
         utils = new SubnetUtils("0.0.0.0/0");
         utils.setInclusiveHostCount(true);
@@ -294,14 +292,14 @@ public class SubnetUtilsTest extends TestCase {
     public void testNET675() {
         final SubnetUtils utils = new SubnetUtils("192.168.0.15/32");
         utils.setInclusiveHostCount(true);
-        final SubnetInfo info = utils.getInfo();
+        final SubnetUtils.SubnetInfo info = utils.getInfo();
         assertTrue(info.isInRange("192.168.0.15"));
     }
 
     public void testNET679() {
         final SubnetUtils utils = new SubnetUtils("10.213.160.0/16");
         utils.setInclusiveHostCount(true);
-        final SubnetInfo info = utils.getInfo();
+        final SubnetUtils.SubnetInfo info = utils.getInfo();
         assertTrue(info.isInRange("10.213.0.0"));
         assertTrue(info.isInRange("10.213.255.255"));
     }
@@ -313,19 +311,19 @@ public class SubnetUtilsTest extends TestCase {
 
     public void testParseSimpleNetmask() {
         final String address = "192.168.0.1";
-        final String[] masks = { "255.0.0.0", "255.255.0.0", "255.255.255.0", "255.255.255.248" };
-        final String[] bcastAddresses = { "192.255.255.255", "192.168.255.255", "192.168.0.255", "192.168.0.7" };
-        final String[] lowAddresses = { "192.0.0.1", "192.168.0.1", "192.168.0.1", "192.168.0.1" };
-        final String[] highAddresses = { "192.255.255.254", "192.168.255.254", "192.168.0.254", "192.168.0.6" };
-        final String[] nextAddresses = { "192.168.0.2", "192.168.0.2", "192.168.0.2", "192.168.0.2" };
-        final String[] previousAddresses = { "192.168.0.0", "192.168.0.0", "192.168.0.0", "192.168.0.0" };
-        final String[] networkAddresses = { "192.0.0.0", "192.168.0.0", "192.168.0.0", "192.168.0.0" };
-        final String[] cidrSignatures = { "192.168.0.1/8", "192.168.0.1/16", "192.168.0.1/24", "192.168.0.1/29" };
-        final int[] usableAddresses = { 16777214, 65534, 254, 6 };
+        final String[] masks = {"255.0.0.0", "255.255.0.0", "255.255.255.0", "255.255.255.248"};
+        final String[] bcastAddresses = {"192.255.255.255", "192.168.255.255", "192.168.0.255", "192.168.0.7"};
+        final String[] lowAddresses = {"192.0.0.1", "192.168.0.1", "192.168.0.1", "192.168.0.1"};
+        final String[] highAddresses = {"192.255.255.254", "192.168.255.254", "192.168.0.254", "192.168.0.6"};
+        final String[] nextAddresses = {"192.168.0.2", "192.168.0.2", "192.168.0.2", "192.168.0.2"};
+        final String[] previousAddresses = {"192.168.0.0", "192.168.0.0", "192.168.0.0", "192.168.0.0"};
+        final String[] networkAddresses = {"192.0.0.0", "192.168.0.0", "192.168.0.0", "192.168.0.0"};
+        final String[] cidrSignatures = {"192.168.0.1/8", "192.168.0.1/16", "192.168.0.1/24", "192.168.0.1/29"};
+        final int[] usableAddresses = {16777214, 65534, 254, 6};
 
         for (int i = 0; i < masks.length; ++i) {
             final SubnetUtils utils = new SubnetUtils(address, masks[i]);
-            final SubnetInfo info = utils.getInfo();
+            final SubnetUtils.SubnetInfo info = utils.getInfo();
             assertEquals(address, info.getAddress());
             assertEquals(bcastAddresses[i], info.getBroadcastAddress());
             assertEquals(cidrSignatures[i], info.getCidrSignature());
@@ -340,19 +338,19 @@ public class SubnetUtilsTest extends TestCase {
 
     public void testParseSimpleNetmaskExclusive() {
         final String address = "192.168.15.7";
-        final String[] masks = { "255.255.255.252", "255.255.255.254", "255.255.255.255" };
-        final String[] bcast = { "192.168.15.7", "192.168.15.7", "192.168.15.7" };
-        final String[] netwk = { "192.168.15.4", "192.168.15.6", "192.168.15.7" };
-        final String[] lowAd = { "192.168.15.5", "0.0.0.0", "0.0.0.0" };
-        final String[] highA = { "192.168.15.6", "0.0.0.0", "0.0.0.0" };
-        final String[] cidrS = { "192.168.15.7/30", "192.168.15.7/31", "192.168.15.7/32" };
-        final int[] usableAd = { 2, 0, 0 };
+        final String[] masks = {"255.255.255.252", "255.255.255.254", "255.255.255.255"};
+        final String[] bcast = {"192.168.15.7", "192.168.15.7", "192.168.15.7"};
+        final String[] netwk = {"192.168.15.4", "192.168.15.6", "192.168.15.7"};
+        final String[] lowAd = {"192.168.15.5", "0.0.0.0", "0.0.0.0"};
+        final String[] highA = {"192.168.15.6", "0.0.0.0", "0.0.0.0"};
+        final String[] cidrS = {"192.168.15.7/30", "192.168.15.7/31", "192.168.15.7/32"};
+        final int[] usableAd = {2, 0, 0};
         // low and high addresses don't exist
 
         for (int i = 0; i < masks.length; ++i) {
             final SubnetUtils utils = new SubnetUtils(address, masks[i]);
             utils.setInclusiveHostCount(false);
-            final SubnetInfo info = utils.getInfo();
+            final SubnetUtils.SubnetInfo info = utils.getInfo();
             assertEquals("ci " + masks[i], cidrS[i], info.getCidrSignature());
             assertEquals("bc " + masks[i], bcast[i], info.getBroadcastAddress());
             assertEquals("nw " + masks[i], netwk[i], info.getNetworkAddress());
@@ -364,18 +362,18 @@ public class SubnetUtilsTest extends TestCase {
 
     public void testParseSimpleNetmaskInclusive() {
         final String address = "192.168.15.7";
-        final String[] masks = { "255.255.255.252", "255.255.255.254", "255.255.255.255" };
-        final String[] bcast = { "192.168.15.7", "192.168.15.7", "192.168.15.7" };
-        final String[] netwk = { "192.168.15.4", "192.168.15.6", "192.168.15.7" };
-        final String[] lowAd = { "192.168.15.4", "192.168.15.6", "192.168.15.7" };
-        final String[] highA = { "192.168.15.7", "192.168.15.7", "192.168.15.7" };
-        final String[] cidrS = { "192.168.15.7/30", "192.168.15.7/31", "192.168.15.7/32" };
-        final int[] usableAd = { 4, 2, 1 };
+        final String[] masks = {"255.255.255.252", "255.255.255.254", "255.255.255.255"};
+        final String[] bcast = {"192.168.15.7", "192.168.15.7", "192.168.15.7"};
+        final String[] netwk = {"192.168.15.4", "192.168.15.6", "192.168.15.7"};
+        final String[] lowAd = {"192.168.15.4", "192.168.15.6", "192.168.15.7"};
+        final String[] highA = {"192.168.15.7", "192.168.15.7", "192.168.15.7"};
+        final String[] cidrS = {"192.168.15.7/30", "192.168.15.7/31", "192.168.15.7/32"};
+        final int[] usableAd = {4, 2, 1};
 
         for (int i = 0; i < masks.length; ++i) {
             final SubnetUtils utils = new SubnetUtils(address, masks[i]);
             utils.setInclusiveHostCount(true);
-            final SubnetInfo info = utils.getInfo();
+            final SubnetUtils.SubnetInfo info = utils.getInfo();
             assertEquals("ci " + masks[i], cidrS[i], info.getCidrSignature());
             assertEquals("bc " + masks[i], bcast[i], info.getBroadcastAddress());
             assertEquals("ac " + masks[i], usableAd[i], info.getAddressCount());
@@ -393,7 +391,7 @@ public class SubnetUtilsTest extends TestCase {
     public void testToString() {
         final SubnetUtils utils = new SubnetUtils("192.168.0.1/29");
         assertDoesNotThrow(() -> utils.toString());
-        final SubnetInfo info = utils.getInfo();
+        final SubnetUtils.SubnetInfo info = utils.getInfo();
         assertDoesNotThrow(() -> info.toString());
     }
 

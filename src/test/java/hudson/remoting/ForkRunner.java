@@ -1,14 +1,12 @@
 package hudson.remoting;
 
+import static org.junit.Assert.assertEquals;
 
-import java.io.File;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import static org.junit.Assert.*;
 
 /**
  * Runs a channel in a separate JVM by launching a new JVM.
@@ -22,6 +20,7 @@ public class ForkRunner implements ChannelRunner {
         String cp = getClasspath();
 
         List<String> r = new ArrayList<>();
+        r.add("-Xmx128M");
         r.add("-cp");
         r.add(cp);
         r.add(Launcher.class.getName());
@@ -31,10 +30,10 @@ public class ForkRunner implements ChannelRunner {
     @Override
     public Channel start() throws Exception {
         List<String> cmds = buildCommandLine();
-        cmds.add(0,"java");
+        cmds.add(0, "java");
         proc = Runtime.getRuntime().exec(cmds.toArray(new String[0]));
 
-        copier = new Copier("copier",proc.getErrorStream(),System.out);
+        copier = new Copier("copier", proc.getErrorStream(), System.out);
         copier.start();
 
         executor = Executors.newCachedThreadPool();
@@ -45,7 +44,7 @@ public class ForkRunner implements ChannelRunner {
     @Override
     public void stop(Channel channel) throws Exception {
         channel.close();
-        channel.join(10*1000);
+        channel.join(10 * 1000);
 
         executor.shutdown();
 
@@ -61,13 +60,7 @@ public class ForkRunner implements ChannelRunner {
     }
 
     public String getClasspath() {
-        // this assumes we run in Maven
-        StringBuilder buf = new StringBuilder();
-        for (String entry : System.getProperty("java.class.path").split(":")) {
-            if (buf.length()>0) buf.append(File.pathSeparatorChar);
-            buf.append(entry);
-        }
-        return buf.toString();
+        return System.getProperty("java.class.path");
     }
 
     @Override

@@ -1,5 +1,8 @@
 package hudson.remoting;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,10 +16,6 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
-import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
 
 /**
@@ -34,7 +33,8 @@ public abstract class ClassFilter {
      * @deprecated use {@link #setDefault} as needed
      */
     @Deprecated
-    public static final String FILE_OVERRIDE_LOCATION_PROPERTY = "hudson.remoting.ClassFilter.DEFAULTS_OVERRIDE_LOCATION";
+    public static final String FILE_OVERRIDE_LOCATION_PROPERTY =
+            "hudson.remoting.ClassFilter.DEFAULTS_OVERRIDE_LOCATION";
 
     private static final Logger LOGGER = Logger.getLogger(ClassFilter.class.getName());
 
@@ -121,6 +121,7 @@ public abstract class ClassFilter {
         public boolean isBlacklisted(@NonNull Class<?> c) {
             return CURRENT_DEFAULT.isBlacklisted(c);
         }
+
         @Override
         public boolean isBlacklisted(@NonNull String name) {
             return CURRENT_DEFAULT.isBlacklisted(name);
@@ -174,8 +175,7 @@ public abstract class ClassFilter {
     /**
      * No filtering whatsoever.
      */
-    public static final ClassFilter NONE = new ClassFilter() {
-    };
+    public static final ClassFilter NONE = new ClassFilter() {};
 
     /**
      * The default filtering rules to apply, unless the context guarantees the trust between two channels. The defaults
@@ -191,8 +191,7 @@ public abstract class ClassFilter {
                 LOGGER.log(Level.FINE, "Using default in built class blacklisting");
                 return new RegExpClassFilter(DEFAULT_PATTERNS);
             }
-        }
-        catch (Error e) {
+        } catch (Error e) {
             // when being used by something like XStream the actual cause gets swallowed
             LOGGER.log(Level.SEVERE, "Failed to initialize the default class filter", e);
             throw e;
@@ -202,14 +201,15 @@ public abstract class ClassFilter {
     @CheckForNull
     private static List<String> loadPatternOverride() {
         String prop = System.getProperty(FILE_OVERRIDE_LOCATION_PROPERTY);
-        if (prop==null) {
+        if (prop == null) {
             return null;
         }
 
         LOGGER.log(Level.FINE, "Attempting to load user provided overrides for ClassFiltering from ''{0}''.", prop);
         File f = new File(prop);
         if (!f.exists() || !f.canRead()) {
-            throw new Error("Could not load user provided overrides for ClassFiltering from as " + prop + " does not exist or is not readable.");
+            throw new Error("Could not load user provided overrides for ClassFiltering from as " + prop
+                    + " does not exist or is not readable.");
         }
 
         BufferedReader br = null;
@@ -221,12 +221,17 @@ public abstract class ClassFilter {
                     Pattern.compile(line);
                     patterns.add(line);
                 } catch (PatternSyntaxException pex) {
-                    throw new Error("Error compiling blacklist expressions - '" + line + "' is not a valid regular expression.", pex);
+                    throw new Error(
+                            "Error compiling blacklist expressions - '" + line + "' is not a valid regular expression.",
+                            pex);
                 }
             }
             return patterns;
         } catch (IOException ex) {
-            throw new Error("Could not load user provided overrides for ClassFiltering from as "+prop+" does not exist or is not readable.",ex);
+            throw new Error(
+                    "Could not load user provided overrides for ClassFiltering from as " + prop
+                            + " does not exist or is not readable.",
+                    ex);
         } finally {
             if (br != null) {
                 try {
@@ -241,7 +246,10 @@ public abstract class ClassFilter {
     /**
      * A class that uses a given set of regular expression patterns to determine if the class is blacklisted.
      */
-    @SuppressFBWarnings(value = "REDOS", justification = "In an odd usage, this pattern is used to determine if another pattern matches it and not to match a string to it. REDOS doesn't apply.")
+    @SuppressFBWarnings(
+            value = "REDOS",
+            justification =
+                    "In an odd usage, this pattern is used to determine if another pattern matches it and not to match a string to it. REDOS doesn't apply.")
     private static final class RegExpClassFilter extends ClassFilter {
 
         /**
@@ -249,8 +257,8 @@ public abstract class ClassFilter {
          * {@link String#startsWith(String)} test and we can reduce CPU usage by performing that test explicitly as
          * well as reduce GC pressure.
          */
-        private static final Pattern OPTIMIZE1 = Pattern.compile(
-                "^\\^(([\\p{L}_$][\\p{L}\\p{N}_$]*(\\.|\\[\\.\\])?)+)\\.\\*$");
+        private static final Pattern OPTIMIZE1 =
+                Pattern.compile("^\\^(([\\p{L}_$][\\p{L}\\p{N}_$]*(\\.|\\[\\.\\])?)+)\\.\\*$");
 
         /**
          * Any regex that is {@code ^\Qsome.package.name\E.*} is really just a {@link String#startsWith(String)}
@@ -289,9 +297,9 @@ public abstract class ClassFilter {
         @Override
         public boolean isBlacklisted(@NonNull String name) {
             for (Object p : blacklistPatterns) {
-                if (p instanceof Pattern && ((Pattern)p).matcher(name).matches()) {
+                if (p instanceof Pattern && ((Pattern) p).matcher(name).matches()) {
                     return true;
-                } else if (p instanceof String && name.startsWith((String)p)) {
+                } else if (p instanceof String && name.startsWith((String) p)) {
                     return true;
                 }
             }

@@ -23,35 +23,8 @@
  */
 package org.jenkinsci.remoting.protocol;
 
-import java.util.concurrent.CompletableFuture;
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
-import org.apache.commons.io.IOUtils;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.X500NameBuilder;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
-import org.jenkinsci.remoting.protocol.impl.AckFilterLayer;
-import org.jenkinsci.remoting.protocol.impl.BIONetworkLayer;
-import org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer;
-import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
-import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
-import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
-
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.TrustManager;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
@@ -75,12 +48,38 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
+import org.apache.commons.io.IOUtils;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
+import org.jenkinsci.remoting.protocol.impl.AckFilterLayer;
+import org.jenkinsci.remoting.protocol.impl.BIONetworkLayer;
+import org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer;
+import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
+import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
+import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 
 public class ProtocolStackLoopbackLoadStress {
 
@@ -110,7 +109,7 @@ public class ProtocolStackLoopbackLoadStress {
 
     public ProtocolStackLoopbackLoadStress(boolean nio, boolean ssl)
             throws IOException, NoSuchAlgorithmException, CertificateException, KeyStoreException,
-            UnrecoverableKeyException, KeyManagementException, OperatorCreationException {
+                    UnrecoverableKeyException, KeyManagementException, OperatorCreationException {
         KeyPairGenerator gen = KeyPairGenerator.getInstance("RSA");
         gen.initialize(2048); // maximum supported by JVM with export restrictions
         KeyPair keyPair = gen.generateKeyPair();
@@ -129,20 +128,12 @@ public class ProtocolStackLoopbackLoadStress {
                 .build();
 
         X509v3CertificateBuilder certGen = new X509v3CertificateBuilder(
-                subject,
-                BigInteger.ONE,
-                firstDate,
-                lastDate,
-                subject,
-                subjectPublicKeyInfo
-        );
+                subject, BigInteger.ONE, firstDate, lastDate, subject, subjectPublicKeyInfo);
 
         JcaX509ExtensionUtils instance = new JcaX509ExtensionUtils();
 
-        certGen.addExtension(Extension.subjectKeyIdentifier,
-                false,
-                instance.createSubjectKeyIdentifier(subjectPublicKeyInfo)
-        );
+        certGen.addExtension(
+                Extension.subjectKeyIdentifier, false, instance.createSubjectKeyIdentifier(subjectPublicKeyInfo));
 
         ContentSigner signer = new JcaContentSignerBuilder("SHA1withRSA")
                 .setProvider(BOUNCY_CASTLE_PROVIDER)
@@ -156,14 +147,16 @@ public class ProtocolStackLoopbackLoadStress {
 
         KeyStore store = KeyStore.getInstance(KeyStore.getDefaultType());
         store.load(null, password);
-        store.setKeyEntry("alias", keyPair.getPrivate(), password, new Certificate[]{certificate});
+        store.setKeyEntry("alias", keyPair.getPrivate(), password, new Certificate[] {certificate});
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         kmf.init(store, password);
 
         context = SSLContext.getInstance("TLS");
-        context.init(kmf.getKeyManagers(),
-                new TrustManager[]{new PublicKeyMatchingX509ExtendedTrustManager(keyPair.getPublic())}, null);
+        context.init(
+                kmf.getKeyManagers(),
+                new TrustManager[] {new PublicKeyMatchingX509ExtendedTrustManager(keyPair.getPublic())},
+                null);
 
         hub = IOHub.create(executorService);
         serverSocketChannel = ServerSocketChannel.open();
@@ -188,9 +181,8 @@ public class ProtocolStackLoopbackLoadStress {
         }
 
         @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
+        public void checkRoles(RoleChecker checker) throws SecurityException {}
 
-        }
         private static final long serialVersionUID = 1L;
     }
 
@@ -214,13 +206,14 @@ public class ProtocolStackLoopbackLoadStress {
                     SSLEngine sslEngine = context.createSSLEngine();
                     sslEngine.setUseClientMode(false);
                     sslEngine.setNeedClientAuth(true);
-                    final ProtocolStack<Future<Channel>> channelFromClient =
-                            ProtocolStack.on(nio ? new NIONetworkLayer(hub, fromClient, fromClient) : new BIONetworkLayer(hub, fromClient, fromClient))
+                    final ProtocolStack<Future<Channel>> channelFromClient = ProtocolStack.on(
+                                    nio
+                                            ? new NIONetworkLayer(hub, fromClient, fromClient)
+                                            : new BIONetworkLayer(hub, fromClient, fromClient))
                             .named(String.format("Serving client %s", fromClient.toString()))
                             .filter(new AckFilterLayer())
                             .filter(ssl ? new SSLEngineFilterLayer(sslEngine, null) : null)
-                            .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
-                                    headers -> {}))
+                            .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"), headers -> {}))
                             .build(new ChannelApplicationLayer(executorService, null));
                     hub.execute(() -> {
                         try {
@@ -235,7 +228,6 @@ public class ProtocolStackLoopbackLoadStress {
                     e.printStackTrace(System.err);
                 }
             }
-
         }
 
         @Override
@@ -257,9 +249,7 @@ public class ProtocolStackLoopbackLoadStress {
         }
 
         @Override
-        public void onClosedChannel(ClosedChannelException e) {
-
-        }
+        public void onClosedChannel(ClosedChannelException e) {}
     }
 
     public static void main(String[] args) throws Exception {
@@ -268,7 +258,9 @@ public class ProtocolStackLoopbackLoadStress {
         boolean nio = args.length < 3 || !"bio".equalsIgnoreCase(args[2]);
         final boolean ssl = args.length < 4 || !"cleartext".equalsIgnoreCase(args[3]);
         final double expectNoopsPerSecond = 1000.0 / clientIntervalMs * numClients;
-        System.out.printf("Starting stress test with %d clients making calls every %dms (%.1f/sec) to give a total expected rate of %.1f/sec%n", numClients, clientIntervalMs, 1000.0 / clientIntervalMs, expectNoopsPerSecond);
+        System.out.printf(
+                "Starting stress test with %d clients making calls every %dms (%.1f/sec) to give a total expected rate of %.1f/sec%n",
+                numClients, clientIntervalMs, 1000.0 / clientIntervalMs, expectNoopsPerSecond);
         System.out.printf("Server using %s%n", nio ? "Non-blocking I/O" : "Reader thread per client I/O");
         System.out.printf("Protocol stack using %s%n", ssl ? "TLS encrypted transport" : "cleartext transport");
         ProtocolStackLoopbackLoadStress stress = new ProtocolStackLoopbackLoadStress(nio, ssl);
@@ -291,8 +283,9 @@ public class ProtocolStackLoopbackLoadStress {
                 long currentNoops = NoOpCallable.noops.get();
                 double noopsPerSecond = (currentNoops - initialNoops) * 1000.0 / (now - start);
                 double instantNoopsPerSecond = (currentNoops - previousNoops) * 1000.0 / (now - last);
-                System.out.printf("%nTotal rate %.1f/sec, instant %.1f/sec, expect %.1f/sec%n", noopsPerSecond,
-                        instantNoopsPerSecond, expectNoopsPerSecond);
+                System.out.printf(
+                        "%nTotal rate %.1f/sec, instant %.1f/sec, expect %.1f/sec%n",
+                        noopsPerSecond, instantNoopsPerSecond, expectNoopsPerSecond);
                 System.out.flush();
                 last = now;
                 previousNoops = currentNoops;
@@ -307,48 +300,55 @@ public class ProtocolStackLoopbackLoadStress {
             stress.startClient(i, serverAddress, clientIntervalMs, ssl);
         }
         System.out.println("All clients started");
-
     }
 
-    private void startClient(int n, SocketAddress serverAddress, final int clientIntervalMs, boolean ssl) throws IOException, ExecutionException, InterruptedException {
+    private void startClient(int n, SocketAddress serverAddress, final int clientIntervalMs, boolean ssl)
+            throws IOException, ExecutionException, InterruptedException {
         SocketChannel toServer = SocketChannel.open();
         toServer.connect(serverAddress);
         SSLEngine sslEngine = context.createSSLEngine();
         sslEngine.setUseClientMode(true);
-        final Channel clientChannel =
-                ProtocolStack.on(new NIONetworkLayer(hub, toServer, toServer))
-                        .named(String.format("Client %d:  %s -> %s", n, toServer.getLocalAddress(), serverAddress))
-                        .filter(new AckFilterLayer())
-                        .filter(ssl ? new SSLEngineFilterLayer(sslEngine, null) : null)
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(executorService, null)).get().get();
-        timer[n % timer.length].scheduleAtFixedRate(new TimerTask() {
-            private NoOpCallable callable = new NoOpCallable();
-            long start = System.currentTimeMillis();
-            int times = 0;
-            @Override
-            public void run() {
-                try {
+        final Channel clientChannel = ProtocolStack.on(new NIONetworkLayer(hub, toServer, toServer))
+                .named(String.format("Client %d:  %s -> %s", n, toServer.getLocalAddress(), serverAddress))
+                .filter(new AckFilterLayer())
+                .filter(ssl ? new SSLEngineFilterLayer(sslEngine, null) : null)
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"), headers -> {}))
+                .build(new ChannelApplicationLayer(executorService, null))
+                .get()
+                .get();
+        timer[n % timer.length].scheduleAtFixedRate(
+                new TimerTask() {
+                    private NoOpCallable callable = new NoOpCallable();
                     long start = System.currentTimeMillis();
-                    clientChannel.call(callable);
-                    times++;
-                    if (times % 1000 == 0) {
-                        System.out.printf("  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s%n",
-                                clientChannel.getName(), times,
-                                times * 1000.0 / (System.currentTimeMillis() - this.start), 1000.0 / clientIntervalMs);
-                    }
-                    long duration = System.currentTimeMillis() - start;
-                    if (duration > 250L) {
-                        System.err.printf("  %s took %dms to complete a callable%n", clientChannel.getName(), duration);
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace(System.err);
-                    IOUtils.closeQuietly(clientChannel);
-                    cancel();
-                }
-            }
-        }, entropy.nextInt(clientIntervalMs), clientIntervalMs);
-    }
+                    int times = 0;
 
+                    @Override
+                    public void run() {
+                        try {
+                            long start = System.currentTimeMillis();
+                            clientChannel.call(callable);
+                            times++;
+                            if (times % 1000 == 0) {
+                                System.out.printf(
+                                        "  %s has run %d No-op callables. Rate %.1f/s expect %.1f/s%n",
+                                        clientChannel.getName(),
+                                        times,
+                                        times * 1000.0 / (System.currentTimeMillis() - this.start),
+                                        1000.0 / clientIntervalMs);
+                            }
+                            long duration = System.currentTimeMillis() - start;
+                            if (duration > 250L) {
+                                System.err.printf(
+                                        "  %s took %dms to complete a callable%n", clientChannel.getName(), duration);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace(System.err);
+                            IOUtils.closeQuietly(clientChannel);
+                            cancel();
+                        }
+                    }
+                },
+                entropy.nextInt(clientIntervalMs),
+                clientIntervalMs);
+    }
 }

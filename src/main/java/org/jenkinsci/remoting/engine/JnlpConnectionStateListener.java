@@ -58,9 +58,7 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public void beforeProperties(@NonNull JnlpConnectionState event) {
-
-    }
+    public void beforeProperties(@NonNull JnlpConnectionState event) {}
 
     /**
      * Notification that properties have been exchanged.
@@ -78,8 +76,7 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public void beforeChannel(@NonNull JnlpConnectionState event) {
-    }
+    public void beforeChannel(@NonNull JnlpConnectionState event) {}
 
     /**
      * Callback to notify the {@link JnlpConnectionState#approve()} listener that the {@link Channel} has been
@@ -95,9 +92,7 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public void channelClosed(@NonNull JnlpConnectionState event) {
-
-    }
+    public void channelClosed(@NonNull JnlpConnectionState event) {}
 
     /**
      * Callback to notify the {@link JnlpConnectionState#approve()} listener that the {@link Socket} has been
@@ -105,7 +100,5 @@ public abstract class JnlpConnectionStateListener {
      *
      * @param event the event.
      */
-    public void afterDisconnect(@NonNull JnlpConnectionState event) {
-
-    }
+    public void afterDisconnect(@NonNull JnlpConnectionState event) {}
 }

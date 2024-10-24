@@ -1,11 +1,10 @@
 package hudson.remoting.pipe;
 
-import org.junit.Assert;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Random;
+import org.junit.Assert;
 
 /**
  * Use {@link Random} with the fixed seed as the data stream to detect corruption.
@@ -29,16 +28,17 @@ public class RandomWorkload extends Assert implements Workload {
         Random data = new Random(0);
         Random boundary = new Random(1);
 
-        for (long l=0; l<size; ) {
+        for (long l = 0; l < size; ) {
             int c = boundary.nextInt(4096);
-            c = (int)Math.min(c, size-l);
+            c = (int) Math.min(c, size - l);
 
             byte[] buf = new byte[c];
-            for (int i=0; i<c; i++)
-                buf[i] = (byte)data.nextInt();
+            for (int i = 0; i < c; i++) {
+                buf[i] = (byte) data.nextInt();
+            }
 
             o.write(buf);
-            l+=c;
+            l += c;
         }
 
         o.close();
@@ -49,18 +49,21 @@ public class RandomWorkload extends Assert implements Workload {
         Random data = new Random(0);
         Random boundary = new Random(2);
 
-        long total=0;
+        long total = 0;
         while (true) {
             int c = boundary.nextInt(4096);
             byte[] buf = new byte[c];
 
             int n = i.read(buf);
-            if (n<0)    break;
+            if (n < 0) {
+                break;
+            }
 
-            for (int j=0; j<n; j++)
-                assertEquals(buf[j], (byte)data.nextInt());
+            for (int j = 0; j < n; j++) {
+                assertEquals(buf[j], (byte) data.nextInt());
+            }
 
-            total+=n;
+            total += n;
         }
 
         i.close();

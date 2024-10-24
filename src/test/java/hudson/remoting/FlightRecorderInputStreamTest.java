@@ -1,17 +1,16 @@
 package hudson.remoting;
 
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StreamCorruptedException;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import org.junit.Test;
 
 /**
  * @author Kohsuke Kawaguchi
@@ -24,7 +23,7 @@ public class FlightRecorderInputStreamTest {
         oos.writeObject("abc");
         oos.writeObject("def");
         oos.flush();
-        baos.write(0xFF);  // corruption
+        baos.write(0xFF); // corruption
         oos.writeObject("ghi");
 
         FlightRecorderInputStream fis = new FlightRecorderInputStream(new ByteArrayInputStream(baos.toByteArray()));
@@ -33,20 +32,22 @@ public class FlightRecorderInputStreamTest {
         fis.clear();
         assertEquals("def", ois.readObject());
 
-        final StreamCorruptedException e = assertThrows("Expecting a corruption", StreamCorruptedException.class, ois::readObject);
+        final StreamCorruptedException e =
+                assertThrows("Expecting a corruption", StreamCorruptedException.class, ois::readObject);
         DiagnosedStreamCorruptionException t = fis.analyzeCrash(e, "test");
         t.printStackTrace();
         assertNull(t.getDiagnoseFailure());
         // back buffer shouldn't contain 'abc' since the stream was reset
-        assertArrayEquals(new byte[]{TC_STRING, 0, 3, 'd', 'e', 'f', -1}, t.getReadBack());
-        assertArrayEquals(new byte[]{TC_STRING, 0, 3, 'g', 'h', 'i'}, t.getReadAhead());
+        assertArrayEquals(new byte[] {TC_STRING, 0, 3, 'd', 'e', 'f', -1}, t.getReadBack());
+        assertArrayEquals(new byte[] {TC_STRING, 0, 3, 'g', 'h', 'i'}, t.getReadAhead());
     }
 
-    @Test public void bounding() throws Exception {
+    @Test
+    public void bounding() throws Exception {
         int sz = (int) (FlightRecorderInputStream.BUFFER_SIZE * /* not a round multiple */ 5.3);
         byte[] stuff = new byte[sz];
         for (int i = 0; i < sz; i++) {
-            stuff[i] = (byte) (i % /* arbitrary cycle, not a power of 2 */213);
+            stuff[i] = (byte) (i % /* arbitrary cycle, not a power of 2 */ 213);
         }
         FlightRecorderInputStream fris = new FlightRecorderInputStream(new ByteArrayInputStream(stuff));
         byte[] stuff2 = new byte[sz];

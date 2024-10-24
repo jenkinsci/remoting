@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.remoting.protocol.impl;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -33,8 +34,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
@@ -54,7 +53,8 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
     /**
      * The abort confirmation message.
      */
-    private static final ByteBuffer ABORT_MESSAGE = ByteBufferUtils.wrapUTF8("BYE").asReadOnlyBuffer();
+    private static final ByteBuffer ABORT_MESSAGE =
+            ByteBufferUtils.wrapUTF8("BYE").asReadOnlyBuffer();
     /**
      * The headers to send.
      */
@@ -155,8 +155,9 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 ByteBufferUtils.put(data, headerInputLength);
                 if (headerInputLength.hasRemaining()) {
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "[{0}] expecting {1} more bytes of header length",
-                                new Object[]{stack().name(), headerInputLength.remaining()});
+                        LOGGER.log(Level.FINEST, "[{0}] expecting {1} more bytes of header length", new Object[] {
+                            stack().name(), headerInputLength.remaining()
+                        });
                     }
                     return;
                 }
@@ -165,8 +166,9 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 ((Buffer) headerInputLength).position(2);
                 headerInputContent = ByteBuffer.allocate(length);
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "[{0}] Expecting {1} bytes of headers",
-                            new Object[]{stack().name(), length});
+                    LOGGER.log(
+                            Level.FINEST, "[{0}] Expecting {1} bytes of headers", new Object[] {stack().name(), length
+                            });
                 }
             }
             // safe-point
@@ -177,8 +179,9 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 ByteBufferUtils.put(data, headerInputContent);
                 if (headerInputContent.hasRemaining()) {
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "[{0}] Expecting {1} more bytes of headers",
-                                new Object[]{stack().name(), headerInputContent.remaining()});
+                        LOGGER.log(Level.FINEST, "[{0}] Expecting {1} more bytes of headers", new Object[] {
+                            stack().name(), headerInputContent.remaining()
+                        });
                     }
                     return;
                 }
@@ -187,14 +190,14 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 headerInputContent.get(headerBytes, 0, headerInputContent.remaining());
                 final String headerAsString = new String(headerBytes, StandardCharsets.UTF_8);
                 if (LOGGER.isLoggable(Level.FINER)) {
-                    LOGGER.log(Level.FINER, "[{0}] Received headers \"{1}\"",
-                            new Object[]{stack().name(), headerAsString});
+                    LOGGER.log(
+                            Level.FINER, "[{0}] Received headers \"{1}\"", new Object[] {stack().name(), headerAsString
+                            });
                 }
                 try {
                     Map<String, String> headers = ConnectionHeaders.fromString(headerAsString);
                     if (LOGGER.isLoggable(Level.FINE)) {
-                        LOGGER.log(Level.FINE, "[{0}] Received headers {1}",
-                                new Object[]{stack().name(), headers});
+                        LOGGER.log(Level.FINE, "[{0}] Received headers {1}", new Object[] {stack().name(), headers});
                     }
                     listener.onReceiveHeaders(headers);
                     if (LOGGER.isLoggable(Level.FINE)) {
@@ -202,27 +205,31 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                     }
                 } catch (ConnectionHeaders.ParseException e) {
                     if (LOGGER.isLoggable(Level.WARNING)) {
-                        LOGGER.log(Level.WARNING, "[{0}] Remote headers \"{1}\" could not be parsed: {2}",
-                                new Object[]{stack().name(), headerAsString, e.getMessage()});
+                        LOGGER.log(
+                                Level.WARNING,
+                                "[{0}] Remote headers \"{1}\" could not be parsed: {2}",
+                                new Object[] {stack().name(), headerAsString, e.getMessage()});
                     }
                     responseOutput = ByteBufferUtils.wrapUTF8("ERROR: Malformed connection header");
                     if (this.headerOutput.hasRemaining()) {
                         // flush any headers we haven't sent yet as the other side is expecting them.
                         next().doSend(this.headerOutput);
                     }
-                    doStartAbort(new ConnectionRefusalException("Malformed connection header"),
+                    doStartAbort(
+                            new ConnectionRefusalException("Malformed connection header"),
                             ByteBuffer.allocate(ABORT_MESSAGE.capacity()));
                     next().doSend(responseOutput);
                     return;
                 } catch (ConnectionRefusalException e) {
                     if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.log(Level.INFO, "[{0}] {1} headers from remote: {2}",
-                                new Object[]{stack().name(),
-                                             e instanceof PermanentConnectionRefusalException
-                                                     ? "Permanently refusing" : "Refusing",
-                                             e.getMessage()});
+                        LOGGER.log(Level.INFO, "[{0}] {1} headers from remote: {2}", new Object[] {
+                            stack().name(),
+                            e instanceof PermanentConnectionRefusalException ? "Permanently refusing" : "Refusing",
+                            e.getMessage()
+                        });
                     }
-                    responseOutput = ByteBufferUtils.wrapUTF8(String.format("%s: %s",
+                    responseOutput = ByteBufferUtils.wrapUTF8(String.format(
+                            "%s: %s",
                             e instanceof PermanentConnectionRefusalException ? "FATAL" : "ERROR", e.getMessage()));
                     if (this.headerOutput.hasRemaining()) {
                         // flush any headers we haven't sent yet as the other side is expecting them.
@@ -236,14 +243,16 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 if (this.headerOutput.hasRemaining()) {
                     // flush any headers we haven't sent yet as the other side is expecting them.
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "[{0}] Sending {1} bytes of headers",
-                                new Object[]{stack().name(), this.headerOutput.remaining()});
+                        LOGGER.log(Level.FINEST, "[{0}] Sending {1} bytes of headers", new Object[] {
+                            stack().name(), this.headerOutput.remaining()
+                        });
                     }
                     next().doSend(this.headerOutput);
                 }
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "[{0}] Sending {1} bytes of response",
-                            new Object[]{stack().name(), this.responseOutput.remaining()});
+                    LOGGER.log(Level.FINEST, "[{0}] Sending {1} bytes of response", new Object[] {
+                        stack().name(), this.responseOutput.remaining()
+                    });
                 }
                 next().doSend(responseOutput);
                 responseInputLength = ByteBuffer.allocate(2);
@@ -262,10 +271,10 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                     return;
                 }
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "[{0}] Received confirmation of {1} headers",
-                            new Object[]{stack().name(),
-                                         abortCause instanceof PermanentConnectionRefusalException
-                                    ? "permanently refused" : "refused"});
+                    LOGGER.log(Level.FINEST, "[{0}] Received confirmation of {1} headers", new Object[] {
+                        stack().name(),
+                        abortCause instanceof PermanentConnectionRefusalException ? "permanently refused" : "refused"
+                    });
                 }
                 abortConfirmationTimeout.cancel(false);
                 onAbortCompleted();
@@ -281,8 +290,9 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 ((Buffer) this.responseInputLength).position(2);
                 responseInputContent = ByteBuffer.allocate(length);
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "[{0}] Expecting {1} bytes of response",
-                            new Object[]{stack().name(), length});
+                    LOGGER.log(
+                            Level.FINEST, "[{0}] Expecting {1} bytes of response", new Object[] {stack().name(), length
+                            });
                 }
             }
             // safe-point
@@ -293,8 +303,9 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 ByteBufferUtils.put(data, responseInputContent);
                 if (responseInputContent.hasRemaining()) {
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "[{0}] Expecting {1} more bytes of response",
-                                new Object[]{stack().name(), responseInputContent.remaining()});
+                        LOGGER.log(Level.FINEST, "[{0}] Expecting {1} more bytes of response", new Object[] {
+                            stack().name(), responseInputContent.remaining()
+                        });
                     }
                     return;
                 }
@@ -303,19 +314,20 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 responseInputContent.get(responseBytes, 0, responseInputContent.remaining());
                 String response = new String(responseBytes, StandardCharsets.UTF_8);
                 if (LOGGER.isLoggable(Level.FINE)) {
-                    LOGGER.log(Level.FINE, "[{0}] Received response \"{1}\"",
-                            new Object[]{stack().name(), response});
+                    LOGGER.log(Level.FINE, "[{0}] Received response \"{1}\"", new Object[] {stack().name(), response});
                 }
                 finished = true;
                 if (response.startsWith("ERROR: ")) {
                     String message = response.substring("ERROR: ".length());
                     if (LOGGER.isLoggable(Level.INFO)) {
-                        LOGGER.log(Level.INFO, "[{0}] Local headers refused by remote: {1}",
-                                new Object[]{stack().name(), message});
+                        LOGGER.log(Level.INFO, "[{0}] Local headers refused by remote: {1}", new Object[] {
+                            stack().name(), message
+                        });
                     }
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "[{0}] Confirming receipt of refused connection: {1}",
-                                new Object[]{stack().name(), message});
+                        LOGGER.log(Level.FINEST, "[{0}] Confirming receipt of refused connection: {1}", new Object[] {
+                            stack().name(), message
+                        });
                     }
                     next().doSend(ABORT_MESSAGE.duplicate());
                     doStartAbort(new ConnectionRefusalException(message), EMPTY_BUFFER);
@@ -324,12 +336,16 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
                 if (response.startsWith("FATAL: ")) {
                     String message = response.substring("FATAL: ".length());
                     if (LOGGER.isLoggable(Level.WARNING)) {
-                        LOGGER.log(Level.WARNING, "[{0}] Local headers permanently rejected by remote: {1}",
-                                new Object[]{stack().name(), message});
+                        LOGGER.log(
+                                Level.WARNING,
+                                "[{0}] Local headers permanently rejected by remote: {1}",
+                                new Object[] {stack().name(), message});
                     }
                     if (LOGGER.isLoggable(Level.FINEST)) {
-                        LOGGER.log(Level.FINEST, "[{0}] Confirming receipt of permanently rejected connection: {1}",
-                                new Object[]{stack().name(), message});
+                        LOGGER.log(
+                                Level.FINEST,
+                                "[{0}] Confirming receipt of permanently rejected connection: {1}",
+                                new Object[] {stack().name(), message});
                     }
                     next().doSend(ABORT_MESSAGE.duplicate());
                     doStartAbort(new PermanentConnectionRefusalException(message), EMPTY_BUFFER);
@@ -439,8 +455,8 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
         if (cause instanceof ClosedChannelException) {
             // we are still in the stack so we have not flushed our response yet
             // the remote end has closed because it refused our end before flushing the streams
-            ConnectionRefusalException newCause = new ConnectionRefusalException(
-                    "Remote closed connection without specifying reason");
+            ConnectionRefusalException newCause =
+                    new ConnectionRefusalException("Remote closed connection without specifying reason");
             super.onRecvClosed(ThrowableUtils.chain(newCause, cause));
         } else {
             super.onRecvClosed(cause);
@@ -468,8 +484,9 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
             if (this.headerOutput.hasRemaining()) {
                 // flush any headers we haven't sent yet as the other side is expecting them.
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "[{0}] Sending {1} bytes of headers",
-                            new Object[]{stack().name(), this.headerOutput.remaining()});
+                    LOGGER.log(Level.FINEST, "[{0}] Sending {1} bytes of headers", new Object[] {
+                        stack().name(), this.headerOutput.remaining()
+                    });
                 }
                 next().doSend(this.headerOutput);
                 if (!this.headerOutput.hasRemaining() && LOGGER.isLoggable(Level.FINE)) {
@@ -479,8 +496,9 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
             if (this.responseOutput != null && this.responseOutput.hasRemaining()) {
                 // flush any response we haven't sent yet as the other side is expecting them.
                 if (LOGGER.isLoggable(Level.FINEST)) {
-                    LOGGER.log(Level.FINEST, "[{0}] Sending {1} bytes of response",
-                            new Object[]{stack().name(), this.responseOutput.remaining()});
+                    LOGGER.log(Level.FINEST, "[{0}] Sending {1} bytes of response", new Object[] {
+                        stack().name(), this.responseOutput.remaining()
+                    });
                 }
                 next().doSend(this.responseOutput);
                 if (!this.responseOutput.hasRemaining() && LOGGER.isLoggable(Level.FINE)) {
@@ -541,5 +559,4 @@ public class ConnectionHeadersFilterLayer extends FilterLayer {
             onAbortCompleted();
         }
     }
-
 }

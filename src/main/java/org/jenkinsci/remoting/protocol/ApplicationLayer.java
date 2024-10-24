@@ -254,5 +254,4 @@ public abstract class ApplicationLayer<T> implements ProtocolLayer, ProtocolLaye
             return false;
         }
     }
-
 }

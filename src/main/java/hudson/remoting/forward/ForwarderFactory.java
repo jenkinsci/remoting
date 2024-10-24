@@ -28,10 +28,6 @@ import hudson.remoting.Callable;
 import hudson.remoting.RemoteOutputStream;
 import hudson.remoting.SocketChannelStream;
 import hudson.remoting.VirtualChannel;
-import org.jenkinsci.remoting.Role;
-import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectStreamException;
@@ -39,6 +35,9 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jenkinsci.remoting.Role;
+import org.jenkinsci.remoting.RoleChecker;
+import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 
 /**
  * Creates {@link Forwarder}.
@@ -53,12 +52,13 @@ public class ForwarderFactory {
     /**
      * Creates a connector on the remote side that connects to the speicied host and port.
      */
-    public static Forwarder create(VirtualChannel channel, final String remoteHost, final int remotePort) throws IOException, InterruptedException {
+    public static Forwarder create(VirtualChannel channel, final String remoteHost, final int remotePort)
+            throws IOException, InterruptedException {
         return channel.call(new ForwarderCallable(remoteHost, remotePort));
     }
 
     public static Forwarder create(String remoteHost, int remotePort) {
-        return new ForwarderImpl(remoteHost,remotePort);
+        return new ForwarderImpl(remoteHost, remotePort);
     }
 
     private static class ForwarderImpl implements Forwarder, SerializableOnlyOverRemoting {
@@ -75,17 +75,14 @@ public class ForwarderFactory {
         public OutputStream connect(OutputStream out) throws IOException {
             Socket s = new Socket(remoteHost, remotePort);
             try (InputStream in = SocketChannelStream.in(s)) {
-                new CopyThread(
-                        String.format("Copier to %s:%d", remoteHost, remotePort),
-                        in,
-                        out,
-                        () -> {
+                new CopyThread(String.format("Copier to %s:%d", remoteHost, remotePort), in, out, () -> {
                             try {
                                 s.close();
                             } catch (IOException e) {
                                 LOGGER.log(Level.WARNING, "Problem closing socket for ForwardingFactory", e);
                             }
-                        }).start();
+                        })
+                        .start();
             }
             return new RemoteOutputStream(SocketChannelStream.out(s));
         }
@@ -105,7 +102,7 @@ public class ForwarderFactory {
      */
     public static final Role ROLE = new Role(ForwarderFactory.class);
 
-    private static class ForwarderCallable implements Callable<Forwarder,IOException> {
+    private static class ForwarderCallable implements Callable<Forwarder, IOException> {
 
         private static final long serialVersionUID = 1L;
         private final String remoteHost;

@@ -1,8 +1,6 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.jenkinsci.remoting.CallableDecorator;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -12,6 +10,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.jenkinsci.remoting.CallableDecorator;
 
 /**
  * {@link ExecutorService} that runs all the tasks in a given set of {@link CallableDecorator}s.
@@ -47,7 +46,7 @@ class InterceptingExecutorService extends DelegatingExecutorService {
     @Override
     @NonNull
     public <T> Future<T> submit(@NonNull Runnable task, T result) {
-        return super.submit(wrap(task,result));
+        return super.submit(wrap(task, result));
     }
 
     @Override
@@ -58,18 +57,22 @@ class InterceptingExecutorService extends DelegatingExecutorService {
 
     @Override
     @NonNull
-    public <T> List<Future<T>> invokeAll(@NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit) throws InterruptedException {
+    public <T> List<Future<T>> invokeAll(
+            @NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit)
+            throws InterruptedException {
         return super.invokeAll(wrap(tasks), timeout, unit);
     }
 
     @Override
     @NonNull
-    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks)
+            throws InterruptedException, ExecutionException {
         return super.invokeAny(wrap(tasks));
     }
 
     @Override
-    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public <T> T invokeAny(@NonNull Collection<? extends Callable<T>> tasks, long timeout, @NonNull TimeUnit unit)
+            throws InterruptedException, ExecutionException, TimeoutException {
         return super.invokeAny(wrap(tasks), timeout, unit);
     }
 

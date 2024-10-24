@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.protocol.cert;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-
 import java.net.Socket;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
@@ -153,8 +152,7 @@ public class ValidityCheckingX509ExtendedTrustManager extends X509ExtendedTrustM
      * {@inheritDoc}
      */
     @Override
-    public void checkClientTrusted(X509Certificate[] chain, String authType)
-            throws CertificateException {
+    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         validateAuthType(authType);
         validateChain(chain);
         checkValidity(chain);
@@ -165,8 +163,7 @@ public class ValidityCheckingX509ExtendedTrustManager extends X509ExtendedTrustM
      * {@inheritDoc}
      */
     @Override
-    public void checkServerTrusted(X509Certificate[] chain, String authType)
-            throws CertificateException {
+    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
         validateAuthType(authType);
         validateChain(chain);
         checkValidity(chain);

@@ -1,7 +1,6 @@
 package org.jenkinsci.remoting.nio;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -45,14 +44,14 @@ import java.util.logging.Logger;
  * @since 2.38
  */
 public class SelectableFileChannelFactory {
-    
+
     @CheckForNull
     protected FileInputStream unwrap(InputStream i) {
         if (i instanceof BufferedInputStream) {
             try {
                 Field $in = FilterInputStream.class.getDeclaredField("in");
                 $in.setAccessible(true);
-                return unwrap((InputStream)$in.get(i));
+                return unwrap((InputStream) $in.get(i));
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 warn(e);
                 return null;
@@ -61,7 +60,7 @@ public class SelectableFileChannelFactory {
         if (i instanceof FileInputStream) {
             return (FileInputStream) i;
         }
-        return null;    // unknown type
+        return null; // unknown type
     }
 
     @CheckForNull
@@ -70,7 +69,7 @@ public class SelectableFileChannelFactory {
             try {
                 Field $in = FilterOutputStream.class.getDeclaredField("out");
                 $in.setAccessible(true);
-                return unwrap((OutputStream)$in.get(i));
+                return unwrap((OutputStream) $in.get(i));
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 warn(e);
                 return null;
@@ -79,7 +78,7 @@ public class SelectableFileChannelFactory {
         if (i instanceof FileOutputStream) {
             return (FileOutputStream) i;
         }
-        return null;    // unknown type
+        return null; // unknown type
     }
 
     @CheckForNull
@@ -94,34 +93,36 @@ public class SelectableFileChannelFactory {
 
     @CheckForNull
     public SocketChannel create(FileInputStream in) throws IOException {
-        if (in==null)   return null;
+        if (in == null) {
+            return null;
+        }
         return create(in.getFD());
     }
 
     @CheckForNull
     public SocketChannel create(FileOutputStream out) throws IOException {
-        if (out==null)   return null;
+        if (out == null) {
+            return null;
+        }
         return create(out.getFD());
     }
 
     /**
      * Create channel using the specified file descriptor.
-     * 
+     *
      * @param fd File Descriptor
      * @return {@code null} if the platform does not support it (e.g. Windows) OR the socket channel cannot be created.
      *         In the latter case the error message will be printed to {@link  #LOGGER} then.
      */
     @CheckForNull
     public SocketChannel create(FileDescriptor fd) {
-        if (File.pathSeparatorChar==';')
+        if (File.pathSeparatorChar == ';') {
             return null; // not selectable on Windows
+        }
 
         try {
-            Constructor<?> $c = Class.forName("sun.nio.ch.SocketChannelImpl").getDeclaredConstructor(
-                SelectorProvider.class,
-                FileDescriptor.class,
-                InetSocketAddress.class
-            );
+            Constructor<?> $c = Class.forName("sun.nio.ch.SocketChannelImpl")
+                    .getDeclaredConstructor(SelectorProvider.class, FileDescriptor.class, InetSocketAddress.class);
             $c.setAccessible(true);
 
             // increment the FileDescriptor use count since we are giving it to SocketChannel
@@ -129,8 +130,13 @@ public class SelectableFileChannelFactory {
             $m.setAccessible(true);
             $m.invoke(fd);
 
-            return (SocketChannel)$c.newInstance(SelectorProvider.provider(), fd, null);
-        } catch (NoSuchMethodException | SecurityException | ClassNotFoundException | IllegalAccessException | InvocationTargetException | InstantiationException e) {
+            return (SocketChannel) $c.newInstance(SelectorProvider.provider(), fd, null);
+        } catch (NoSuchMethodException
+                | SecurityException
+                | ClassNotFoundException
+                | IllegalAccessException
+                | InvocationTargetException
+                | InstantiationException e) {
             warn(e);
             return null;
         }
@@ -139,7 +145,7 @@ public class SelectableFileChannelFactory {
     private void warn(Exception e) {
         if (!warned) {
             warned = true;
-            LOGGER.log(Level.WARNING, "Failed to wrap aFileDescriptor into SocketChannel",e);
+            LOGGER.log(Level.WARNING, "Failed to wrap aFileDescriptor into SocketChannel", e);
         }
     }
 

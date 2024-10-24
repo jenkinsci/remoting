@@ -52,6 +52,6 @@ public interface JarLoader {
      */
     boolean isPresentOnRemote(Checksum sum);
 
-    String OURS = JarLoader.class.getName()+".ours";
+    String OURS = JarLoader.class.getName() + ".ours";
     ChannelProperty<JarLoader> THEIRS = new ChannelProperty<>(JarLoader.class, "their JarLoader");
 }

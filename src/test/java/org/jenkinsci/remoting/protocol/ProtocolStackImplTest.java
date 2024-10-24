@@ -23,8 +23,28 @@
  */
 package org.jenkinsci.remoting.protocol;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anyOf;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThrows;
+
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.Pipe;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLEngine;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.protocol.cert.RSAKeyPairRule;
 import org.jenkinsci.remoting.protocol.cert.SSLContextRule;
@@ -38,59 +58,41 @@ import org.jenkinsci.remoting.protocol.impl.HoldFilterLayer;
 import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
 import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
 import org.junit.rules.Timeout;
 
-import javax.net.ssl.SSLEngine;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.Pipe;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertThrows;
-import org.junit.Ignore;
-
 public class ProtocolStackImplTest {
 
     @Rule
     public IOHubRule selector = new IOHubRule();
+
     @Rule
     public TestName name = new TestName();
+
     private static RSAKeyPairRule keys = new RSAKeyPairRule();
     private static X509CertificateRule certificate = X509CertificateRule.selfSigned(keys);
-    private static SSLContextRule context = new SSLContextRule().as(keys, certificate).trusting(certificate);
+    private static SSLContextRule context =
+            new SSLContextRule().as(keys, certificate).trusting(certificate);
+
     @ClassRule
-    public static RuleChain staticCtx = RuleChain.outerRule(keys)
-            .around(certificate)
-            .around(context);
+    public static RuleChain staticCtx =
+            RuleChain.outerRule(keys).around(certificate).around(context);
+
     @Rule
-    public RuleChain ctx = RuleChain.outerRule(new RepeatRule())
-            .around(new Timeout(60, TimeUnit.SECONDS));
+    public RuleChain ctx = RuleChain.outerRule(new RepeatRule()).around(new Timeout(60, TimeUnit.SECONDS));
 
     @Test
     public void basicReadthrough() throws Exception {
         Pipe input = Pipe.open();
         Pipe output = Pipe.open();
 
-        ProtocolStack<IOBufferMatcher> instance =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), input.source(), output.sink()))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> instance = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), input.source(), output.sink()))
+                .build(new IOBufferMatcherLayer());
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
@@ -108,9 +110,9 @@ public class ProtocolStackImplTest {
         Pipe input = Pipe.open();
         Pipe output = Pipe.open();
 
-        ProtocolStack<IOBufferMatcher> instance =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), input.source(), output.sink()))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> instance = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), input.source(), output.sink()))
+                .build(new IOBufferMatcherLayer());
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
@@ -199,13 +201,13 @@ public class ProtocolStackImplTest {
     public void pipeBasicBackToBack() throws Exception {
         Pipe eastToWest = Pipe.open();
         Pipe westToEast = Pipe.open();
-        ProtocolStack<IOBufferMatcher> east =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
+                .build(new IOBufferMatcherLayer());
 
-        ProtocolStack<IOBufferMatcher> west =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> west = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
+                .build(new IOBufferMatcherLayer());
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
@@ -224,13 +226,13 @@ public class ProtocolStackImplTest {
         SocketChannel westChannel = SocketChannel.open();
         westChannel.connect(eastServer.getLocalAddress());
         SocketChannel eastChannel = eastServer.accept();
-        ProtocolStack<IOBufferMatcher> east =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastChannel, eastChannel))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), eastChannel, eastChannel))
+                .build(new IOBufferMatcherLayer());
 
-        ProtocolStack<IOBufferMatcher> west =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), westChannel, westChannel))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> west = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), westChannel, westChannel))
+                .build(new IOBufferMatcherLayer());
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
         data.put(expected);
@@ -246,16 +248,15 @@ public class ProtocolStackImplTest {
     public void pipeBasicBackToBackWithAck() throws Exception {
         Pipe eastToWest = Pipe.open();
         Pipe westToEast = Pipe.open();
-        ProtocolStack<IOBufferMatcher> east =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
-                        .filter(new AckFilterLayer())
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
+                .filter(new AckFilterLayer())
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> west =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
-                        .filter(new AckFilterLayer())
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> west = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
+                .filter(new AckFilterLayer())
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -275,16 +276,15 @@ public class ProtocolStackImplTest {
         SocketChannel westChannel = SocketChannel.open();
         westChannel.connect(eastServer.getLocalAddress());
         SocketChannel eastChannel = eastServer.accept();
-        ProtocolStack<IOBufferMatcher> east =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), eastChannel, eastChannel))
-                        .filter(new AckFilterLayer())
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), eastChannel, eastChannel))
+                .filter(new AckFilterLayer())
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> west =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), westChannel, westChannel))
-                        .filter(new AckFilterLayer())
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> west = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), westChannel, westChannel))
+                .filter(new AckFilterLayer())
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -307,18 +307,17 @@ public class ProtocolStackImplTest {
         SSLEngine eastEngine = context.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> east =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(eastEngine, null))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> west =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> west = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(westEngine, null))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -344,18 +343,17 @@ public class ProtocolStackImplTest {
         SSLEngine eastEngine = context.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> east =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastChannel, eastChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), eastChannel, eastChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(eastEngine, null))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> west =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), westChannel, westChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> west = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), westChannel, westChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(westEngine, null))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -378,22 +376,19 @@ public class ProtocolStackImplTest {
         SSLEngine eastEngine = context.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> east =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(eastEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> west =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> west = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(westEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -419,22 +414,19 @@ public class ProtocolStackImplTest {
         SSLEngine eastEngine = context.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
-        ProtocolStack<IOBufferMatcher> east =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastChannel, eastChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), eastChannel, eastChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(eastEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
-
-        ProtocolStack<IOBufferMatcher> west =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), westChannel, westChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
-                                headers -> {}))
-                        .build(new IOBufferMatcherLayer());
+        ProtocolStack<IOBufferMatcher> west = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), westChannel, westChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(westEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"), headers -> {}))
+                .build(new IOBufferMatcherLayer());
 
         byte[] expected = "Here is some sample data".getBytes(StandardCharsets.UTF_8);
         ByteBuffer data = ByteBuffer.allocate(expected.length);
@@ -457,21 +449,19 @@ public class ProtocolStackImplTest {
         SSLEngine eastEngine = context.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
-        ProtocolStack<Future<Channel>> east =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> east = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(eastEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        ProtocolStack<Future<Channel>> west =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> west = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(westEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
         west.get().get().call(new ProbeCallable());
         west.get().get().close();
@@ -491,23 +481,21 @@ public class ProtocolStackImplTest {
         SSLEngine eastEngine = context.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
-        ProtocolStack<Future<Channel>> east =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), eastChannel, eastChannel))
-                        .named("east")
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> east = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), eastChannel, eastChannel))
+                .named("east")
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(eastEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        ProtocolStack<Future<Channel>> west =
-                ProtocolStack.on(new BIONetworkLayer(selector.hub(), westChannel, westChannel))
-                        .named("west")
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> west = ProtocolStack.on(
+                        new BIONetworkLayer(selector.hub(), westChannel, westChannel))
+                .named("west")
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(westEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
         west.get().get().call(new ProbeCallable());
         west.get().get().close();
@@ -524,26 +512,23 @@ public class ProtocolStackImplTest {
         SSLEngine eastEngine = context.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
-        ProtocolStack<Future<Channel>> east =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> east = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), westToEast.source(), eastToWest.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(eastEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        ProtocolStack<Future<Channel>> west =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> west = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), eastToWest.source(), westToEast.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(westEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
         west.get().get().call(new ProbeCallable());
         west.get().get().close();
         east.get().get().close();
-
     }
 
     @Test
@@ -559,26 +544,23 @@ public class ProtocolStackImplTest {
         SSLEngine eastEngine = context.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
-        ProtocolStack<Future<Channel>> east =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), eastChannel, eastChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(eastEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> east = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), eastChannel, eastChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(eastEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "east"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        ProtocolStack<Future<Channel>> west =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), westChannel, westChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(westEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> west = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), westChannel, westChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(westEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "west"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
         east.get().get().call(new ProbeCallable());
         west.get().get().call(new ProbeCallable());
         west.get().get().close();
         east.get().get().close();
-
     }
 
     @Test
@@ -592,34 +574,35 @@ public class ProtocolStackImplTest {
         SSLEngine clientEngine = context.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<Future<Channel>> client =
-                ProtocolStack
-                        .on(new NIONetworkLayer(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
-                                headers -> {
-                                    throw new ConnectionRefusalException("I don't like you, Mr. Server");
-                                }))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> client = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"), headers -> {
+                    throw new ConnectionRefusalException("I don't like you, Mr. Server");
+                }))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        ProtocolStack<Future<Channel>> server =
-                ProtocolStack
-                        .on(new NIONetworkLayer(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> server = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> client.get().get().call(new ProbeCallable()));
+        final ExecutionException ce =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
+                        .get()
+                        .call(new ProbeCallable()));
         assertThat(ce.getCause(), instanceOf(ConnectionRefusalException.class));
 
-        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> server.get().get().call(new ProbeCallable()));
-        assertThat(se.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                ClosedChannelException.class)));
+        final ExecutionException se =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
+                        .get()
+                        .call(new ProbeCallable()));
+        assertThat(
+                se.getCause(),
+                anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
     }
 
     @Test
@@ -636,32 +619,35 @@ public class ProtocolStackImplTest {
         SSLEngine clientEngine = context.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<Future<Channel>> client =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), clientSocketChannel, clientSocketChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
-                                headers -> {
-                                    throw new ConnectionRefusalException("I don't like you, Mr. Server");
-                                }))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> client = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), clientSocketChannel, clientSocketChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"), headers -> {
+                    throw new ConnectionRefusalException("I don't like you, Mr. Server");
+                }))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        ProtocolStack<Future<Channel>> server =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), serverSocketChannel, serverSocketChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> server = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), serverSocketChannel, serverSocketChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> client.get().get().call(new ProbeCallable()));
+        final ExecutionException ce =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
+                        .get()
+                        .call(new ProbeCallable()));
         assertThat(ce.getCause(), instanceOf(ConnectionRefusalException.class));
 
-        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> server.get().get().call(new ProbeCallable()));
-        assertThat(se.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                ClosedChannelException.class)));
+        final ExecutionException se =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
+                        .get()
+                        .call(new ProbeCallable()));
+        assertThat(
+                se.getCause(),
+                anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
     }
 
     @Test
@@ -675,33 +661,34 @@ public class ProtocolStackImplTest {
         SSLEngine clientEngine = context.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<Future<Channel>> client =
-                ProtocolStack
-                        .on(new NIONetworkLayer(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> client = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        ProtocolStack<Future<Channel>> server =
-                ProtocolStack
-                        .on(new NIONetworkLayer(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
-                                headers -> {
-                                    throw new ConnectionRefusalException("I don't like you, Mr. Server");
-                                }))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> server = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"), headers -> {
+                    throw new ConnectionRefusalException("I don't like you, Mr. Server");
+                }))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> client.get().get().call(new ProbeCallable()));
-        assertThat(ce.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                ClosedChannelException.class)));
+        final ExecutionException ce =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
+                        .get()
+                        .call(new ProbeCallable()));
+        assertThat(
+                ce.getCause(),
+                anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
 
-        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> server.get().get().call(new ProbeCallable()));
+        final ExecutionException se =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
+                        .get()
+                        .call(new ProbeCallable()));
         assertThat(se.getCause(), instanceOf(ConnectionRefusalException.class));
     }
 
@@ -719,31 +706,34 @@ public class ProtocolStackImplTest {
         SSLEngine clientEngine = context.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
-        ProtocolStack<Future<Channel>> client =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), clientSocketChannel, clientSocketChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> client = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), clientSocketChannel, clientSocketChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        ProtocolStack<Future<Channel>> server =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), serverSocketChannel, serverSocketChannel))
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
-                                headers -> {
-                                    throw new ConnectionRefusalException("I don't like you, Mr. Client");
-                                }))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> server = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), serverSocketChannel, serverSocketChannel))
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"), headers -> {
+                    throw new ConnectionRefusalException("I don't like you, Mr. Client");
+                }))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> client.get().get().call(new ProbeCallable()));
-        assertThat(ce.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                ClosedChannelException.class)));
+        final ExecutionException ce =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
+                        .get()
+                        .call(new ProbeCallable()));
+        assertThat(
+                ce.getCause(),
+                anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
 
-        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> server.get().get().call(new ProbeCallable()));
+        final ExecutionException se =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
+                        .get()
+                        .call(new ProbeCallable()));
         assertThat(se.getCause(), instanceOf(ConnectionRefusalException.class));
     }
 
@@ -760,41 +750,44 @@ public class ProtocolStackImplTest {
         clientEngine.setUseClientMode(true);
 
         HoldFilterLayer clientHold = new HoldFilterLayer();
-        ProtocolStack<Future<Channel>> client =
-                ProtocolStack
-                        .on(new NIONetworkLayer(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                        .filter(clientHold)
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> client = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(clientHold)
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         HoldFilterLayer serverHold = new HoldFilterLayer();
-        ProtocolStack<Future<Channel>> server =
-                ProtocolStack
-                        .on(new NIONetworkLayer(selector.hub(), clientToServer.source(), serverToClient.sink()))
-                        .filter(serverHold)
-                        .filter(new AckFilterLayer("ACk"))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> server = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), clientToServer.source(), serverToClient.sink()))
+                .filter(serverHold)
+                .filter(new AckFilterLayer("ACk"))
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
         clientHold.release();
         serverHold.release();
 
-        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> client.get().get().call(new ProbeCallable()));
-        assertThat(ce.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                ClosedChannelException.class)));
+        final ExecutionException ce =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
+                        .get()
+                        .call(new ProbeCallable()));
+        assertThat(
+                ce.getCause(),
+                anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
 
-        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> server.get().get().call(new ProbeCallable()));
-        assertThat(se.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                ClosedChannelException.class)));
+        final ExecutionException se =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
+                        .get()
+                        .call(new ProbeCallable()));
+        assertThat(
+                se.getCause(),
+                anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
     }
 
-    @Ignore("TODO flake: ConnectionRefusalException: Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
+    @Ignore(
+            "TODO flake: ConnectionRefusalException: Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
     @Test
     @Repeat(16)
     public void socketChannelFullProtocolNIO_invalidAck() throws Exception {
@@ -810,36 +803,40 @@ public class ProtocolStackImplTest {
         clientEngine.setUseClientMode(true);
 
         HoldFilterLayer clientHold = new HoldFilterLayer();
-        ProtocolStack<Future<Channel>> client =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), clientSocketChannel, clientSocketChannel))
-                        .filter(clientHold)
-                        .filter(new AckFilterLayer())
-                        .filter(new SSLEngineFilterLayer(clientEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> client = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), clientSocketChannel, clientSocketChannel))
+                .filter(clientHold)
+                .filter(new AckFilterLayer())
+                .filter(new SSLEngineFilterLayer(clientEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "client"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
 
         HoldFilterLayer serverHold = new HoldFilterLayer();
-        ProtocolStack<Future<Channel>> server =
-                ProtocolStack.on(new NIONetworkLayer(selector.hub(), serverSocketChannel, serverSocketChannel))
-                        .filter(serverHold)
-                        .filter(new AckFilterLayer("ACk"))
-                        .filter(new SSLEngineFilterLayer(serverEngine, null))
-                        .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"),
-                                headers -> {}))
-                        .build(new ChannelApplicationLayer(selector.executorService(), null));
+        ProtocolStack<Future<Channel>> server = ProtocolStack.on(
+                        new NIONetworkLayer(selector.hub(), serverSocketChannel, serverSocketChannel))
+                .filter(serverHold)
+                .filter(new AckFilterLayer("ACk"))
+                .filter(new SSLEngineFilterLayer(serverEngine, null))
+                .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"), headers -> {}))
+                .build(new ChannelApplicationLayer(selector.executorService(), null));
         clientHold.release();
         serverHold.release();
 
-        final ExecutionException ce = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> client.get().get().call(new ProbeCallable()));
-        assertThat(ce.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                ClosedChannelException.class)));
+        final ExecutionException ce =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
+                        .get()
+                        .call(new ProbeCallable()));
+        assertThat(
+                ce.getCause(),
+                anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
 
-        final ExecutionException se = assertThrows("Expected Connection refusal", ExecutionException.class,
-                () -> server.get().get().call(new ProbeCallable()));
-        assertThat(se.getCause(), anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(
-                ClosedChannelException.class)));
+        final ExecutionException se =
+                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
+                        .get()
+                        .call(new ProbeCallable()));
+        assertThat(
+                se.getCause(),
+                anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
     }
 
     private static class ProbeCallable implements Callable<String, IOException> {
@@ -850,10 +847,8 @@ public class ProtocolStackImplTest {
         }
 
         @Override
-        public void checkRoles(RoleChecker checker) throws SecurityException {
+        public void checkRoles(RoleChecker checker) throws SecurityException {}
 
-        }
         private static final long serialVersionUID = 1L;
     }
-
 }

@@ -57,8 +57,8 @@ public class SimpleTest {
     public void test1Async(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             Future<Integer> r = channel.callAsync(new Callable1());
-            System.out.println("result="+r.get());
-            assertEquals(5,(int)r.get());
+            System.out.println("result=" + r.get());
+            assertEquals(5, (int) r.get());
         });
     }
 
@@ -68,6 +68,7 @@ public class SimpleTest {
             System.err.println("invoked");
             return 5;
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -76,7 +77,7 @@ public class SimpleTest {
     public void test2(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final RuntimeException e = assertThrows(RuntimeException.class, () -> channel.call(new Callable2()));
-            assertEquals(e.getMessage(),"foo");
+            assertEquals(e.getMessage(), "foo");
         });
     }
 
@@ -88,7 +89,7 @@ public class SimpleTest {
                 Future<Integer> r = channel.callAsync(new Callable2());
                 r.get();
             });
-            assertEquals(e.getCause().getMessage(),"foo");
+            assertEquals(e.getCause().getMessage(), "foo");
         });
     }
 
@@ -97,6 +98,7 @@ public class SimpleTest {
         public Integer call() throws RuntimeException {
             throw new RuntimeException("foo");
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -109,13 +111,13 @@ public class SimpleTest {
         channelRunner.withChannel(channel -> {
             Foo c = new Foo() {};
             Foo r = channel.call(new Echo<>(channel.export(Foo.class, c)));
-            assertSame(c,r);
+            assertSame(c, r);
         });
     }
 
     public interface Foo {}
 
-    private static class Echo<T> extends CallableBase<T,RuntimeException> {
+    private static class Echo<T> extends CallableBase<T, RuntimeException> {
         private final T t;
 
         Echo(T t) {
@@ -126,6 +128,7 @@ public class SimpleTest {
         public T call() throws RuntimeException {
             return t;
         }
+
         private static final long serialVersionUID = 1L;
     }
 
@@ -134,7 +137,7 @@ public class SimpleTest {
      * Currently seems to be used by MavenBuilder.call and Proc.RemoteProc.kill
      * (in turn used by MercurialSCM.joinWithTimeout when polling on remote host).
      */
-    //@Bug(4611)
+    // @Bug(4611)
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     public void testCancellation(ChannelRunner channelRunner) throws Exception {
@@ -150,15 +153,17 @@ public class SimpleTest {
             // TODO ought to also test various other aspects: cancelling before start, etc.
         });
     }
+
     private static class Cancellable extends CallableBase<Integer, InterruptedException> {
         boolean ran;
+
         @Override
         public Integer call() throws InterruptedException {
             Thread.sleep(9999);
             ran = true;
             return 0;
         }
+
         private static final long serialVersionUID = 1L;
     }
-
 }
