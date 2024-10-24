@@ -591,7 +591,7 @@ public class Engine extends Thread {
     }
 
     @SuppressFBWarnings(
-            value = {"REC_CATCH_EXCEPTION", "URLCONNECTION_SSRF_FD"},
+            value = {"REC_CATCH_EXCEPTION"},
             justification = "checked exceptions were a mistake to begin with; connecting to Jenkins from agent")
     private void runWebSocket() {
         try {
@@ -783,24 +783,7 @@ public class Engine extends Thread {
                         client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
                     }
                 }
-                if (!succeedsWithRetries(() -> {
-                    // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be
-                    // a 404 if the TCP port is disabled.
-                    URL ping = new URL(hudsonUrl, "login");
-                    try {
-                        HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
-                        int status = conn.getResponseCode();
-                        conn.disconnect();
-                        if (status == 200) {
-                            return true;
-                        } else {
-                            events.status(ping + " is not ready: " + status);
-                        }
-                    } catch (IOException x) {
-                        events.status(ping + " is not ready", x);
-                    }
-                    return false;
-                })) {
+                if (!succeedsWithRetries(this::pingSuccessful)) {
                     return;
                 }
                 if (!succeedsWithRetries(() -> {
@@ -849,6 +832,28 @@ public class Engine extends Thread {
                 events.status("Failed to connect: " + x.getMessage());
             }
             exponentialRetry = exponentialRetry.next(events);
+        }
+        return false;
+    }
+
+    @SuppressFBWarnings(
+            value = {"URLCONNECTION_SSRF_FD"},
+            justification = "url is provided by the user, and we are trying to connect to it")
+    private Boolean pingSuccessful() throws MalformedURLException {
+        // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be
+        // a 404 if the TCP port is disabled.
+        URL ping = new URL(hudsonUrl, "login");
+        try {
+            HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
+            int status = conn.getResponseCode();
+            conn.disconnect();
+            if (status == 200) {
+                return true;
+            } else {
+                events.status(ping + " is not ready: " + status);
+            }
+        } catch (IOException x) {
+            events.status(ping + " is not ready", x);
         }
         return false;
     }
