@@ -118,9 +118,9 @@ public class DefaultClassFilterTest {
             ClassFilter.createDefaultInstance();
             clearProperty();
         } catch (Throwable t) {
-             System.err.println("First initialization: " + t.getMessage());
+            System.err.println("First initialization: " + t.getMessage());
         }
-        
+
         List<String> badClasses = List.of("Z{100,0}" /* min > max for repetition */);
         File f = folder.newFile("overrides.txt");
         try (FileOutputStream fos = new FileOutputStream(f)) {

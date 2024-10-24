@@ -1149,7 +1149,9 @@ final class RemoteClassLoader extends URLClassLoader {
             return all;
         }
 
-        @SuppressFBWarnings(value = "URLCONNECTION_SSRF_FD", justification = "This is only used for managing the jar cache as files.")
+        @SuppressFBWarnings(
+                value = "URLCONNECTION_SSRF_FD",
+                justification = "This is only used for managing the jar cache as files.")
         private void fetch3Impl(ClassFile2 cf, int level, Map<String, ClassFile2> all) {
             if (level > PREFETCH_DEPTH) {
                 return;
@@ -1168,7 +1170,8 @@ final class RemoteClassLoader extends URLClassLoader {
                             fetch3Impl(referent, level + 1, all);
                         } else {
                             File file1 = cf.local.getProtocol().equals("jar") ? Which.jarFile(cf.local) : null;
-                            File file2 = referent.local.getProtocol().equals("jar") ? Which.jarFile(referent.local) : null;
+                            File file2 =
+                                    referent.local.getProtocol().equals("jar") ? Which.jarFile(referent.local) : null;
                             if (Objects.equals(file1, file2)) {
                                 fetch3Impl(referent, level + 1, all);
                             }
