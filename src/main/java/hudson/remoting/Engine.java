@@ -200,8 +200,6 @@ public class Engine extends Thread {
 
     private Duration noReconnectAfter;
 
-    private Instant firstAttempt;
-
     /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
      *
@@ -785,12 +783,37 @@ public class Engine extends Thread {
                         client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
                     }
                 }
-                container.connectToServer(
-                        new AgentEndpoint(),
-                        ClientEndpointConfig.Builder.create()
-                                .configurator(headerHandler)
-                                .build(),
-                        URI.create(wsUrl + "wsagents/"));
+                if (!succeedsWithRetries(() -> {
+                    // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be
+                    // a 404 if the TCP port is disabled.
+                    URL ping = new URL(hudsonUrl, "login");
+                    try {
+                        HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
+                        int status = conn.getResponseCode();
+                        conn.disconnect();
+                        if (status == 200) {
+                            return true;
+                        } else {
+                            events.status(ping + " is not ready: " + status);
+                        }
+                    } catch (IOException x) {
+                        events.status(ping + " is not ready", x);
+                    }
+                    return false;
+                })) {
+                    return;
+                }
+                if (!succeedsWithRetries(() -> {
+                    container.connectToServer(
+                            new AgentEndpoint(),
+                            ClientEndpointConfig.Builder.create()
+                                    .configurator(headerHandler)
+                                    .build(),
+                            URI.create(wsUrl + "wsagents/"));
+                    return true;
+                })) {
+                    return;
+                }
                 while (ch.get() == null) {
                     Thread.sleep(100);
                 }
@@ -801,36 +824,91 @@ public class Engine extends Thread {
                 if (noReconnect) {
                     return;
                 }
-                firstAttempt = Instant.now();
                 events.onDisconnect();
-                while (true) {
-                    // TODO refactor various sleep statements into a common method
-                    if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
-                        events.status("Bailing out after " + DurationFormatter.format(noReconnectAfter));
-                        return;
-                    }
-                    TimeUnit.SECONDS.sleep(10);
-                    // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be
-                    // a 404 if the TCP port is disabled.
-                    URL ping = new URL(hudsonUrl, "login");
-                    try {
-                        HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
-                        int status = conn.getResponseCode();
-                        conn.disconnect();
-                        if (status == 200) {
-                            break;
-                        } else {
-                            events.status(ping + " is not ready: " + status);
-                        }
-                    } catch (IOException x) {
-                        events.status(ping + " is not ready", x);
-                    }
-                }
                 reconnect();
             }
         } catch (Exception e) {
             events.error(e);
         }
+    }
+
+    /**
+     * Evaluates a condition with exponential backoff until it succeeds or the timeout is reached.
+     * @param condition the condition to attempt to succeed with exponential backoff
+     * @return true if the condition succeeded, false if the condition failed and the timeout was reached
+     * @throws InterruptedException if the thread was interrupted while waiting.
+     */
+    private boolean succeedsWithRetries(SupplierThrowingException<Boolean> condition) throws InterruptedException {
+        var exponentialRetry = new ExponentialRetry(noReconnectAfter);
+        while (exponentialRetry != null) {
+            try {
+                if (condition.get()) {
+                    return true;
+                }
+            } catch (Exception x) {
+                events.status("Failed to connect: " + x.getMessage());
+            }
+            exponentialRetry = exponentialRetry.next(events);
+        }
+        return false;
+    }
+
+    private static class ExponentialRetry {
+        final int factor;
+        final Instant beginning;
+        final Duration delay;
+        final Duration timeout;
+        final Duration incrementDelay;
+        final Duration maxDelay;
+
+        ExponentialRetry(Duration timeout) {
+            this(Duration.ofSeconds(0), timeout, 2, Duration.ofSeconds(1), Duration.ofSeconds(10));
+        }
+
+        ExponentialRetry(
+                Duration initialDelay, Duration timeout, int factor, Duration incrementDelay, Duration maxDelay) {
+            this.beginning = Instant.now();
+            this.delay = initialDelay;
+            this.timeout = timeout;
+            this.factor = factor;
+            this.incrementDelay = incrementDelay;
+            this.maxDelay = maxDelay;
+        }
+
+        ExponentialRetry(ExponentialRetry previous) {
+            beginning = previous.beginning;
+            factor = previous.factor;
+            timeout = previous.timeout;
+            incrementDelay = previous.incrementDelay;
+            maxDelay = previous.maxDelay;
+            delay = min(maxDelay, previous.delay.multipliedBy(previous.factor).plus(incrementDelay));
+        }
+
+        private static Duration min(Duration a, Duration b) {
+            return a.compareTo(b) < 0 ? a : b;
+        }
+
+        boolean timeoutExceeded() {
+            return Util.shouldBailOut(beginning, timeout);
+        }
+
+        ExponentialRetry next(EngineListenerSplitter events) throws InterruptedException {
+            var next = new ExponentialRetry(this);
+            if (next.timeoutExceeded()) {
+                events.status("Bailing out after " + DurationFormatter.format(next.timeout));
+                return null;
+            } else {
+                var delaySeconds = next.delay.toSeconds();
+                events.status("Waiting " + delaySeconds + " seconds before retry");
+                TimeUnit.SECONDS.sleep(delaySeconds);
+            }
+            return next;
+        }
+    }
+
+    @FunctionalInterface
+    private interface SupplierThrowingException<T> {
+        T get() throws Exception;
     }
 
     private void reconnect() {
@@ -862,7 +940,7 @@ public class Engine extends Thread {
 
         try {
             boolean first = true;
-            firstAttempt = Instant.now();
+            var firstAttempt = Instant.now();
             while (true) {
                 if (first) {
                     first = false;
