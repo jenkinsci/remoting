@@ -821,11 +821,11 @@ public class Engine extends Thread {
      * @return true if the condition succeeded, false if the condition failed and the timeout was reached
      * @throws InterruptedException if the thread was interrupted while waiting.
      */
-    private boolean succeedsWithRetries(SupplierThrowingException<Boolean> condition) throws InterruptedException {
+    private boolean succeedsWithRetries(java.util.concurrent.Callable<Boolean> condition) throws InterruptedException {
         var exponentialRetry = new ExponentialRetry(noReconnectAfter);
         while (exponentialRetry != null) {
             try {
-                if (condition.get()) {
+                if (condition.call()) {
                     return true;
                 }
             } catch (Exception x) {
@@ -909,11 +909,6 @@ public class Engine extends Thread {
             }
             return next;
         }
-    }
-
-    @FunctionalInterface
-    private interface SupplierThrowingException<T> {
-        T get() throws Exception;
     }
 
     private void reconnect() {
