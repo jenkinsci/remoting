@@ -74,6 +74,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.jenkinsci.remoting.DurationOptionHandler;
+import org.jenkinsci.remoting.util.SSLUtils;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.DurationFormatter;
@@ -517,7 +518,7 @@ public class Launcher {
         // Initialize certificates
         createX509Certificates();
         try {
-            sslSocketFactory = Engine.getSSLSocketFactory(x509Certificates, noCertificateCheck);
+            sslSocketFactory = SSLUtils.getSSLSocketFactory(x509Certificates, noCertificateCheck);
         } catch (GeneralSecurityException | PrivilegedActionException e) {
             throw new RuntimeException(e);
         }

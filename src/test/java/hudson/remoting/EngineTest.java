@@ -69,7 +69,7 @@ public class EngineTest {
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.startEngine(true);
 
-        // Cache will go to ~/.jenkins , we do not want to worry anbout this repo
+        // Cache will go to ~/.jenkins , we do not want to worry about this repo
         assertTrue(
                 "Default JarCache should be touched: " + JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath(),
                 JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.exists());
@@ -128,7 +128,7 @@ public class EngineTest {
         assertThat(engine.getAgentName(), is(AGENT_NAME));
     }
 
-    @Test
+    @Test(timeout = 5_000)
     public void shouldNotReconnect() {
         EngineListener l = new TestEngineListener() {
             @Override
@@ -138,12 +138,12 @@ public class EngineTest {
         };
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setNoReconnect(true);
-        assertThrows(NoReconnectException.class, () -> engine.run());
+        assertThrows(NoReconnectException.class, engine::run);
     }
 
     private static class NoReconnectException extends RuntimeException {}
 
-    @Test
+    @Test(timeout = 10_000)
     public void shouldReconnectOnJnlpAgentEndpointResolutionExceptions() {
         EngineListener l = new TestEngineListener() {
             private int count;
@@ -166,7 +166,7 @@ public class EngineTest {
             }
         };
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
-        assertThrows("Should have tried at least twice", ExpectedException.class, () -> engine.run());
+        assertThrows("Should have tried at least twice", ExpectedException.class, engine::run);
     }
 
     private static class ExpectedException extends RuntimeException {}
@@ -175,7 +175,7 @@ public class EngineTest {
 
         @Override
         public void status(String msg) {
-            // Do nothing
+            status(msg, null);
         }
 
         @Override

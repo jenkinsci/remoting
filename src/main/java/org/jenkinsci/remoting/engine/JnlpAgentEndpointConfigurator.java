@@ -23,11 +23,11 @@
  */
 package org.jenkinsci.remoting.engine;
 
+import hudson.remoting.EngineListenerSplitter;
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
@@ -38,17 +38,24 @@ public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
     private final Set<String> protocols;
     private final String directionConnection;
     private final String proxyCredentials;
+    private final EngineListenerSplitter events;
 
     public JnlpAgentEndpointConfigurator(
-            String directConnection, String instanceIdentity, Set<String> protocols, String proxyCredentials) {
+            String directConnection,
+            String instanceIdentity,
+            Set<String> protocols,
+            String proxyCredentials,
+            EngineListenerSplitter events) {
         this.directionConnection = directConnection;
         this.instanceIdentity = instanceIdentity;
         this.protocols = protocols;
         this.proxyCredentials = proxyCredentials;
+        this.events = events;
     }
 
     @Override
     public JnlpAgentEndpoint resolve() throws IOException {
+        events.status("Using direct connection to " + directionConnection);
         RSAPublicKey identity;
         try {
             identity = getIdentity(instanceIdentity);
@@ -65,7 +72,5 @@ public class JnlpAgentEndpointConfigurator extends JnlpEndpointResolver {
     }
 
     @Override
-    public void waitForReady() {
-        LOGGER.log(Level.INFO, "Sleeping 10s before reconnect.");
-    }
+    public void waitForReady() {}
 }
