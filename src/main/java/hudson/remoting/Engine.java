@@ -903,9 +903,8 @@ public class Engine extends Thread {
                 events.status("Bailing out after " + DurationFormatter.format(next.timeout));
                 return null;
             } else {
-                var delaySeconds = next.delay.toSeconds();
-                events.status("Waiting " + delaySeconds + " seconds before retry");
-                TimeUnit.SECONDS.sleep(delaySeconds);
+                events.status("Waiting " + DurationFormatter.format(next.delay) + " before retry");
+                TimeUnit.SECONDS.sleep(next.delay.toSeconds());
             }
             return next;
         }
