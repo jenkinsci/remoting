@@ -225,8 +225,7 @@ public class Engine extends Thread {
         this.listener = listener;
         this.directConnection = directConnection;
         this.events.add(listener);
-        this.candidateUrls =
-                urls.stream().map(Engine::ensureTrailingSlash).collect(Collectors.toList());
+        this.candidateUrls = urls.stream().map(Engine::ensureTrailingSlash).collect(Collectors.toList());
         this.secretKey = secretKey;
         this.agentName = agentName;
         this.instanceIdentity = instanceIdentity;

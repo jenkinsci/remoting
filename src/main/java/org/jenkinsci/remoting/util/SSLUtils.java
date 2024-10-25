@@ -33,12 +33,13 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 public final class SSLUtils {
     private SSLUtils() {}
+
     private static final Logger LOGGER = Logger.getLogger(SSLUtils.class.getName());
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "File path is loaded from system properties.")
     static KeyStore getCacertsKeyStore()
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-            NoSuchAlgorithmException, IOException {
+                    NoSuchAlgorithmException, IOException {
         Map<String, String> properties =
                 AccessController.doPrivileged((PrivilegedExceptionAction<Map<String, String>>) () -> {
                     Map<String, String> result = new HashMap<>();
@@ -129,11 +130,11 @@ public final class SSLUtils {
     @Restricted(NoExternalUse.class)
     public static SSLContext getSSLContext(List<X509Certificate> x509Certificates, boolean noCertificateCheck)
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-            NoSuchAlgorithmException, IOException, KeyManagementException {
+                    NoSuchAlgorithmException, IOException, KeyManagementException {
         SSLContext sslContext = null;
         if (noCertificateCheck) {
             sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, new TrustManager[]{new NoCheckTrustManager()}, new SecureRandom());
+            sslContext.init(null, new TrustManager[] {new NoCheckTrustManager()}, new SecureRandom());
         } else if (x509Certificates != null && !x509Certificates.isEmpty()) {
             KeyStore keyStore = getCacertsKeyStore();
             // load the keystore
@@ -159,7 +160,7 @@ public final class SSLUtils {
     public static SSLSocketFactory getSSLSocketFactory(
             List<X509Certificate> x509Certificates, boolean noCertificateCheck)
             throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-            NoSuchAlgorithmException, IOException, KeyManagementException {
+                    NoSuchAlgorithmException, IOException, KeyManagementException {
         SSLContext sslContext = getSSLContext(x509Certificates, noCertificateCheck);
         return sslContext != null ? sslContext.getSocketFactory() : null;
     }

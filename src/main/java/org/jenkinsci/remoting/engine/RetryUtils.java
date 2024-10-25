@@ -18,9 +18,7 @@ class RetryUtils {
 
     @CheckForNull
     static <T> T succeedsWithRetries(
-            @NonNull Callable<T> supplier,
-            @NonNull Duration noReconnectAfter,
-            @NonNull EngineListenerSplitter events)
+            @NonNull Callable<T> supplier, @NonNull Duration noReconnectAfter, @NonNull EngineListenerSplitter events)
             throws InterruptedException {
         return succeedsWithRetries(supplier, noReconnectAfter, events, x -> "Failed to connect: " + x.getMessage());
     }
