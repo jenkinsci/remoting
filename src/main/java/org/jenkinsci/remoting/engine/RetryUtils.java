@@ -98,7 +98,7 @@ class RetryUtils {
                 return null;
             } else {
                 events.status("Waiting " + DurationFormatter.format(next.delay) + " before retry");
-                TimeUnit.SECONDS.sleep(next.delay.toSeconds());
+                Thread.sleep(next.delay.toMillis());
             }
             return next;
         }
