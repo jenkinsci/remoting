@@ -7,7 +7,6 @@ import hudson.remoting.Util;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,6 +51,7 @@ class RetryUtils {
         return null;
     }
 
+    // TODO JDK17+ record
     private static class ExponentialRetry {
         final int factor;
         final Instant beginning;
@@ -59,6 +59,7 @@ class RetryUtils {
         final Duration timeout;
         final Duration incrementDelay;
         final Duration maxDelay;
+
 
         ExponentialRetry(Duration timeout) {
             this(Duration.ofSeconds(0), timeout, 2, Duration.ofSeconds(1), Duration.ofSeconds(10));

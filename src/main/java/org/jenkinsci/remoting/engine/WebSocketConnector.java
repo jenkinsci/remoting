@@ -63,28 +63,37 @@ public class WebSocketConnector extends AbstractEndpointConnector {
         return url;
     }
 
+    /**
+     * The URL to connect to.
+     */
     @NonNull
     private final URL url;
 
+    /**
+     * Headers to be added to the initial request for connection.
+     */
     @NonNull
     private final Map<String, String> headers;
 
+    /**
+     * A custom hostname verifier to use for HTTPS connections.
+     */
     @CheckForNull
     private final HostnameVerifier hostnameVerifier;
 
     public WebSocketConnector(
-            @NonNull URL url,
             @NonNull String agentName,
             @NonNull String secretKey,
-            @NonNull Map<String, String> headers,
             @NonNull ExecutorService executor,
             @CheckForNull JarCache jarCache,
             @NonNull EngineListenerSplitter events,
             @CheckForNull String proxyCredentials,
-            @CheckForNull HostnameVerifier hostnameVerifier,
             @CheckForNull List<X509Certificate> candidateCertificates,
             boolean disableHttpsCertValidation,
-            @NonNull Duration noReconnectAfter) {
+            @NonNull Duration noReconnectAfter,
+            @NonNull URL url,
+            @NonNull Map<String, String> headers,
+            @CheckForNull HostnameVerifier hostnameVerifier) {
         super(
                 agentName,
                 secretKey,
@@ -354,7 +363,7 @@ public class WebSocketConnector extends AbstractEndpointConnector {
     }
 
     @Override
-    public Boolean waitForReady() throws InterruptedException {
+    public Boolean waitUntilReady() throws InterruptedException {
         return RetryUtils.succeedsWithRetries(this::pingSuccessful, noReconnectAfter, events);
     }
 

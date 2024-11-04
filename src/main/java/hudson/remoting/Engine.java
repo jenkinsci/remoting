@@ -23,6 +23,8 @@
  */
 package hudson.remoting;
 
+import static org.jenkinsci.remoting.util.SSLUtils.getSSLSocketFactory;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -45,10 +47,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSocketFactory;
 import net.jcip.annotations.NotThreadSafe;
 import org.jenkinsci.remoting.engine.EndpointConnector;
 import org.jenkinsci.remoting.engine.InboundTCPConnector;
+import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
+import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
 import org.jenkinsci.remoting.engine.WebSocketConnector;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
@@ -487,7 +492,7 @@ public class Engine extends Thread {
     public void run() {
         try (var connector = getEndpointConnector()) {
             while (true) {
-                if (connector.waitForReady() == null) {
+                if (connector.waitUntilReady() == null) {
                     break;
                 }
                 var channelFuture = connector.connect();
@@ -511,42 +516,63 @@ public class Engine extends Thread {
         }
     }
 
+
+    private JnlpEndpointResolver createJnlpEndpointResolver() {
+        if (directConnection == null) {
+            SSLSocketFactory sslSocketFactory = null;
+            try {
+                sslSocketFactory = getSSLSocketFactory(candidateCertificates, disableHttpsCertValidation);
+            } catch (Exception e) {
+                events.error(e);
+            }
+            return new JnlpAgentEndpointResolver(
+                    candidateUrls.stream().map(URL::toExternalForm).collect(Collectors.toList()),
+                    agentName,
+                    credentials,
+                    proxyCredentials,
+                    tunnel,
+                    sslSocketFactory,
+                    noReconnect,
+                    noReconnectAfter,
+                    events);
+        } else {
+            return new JnlpAgentEndpointConfigurator(
+                    directConnection, instanceIdentity, protocols, proxyCredentials, events);
+        }
+    }
+
     private EndpointConnector getEndpointConnector() {
         EndpointConnector connector;
         if (webSocket) {
             connector = new WebSocketConnector(
-                    candidateUrls.get(0),
                     agentName,
                     secretKey,
-                    webSocketHeaders == null ? Map.of() : webSocketHeaders,
                     executor,
                     jarCache,
                     events,
                     proxyCredentials,
-                    hostnameVerifier,
                     candidateCertificates,
                     disableHttpsCertValidation,
-                    noReconnectAfter);
+                    noReconnectAfter,
+                    candidateUrls.get(0),
+                    webSocketHeaders == null ? Map.of() : webSocketHeaders,
+                    hostnameVerifier
+            );
         } else {
             connector = new InboundTCPConnector(
                     agentName,
                     secretKey,
                     executor,
-                    candidateUrls,
                     events,
-                    agentTrustManager,
-                    noReconnect,
                     noReconnectAfter,
-                    keepAlive,
-                    directConnection,
                     candidateCertificates,
                     disableHttpsCertValidation,
                     jarCache,
                     proxyCredentials,
-                    instanceIdentity,
-                    protocols,
-                    credentials,
-                    tunnel);
+                    candidateUrls,
+                    agentTrustManager,
+                    keepAlive,
+                    createJnlpEndpointResolver());
         }
         return connector;
     }

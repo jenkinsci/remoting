@@ -15,6 +15,7 @@ import java.security.NoSuchProviderException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -23,10 +24,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -163,5 +166,47 @@ public final class SSLUtils {
                     NoSuchAlgorithmException, IOException, KeyManagementException {
         SSLContext sslContext = getSSLContext(x509Certificates, noCertificateCheck);
         return sslContext != null ? sslContext.getSocketFactory() : null;
+    }
+
+    public static SSLContext createSSLContext(@CheckForNull DelegatingX509ExtendedTrustManager agentTrustManager) throws IOException {
+        SSLContext context;
+        // prepare our SSLContext
+        try {
+            context = SSLContext.getInstance("TLS");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Java runtime specification requires support for TLS algorithm", e);
+        }
+        char[] password = "password".toCharArray();
+        KeyStore store;
+        try {
+            store = KeyStore.getInstance(KeyStore.getDefaultType());
+        } catch (KeyStoreException e) {
+            throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
+        }
+        try {
+            store.load(null, password);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
+        } catch (CertificateException e) {
+            throw new IllegalStateException("Empty keystore", e);
+        }
+        KeyManagerFactory kmf;
+        try {
+            kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(
+                    "Java runtime specification requires support for default key manager", e);
+        }
+        try {
+            kmf.init(store, password);
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
+            throw new IllegalStateException(e);
+        }
+        try {
+            context.init(kmf.getKeyManagers(), new TrustManager[]{agentTrustManager}, null);
+        } catch (KeyManagementException e) {
+            throw new IllegalStateException(e);
+        }
+        return context;
     }
 }

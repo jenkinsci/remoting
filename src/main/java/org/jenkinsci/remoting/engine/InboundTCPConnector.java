@@ -1,7 +1,5 @@
 package org.jenkinsci.remoting.engine;
 
-import static org.jenkinsci.remoting.util.SSLUtils.getSSLSocketFactory;
-
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -10,15 +8,10 @@ import hudson.remoting.ChannelBuilder;
 import hudson.remoting.Engine;
 import hudson.remoting.EngineListenerSplitter;
 import hudson.remoting.JarCache;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.URL;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
@@ -31,15 +24,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
+import org.jenkinsci.remoting.util.SSLUtils;
 
 /**
  * Connects to a controller using inbound TCP.
@@ -47,23 +37,22 @@ import org.jenkinsci.remoting.util.KeyUtils;
 public class InboundTCPConnector extends AbstractEndpointConnector {
     private static final Logger LOGGER = Logger.getLogger(InboundTCPConnector.class.getName());
 
-    private final JnlpEndpointResolver resolver;
-    private IOHub hub;
-    private boolean noReconnect;
+    private final JnlpEndpointResolver jnlpEndpointResolver;
     private final List<URL> candidateUrls;
     private final DelegatingX509ExtendedTrustManager agentTrustManager;
     private final boolean keepAlive;
 
     private URL url;
+    /**
+     * Name of the protocol that was used to successfully connect to the controller.
+     */
     private String protocolName;
-    private final String directConnection;
-    private final String instanceIdentity;
-    private final Set<String> protocols;
-    private final String credentials;
-    private final String tunnel;
 
-    private List<JnlpProtocolHandler<? extends JnlpConnectionState>> protocolsImpls;
-    private Socket jnlpSocket;
+    /**
+     * Tracks {@link Closeable} resources that need to be closed when this connector is closed.
+     */
+    @NonNull
+    private final List<Closeable> closeables = new ArrayList<>();
 
     @Override
     public URL getUrl() {
@@ -75,21 +64,16 @@ public class InboundTCPConnector extends AbstractEndpointConnector {
             @NonNull String agentName,
             @NonNull String secretKey,
             @NonNull ExecutorService executor,
-            @NonNull List<URL> candidateUrls,
             @NonNull EngineListenerSplitter events,
-            @CheckForNull DelegatingX509ExtendedTrustManager agentTrustManager,
-            boolean noReconnect,
             @NonNull Duration noReconnectAfter,
-            boolean keepAlive,
-            String directConnection,
             @CheckForNull List<X509Certificate> candidateCertificates,
             boolean disableHttpsCertValidation,
             @CheckForNull JarCache jarCache,
             @CheckForNull String proxyCredentials,
-            String instanceIdentity,
-            Set<String> protocols,
-            String credentials,
-            String tunnel) {
+            @NonNull List<URL> candidateUrls,
+            @CheckForNull DelegatingX509ExtendedTrustManager agentTrustManager,
+            boolean keepAlive,
+            @NonNull JnlpEndpointResolver jnlpEndpointResolver) {
         super(
                 agentName,
                 secretKey,
@@ -102,89 +86,8 @@ public class InboundTCPConnector extends AbstractEndpointConnector {
                 proxyCredentials);
         this.candidateUrls = new ArrayList<>(candidateUrls);
         this.agentTrustManager = agentTrustManager;
-        this.noReconnect = noReconnect;
         this.keepAlive = keepAlive;
-        this.directConnection = directConnection;
-        this.instanceIdentity = instanceIdentity;
-        this.protocols = protocols;
-        this.credentials = credentials;
-        this.tunnel = tunnel;
-        this.resolver = createEndpointResolver();
-
-        // Create the engine
-        try {
-            hub = IOHub.create(this.executor);
-            SSLContext context;
-            // prepare our SSLContext
-            try {
-                context = SSLContext.getInstance("TLS");
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException("Java runtime specification requires support for TLS algorithm", e);
-            }
-            char[] password = "password".toCharArray();
-            KeyStore store;
-            try {
-                store = KeyStore.getInstance(KeyStore.getDefaultType());
-            } catch (KeyStoreException e) {
-                throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
-            }
-            try {
-                store.load(null, password);
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
-            } catch (CertificateException e) {
-                throw new IllegalStateException("Empty keystore", e);
-            }
-            KeyManagerFactory kmf;
-            try {
-                kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            } catch (NoSuchAlgorithmException e) {
-                throw new IllegalStateException(
-                        "Java runtime specification requires support for default key manager", e);
-            }
-            try {
-                kmf.init(store, password);
-            } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
-                throw new IllegalStateException(e);
-            }
-            try {
-                context.init(kmf.getKeyManagers(), new TrustManager[] {agentTrustManager}, null);
-            } catch (KeyManagementException e) {
-                throw new IllegalStateException(e);
-            }
-            // Create the protocols that will be attempted to connect to the controller.
-            protocolsImpls = new JnlpProtocolHandlerFactory(this.executor)
-                    .withIOHub(hub)
-                    .withSSLContext(context)
-                    .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
-                    .handlers();
-        } catch (IOException e) {
-            events.error(e);
-        }
-    }
-
-    private JnlpEndpointResolver createEndpointResolver() {
-        if (directConnection == null) {
-            SSLSocketFactory sslSocketFactory = null;
-            try {
-                sslSocketFactory = getSSLSocketFactory(candidateCertificates, disableHttpsCertValidation);
-            } catch (Exception e) {
-                events.error(e);
-            }
-            return new JnlpAgentEndpointResolver(
-                    candidateUrls.stream().map(URL::toExternalForm).collect(Collectors.toList()),
-                    agentName,
-                    credentials,
-                    proxyCredentials,
-                    tunnel,
-                    sslSocketFactory,
-                    noReconnect,
-                    noReconnectAfter,
-                    events);
-        } else {
-            return new JnlpAgentEndpointConfigurator(
-                    directConnection, instanceIdentity, protocols, proxyCredentials, events);
-        }
+        this.jnlpEndpointResolver = jnlpEndpointResolver;
     }
 
     private class EngineJnlpConnectionStateListener extends JnlpConnectionStateListener {
@@ -238,8 +141,12 @@ public class InboundTCPConnector extends AbstractEndpointConnector {
 
     @Override
     public Future<Channel> connect() throws Exception {
+        var hub = IOHub.create(this.executor);
+        closeables.add(hub);
+        var context= SSLUtils.createSSLContext(agentTrustManager);
+
         final JnlpAgentEndpoint endpoint = RetryUtils.succeedsWithRetries(
-                resolver::resolve,
+                jnlpEndpointResolver::resolve,
                 noReconnectAfter,
                 events,
                 x -> "Could not locate server among " + candidateUrls + ": " + x.getMessage());
@@ -269,22 +176,20 @@ public class InboundTCPConnector extends AbstractEndpointConnector {
         final Map<String, String> headers = new HashMap<>();
         headers.put(JnlpConnectionState.CLIENT_NAME_KEY, this.agentName);
         headers.put(JnlpConnectionState.SECRET_KEY, this.secretKey);
-        var negotiatedProtocols = protocolsImpls.stream()
+        // Create the protocols that will be attempted to connect to the controller.
+        var clientProtocols = new JnlpProtocolHandlerFactory(this.executor)
+                .withIOHub(hub)
+                .withSSLContext(context)
+                .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
+                .handlers();
+        var negotiatedProtocols = clientProtocols.stream()
                 .filter(JnlpProtocolHandler::isEnabled)
                 .filter(p -> endpoint.isProtocolSupported(p.getName()))
                 .collect(Collectors.toSet());
         var serverProtocols = endpoint.getProtocols() == null ? "?" : String.join(",", endpoint.getProtocols());
-        LOGGER.info("Protocols support: Server " + "[" + serverProtocols + "]"
-                + ", Client " + "["
-                + protocolsImpls.stream()
-                        .map(p -> p.getName() + (!p.isEnabled() ? " (disabled)" : ""))
-                        .collect(Collectors.joining(","))
-                + "]"
-                + ", Negociated: " + "["
-                + negotiatedProtocols.stream().map(JnlpProtocolHandler::getName).collect(Collectors.joining(","))
-                + "]");
+        LOGGER.info(buildDebugProtocolsMessage(serverProtocols, clientProtocols, negotiatedProtocols));
         for (var protocol : negotiatedProtocols) {
-            jnlpSocket = RetryUtils.succeedsWithRetries(
+            var jnlpSocket = RetryUtils.succeedsWithRetries(
                     () -> {
                         events.status("Connecting to " + endpoint.describe() + " using " + protocol.getName());
                         // default is 30 mins. See PingThread for the ping interval
@@ -297,6 +202,7 @@ public class InboundTCPConnector extends AbstractEndpointConnector {
             if (jnlpSocket == null) {
                 return null;
             }
+            closeables.add(jnlpSocket);
             try {
                 protocolName = protocol.getName();
                 return protocol.connect(
@@ -310,7 +216,7 @@ public class InboundTCPConnector extends AbstractEndpointConnector {
             }
             // On failure form a new connection.
             jnlpSocket.close();
-            jnlpSocket = null;
+            closeables.remove(jnlpSocket);
         }
         if (negotiatedProtocols.isEmpty()) {
             events.status(
@@ -324,9 +230,22 @@ public class InboundTCPConnector extends AbstractEndpointConnector {
         return null;
     }
 
+    @NonNull
+    private static String buildDebugProtocolsMessage(String serverProtocols, List<JnlpProtocolHandler<? extends JnlpConnectionState>> clientProtocols, Set<JnlpProtocolHandler<? extends JnlpConnectionState>> negotiatedProtocols) {
+        return "Protocols support: Server " + "[" + serverProtocols + "]"
+                + ", Client " + "["
+                + clientProtocols.stream()
+                .map(p -> p.getName() + (!p.isEnabled() ? " (disabled)" : ""))
+                .collect(Collectors.joining(","))
+                + "]"
+                + ", Negociated: " + "["
+                + negotiatedProtocols.stream().map(JnlpProtocolHandler::getName).collect(Collectors.joining(","))
+                + "]";
+    }
+
     @Override
-    public Boolean waitForReady() throws InterruptedException {
-        resolver.waitForReady();
+    public Boolean waitUntilReady() throws InterruptedException {
+        jnlpEndpointResolver.waitForReady();
         return true;
     }
 
@@ -337,19 +256,12 @@ public class InboundTCPConnector extends AbstractEndpointConnector {
 
     @Override
     public void close() {
-        if (jnlpSocket != null) {
+        closeables.forEach(c -> {
             try {
-                jnlpSocket.close();
+                c.close();
             } catch (IOException e) {
-                events.status("Failed to close socket", e);
+                events.status("Failed to close resource " + c, e);
             }
-        }
-        if (hub != null) {
-            try {
-                hub.close();
-            } catch (IOException e) {
-                events.status("Failed to close IOHub", e);
-            }
-        }
+        });
     }
 }
