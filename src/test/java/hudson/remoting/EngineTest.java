@@ -33,6 +33,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.net.URL;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.engine.WorkDirManagerRule;
 import org.junit.Before;
@@ -46,6 +48,7 @@ import org.jvnet.hudson.test.Issue;
  * @author Oleg Nenashev
  */
 public class EngineTest {
+    private static final Logger LOGGER = Logger.getLogger(EngineTest.class.getName());
 
     private static final String SECRET_KEY = "Hello, world!";
     private static final String AGENT_NAME = "testAgent";
@@ -69,7 +72,7 @@ public class EngineTest {
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.startEngine(true);
 
-        // Cache will go to ~/.jenkins , we do not want to worry anbout this repo
+        // Cache will go to ~/.jenkins , we do not want to worry about this repo
         assertTrue(
                 "Default JarCache should be touched: " + JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath(),
                 JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.exists());
@@ -128,7 +131,7 @@ public class EngineTest {
         assertThat(engine.getAgentName(), is(AGENT_NAME));
     }
 
-    @Test
+    @Test(timeout = 5_000)
     public void shouldNotReconnect() {
         EngineListener l = new TestEngineListener() {
             @Override
@@ -138,18 +141,19 @@ public class EngineTest {
         };
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setNoReconnect(true);
-        assertThrows(NoReconnectException.class, () -> engine.run());
+        assertThrows(NoReconnectException.class, engine::run);
     }
 
     private static class NoReconnectException extends RuntimeException {}
 
-    @Test
+    @Test(timeout = 30_000)
     public void shouldReconnectOnJnlpAgentEndpointResolutionExceptions() {
         EngineListener l = new TestEngineListener() {
             private int count;
 
             @Override
             public void status(String msg, Throwable t) {
+                LOGGER.log(Level.INFO, msg, t);
                 if (msg.startsWith("Could not locate server among")) {
                     count++;
                 }
@@ -166,7 +170,7 @@ public class EngineTest {
             }
         };
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
-        assertThrows("Should have tried at least twice", ExpectedException.class, () -> engine.run());
+        assertThrows("Should have tried at least twice", ExpectedException.class, engine::run);
     }
 
     private static class ExpectedException extends RuntimeException {}
@@ -175,7 +179,7 @@ public class EngineTest {
 
         @Override
         public void status(String msg) {
-            // Do nothing
+            status(msg, null);
         }
 
         @Override
