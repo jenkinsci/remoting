@@ -169,6 +169,7 @@ public final class SSLUtils {
         return sslContext != null ? sslContext.getSocketFactory() : null;
     }
 
+    @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
     public static SSLContext createSSLContext(@CheckForNull DelegatingX509ExtendedTrustManager agentTrustManager)
             throws IOException {
         SSLContext context;

@@ -2,7 +2,6 @@ package org.jenkinsci.remoting.engine;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Channel;
 import hudson.remoting.ChannelBuilder;
 import hudson.remoting.Engine;
@@ -59,7 +58,6 @@ public class InboundTCPConnector implements EndpointConnector {
         return url;
     }
 
-    @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
     public InboundTCPConnector(
             EndpointConnectorData data,
             @NonNull List<URL> candidateUrls,

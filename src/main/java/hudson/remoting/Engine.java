@@ -487,9 +487,7 @@ public class Engine extends Thread {
     }
 
     @Override
-    @SuppressFBWarnings(
-            value = {"HARD_CODE_PASSWORD", "REC_CATCH_EXCEPTION"},
-            justification = "Password doesn't need to be protected.; We need to catch all exceptions")
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "We need to catch all exceptions")
     public void run() {
         try (var connector = getEndpointConnector()) {
             while (true) {
