@@ -78,7 +78,7 @@ class RetryUtils {
             var next = new ExponentialRetry(
                     factor,
                     beginning,
-                    min(maxDelay, delay.multipliedBy(factor).plus(incrementDelay)),
+                    nextDelay(),
                     timeout,
                     incrementDelay,
                     maxDelay);
@@ -90,6 +90,10 @@ class RetryUtils {
                 Thread.sleep(next.delay.toMillis());
             }
             return next;
+        }
+
+        private Duration nextDelay() {
+            return min(maxDelay, delay.multipliedBy(factor).plus(incrementDelay));
         }
     }
 }
