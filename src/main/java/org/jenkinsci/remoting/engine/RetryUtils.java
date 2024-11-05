@@ -37,8 +37,9 @@ class RetryUtils {
             @NonNull EngineListenerSplitter events,
             @NonNull Function<Exception, String> exceptionConsumer)
             throws InterruptedException {
-        var exponentialRetry = new ExponentialRetry(noReconnectAfter);
-        while (exponentialRetry != null) {
+        for (var exponentialRetry = new ExponentialRetry(noReconnectAfter);
+                exponentialRetry != null;
+                exponentialRetry = exponentialRetry.next(events)) {
             try {
                 var result = supplier.call();
                 if (result != null) {
@@ -49,7 +50,6 @@ class RetryUtils {
                 events.status(msg);
                 LOGGER.log(Level.FINE, msg, x);
             }
-            exponentialRetry = exponentialRetry.next(events);
         }
         return null;
     }
@@ -75,13 +75,7 @@ class RetryUtils {
         }
 
         ExponentialRetry next(EngineListenerSplitter events) throws InterruptedException {
-            var next = new ExponentialRetry(
-                    factor,
-                    beginning,
-                    nextDelay(),
-                    timeout,
-                    incrementDelay,
-                    maxDelay);
+            var next = new ExponentialRetry(factor, beginning, nextDelay(), timeout, incrementDelay, maxDelay);
             if (next.timeoutExceeded()) {
                 events.status("Bailing out after " + DurationFormatter.format(next.timeout));
                 return null;
