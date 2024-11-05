@@ -9,6 +9,13 @@ import java.util.concurrent.Future;
 
 /**
  * Represents a connection to a remote endpoint to open a {@link Channel}.
+ * <p>
+ * First, {@link hudson.remoting.Engine} creates an instance of {@link EndpointConnector} and calls {@link #waitUntilReady()}. Once it has returned {@code true}, it calls {@link #connect()} to establish the connection.
+ * <p>
+ * Then {@link #getProtocol()} and {@link #getUrl()} are called to get the protocol and URL of the endpoint.
+ * <p>
+ * Upon termination, @{link #close()} is called.
+ *
  * @since TODO
  */
 public interface EndpointConnector extends Closeable {
