@@ -111,7 +111,7 @@ public class WebSocketConnector implements EndpointConnector {
                 data.events().status(ping + " is not ready: " + status);
             }
         } catch (IOException x) {
-            data.events().status(ping + " is not ready", x);
+            data.events().status(ping + " is not ready: " + x.getMessage());
         }
         return null;
     }
