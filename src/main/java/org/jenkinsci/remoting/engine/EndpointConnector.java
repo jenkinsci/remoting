@@ -9,6 +9,7 @@ import java.util.concurrent.Future;
 
 /**
  * Represents a connection to a remote endpoint to open a {@link Channel}.
+ * @since TODO
  */
 public interface EndpointConnector extends Closeable {
 

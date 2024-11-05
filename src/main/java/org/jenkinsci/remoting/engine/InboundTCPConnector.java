@@ -26,10 +26,13 @@ import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustMa
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.util.KeyUtils;
 import org.jenkinsci.remoting.util.SSLUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Connects to a controller using inbound TCP.
  */
+@Restricted(NoExternalUse.class)
 public class InboundTCPConnector implements EndpointConnector {
     private static final Logger LOGGER = Logger.getLogger(InboundTCPConnector.class.getName());
 

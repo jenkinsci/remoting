@@ -34,6 +34,7 @@ import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
+@Restricted(NoExternalUse.class)
 public final class SSLUtils {
     private SSLUtils() {}
 

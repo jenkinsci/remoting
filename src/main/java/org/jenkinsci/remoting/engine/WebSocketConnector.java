@@ -48,10 +48,13 @@ import org.glassfish.tyrus.client.ClientManager;
 import org.glassfish.tyrus.client.ClientProperties;
 import org.glassfish.tyrus.client.SslEngineConfigurator;
 import org.jenkinsci.remoting.util.VersionNumber;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Connects to a controller using WebSockets.
  */
+@Restricted(NoExternalUse.class)
 public class WebSocketConnector implements EndpointConnector {
     private static final Logger LOGGER = Logger.getLogger(WebSocketConnector.class.getName());
     private final EndpointConnectorData data;
