@@ -1122,7 +1122,9 @@ public class Launcher {
             engine.setJarCache(new FileSystemJarCache(jarCache, true));
         }
         engine.setNoReconnect(noReconnect);
-        engine.setNoReconnectAfter(noReconnectAfter);
+        if (noReconnectAfter != null) {
+            engine.setNoReconnectAfter(noReconnectAfter);
+        }
         engine.setKeepAlive(!noKeepAlive);
 
         if (noCertificateCheck) {

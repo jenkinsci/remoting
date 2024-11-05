@@ -382,8 +382,8 @@ public class Engine extends Thread {
         this.noReconnect = noReconnect;
     }
 
-    public void setNoReconnectAfter(@CheckForNull Duration noReconnectAfter) {
-        this.noReconnectAfter = noReconnectAfter == null ? Duration.ofDays(10) : noReconnectAfter;
+    public void setNoReconnectAfter(@NonNull Duration noReconnectAfter) {
+        this.noReconnectAfter = noReconnectAfter;
     }
 
     /**
