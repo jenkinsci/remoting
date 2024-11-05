@@ -33,6 +33,8 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.net.URL;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.engine.WorkDirManagerRule;
 import org.junit.Before;
@@ -46,6 +48,7 @@ import org.jvnet.hudson.test.Issue;
  * @author Oleg Nenashev
  */
 public class EngineTest {
+    private static final Logger LOGGER = Logger.getLogger(EngineTest.class.getName());
 
     private static final String SECRET_KEY = "Hello, world!";
     private static final String AGENT_NAME = "testAgent";
@@ -150,6 +153,7 @@ public class EngineTest {
 
             @Override
             public void status(String msg, Throwable t) {
+                LOGGER.log(Level.INFO, msg, t);
                 if (msg.startsWith("Could not locate server among")) {
                     count++;
                 }
