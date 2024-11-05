@@ -78,10 +78,10 @@ class RetryUtils {
             var next = new ExponentialRetry(
                     factor,
                     beginning,
-                    delay,
+                    min(maxDelay, delay.multipliedBy(factor).plus(incrementDelay)),
                     timeout,
                     incrementDelay,
-                    min(maxDelay, delay.multipliedBy(factor).plus(incrementDelay)));
+                    maxDelay);
             if (next.timeoutExceeded()) {
                 events.status("Bailing out after " + DurationFormatter.format(next.timeout));
                 return null;
