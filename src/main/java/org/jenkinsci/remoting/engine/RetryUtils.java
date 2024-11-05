@@ -51,37 +51,16 @@ class RetryUtils {
         return null;
     }
 
-    // TODO JDK17+ record
-    private static class ExponentialRetry {
-        final int factor;
-        final Instant beginning;
-        final Duration delay;
-        final Duration timeout;
-        final Duration incrementDelay;
-        final Duration maxDelay;
-
+    private record ExponentialRetry(
+            int factor,
+            Instant beginning,
+            Duration delay,
+            Duration timeout,
+            Duration incrementDelay,
+            Duration maxDelay) {
 
         ExponentialRetry(Duration timeout) {
-            this(Duration.ofSeconds(0), timeout, 2, Duration.ofSeconds(1), Duration.ofSeconds(10));
-        }
-
-        ExponentialRetry(
-                Duration initialDelay, Duration timeout, int factor, Duration incrementDelay, Duration maxDelay) {
-            this.beginning = Instant.now();
-            this.delay = initialDelay;
-            this.timeout = timeout;
-            this.factor = factor;
-            this.incrementDelay = incrementDelay;
-            this.maxDelay = maxDelay;
-        }
-
-        ExponentialRetry(ExponentialRetry previous) {
-            beginning = previous.beginning;
-            factor = previous.factor;
-            timeout = previous.timeout;
-            incrementDelay = previous.incrementDelay;
-            maxDelay = previous.maxDelay;
-            delay = min(maxDelay, previous.delay.multipliedBy(previous.factor).plus(incrementDelay));
+            this(2, Instant.now(), Duration.ofSeconds(0), timeout, Duration.ofSeconds(1), Duration.ofSeconds(10));
         }
 
         private static Duration min(Duration a, Duration b) {
@@ -93,7 +72,13 @@ class RetryUtils {
         }
 
         ExponentialRetry next(EngineListenerSplitter events) throws InterruptedException {
-            var next = new ExponentialRetry(this);
+            var next = new ExponentialRetry(
+                    factor,
+                    beginning,
+                    delay,
+                    timeout,
+                    incrementDelay,
+                    min(maxDelay, delay.multipliedBy(factor).plus(incrementDelay)));
             if (next.timeoutExceeded()) {
                 events.status("Bailing out after " + DurationFormatter.format(next.timeout));
                 return null;

@@ -168,7 +168,8 @@ public final class SSLUtils {
         return sslContext != null ? sslContext.getSocketFactory() : null;
     }
 
-    public static SSLContext createSSLContext(@CheckForNull DelegatingX509ExtendedTrustManager agentTrustManager) throws IOException {
+    public static SSLContext createSSLContext(@CheckForNull DelegatingX509ExtendedTrustManager agentTrustManager)
+            throws IOException {
         SSLContext context;
         // prepare our SSLContext
         try {
@@ -194,8 +195,7 @@ public final class SSLUtils {
         try {
             kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(
-                    "Java runtime specification requires support for default key manager", e);
+            throw new IllegalStateException("Java runtime specification requires support for default key manager", e);
         }
         try {
             kmf.init(store, password);
@@ -203,7 +203,7 @@ public final class SSLUtils {
             throw new IllegalStateException(e);
         }
         try {
-            context.init(kmf.getKeyManagers(), new TrustManager[]{agentTrustManager}, null);
+            context.init(kmf.getKeyManagers(), new TrustManager[] {agentTrustManager}, null);
         } catch (KeyManagementException e) {
             throw new IllegalStateException(e);
         }

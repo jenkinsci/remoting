@@ -50,6 +50,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSocketFactory;
 import net.jcip.annotations.NotThreadSafe;
 import org.jenkinsci.remoting.engine.EndpointConnector;
+import org.jenkinsci.remoting.engine.EndpointConnectorData;
 import org.jenkinsci.remoting.engine.InboundTCPConnector;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
@@ -516,7 +517,6 @@ public class Engine extends Thread {
         }
     }
 
-
     private JnlpEndpointResolver createJnlpEndpointResolver() {
         if (directConnection == null) {
             SSLSocketFactory sslSocketFactory = null;
@@ -542,39 +542,22 @@ public class Engine extends Thread {
     }
 
     private EndpointConnector getEndpointConnector() {
-        EndpointConnector connector;
+        var data = new EndpointConnectorData(
+                agentName,
+                secretKey,
+                executor,
+                events,
+                noReconnectAfter,
+                candidateCertificates,
+                disableHttpsCertValidation,
+                jarCache,
+                proxyCredentials);
         if (webSocket) {
-            connector = new WebSocketConnector(
-                    agentName,
-                    secretKey,
-                    executor,
-                    jarCache,
-                    events,
-                    proxyCredentials,
-                    candidateCertificates,
-                    disableHttpsCertValidation,
-                    noReconnectAfter,
-                    candidateUrls.get(0),
-                    webSocketHeaders == null ? Map.of() : webSocketHeaders,
-                    hostnameVerifier
-            );
+            return new WebSocketConnector(data, candidateUrls.get(0), webSocketHeaders, hostnameVerifier);
         } else {
-            connector = new InboundTCPConnector(
-                    agentName,
-                    secretKey,
-                    executor,
-                    events,
-                    noReconnectAfter,
-                    candidateCertificates,
-                    disableHttpsCertValidation,
-                    jarCache,
-                    proxyCredentials,
-                    candidateUrls,
-                    agentTrustManager,
-                    keepAlive,
-                    createJnlpEndpointResolver());
+            var jnlpEndpointResolver = createJnlpEndpointResolver();
+            return new InboundTCPConnector(data, candidateUrls, agentTrustManager, keepAlive, jnlpEndpointResolver);
         }
-        return connector;
     }
 
     private void reconnect() {

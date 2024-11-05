@@ -4,7 +4,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.remoting.Channel;
 import java.io.Closeable;
-import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.Future;
 
@@ -32,9 +31,6 @@ public interface EndpointConnector extends Closeable {
      * @return The name of the protocol used by this connection.
      */
     String getProtocol();
-
-    @Override
-    default void close() throws IOException {}
 
     /**
      * @return the URL of the endpoint, if {@link #waitUntilReady()} returned {@code true}.

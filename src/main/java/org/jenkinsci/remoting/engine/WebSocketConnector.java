@@ -31,8 +31,6 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.X509Certificate;
-import java.time.Duration;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -54,8 +52,9 @@ import org.jenkinsci.remoting.util.VersionNumber;
 /**
  * Connects to a controller using WebSockets.
  */
-public class WebSocketConnector extends AbstractEndpointConnector {
+public class WebSocketConnector implements EndpointConnector {
     private static final Logger LOGGER = Logger.getLogger(WebSocketConnector.class.getName());
+    private final EndpointConnectorData data;
 
     @Override
     @NonNull
@@ -82,30 +81,13 @@ public class WebSocketConnector extends AbstractEndpointConnector {
     private final HostnameVerifier hostnameVerifier;
 
     public WebSocketConnector(
-            @NonNull String agentName,
-            @NonNull String secretKey,
-            @NonNull ExecutorService executor,
-            @CheckForNull JarCache jarCache,
-            @NonNull EngineListenerSplitter events,
-            @CheckForNull String proxyCredentials,
-            @CheckForNull List<X509Certificate> candidateCertificates,
-            boolean disableHttpsCertValidation,
-            @NonNull Duration noReconnectAfter,
+            EndpointConnectorData data,
             @NonNull URL url,
-            @NonNull Map<String, String> headers,
+            @CheckForNull Map<String, String> headers,
             @CheckForNull HostnameVerifier hostnameVerifier) {
-        super(
-                agentName,
-                secretKey,
-                executor,
-                events,
-                noReconnectAfter,
-                candidateCertificates,
-                disableHttpsCertValidation,
-                jarCache,
-                proxyCredentials);
+        this.data = data;
         this.url = url;
-        this.headers = new HashMap<>(headers);
+        this.headers = headers == null ? Map.of() : new HashMap<>(headers);
         this.hostnameVerifier = hostnameVerifier;
     }
 
@@ -123,12 +105,17 @@ public class WebSocketConnector extends AbstractEndpointConnector {
             if (status == 200) {
                 return Boolean.TRUE;
             } else {
-                events.status(ping + " is not ready: " + status);
+                data.events().status(ping + " is not ready: " + status);
             }
         } catch (IOException x) {
-            events.status(ping + " is not ready", x);
+            data.events().status(ping + " is not ready", x);
         }
         return null;
+    }
+
+    @Override
+    public void close() throws IOException {
+        // no-op
     }
 
     private static class HeaderHandler extends ClientEndpointConfig.Configurator {
@@ -302,8 +289,8 @@ public class WebSocketConnector extends AbstractEndpointConnector {
     public Future<Channel> connect() throws Exception {
         String localCap = new Capability().toASCII();
         final Map<String, List<String>> addedHeaders = new HashMap<>();
-        addedHeaders.put(JnlpConnectionState.CLIENT_NAME_KEY, List.of(agentName));
-        addedHeaders.put(JnlpConnectionState.SECRET_KEY, List.of(secretKey));
+        addedHeaders.put(JnlpConnectionState.CLIENT_NAME_KEY, List.of(data.agentName()));
+        addedHeaders.put(JnlpConnectionState.SECRET_KEY, List.of(data.secretKey()));
         addedHeaders.put(Capability.KEY, List.of(localCap));
         for (Map.Entry<String, String> entry : headers.entrySet()) {
             addedHeaders.put(entry.getKey(), List.of(entry.getValue()));
@@ -323,7 +310,7 @@ public class WebSocketConnector extends AbstractEndpointConnector {
                     proxyUri = URI.create(String.format("http://%s", proxyHost));
                 }
                 client.getProperties().put(ClientProperties.PROXY_URI, proxyUri);
-                if (proxyCredentials != null) {
+                if (data.proxyCredentials() != null) {
                     client.getProperties()
                             .put(
                                     ClientProperties.PROXY_HEADERS,
@@ -331,12 +318,12 @@ public class WebSocketConnector extends AbstractEndpointConnector {
                                             "Proxy-Authorization",
                                             "Basic "
                                                     + Base64.getEncoder()
-                                                            .encodeToString(proxyCredentials.getBytes(
-                                                                    StandardCharsets.UTF_8))));
+                                                            .encodeToString(data.proxyCredentials()
+                                                                    .getBytes(StandardCharsets.UTF_8))));
                 }
             }
 
-            SSLContext sslContext = getSSLContext(candidateCertificates, disableHttpsCertValidation);
+            SSLContext sslContext = getSSLContext(data.candidateCertificates(), data.disableHttpsCertValidation());
             if (sslContext != null) {
                 SslEngineConfigurator sslEngineConfigurator = new SslEngineConfigurator(sslContext);
                 if (hostnameVerifier != null) {
@@ -347,9 +334,13 @@ public class WebSocketConnector extends AbstractEndpointConnector {
         }
         return RetryUtils.succeedsWithRetries(
                 () -> {
-                    var clientEndpointConfigurator = new HeaderHandler(addedHeaders, events);
+                    var clientEndpointConfigurator = new HeaderHandler(addedHeaders, data.events());
                     var endpointInstance = new AgentEndpoint(
-                            agentName, executor, jarCache, () -> clientEndpointConfigurator.remoteCapability, events);
+                            data.agentName(),
+                            data.executor(),
+                            data.jarCache(),
+                            () -> clientEndpointConfigurator.remoteCapability,
+                            data.events());
                     container.connectToServer(
                             endpointInstance,
                             ClientEndpointConfig.Builder.create()
@@ -358,13 +349,13 @@ public class WebSocketConnector extends AbstractEndpointConnector {
                             URI.create(wsUrl + "wsagents/"));
                     return endpointInstance.getChannel();
                 },
-                noReconnectAfter,
-                events);
+                data.noReconnectAfter(),
+                data.events());
     }
 
     @Override
     public Boolean waitUntilReady() throws InterruptedException {
-        return RetryUtils.succeedsWithRetries(this::pingSuccessful, noReconnectAfter, events);
+        return RetryUtils.succeedsWithRetries(this::pingSuccessful, data.noReconnectAfter(), data.events());
     }
 
     @Override
