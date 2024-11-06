@@ -66,7 +66,7 @@ THE SOFTWARE.
     <spotbugs.threshold>Low</spotbugs.threshold>
     <spotless.check.skip>false</spotless.check.skip>
     <bc-version>1.79</bc-version>
-    <argLine>-Xms384M -Xmx384M -XX:+TieredCompilation -XX:TieredStopAtLevel=1</argLine>
+    <argLine>-Xms512M -Xmx512M -XX:+TieredCompilation -XX:TieredStopAtLevel=1</argLine>
   </properties>
 
   <dependencies>
