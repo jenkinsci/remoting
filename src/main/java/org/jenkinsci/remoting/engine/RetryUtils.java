@@ -11,10 +11,7 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.util.DurationFormatter;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-@Restricted(NoExternalUse.class)
 class RetryUtils {
     private static final Logger LOGGER = Logger.getLogger(RetryUtils.class.getName());
 
