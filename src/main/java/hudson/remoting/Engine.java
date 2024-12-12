@@ -23,91 +23,43 @@
  */
 package hudson.remoting;
 
+import static org.jenkinsci.remoting.util.SSLUtils.getSSLSocketFactory;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import jakarta.websocket.ClientEndpointConfig;
-import jakarta.websocket.CloseReason;
-import jakarta.websocket.ContainerProvider;
-import jakarta.websocket.Endpoint;
-import jakarta.websocket.EndpointConfig;
-import jakarta.websocket.HandshakeResponse;
-import jakarta.websocket.Session;
-import jakarta.websocket.WebSocketContainer;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.Socket;
-import java.net.URI;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.security.SecureRandom;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.RSAPublicKey;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
 import net.jcip.annotations.NotThreadSafe;
-import org.glassfish.tyrus.client.ClientManager;
-import org.glassfish.tyrus.client.ClientProperties;
-import org.glassfish.tyrus.client.SslEngineConfigurator;
-import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
-import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
+import org.jenkinsci.remoting.engine.EndpointConnector;
+import org.jenkinsci.remoting.engine.EndpointConnectorData;
+import org.jenkinsci.remoting.engine.InboundTCPConnector;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
-import org.jenkinsci.remoting.engine.JnlpConnectionState;
-import org.jenkinsci.remoting.engine.JnlpConnectionStateListener;
 import org.jenkinsci.remoting.engine.JnlpEndpointResolver;
-import org.jenkinsci.remoting.engine.JnlpProtocolHandler;
-import org.jenkinsci.remoting.engine.JnlpProtocolHandlerFactory;
+import org.jenkinsci.remoting.engine.WebSocketConnector;
 import org.jenkinsci.remoting.engine.WorkDirManager;
-import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.cert.BlindTrustX509ExtendedTrustManager;
 import org.jenkinsci.remoting.protocol.cert.DelegatingX509ExtendedTrustManager;
-import org.jenkinsci.remoting.protocol.cert.PublicKeyMatchingX509ExtendedTrustManager;
-import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
-import org.jenkinsci.remoting.util.DurationFormatter;
-import org.jenkinsci.remoting.util.KeyUtils;
-import org.jenkinsci.remoting.util.VersionNumber;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
-import org.jenkinsci.remoting.util.https.NoCheckTrustManager;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Agent engine that proactively connects to Jenkins controller.
@@ -198,7 +150,8 @@ public class Engine extends Thread {
 
     private boolean noReconnect = false;
 
-    private Duration noReconnectAfter;
+    @NonNull
+    private Duration noReconnectAfter = Duration.ofDays(10);
 
     /**
      * Determines whether the socket will have {@link Socket#setKeepAlive(boolean)} set or not.
@@ -269,7 +222,7 @@ public class Engine extends Thread {
 
     public Engine(
             EngineListener listener,
-            List<URL> hudsonUrls,
+            List<URL> urls,
             String secretKey,
             String agentName,
             String directConnection,
@@ -278,8 +231,7 @@ public class Engine extends Thread {
         this.listener = listener;
         this.directConnection = directConnection;
         this.events.add(listener);
-        this.candidateUrls =
-                hudsonUrls.stream().map(Engine::ensureTrailingSlash).collect(Collectors.toList());
+        this.candidateUrls = urls.stream().map(Engine::ensureTrailingSlash).collect(Collectors.toList());
         this.secretKey = secretKey;
         this.agentName = agentName;
         this.instanceIdentity = instanceIdentity;
@@ -430,7 +382,7 @@ public class Engine extends Thread {
         this.noReconnect = noReconnect;
     }
 
-    public void setNoReconnectAfter(@CheckForNull Duration noReconnectAfter) {
+    public void setNoReconnectAfter(@NonNull Duration noReconnectAfter) {
         this.noReconnectAfter = noReconnectAfter;
     }
 
@@ -535,277 +487,25 @@ public class Engine extends Thread {
     }
 
     @Override
-    @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "We need to catch all exceptions")
     public void run() {
-        if (webSocket) {
-            runWebSocket();
-            return;
-        }
-        // Create the engine
-        try {
-            try (IOHub hub = IOHub.create(executor)) {
-                SSLContext context;
-                // prepare our SSLContext
-                try {
-                    context = SSLContext.getInstance("TLS");
-                } catch (NoSuchAlgorithmException e) {
-                    throw new IllegalStateException("Java runtime specification requires support for TLS algorithm", e);
-                }
-                char[] password = "password".toCharArray();
-                KeyStore store;
-                try {
-                    store = KeyStore.getInstance(KeyStore.getDefaultType());
-                } catch (KeyStoreException e) {
-                    throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
-                }
-                try {
-                    store.load(null, password);
-                } catch (NoSuchAlgorithmException e) {
-                    throw new IllegalStateException("Java runtime specification requires support for JKS key store", e);
-                } catch (CertificateException e) {
-                    throw new IllegalStateException("Empty keystore", e);
-                }
-                KeyManagerFactory kmf;
-                try {
-                    kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                } catch (NoSuchAlgorithmException e) {
-                    throw new IllegalStateException(
-                            "Java runtime specification requires support for default key manager", e);
-                }
-                try {
-                    kmf.init(store, password);
-                } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
-                    throw new IllegalStateException(e);
-                }
-                try {
-                    context.init(kmf.getKeyManagers(), new TrustManager[] {agentTrustManager}, null);
-                } catch (KeyManagementException e) {
-                    events.error(e);
-                    return;
-                }
-                innerRun(hub, context, executor);
-            }
-        } catch (IOException e) {
-            events.error(e);
-        }
-    }
-
-    @SuppressFBWarnings(
-            value = {"REC_CATCH_EXCEPTION"},
-            justification = "checked exceptions were a mistake to begin with; connecting to Jenkins from agent")
-    private void runWebSocket() {
-        try {
-            String localCap = new Capability().toASCII();
-            final Map<String, List<String>> addedHeaders = new HashMap<>();
-            addedHeaders.put(JnlpConnectionState.CLIENT_NAME_KEY, List.of(agentName));
-            addedHeaders.put(JnlpConnectionState.SECRET_KEY, List.of(secretKey));
-            addedHeaders.put(Capability.KEY, List.of(localCap));
-            if (webSocketHeaders != null) {
-                for (Map.Entry<String, String> entry : webSocketHeaders.entrySet()) {
-                    addedHeaders.put(entry.getKey(), List.of(entry.getValue()));
-                }
-            }
+        try (var connector = getEndpointConnector()) {
             while (true) {
-                AtomicReference<Channel> ch = new AtomicReference<>();
-                class HeaderHandler extends ClientEndpointConfig.Configurator {
-                    Capability remoteCapability = new Capability();
-
-                    @Override
-                    public void beforeRequest(Map<String, List<String>> headers) {
-                        headers.putAll(addedHeaders);
-                        LOGGER.fine(() -> "Sending: " + headers);
-                    }
-
-                    @Override
-                    public void afterResponse(HandshakeResponse hr) {
-                        LOGGER.fine(() -> "Receiving: " + hr.getHeaders());
-                        List<String> remotingMinimumVersion = hr.getHeaders().get(REMOTING_MINIMUM_VERSION_HEADER);
-                        if (remotingMinimumVersion != null && !remotingMinimumVersion.isEmpty()) {
-                            VersionNumber minimumSupportedVersion = new VersionNumber(remotingMinimumVersion.get(0));
-                            VersionNumber currentVersion = new VersionNumber(Launcher.VERSION);
-                            if (currentVersion.isOlderThan(minimumSupportedVersion)) {
-                                events.error(new IOException(
-                                        "Agent version " + minimumSupportedVersion + " or newer is required."));
-                            }
-                        }
-                        try {
-                            List<String> cookies = hr.getHeaders().get(Engine.WEBSOCKET_COOKIE_HEADER);
-                            if (cookies != null && !cookies.isEmpty()) {
-                                addedHeaders.put(Engine.WEBSOCKET_COOKIE_HEADER, List.of(cookies.get(0)));
-                            } else {
-                                addedHeaders.remove(Engine.WEBSOCKET_COOKIE_HEADER);
-                            }
-                            List<String> advertisedCapability = hr.getHeaders().get(Capability.KEY);
-                            if (advertisedCapability == null) {
-                                LOGGER.warning("Did not receive " + Capability.KEY + " header");
-                            } else {
-                                remoteCapability = Capability.fromASCII(advertisedCapability.get(0));
-                                LOGGER.fine(() -> "received " + remoteCapability);
-                            }
-                        } catch (IOException x) {
-                            events.error(x);
-                        }
-                    }
+                if (connector.waitUntilReady() == null) {
+                    break;
                 }
-                HeaderHandler headerHandler = new HeaderHandler();
-                class AgentEndpoint extends Endpoint {
-                    @SuppressFBWarnings(
-                            value = "UWF_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR",
-                            justification = "just trust me here")
-                    AgentEndpoint.Transport transport;
-
-                    @Override
-                    public void onOpen(Session session, EndpointConfig config) {
-                        events.status("WebSocket connection open");
-                        session.addMessageHandler(ByteBuffer.class, this::onMessage);
-                        try {
-                            transport = new Transport(session);
-                            ch.set(new ChannelBuilder(agentName, executor)
-                                    .withJarCacheOrDefault(jarCache)
-                                    . // unless EngineJnlpConnectionStateListener can be used for this purpose
-                                    build(transport));
-                        } catch (IOException x) {
-                            events.error(x);
-                        }
-                    }
-
-                    private void onMessage(ByteBuffer message) {
-                        try {
-                            transport.receive(message);
-                        } catch (IOException x) {
-                            events.error(x);
-                        } catch (InterruptedException x) {
-                            events.error(x);
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-
-                    @Override
-                    @SuppressFBWarnings(
-                            value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
-                            justification =
-                                    "We want the transport.terminate method to run asynchronously and don't want to wait for its status.")
-                    public void onClose(Session session, CloseReason closeReason) {
-                        LOGGER.fine(() -> "onClose: " + closeReason);
-                        // making this call async to avoid potential deadlocks when some thread is holding a lock on the
-                        // channel object while this thread is trying to acquire it to call Transport#terminate
-                        ch.get().executor.submit(() -> transport.terminate(new ChannelClosedException(ch.get(), null)));
-                    }
-
-                    @Override
-                    @SuppressFBWarnings(
-                            value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",
-                            justification =
-                                    "We want the transport.terminate method to run asynchronously and don't want to wait for its status.")
-                    public void onError(Session session, Throwable x) {
-                        // TODO or would events.error(x) be better?
-                        LOGGER.log(Level.FINE, null, x);
-                        // as above
-                        ch.get().executor.submit(() -> transport.terminate(new ChannelClosedException(ch.get(), x)));
-                    }
-
-                    class Transport extends AbstractByteBufferCommandTransport {
-                        final Session session;
-
-                        Transport(Session session) {
-                            super(true);
-                            this.session = session;
-                        }
-
-                        @Override
-                        protected void write(ByteBuffer headerAndData) throws IOException {
-                            LOGGER.finest(() ->
-                                    "sending message of length " + (headerAndData.remaining() - ChunkHeader.SIZE));
-                            try {
-                                session.getAsyncRemote()
-                                        .sendBinary(headerAndData)
-                                        .get(5, TimeUnit.MINUTES);
-                            } catch (Exception x) {
-                                throw new IOException(x);
-                            }
-                        }
-
-                        @Override
-                        public Capability getRemoteCapability() {
-                            return headerHandler.remoteCapability;
-                        }
-
-                        @Override
-                        public void closeWrite() throws IOException {
-                            events.status("Write side closed");
-                            session.close();
-                        }
-
-                        @Override
-                        public void closeRead() throws IOException {
-                            events.status("Read side closed");
-                            session.close();
-                        }
-                    }
+                var channelFuture = connector.connect();
+                if (channelFuture == null) {
+                    break;
                 }
-                hudsonUrl = candidateUrls.get(0);
-                String wsUrl = hudsonUrl.toString().replaceFirst("^http", "ws");
-                WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-                if (container instanceof ClientManager) {
-                    ClientManager client = (ClientManager) container;
-
-                    String proxyHost = System.getProperty("http.proxyHost", System.getenv("proxy_host"));
-                    String proxyPort = System.getProperty("http.proxyPort");
-                    if (proxyHost != null
-                            && "http".equals(hudsonUrl.getProtocol())
-                            && NoProxyEvaluator.shouldProxy(hudsonUrl.getHost())) {
-                        URI proxyUri;
-                        if (proxyPort != null) {
-                            proxyUri = URI.create(String.format("http://%s:%s", proxyHost, proxyPort));
-                        } else {
-                            proxyUri = URI.create(String.format("http://%s", proxyHost));
-                        }
-                        client.getProperties().put(ClientProperties.PROXY_URI, proxyUri);
-                        if (proxyCredentials != null) {
-                            client.getProperties()
-                                    .put(
-                                            ClientProperties.PROXY_HEADERS,
-                                            Map.of(
-                                                    "Proxy-Authorization",
-                                                    "Basic "
-                                                            + Base64.getEncoder()
-                                                                    .encodeToString(proxyCredentials.getBytes(
-                                                                            StandardCharsets.UTF_8))));
-                        }
-                    }
-
-                    SSLContext sslContext = getSSLContext(candidateCertificates, disableHttpsCertValidation);
-                    if (sslContext != null) {
-                        SslEngineConfigurator sslEngineConfigurator = new SslEngineConfigurator(sslContext);
-                        if (hostnameVerifier != null) {
-                            sslEngineConfigurator.setHostnameVerifier(hostnameVerifier);
-                        }
-                        client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
-                    }
-                }
-                if (!succeedsWithRetries(this::pingSuccessful)) {
-                    return;
-                }
-                if (!succeedsWithRetries(() -> {
-                    container.connectToServer(
-                            new AgentEndpoint(),
-                            ClientEndpointConfig.Builder.create()
-                                    .configurator(headerHandler)
-                                    .build(),
-                            URI.create(wsUrl + "wsagents/"));
-                    return true;
-                })) {
-                    return;
-                }
-                while (ch.get() == null) {
-                    Thread.sleep(100);
-                }
-                this.protocolName = "WebSocket";
+                var channel = channelFuture.get();
+                this.protocolName = connector.getProtocol();
+                this.hudsonUrl = connector.getUrl();
                 events.status("Connected");
-                ch.get().join();
+                channel.join();
                 events.status("Terminated");
                 if (noReconnect) {
-                    return;
+                    break;
                 }
                 events.onDisconnect();
                 reconnect();
@@ -815,98 +515,46 @@ public class Engine extends Thread {
         }
     }
 
-    /**
-     * Evaluates a condition with exponential backoff until it succeeds or the timeout is reached.
-     * @param condition the condition to attempt to succeed with exponential backoff
-     * @return true if the condition succeeded, false if the condition failed and the timeout was reached
-     * @throws InterruptedException if the thread was interrupted while waiting.
-     */
-    private boolean succeedsWithRetries(java.util.concurrent.Callable<Boolean> condition) throws InterruptedException {
-        var exponentialRetry = new ExponentialRetry(noReconnectAfter);
-        while (exponentialRetry != null) {
+    private JnlpEndpointResolver createJnlpEndpointResolver() {
+        if (directConnection == null) {
+            SSLSocketFactory sslSocketFactory = null;
             try {
-                if (condition.call()) {
-                    return true;
-                }
-            } catch (Exception x) {
-                events.status("Failed to connect: " + x.getMessage());
+                sslSocketFactory = getSSLSocketFactory(candidateCertificates, disableHttpsCertValidation);
+            } catch (Exception e) {
+                events.error(e);
             }
-            exponentialRetry = exponentialRetry.next(events);
+            return new JnlpAgentEndpointResolver(
+                    candidateUrls.stream().map(URL::toExternalForm).collect(Collectors.toList()),
+                    agentName,
+                    credentials,
+                    proxyCredentials,
+                    tunnel,
+                    sslSocketFactory,
+                    noReconnect,
+                    noReconnectAfter,
+                    events);
+        } else {
+            return new JnlpAgentEndpointConfigurator(
+                    directConnection, instanceIdentity, protocols, proxyCredentials, events);
         }
-        return false;
     }
 
-    @SuppressFBWarnings(
-            value = {"URLCONNECTION_SSRF_FD"},
-            justification = "url is provided by the user, and we are trying to connect to it")
-    private Boolean pingSuccessful() throws MalformedURLException {
-        // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be
-        // a 404 if the TCP port is disabled.
-        URL ping = new URL(hudsonUrl, "login");
-        try {
-            HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
-            int status = conn.getResponseCode();
-            conn.disconnect();
-            if (status == 200) {
-                return true;
-            } else {
-                events.status(ping + " is not ready: " + status);
-            }
-        } catch (IOException x) {
-            events.status(ping + " is not ready", x);
-        }
-        return false;
-    }
-
-    private static class ExponentialRetry {
-        final int factor;
-        final Instant beginning;
-        final Duration delay;
-        final Duration timeout;
-        final Duration incrementDelay;
-        final Duration maxDelay;
-
-        ExponentialRetry(Duration timeout) {
-            this(Duration.ofSeconds(0), timeout, 2, Duration.ofSeconds(1), Duration.ofSeconds(10));
-        }
-
-        ExponentialRetry(
-                Duration initialDelay, Duration timeout, int factor, Duration incrementDelay, Duration maxDelay) {
-            this.beginning = Instant.now();
-            this.delay = initialDelay;
-            this.timeout = timeout;
-            this.factor = factor;
-            this.incrementDelay = incrementDelay;
-            this.maxDelay = maxDelay;
-        }
-
-        ExponentialRetry(ExponentialRetry previous) {
-            beginning = previous.beginning;
-            factor = previous.factor;
-            timeout = previous.timeout;
-            incrementDelay = previous.incrementDelay;
-            maxDelay = previous.maxDelay;
-            delay = min(maxDelay, previous.delay.multipliedBy(previous.factor).plus(incrementDelay));
-        }
-
-        private static Duration min(Duration a, Duration b) {
-            return a.compareTo(b) < 0 ? a : b;
-        }
-
-        boolean timeoutExceeded() {
-            return Util.shouldBailOut(beginning, timeout);
-        }
-
-        ExponentialRetry next(EngineListenerSplitter events) throws InterruptedException {
-            var next = new ExponentialRetry(this);
-            if (next.timeoutExceeded()) {
-                events.status("Bailing out after " + DurationFormatter.format(next.timeout));
-                return null;
-            } else {
-                events.status("Waiting " + DurationFormatter.format(next.delay) + " before retry");
-                Thread.sleep(next.delay.toMillis());
-            }
-            return next;
+    private EndpointConnector getEndpointConnector() {
+        var data = new EndpointConnectorData(
+                agentName,
+                secretKey,
+                executor,
+                events,
+                noReconnectAfter,
+                candidateCertificates,
+                disableHttpsCertValidation,
+                jarCache,
+                proxyCredentials);
+        if (webSocket) {
+            return new WebSocketConnector(data, candidateUrls.get(0), webSocketHeaders, hostnameVerifier);
+        } else {
+            var jnlpEndpointResolver = createJnlpEndpointResolver();
+            return new InboundTCPConnector(data, candidateUrls, agentTrustManager, keepAlive, jnlpEndpointResolver);
         }
     }
 
@@ -918,227 +566,6 @@ public class Engine extends Thread {
         } catch (NoClassDefFoundError e) {
             events.status("onReconnect operation failed.");
             LOGGER.log(Level.WARNING, "Reconnection error.", e);
-        }
-    }
-
-    private void innerRun(IOHub hub, SSLContext context, ExecutorService service) {
-        // Create the protocols that will be attempted to connect to the controller.
-        List<JnlpProtocolHandler<? extends JnlpConnectionState>> protocols = new JnlpProtocolHandlerFactory(service)
-                .withIOHub(hub)
-                .withSSLContext(context)
-                .withPreferNonBlockingIO(false) // we only have one connection, prefer blocking I/O
-                .handlers();
-        final Map<String, String> headers = new HashMap<>();
-        headers.put(JnlpConnectionState.CLIENT_NAME_KEY, agentName);
-        headers.put(JnlpConnectionState.SECRET_KEY, secretKey);
-        List<String> jenkinsUrls = new ArrayList<>();
-        for (URL url : candidateUrls) {
-            jenkinsUrls.add(url.toExternalForm());
-        }
-        JnlpEndpointResolver resolver = createEndpointResolver(jenkinsUrls, agentName);
-
-        try {
-            boolean first = true;
-            var firstAttempt = Instant.now();
-            while (true) {
-                if (first) {
-                    first = false;
-                } else {
-                    if (noReconnect) {
-                        return; // exit
-                    }
-                }
-                if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
-                    events.status("Bailing out after " + DurationFormatter.format(noReconnectAfter));
-                    return;
-                }
-                events.status("Locating server among " + candidateUrls);
-                final JnlpAgentEndpoint endpoint;
-                try {
-                    endpoint = resolver.resolve();
-                } catch (IOException e) {
-                    if (!noReconnect) {
-                        events.status(
-                                "Could not locate server among " + candidateUrls + "; waiting 10 seconds before retry",
-                                e);
-                        // TODO refactor various sleep statements into a common method
-                        TimeUnit.SECONDS.sleep(10);
-                        continue;
-                    } else {
-                        if (Boolean.getBoolean(
-                                Engine.class.getName() + ".nonFatalJnlpAgentEndpointResolutionExceptions")) {
-                            events.status("Could not resolve JNLP agent endpoint", e);
-                        } else {
-                            events.error(e);
-                        }
-                    }
-                    return;
-                }
-                if (endpoint == null) {
-                    events.status("Could not resolve server among " + candidateUrls);
-                    return;
-                }
-                hudsonUrl = endpoint.getServiceUrl();
-
-                events.status(String.format(
-                        "Agent discovery successful%n"
-                                + "  Agent address: %s%n"
-                                + "  Agent port:    %d%n"
-                                + "  Identity:      %s",
-                        endpoint.getHost(), endpoint.getPort(), KeyUtils.fingerprint(endpoint.getPublicKey())));
-                PublicKeyMatchingX509ExtendedTrustManager delegate = new PublicKeyMatchingX509ExtendedTrustManager();
-                RSAPublicKey publicKey = endpoint.getPublicKey();
-                if (publicKey != null) {
-                    // This is so that JNLP4-connect will only connect if the public key matches
-                    // if the public key is not published then JNLP4-connect will refuse to connect
-                    delegate.add(publicKey);
-                }
-                agentTrustManager.setDelegate(delegate);
-
-                events.status("Handshaking");
-                Socket jnlpSocket = connectTcp(endpoint);
-                Channel channel = null;
-
-                try {
-                    // Try available protocols.
-                    boolean triedAtLeastOneProtocol = false;
-                    for (JnlpProtocolHandler<? extends JnlpConnectionState> protocol : protocols) {
-                        if (!protocol.isEnabled()) {
-                            events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
-                            continue;
-                        }
-                        if (jnlpSocket == null) {
-                            jnlpSocket = connectTcp(endpoint);
-                        }
-                        if (!endpoint.isProtocolSupported(protocol.getName())) {
-                            events.status("Server reports protocol " + protocol.getName() + " not supported, skipping");
-                            continue;
-                        }
-                        triedAtLeastOneProtocol = true;
-                        events.status("Trying protocol: " + protocol.getName());
-                        try {
-                            channel = protocol.connect(
-                                            jnlpSocket,
-                                            headers,
-                                            new EngineJnlpConnectionStateListener(endpoint.getPublicKey(), headers))
-                                    .get();
-                        } catch (IOException ioe) {
-                            events.status("Protocol " + protocol.getName() + " failed to establish channel", ioe);
-                        } catch (RuntimeException e) {
-                            events.status("Protocol " + protocol.getName() + " encountered a runtime error", e);
-                        } catch (Error e) {
-                            events.status(
-                                    "Protocol " + protocol.getName() + " could not be completed due to an error", e);
-                        } catch (Throwable e) {
-                            events.status("Protocol " + protocol.getName() + " encountered an unexpected exception", e);
-                        }
-
-                        // On success do not try other protocols.
-                        if (channel != null) {
-                            this.protocolName = protocol.getName();
-                            break;
-                        }
-
-                        // On failure form a new connection.
-                        jnlpSocket.close();
-                        jnlpSocket = null;
-                    }
-
-                    // If no protocol worked.
-                    if (channel == null) {
-                        if (triedAtLeastOneProtocol) {
-                            onConnectionRejected("None of the protocols were accepted");
-                        } else {
-                            onConnectionRejected("None of the protocols are enabled");
-                            return; // exit
-                        }
-                        continue;
-                    }
-
-                    events.status("Connected");
-                    channel.join();
-                    events.status("Terminated");
-                } finally {
-                    if (jnlpSocket != null) {
-                        try {
-                            jnlpSocket.close();
-                        } catch (IOException e) {
-                            events.status("Failed to close socket", e);
-                        }
-                    }
-                }
-                if (noReconnect) {
-                    return; // exit
-                }
-                firstAttempt = Instant.now();
-                events.onDisconnect();
-
-                // try to connect back to the server every 10 secs.
-                resolver.waitForReady();
-
-                reconnect();
-            }
-        } catch (Throwable e) {
-            events.error(e);
-        }
-    }
-
-    private JnlpEndpointResolver createEndpointResolver(List<String> jenkinsUrls, String agentName) {
-        JnlpEndpointResolver resolver;
-        if (directConnection == null) {
-            SSLSocketFactory sslSocketFactory = null;
-            try {
-                sslSocketFactory = getSSLSocketFactory(candidateCertificates, disableHttpsCertValidation);
-            } catch (Exception e) {
-                events.error(e);
-            }
-            resolver = new JnlpAgentEndpointResolver(
-                    jenkinsUrls,
-                    agentName,
-                    credentials,
-                    proxyCredentials,
-                    tunnel,
-                    sslSocketFactory,
-                    disableHttpsCertValidation,
-                    noReconnectAfter);
-        } else {
-            resolver =
-                    new JnlpAgentEndpointConfigurator(directConnection, instanceIdentity, protocols, proxyCredentials);
-        }
-        return resolver;
-    }
-
-    private void onConnectionRejected(String greeting) throws InterruptedException {
-        events.status(
-                "reconnect rejected, sleeping 10s: ", new Exception("The server rejected the connection: " + greeting));
-        // TODO refactor various sleep statements into a common method
-        TimeUnit.SECONDS.sleep(10);
-    }
-
-    /**
-     * Connects to TCP agent host:port, with a few retries.
-     * @param endpoint Connection endpoint
-     * @throws IOException Connection failure or invalid parameter specification
-     */
-    private Socket connectTcp(@NonNull JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
-
-        String msg = "Connecting to " + endpoint.getHost() + ':' + endpoint.getPort();
-        events.status(msg);
-        int retry = 1;
-        while (true) {
-            try {
-                final Socket s =
-                        endpoint.open(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
-                s.setKeepAlive(keepAlive);
-                return s;
-            } catch (IOException e) {
-                if (retry++ > 10) {
-                    throw e;
-                }
-                // TODO refactor various sleep statements into a common method
-                TimeUnit.SECONDS.sleep(10);
-                events.status(msg + " (retrying:" + retry + ")", e);
-            }
         }
     }
 
@@ -1156,139 +583,13 @@ public class Engine extends Thread {
 
     private static final Logger LOGGER = Logger.getLogger(Engine.class.getName());
 
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "File path is loaded from system properties.")
-    static KeyStore getCacertsKeyStore()
-            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-                    NoSuchAlgorithmException, IOException {
-        Map<String, String> properties =
-                AccessController.doPrivileged((PrivilegedExceptionAction<Map<String, String>>) () -> {
-                    Map<String, String> result = new HashMap<>();
-                    result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
-                    result.put("javaHome", System.getProperty("java.home"));
-                    result.put(
-                            "trustStoreType",
-                            System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
-                    result.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
-                    result.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
-                    return result;
-                });
-        KeyStore keystore = null;
-
-        FileInputStream trustStoreStream = null;
-        try {
-            String trustStore = properties.get("trustStore");
-            if (!"NONE".equals(trustStore)) {
-                File trustStoreFile;
-                if (trustStore != null) {
-                    trustStoreFile = new File(trustStore);
-                    trustStoreStream = getFileInputStream(trustStoreFile);
-                } else {
-                    String javaHome = properties.get("javaHome");
-                    trustStoreFile = new File(javaHome + File.separator + "lib" + File.separator + "security"
-                            + File.separator + "jssecacerts");
-                    if ((trustStoreStream = getFileInputStream(trustStoreFile)) == null) {
-                        trustStoreFile = new File(javaHome + File.separator + "lib" + File.separator + "security"
-                                + File.separator + "cacerts");
-                        trustStoreStream = getFileInputStream(trustStoreFile);
-                    }
-                }
-
-                if (trustStoreStream != null) {
-                    trustStore = trustStoreFile.getPath();
-                } else {
-                    trustStore = "No File Available, using empty keystore.";
-                }
-            }
-
-            String trustStoreType = properties.get("trustStoreType");
-            String trustStoreProvider = properties.get("trustStoreProvider");
-            LOGGER.log(Level.FINE, "trustStore is: {0}", trustStore);
-            LOGGER.log(Level.FINE, "trustStore type is: {0}", trustStoreType);
-            LOGGER.log(Level.FINE, "trustStore provider is: {0}", trustStoreProvider);
-
-            if (trustStoreType.length() != 0) {
-                LOGGER.log(Level.FINE, "init truststore");
-
-                if (trustStoreProvider.length() == 0) {
-                    keystore = KeyStore.getInstance(trustStoreType);
-                } else {
-                    keystore = KeyStore.getInstance(trustStoreType, trustStoreProvider);
-                }
-
-                char[] trustStorePasswdChars = null;
-                String trustStorePasswd = properties.get("trustStorePasswd");
-                if (trustStorePasswd.length() != 0) {
-                    trustStorePasswdChars = trustStorePasswd.toCharArray();
-                }
-
-                keystore.load(trustStoreStream, trustStorePasswdChars);
-                if (trustStorePasswdChars != null) {
-                    Arrays.fill(trustStorePasswdChars, (char) 0);
-                }
-            }
-        } finally {
-            if (trustStoreStream != null) {
-                trustStoreStream.close();
-            }
-        }
-
-        return keystore;
-    }
-
-    @CheckForNull
-    private static FileInputStream getFileInputStream(final File file) throws PrivilegedActionException {
-        return AccessController.doPrivileged((PrivilegedExceptionAction<FileInputStream>) () -> {
-            try {
-                return file.exists() ? new FileInputStream(file) : null;
-            } catch (FileNotFoundException e) {
-                return null;
-            }
-        });
-    }
-
-    @CheckForNull
-    private static SSLContext getSSLContext(List<X509Certificate> x509Certificates, boolean noCertificateCheck)
-            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-                    NoSuchAlgorithmException, IOException, KeyManagementException {
-        SSLContext sslContext = null;
-        if (noCertificateCheck) {
-            sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, new TrustManager[] {new NoCheckTrustManager()}, new SecureRandom());
-        } else if (x509Certificates != null && !x509Certificates.isEmpty()) {
-            KeyStore keyStore = getCacertsKeyStore();
-            // load the keystore
-            keyStore.load(null, null);
-            int i = 0;
-            for (X509Certificate c : x509Certificates) {
-                keyStore.setCertificateEntry(String.format("alias-%d", i++), c);
-            }
-            // prepare the trust manager
-            TrustManagerFactory trustManagerFactory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            trustManagerFactory.init(keyStore);
-            // prepare the SSL context
-            SSLContext ctx = SSLContext.getInstance("TLS");
-            // now we have our custom socket factory
-            ctx.init(null, trustManagerFactory.getTrustManagers(), null);
-        }
-        return sslContext;
-    }
-
-    @CheckForNull
-    @Restricted(NoExternalUse.class)
-    static SSLSocketFactory getSSLSocketFactory(List<X509Certificate> x509Certificates, boolean noCertificateCheck)
-            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-                    NoSuchAlgorithmException, IOException, KeyManagementException {
-        SSLContext sslContext = getSSLContext(x509Certificates, noCertificateCheck);
-        return sslContext != null ? sslContext.getSocketFactory() : null;
-    }
-
     /**
      * Socket read timeout.
      * A {@link SocketInputStream#read()} call associated with underlying Socket will block for only this amount of time
      * @since 2.4
      */
-    static final int SOCKET_TIMEOUT = Integer.getInteger(Engine.class.getName() + ".socketTimeout", 30 * 60 * 1000);
+    public static final int SOCKET_TIMEOUT =
+            Integer.getInteger(Engine.class.getName() + ".socketTimeout", 30 * 60 * 1000);
 
     /**
      * Get the agent name associated with this Engine instance.
@@ -1311,54 +612,5 @@ public class Engine extends Thread {
      */
     public String getProtocolName() {
         return this.protocolName;
-    }
-
-    private class EngineJnlpConnectionStateListener extends JnlpConnectionStateListener {
-
-        private final RSAPublicKey publicKey;
-        private final Map<String, String> headers;
-
-        public EngineJnlpConnectionStateListener(RSAPublicKey publicKey, Map<String, String> headers) {
-            this.publicKey = publicKey;
-            this.headers = headers;
-        }
-
-        @Override
-        public void beforeProperties(@NonNull JnlpConnectionState event) {
-            if (event instanceof Jnlp4ConnectionState) {
-                X509Certificate certificate = ((Jnlp4ConnectionState) event).getCertificate();
-                if (certificate != null) {
-                    String fingerprint = KeyUtils.fingerprint(certificate.getPublicKey());
-                    if (!KeyUtils.equals(publicKey, certificate.getPublicKey())) {
-                        event.reject(new ConnectionRefusalException("Expecting identity " + fingerprint));
-                    }
-                    events.status("Remote identity confirmed: " + fingerprint);
-                }
-            }
-        }
-
-        @Override
-        public void afterProperties(@NonNull JnlpConnectionState event) {
-            event.approve();
-        }
-
-        @Override
-        public void beforeChannel(@NonNull JnlpConnectionState event) {
-            ChannelBuilder bldr = event.getChannelBuilder().withMode(Channel.Mode.BINARY);
-            if (jarCache != null) {
-                bldr.withJarCache(jarCache);
-            }
-        }
-
-        @Override
-        public void afterChannel(@NonNull JnlpConnectionState event) {
-            // store the new cookie for next connection attempt
-            String cookie = event.getProperty(JnlpConnectionState.COOKIE_KEY);
-            if (cookie == null) {
-                headers.remove(JnlpConnectionState.COOKIE_KEY);
-            } else {
-                headers.put(JnlpConnectionState.COOKIE_KEY, cookie);
-            }
-        }
     }
 }

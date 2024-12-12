@@ -66,9 +66,7 @@ THE SOFTWARE.
     <spotbugs.threshold>Low</spotbugs.threshold>
     <spotless.check.skip>false</spotless.check.skip>
     <bc-version>1.79</bc-version>
-    <argLine>-Xms256M -Xmx256M -XX:+TieredCompilation -XX:TieredStopAtLevel=1</argLine>
-    <!-- TODO until we are ready to drop support for Java 11 agents -->
-    <maven.compiler.release>11</maven.compiler.release>
+    <argLine>-Xms384M -Xmx384M -XX:+TieredCompilation -XX:TieredStopAtLevel=1</argLine>
   </properties>
 
   <dependencies>

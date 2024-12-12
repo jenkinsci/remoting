@@ -146,7 +146,7 @@ public class EngineTest {
 
     private static class NoReconnectException extends RuntimeException {}
 
-    @Test(timeout = 30_000)
+    @Test(timeout = 10_000)
     public void shouldReconnectOnJnlpAgentEndpointResolutionExceptions() {
         EngineListener l = new TestEngineListener() {
             private int count;

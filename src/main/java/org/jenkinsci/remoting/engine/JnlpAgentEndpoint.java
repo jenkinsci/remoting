@@ -133,6 +133,10 @@ public class JnlpAgentEndpoint {
         this.proxyCredentials = proxyCredentials;
     }
 
+    String describe() {
+        return getHost() + ':' + getPort();
+    }
+
     /**
      * Gets the socket address.
      *
