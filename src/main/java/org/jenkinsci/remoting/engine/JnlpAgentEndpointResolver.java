@@ -27,22 +27,19 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Engine;
+import hudson.remoting.EngineListenerSplitter;
 import hudson.remoting.Launcher;
 import hudson.remoting.NoProxyEvaluator;
-import hudson.remoting.Util;
 import java.io.IOException;
 import java.net.Authenticator;
-import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
-import java.net.NoRouteToHostException;
 import java.net.PasswordAuthentication;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -51,7 +48,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Iterator;
@@ -69,10 +65,8 @@ import java.util.stream.Stream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocketFactory;
-import org.jenkinsci.remoting.util.DurationFormatter;
 import org.jenkinsci.remoting.util.ThrowableUtils;
 import org.jenkinsci.remoting.util.VersionNumber;
-import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -97,11 +91,14 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
     private SSLSocketFactory sslSocketFactory;
 
-    private boolean disableHttpsCertValidation;
+    private boolean noReconnect;
 
-    private HostnameVerifier hostnameVerifier;
-
+    @NonNull
     private Duration noReconnectAfter;
+
+    private EngineListenerSplitter events;
+
+    private boolean first = true;
 
     /**
      * If specified, only the protocols from the list will be tried during the connection.
@@ -119,85 +116,24 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             String proxyCredentials,
             String tunnel,
             SSLSocketFactory sslSocketFactory,
-            boolean disableHttpsCertValidation,
-            Duration noReconnectAfter) {
+            boolean noReconnect,
+            @NonNull Duration noReconnectAfter,
+            EngineListenerSplitter events) {
         this.jenkinsUrls = new ArrayList<>(jenkinsUrls);
         this.agentName = agentName;
         this.credentials = credentials;
         this.proxyCredentials = proxyCredentials;
         this.tunnel = tunnel;
         this.sslSocketFactory = sslSocketFactory;
-        setDisableHttpsCertValidation(disableHttpsCertValidation);
+        this.noReconnect = noReconnect;
         this.noReconnectAfter = noReconnectAfter;
-    }
-
-    public SSLSocketFactory getSslSocketFactory() {
-        return sslSocketFactory;
-    }
-
-    public void setSslSocketFactory(SSLSocketFactory sslSocketFactory) {
-        this.sslSocketFactory = sslSocketFactory;
-    }
-
-    public String getCredentials() {
-        return credentials;
-    }
-
-    public void setCredentials(String credentials) {
-        this.credentials = credentials;
-    }
-
-    public void setCredentials(String user, String pass) {
-        this.credentials = user + ":" + pass;
-    }
-
-    public String getProxyCredentials() {
-        return proxyCredentials;
-    }
-
-    public void setProxyCredentials(String proxyCredentials) {
-        this.proxyCredentials = proxyCredentials;
-    }
-
-    public void setProxyCredentials(String user, String pass) {
-        this.proxyCredentials = user + ":" + pass;
-    }
-
-    @CheckForNull
-    public String getTunnel() {
-        return tunnel;
-    }
-
-    public void setTunnel(@CheckForNull String tunnel) {
-        this.tunnel = tunnel;
-    }
-
-    /**
-     *  Determine if certificate checking should be ignored for JNLP endpoint
-     *
-     * @return {@code true} if the HTTPs certificate is disabled, endpoint check is ignored
-     */
-    public boolean isDisableHttpsCertValidation() {
-        return disableHttpsCertValidation;
-    }
-
-    /**
-     * Sets if the HTTPs certificate check should be disabled.
-     *
-     * This behavior is not recommended.
-     */
-    public void setDisableHttpsCertValidation(boolean disableHttpsCertValidation) {
-        this.disableHttpsCertValidation = disableHttpsCertValidation;
-        if (disableHttpsCertValidation) {
-            this.hostnameVerifier = new NoCheckHostnameVerifier();
-        } else {
-            this.hostnameVerifier = null;
-        }
+        this.events = events;
     }
 
     @CheckForNull
     @Override
     public JnlpAgentEndpoint resolve() throws IOException {
+        events.status("Locating server among " + this.jenkinsUrls);
         IOException firstError = null;
         for (String jenkinsUrl : jenkinsUrls) {
             if (jenkinsUrl == null) {
@@ -218,8 +154,8 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             }
 
             // find out the TCP port
-            HttpURLConnection con = (HttpURLConnection) openURLConnection(
-                    salURL, agentName, credentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
+            HttpURLConnection con = (HttpURLConnection)
+                    openURLConnection(salURL, agentName, credentials, proxyCredentials, sslSocketFactory, null);
             try {
                 try {
                     con.setConnectTimeout(30000);
@@ -275,7 +211,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                                         + "to define the supported protocols.");
                     } else {
                         LOGGER.log(
-                                Level.INFO, "Remoting server accepts the following protocols: {0}", agentProtocolNames);
+                                Level.FINE, "Remoting server accepts the following protocols: " + agentProtocolNames);
                     }
                 }
 
@@ -293,6 +229,11 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 }
 
                 String idHeader = con.getHeaderField("X-Instance-Identity");
+                if (idHeader == null) {
+                    firstError = ThrowableUtils.chain(
+                            firstError, new IOException(jenkinsUrl + " is missing instance-identity plugin"));
+                    continue;
+                }
                 RSAPublicKey identity;
                 try {
                     identity = getIdentity(idHeader);
@@ -433,55 +374,15 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
 
     @Override
     public void waitForReady() throws InterruptedException {
-        Thread t = Thread.currentThread();
-        String oldName = t.getName();
-        try {
-            int retries = 0;
-            Instant firstAttempt = Instant.now();
-            while (true) {
-                // TODO refactor various sleep statements into a common method
-                if (Util.shouldBailOut(firstAttempt, noReconnectAfter)) {
-                    LOGGER.info("Bailing out after " + DurationFormatter.format(noReconnectAfter));
-                    return;
-                }
-                Thread.sleep(1000 * 10);
-                // Jenkins top page might be read-protected. see http://www.nabble
-                // .com/more-lenient-retry-logic-in-Engine.waitForServerToBack-td24703172.html
-                if (jenkinsUrls.isEmpty()) {
-                    // returning here will cause the whole loop to be broken and all the urls to be tried again
-                    return;
-                }
-                String firstUrl = jenkinsUrls.get(0);
-                try {
-                    URL url = toAgentListenerURL(firstUrl);
-
-                    retries++;
-                    t.setName(oldName + ": trying " + url + " for " + retries + " times");
-
-                    HttpURLConnection con = (HttpURLConnection) openURLConnection(
-                            url, agentName, credentials, proxyCredentials, sslSocketFactory, hostnameVerifier);
-                    con.setConnectTimeout(5000);
-                    con.setReadTimeout(5000);
-                    con.connect();
-                    if (con.getResponseCode() == 200) {
-                        return;
-                    }
-                    LOGGER.log(
-                            Level.INFO,
-                            "Controller isn''t ready to talk to us on {0}. Will try again: response code={1}",
-                            new Object[] {url, con.getResponseCode()});
-                } catch (SocketTimeoutException | ConnectException | NoRouteToHostException e) {
-                    LOGGER.log(Level.INFO, "Failed to connect to {0}. Will try again: {1} {2}", new String[] {
-                        firstUrl, e.getClass().getName(), e.getMessage()
-                    });
-                } catch (IOException e) {
-                    // report the failure
-                    LOGGER.log(Level.INFO, e, () -> "Failed to connect to " + firstUrl + ". Will try again");
-                }
-            }
-        } finally {
-            t.setName(oldName);
+        if (RetryUtils.succeedsWithRetries(
+                        this::ping,
+                        first && noReconnect ? Duration.ZERO : noReconnectAfter,
+                        events,
+                        x -> "Could not locate server among " + jenkinsUrls + ": " + x.getMessage())
+                == null) {
+            throw new RuntimeException("Could not locate server among " + jenkinsUrls);
         }
+        first = false;
     }
 
     @CheckForNull
@@ -636,5 +537,27 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
             }
         }
         return con;
+    }
+
+    @SuppressFBWarnings(value = "NP_BOOLEAN_RETURN_NULL", justification = "null is used to indicate no connection")
+    private Boolean ping() throws IOException {
+        for (String jenkinsUrl : jenkinsUrls) {
+            URL url = toAgentListenerURL(jenkinsUrl);
+            HttpURLConnection con = (HttpURLConnection)
+                    openURLConnection(url, agentName, credentials, proxyCredentials, sslSocketFactory, null);
+            con.setConnectTimeout(5000);
+            con.setReadTimeout(5000);
+            con.connect();
+            if (con.getResponseCode() == 200) {
+                return true;
+            } else if (con.getResponseCode() == 404) {
+                events.status("Controller isn't ready to talk to us on " + url
+                        + ". Maybe TCP port for inbound agents is disabled?");
+            } else {
+                events.status("Controller isn't ready to talk to us on " + url + ". Will try again: response code="
+                        + con.getResponseCode());
+            }
+        }
+        return null;
     }
 }
