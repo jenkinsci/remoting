@@ -78,6 +78,7 @@ import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.DurationFormatter;
 import org.jenkinsci.remoting.util.PathUtils;
+import org.jenkinsci.remoting.util.SSLUtils;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
@@ -517,7 +518,7 @@ public class Launcher {
         // Initialize certificates
         createX509Certificates();
         try {
-            sslSocketFactory = Engine.getSSLSocketFactory(x509Certificates, noCertificateCheck);
+            sslSocketFactory = SSLUtils.getSSLSocketFactory(x509Certificates, noCertificateCheck);
         } catch (GeneralSecurityException | PrivilegedActionException e) {
             throw new RuntimeException(e);
         }
@@ -1121,7 +1122,9 @@ public class Launcher {
             engine.setJarCache(new FileSystemJarCache(jarCache, true));
         }
         engine.setNoReconnect(noReconnect);
-        engine.setNoReconnectAfter(noReconnectAfter);
+        if (noReconnectAfter != null) {
+            engine.setNoReconnectAfter(noReconnectAfter);
+        }
         engine.setKeepAlive(!noKeepAlive);
 
         if (noCertificateCheck) {
