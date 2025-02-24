@@ -354,6 +354,8 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * and it'll abort the communication.
      */
     public void terminate(IOException e) {
-        receiver.terminate(e);
+        if (receiver != null) {
+            receiver.terminate(e);
+        }
     }
 }
