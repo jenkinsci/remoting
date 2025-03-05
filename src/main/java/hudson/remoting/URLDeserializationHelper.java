@@ -43,7 +43,6 @@ import java.net.URLStreamHandler;
  */
 public class URLDeserializationHelper {
     // escape hatch for SECURITY-637 to keep legacy behavior
-    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Accessible via System Groovy Scripts")
     private static boolean AVOID_URL_WRAPPING =
             Boolean.getBoolean(URLDeserializationHelper.class + ".avoidUrlWrapping");
 

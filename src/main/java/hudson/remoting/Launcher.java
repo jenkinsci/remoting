@@ -461,9 +461,6 @@ public class Launcher {
         }
     }
 
-    @SuppressFBWarnings(
-            value = "DM_DEFAULT_ENCODING",
-            justification = "log file, just like console output, should be in platform default encoding")
     public void run() throws CmdLineException, IOException, InterruptedException {
         if (showVersion) {
             String version = Util.getVersion();
@@ -1099,7 +1096,6 @@ public class Launcher {
         }
     }
 
-    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     private Engine createEngine() throws IOException {
         LOGGER.log(Level.INFO, "Setting up agent: {0}", name);
         Engine engine = new Engine(

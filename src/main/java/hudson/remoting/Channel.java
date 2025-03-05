@@ -818,10 +818,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * This is the lowest layer of abstraction in {@link Channel}.
      * {@link Command}s are executed on a remote system in the order they are sent.
      */
-    @SuppressFBWarnings(
-            value = "VO_VOLATILE_INCREMENT",
-            justification =
-                    "The method is synchronized, no other usages. See https://sourceforge.net/p/findbugs/bugs/1032/")
     /*package*/ synchronized void send(Command cmd) throws IOException {
         if (outClosed != null) {
             throw new ChannelClosedException(this, outClosed);
@@ -1165,9 +1161,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * @param e
      *      The error that caused the connection to be aborted. Never null.
      */
-    @SuppressFBWarnings(
-            value = "ITA_INEFFICIENT_TO_ARRAY",
-            justification = "intentionally; race condition on listeners otherwise")
     public void terminate(@NonNull IOException e) {
 
         if (e == null) {

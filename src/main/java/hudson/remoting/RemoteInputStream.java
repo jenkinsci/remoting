@@ -182,7 +182,7 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
     }
 
     @SuppressFBWarnings(
-            value = "DESERIALIZATION_GADGET",
+            value = {"DESERIALIZATION_GADGET", "MC_OVERRIDABLE_METHOD_CALL_IN_READ_OBJECT"},
             justification = "Serializable only over remoting. Class filtering is done through JEP-200.")
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         final Channel channel = getChannelForSerialization();
