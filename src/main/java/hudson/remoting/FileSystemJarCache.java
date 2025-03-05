@@ -86,9 +86,6 @@ public class FileSystemJarCache extends JarCacheSupport {
     }
 
     @Override
-    @SuppressFBWarnings(
-            value = "PATH_TRAVERSAL_IN",
-            justification = "The file path is a generated value based on server supplied data.")
     protected URL retrieve(Channel channel, long sum1, long sum2) throws IOException, InterruptedException {
         Checksum expected = new Checksum(sum1, sum2);
         File target = map(sum1, sum2);

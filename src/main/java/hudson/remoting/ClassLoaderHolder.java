@@ -33,6 +33,7 @@ public class ClassLoaderHolder implements SerializableOnlyOverRemoting {
         this.classLoader = classLoader;
     }
 
+    @SuppressFBWarnings(value = "MC_OVERRIDABLE_METHOD_CALL_IN_READ_OBJECT", justification = "TODO needs triage")
     private void readObject(ObjectInputStream ois) throws IOException, ClassNotFoundException {
         RemoteClassLoader.IClassLoader proxy = (RemoteClassLoader.IClassLoader) ois.readObject();
         classLoader = proxy == null
