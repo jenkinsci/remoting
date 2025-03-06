@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
@@ -70,6 +71,24 @@ import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 final class RemoteClassLoader extends URLClassLoader {
 
     private static final Logger LOGGER = Logger.getLogger(RemoteClassLoader.class.getName());
+
+    /**
+     * The number of levels of dependencies to traverse during prefetch. The default value of 1 traverses direct
+     * dependencies only. A value of 0 effectively disables prefetch. A value of 2 traverses both direct dependencies
+     * and one level of transitive dependencies.
+     */
+    private static final int PREFETCH_DEPTH =
+            Integer.getInteger(RemoteClassLoader.class.getName() + ".prefetchDepth", 1);
+
+    /**
+     * The last level at which prefetch will continue to traverse new files. At the next level after
+     * this, prefetch will only continue to traverse dependencies within the same file. The default value allows
+     * prefetch to explore additional files only once, at the first level; all subsequent levels will be restricted to
+     * the same file. This allows the prefetch depth to be set to a high value without expanding to cover the whole
+     * dependency graph.
+     */
+    private static final int PREFETCH_PRUNE_THRESHOLD =
+            Integer.getInteger(RemoteClassLoader.class.getName() + ".prefetchPruneThreshold", 1);
 
     interface Interruptible {
         void run() throws InterruptedException;
@@ -1126,16 +1145,37 @@ final class RemoteClassLoader extends URLClassLoader {
             synchronized (prefetched) {
                 prefetched.add(className);
             }
-            try {
-                for (String other : analyze(cf.local.openStream())) {
+            fetch3Impl(cf, 1, all);
+            return all;
+        }
+
+        @SuppressFBWarnings(
+                value = "URLCONNECTION_SSRF_FD",
+                justification = "This is only used for managing the jar cache as files.")
+        private void fetch3Impl(ClassFile2 cf, int level, Map<String, ClassFile2> all) {
+            if (level > PREFETCH_DEPTH) {
+                return;
+            }
+            try (InputStream is = cf.local.openStream()) {
+                for (String other : analyze(is)) {
                     synchronized (prefetched) {
                         if (!prefetched.add(other)) {
                             continue;
                         }
                     }
                     try {
-                        // TODO could even traverse second-level dependencies, etc.
-                        all.put(other, fetch4(other, cf));
+                        ClassFile2 referent = fetch4(other, cf);
+                        all.put(other, referent);
+                        if (level < PREFETCH_PRUNE_THRESHOLD) {
+                            fetch3Impl(referent, level + 1, all);
+                        } else {
+                            File file1 = cf.local.getProtocol().equals("jar") ? Which.jarFile(cf.local) : null;
+                            File file2 =
+                                    referent.local.getProtocol().equals("jar") ? Which.jarFile(referent.local) : null;
+                            if (Objects.equals(file1, file2)) {
+                                fetch3Impl(referent, level + 1, all);
+                            }
+                        }
                     } catch (ClassNotFoundException x) {
                         // ignore: might not be real class name, etc.
                     } catch (LinkageError x) {
@@ -1147,7 +1187,6 @@ final class RemoteClassLoader extends URLClassLoader {
                 LOGGER.log(Level.WARNING, "Failed to analyze the class file: " + cf.local, e);
                 // ignore
             }
-            return all;
         }
 
         @CheckForNull
