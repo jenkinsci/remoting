@@ -783,9 +783,9 @@ public class Engine extends Thread {
                         client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
                     }
                 }
-                if (!succeedsWithRetries(this::pingSuccessful)) {
-                    return;
-                }
+//                if (!succeedsWithRetries(this::pingSuccessful)) {
+//                    return;
+//                }
                 if (!succeedsWithRetries(() -> {
                     container.connectToServer(
                             new AgentEndpoint(),
@@ -1270,6 +1270,7 @@ public class Engine extends Thread {
             SSLContext ctx = SSLContext.getInstance("TLS");
             // now we have our custom socket factory
             ctx.init(null, trustManagerFactory.getTrustManagers(), null);
+            sslContext = ctx;
         }
         return sslContext;
     }
