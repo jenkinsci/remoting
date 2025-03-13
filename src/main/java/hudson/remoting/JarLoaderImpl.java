@@ -25,10 +25,15 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
 
     private static final Logger LOGGER = Logger.getLogger(JarLoaderImpl.class.getName());
 
+    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TODO needs triage")
     private final ConcurrentMap<Checksum, URL> knownJars = new ConcurrentHashMap<>();
 
+    @SuppressFBWarnings(
+            value = {"DMI_COLLECTION_OF_URLS", "SE_BAD_FIELD"},
+            justification = "TODO needs triage")
     private final ConcurrentMap<URL, Checksum> checksums = new ConcurrentHashMap<>();
 
+    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TODO needs triage")
     private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<>());
 
     @Override

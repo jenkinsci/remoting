@@ -128,6 +128,7 @@ public abstract class ClassFilter {
         }
     };
 
+    @SuppressFBWarnings(value = "NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR", justification = "TODO needs triage")
     private static @NonNull ClassFilter CURRENT_DEFAULT;
 
     /**
