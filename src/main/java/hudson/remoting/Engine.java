@@ -77,6 +77,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -744,6 +745,7 @@ public class Engine extends Thread {
                     }
                 }
                 hudsonUrl = candidateUrls.get(0);
+                SSLContext sslContext = getSSLContext(candidateCertificates, disableHttpsCertValidation);
                 String wsUrl = hudsonUrl.toString().replaceFirst("^http", "ws");
                 WebSocketContainer container = ContainerProvider.getWebSocketContainer();
                 if (container instanceof ClientManager) {
@@ -774,7 +776,6 @@ public class Engine extends Thread {
                         }
                     }
 
-                    SSLContext sslContext = getSSLContext(candidateCertificates, disableHttpsCertValidation);
                     if (sslContext != null) {
                         SslEngineConfigurator sslEngineConfigurator = new SslEngineConfigurator(sslContext);
                         if (hostnameVerifier != null) {
@@ -783,9 +784,9 @@ public class Engine extends Thread {
                         client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
                     }
                 }
-//                if (!succeedsWithRetries(this::pingSuccessful)) {
-//                    return;
-//                }
+                if (!succeedsWithRetries(() -> this.pingSuccessful(sslContext))) {
+                    return;
+                }
                 if (!succeedsWithRetries(() -> {
                     container.connectToServer(
                             new AgentEndpoint(),
@@ -839,12 +840,15 @@ public class Engine extends Thread {
     @SuppressFBWarnings(
             value = {"URLCONNECTION_SSRF_FD"},
             justification = "url is provided by the user, and we are trying to connect to it")
-    private Boolean pingSuccessful() throws MalformedURLException {
+    private Boolean pingSuccessful(SSLContext sslContext) throws MalformedURLException {
         // Unlike JnlpAgentEndpointResolver, we do not use $jenkins/tcpSlaveAgentListener/, as that will be
         // a 404 if the TCP port is disabled.
         URL ping = new URL(hudsonUrl, "login");
         try {
             HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
+            if (conn instanceof HttpsURLConnection && sslContext != null) {
+                ((HttpsURLConnection) conn).setSSLSocketFactory(sslContext.getSocketFactory());
+            }
             int status = conn.getResponseCode();
             conn.disconnect();
             if (status == 200) {
