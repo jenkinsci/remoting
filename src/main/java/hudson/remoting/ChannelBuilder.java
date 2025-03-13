@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -294,16 +295,24 @@ public class ChannelBuilder {
      * @since 2.47
      */
     public ChannelBuilder withRoles(final Collection<? extends Role> actual) {
-        return withRoleChecker(new RoleChecker() {
-            @Override
-            public void check(@NonNull RoleSensitive subject, @NonNull Collection<Role> expected) {
-                if (!actual.containsAll(expected)) {
-                    Collection<Role> c = new ArrayList<>(expected);
-                    c.removeAll(actual);
-                    throw new SecurityException("Unexpected role: " + c);
-                }
+        return withRoleChecker(new RoleCheckerImpl(actual));
+    }
+
+    private static class RoleCheckerImpl extends RoleChecker {
+        private final Collection<? extends Role> actual;
+
+        public RoleCheckerImpl(Collection<? extends Role> actual) {
+            this.actual = Objects.requireNonNull(actual);
+        }
+
+        @Override
+        public void check(@NonNull RoleSensitive subject, @NonNull Collection<Role> expected) {
+            if (!actual.containsAll(expected)) {
+                Collection<Role> c = new ArrayList<>(expected);
+                c.removeAll(actual);
+                throw new SecurityException("Unexpected role: " + c);
             }
-        });
+        }
     }
 
     private static boolean isCallableProhibitedByRequiredRoleCheck(Callable<?, ?> callable) {
@@ -332,32 +341,38 @@ public class ChannelBuilder {
      * @since 2.47
      */
     public ChannelBuilder withRoleChecker(final RoleChecker checker) {
-        return with(new CallableDecorator() {
-            @Override
-            public <V, T extends Throwable> Callable<V, T> userRequest(Callable<V, T> op, Callable<V, T> stem) {
-                try {
-                    RequiredRoleCheckerWrapper wrapped = new RequiredRoleCheckerWrapper(checker);
-                    stem.checkRoles(wrapped);
-                    if (wrapped.isChecked()) {
-                        LOGGER.log(
-                                Level.FINER, () -> "Callable " + stem.getClass().getName() + " checked roles");
-                    } else if (isCallableProhibitedByRequiredRoleCheck(stem)) {
-                        LOGGER.log(
-                                Level.INFO,
-                                () -> "Rejecting callable " + stem.getClass().getName()
-                                        + " for ignoring RoleChecker in #checkRoles, see https://www.jenkins.io/redirect/required-role-check");
-                        throw new SecurityException(
-                                "Security hardening prohibits the Callable implementation "
-                                        + stem.getClass().getName()
-                                        + " from ignoring RoleChecker, see https://www.jenkins.io/redirect/required-role-check");
-                    }
-                } catch (AbstractMethodError e) {
-                    checker.check(stem, Role.UNKNOWN); // not implemented, assume 'unknown'
-                }
+        return with(new CallableDecoratorImpl(checker));
+    }
 
-                return stem;
+    private static class CallableDecoratorImpl extends CallableDecorator {
+        private final RoleChecker checker;
+
+        public CallableDecoratorImpl(RoleChecker checker) {
+            this.checker = Objects.requireNonNull(checker);
+        }
+
+        @Override
+        public <V, T extends Throwable> Callable<V, T> userRequest(Callable<V, T> op, Callable<V, T> stem) {
+            try {
+                RequiredRoleCheckerWrapper wrapped = new RequiredRoleCheckerWrapper(checker);
+                stem.checkRoles(wrapped);
+                if (wrapped.isChecked()) {
+                    LOGGER.log(Level.FINER, () -> "Callable " + stem.getClass().getName() + " checked roles");
+                } else if (isCallableProhibitedByRequiredRoleCheck(stem)) {
+                    LOGGER.log(
+                            Level.INFO,
+                            () -> "Rejecting callable " + stem.getClass().getName()
+                                    + " for ignoring RoleChecker in #checkRoles, see https://www.jenkins.io/redirect/required-role-check");
+                    throw new SecurityException("Security hardening prohibits the Callable implementation "
+                            + stem.getClass().getName()
+                            + " from ignoring RoleChecker, see https://www.jenkins.io/redirect/required-role-check");
+                }
+            } catch (AbstractMethodError e) {
+                checker.check(stem, Role.UNKNOWN); // not implemented, assume 'unknown'
             }
-        });
+
+            return stem;
+        }
     }
 
     /**
