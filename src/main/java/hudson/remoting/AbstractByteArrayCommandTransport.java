@@ -3,6 +3,7 @@ package hudson.remoting;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.util.AnonymousClassWarnings;
@@ -56,22 +57,32 @@ public abstract class AbstractByteArrayCommandTransport extends CommandTransport
     @Override
     public final void setup(final Channel channel, final CommandReceiver receiver) {
         this.channel = channel;
-        setup(new ByteArrayReceiver() {
-            @Override
-            public void handle(byte[] payload) {
-                try {
-                    Command cmd = Command.readFrom(channel, payload);
-                    receiver.handle(cmd);
-                } catch (IOException | ClassNotFoundException e) {
-                    LOGGER.log(Level.WARNING, "Failed to construct Command in channel " + channel.getName(), e);
-                }
-            }
+        setup(new ByteArrayReceiverImpl(channel, receiver));
+    }
 
-            @Override
-            public void terminate(IOException e) {
-                receiver.terminate(e);
+    private static class ByteArrayReceiverImpl implements ByteArrayReceiver {
+        private final Channel channel;
+        private final CommandReceiver receiver;
+
+        public ByteArrayReceiverImpl(Channel channel, CommandReceiver receiver) {
+            this.channel = Objects.requireNonNull(channel);
+            this.receiver = Objects.requireNonNull(receiver);
+        }
+
+        @Override
+        public void handle(byte[] payload) {
+            try {
+                Command cmd = Command.readFrom(channel, payload);
+                receiver.handle(cmd);
+            } catch (IOException | ClassNotFoundException e) {
+                LOGGER.log(Level.WARNING, "Failed to construct Command in channel " + channel.getName(), e);
             }
-        });
+        }
+
+        @Override
+        public void terminate(IOException e) {
+            receiver.terminate(e);
+        }
     }
 
     @Override

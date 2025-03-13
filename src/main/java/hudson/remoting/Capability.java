@@ -146,23 +146,29 @@ public final class Capability implements Serializable {
      * Writes this capability to a stream.
      */
     private void write(OutputStream os) throws IOException {
-        try (ObjectOutputStream oos = new ObjectOutputStream(Channel.Mode.TEXT.wrap(os)) {
-            @Override
-            public void close() throws IOException {
-                flush();
-                // TODO: Cannot invoke the private clear() method, but GC well do it for us. Not worse than the original
-                // solution
-                // Here the code does not close the proxied stream OS on completion
-            }
-
-            @Override
-            protected void annotateClass(Class<?> c) throws IOException {
-                AnonymousClassWarnings.check(c);
-                super.annotateClass(c);
-            }
-        }) {
+        try (ObjectOutputStream oos = new ObjectOutputStreamImpl(Channel.Mode.TEXT.wrap(os))) {
             oos.writeObject(this);
             oos.flush();
+        }
+    }
+
+    private static class ObjectOutputStreamImpl extends ObjectOutputStream {
+        public ObjectOutputStreamImpl(OutputStream out) throws IOException {
+            super(out);
+        }
+
+        @Override
+        public void close() throws IOException {
+            flush();
+            // TODO: Cannot invoke the private clear() method, but GC well do it for us. Not worse than the original
+            // solution
+            // Here the code does not close the proxied stream OS on completion
+        }
+
+        @Override
+        protected void annotateClass(Class<?> c) throws IOException {
+            AnonymousClassWarnings.check(c);
+            super.annotateClass(c);
         }
     }
 

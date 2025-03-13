@@ -34,6 +34,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.EnumSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -120,58 +121,7 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
                 final InputStream i = core;
                 final OutputStream o = pipe.getOut();
 
-                new Thread("RemoteInputStream greedy pump thread: " + greedyAt.print()) {
-                    {
-                        setUncaughtExceptionHandler((t, e) -> LOGGER.log(
-                                Level.SEVERE, "Uncaught exception in RemoteInputStream pump thread " + t, e));
-                        setDaemon(true);
-                    }
-
-                    @Override
-                    public void run() {
-                        try {
-                            byte[] buf = new byte[8192];
-                            int len;
-                            while (true) {
-                                try {
-                                    len = i.read(buf);
-                                    if (len < 0) {
-                                        break;
-                                    }
-                                } catch (IOException e) {
-                                    // if we can propagate the error, do so. In any case, give up
-                                    if (o instanceof ErrorPropagatingOutputStream) {
-                                        try {
-                                            ((ErrorPropagatingOutputStream) o).error(e);
-                                        } catch (IOException ignored) {
-                                            // can't do anything. just give up
-                                        }
-                                    }
-                                    return;
-                                }
-
-                                try {
-                                    o.write(buf, 0, len);
-                                } catch (IOException ignored) {
-                                    // can't do anything. just give up
-                                }
-                            }
-                        } finally {
-                            // it doesn't make sense not to close InputStream that's already EOF-ed,
-                            // so there's no 'closeIn' flag.
-                            try {
-                                i.close();
-                            } catch (IOException ignored) {
-                                // swallow and ignore
-                            }
-                            try {
-                                o.close();
-                            } catch (IOException ignored) {
-                                // swallow and ignore
-                            }
-                        }
-                    }
-                }.start();
+                new PumpThread("RemoteInputStream greedy pump thread: " + greedyAt.print(), i, o).start();
                 oos.writeObject(pipe);
                 return;
             }
@@ -179,6 +129,65 @@ public class RemoteInputStream extends InputStream implements SerializableOnlyOv
 
         int id = ch.internalExport(InputStream.class, core, autoUnexport);
         oos.writeInt(id);
+    }
+
+    private static class PumpThread extends Thread {
+        private final InputStream i;
+        private final OutputStream o;
+
+        public PumpThread(String name, InputStream i, OutputStream o) {
+            super(name);
+            this.i = Objects.requireNonNull(i);
+            this.o = Objects.requireNonNull(o);
+            setUncaughtExceptionHandler(
+                    (t, e) -> LOGGER.log(Level.SEVERE, "Uncaught exception in RemoteInputStream pump thread " + t, e));
+            setDaemon(true);
+        }
+
+        @Override
+        public void run() {
+            try {
+                byte[] buf = new byte[8192];
+                int len;
+                while (true) {
+                    try {
+                        len = i.read(buf);
+                        if (len < 0) {
+                            break;
+                        }
+                    } catch (IOException e) {
+                        // if we can propagate the error, do so. In any case, give up
+                        if (o instanceof ErrorPropagatingOutputStream) {
+                            try {
+                                ((ErrorPropagatingOutputStream) o).error(e);
+                            } catch (IOException ignored) {
+                                // can't do anything. just give up
+                            }
+                        }
+                        return;
+                    }
+
+                    try {
+                        o.write(buf, 0, len);
+                    } catch (IOException ignored) {
+                        // can't do anything. just give up
+                    }
+                }
+            } finally {
+                // it doesn't make sense not to close InputStream that's already EOF-ed,
+                // so there's no 'closeIn' flag.
+                try {
+                    i.close();
+                } catch (IOException ignored) {
+                    // swallow and ignore
+                }
+                try {
+                    o.close();
+                } catch (IOException ignored) {
+                    // swallow and ignore
+                }
+            }
+        }
     }
 
     @SuppressFBWarnings(

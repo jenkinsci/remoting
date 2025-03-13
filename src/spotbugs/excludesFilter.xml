@@ -57,16 +57,6 @@
         <Class name="org.jenkinsci.remoting.org.apache.commons.validator.routines.RegexValidator"/>
       </And>
       <And>
-        <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
-        <Or>
-          <Class name="hudson.remoting.AbstractByteArrayCommandTransport"/>
-          <Class name="hudson.remoting.Capability"/>
-          <Class name="hudson.remoting.ChannelBuilder"/>
-          <Class name="hudson.remoting.LocalChannel"/>
-          <Class name="hudson.remoting.RemoteInputStream"/>
-        </Or>
-      </And>
-      <And>
         <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
         <Class name="hudson.remoting.Launcher"/>
         <Or>
