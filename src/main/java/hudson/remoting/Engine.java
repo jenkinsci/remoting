@@ -846,8 +846,8 @@ public class Engine extends Thread {
         URL ping = new URL(hudsonUrl, "login");
         try {
             HttpURLConnection conn = (HttpURLConnection) ping.openConnection();
-            if (conn instanceof HttpsURLConnection && sslContext != null) {
-                ((HttpsURLConnection) conn).setSSLSocketFactory(sslContext.getSocketFactory());
+            if (conn instanceof HttpsURLConnection httpsConn && sslContext != null) {
+                httpsConn.setSSLSocketFactory(sslContext.getSocketFactory());
             }
             int status = conn.getResponseCode();
             conn.disconnect();
