@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Future;
 import java.io.Closeable;
 import java.io.IOException;
@@ -144,6 +145,7 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
     @GuardedBy("stackLock")
     private final List<Listener> listeners = new ArrayList<>();
 
+    @SuppressFBWarnings(value = "SS_SHOULD_BE_STATIC", justification = "TODO needs triage")
     private final long handshakingTimeout = 10L;
 
     private final TimeUnit handshakingUnits = TimeUnit.SECONDS;

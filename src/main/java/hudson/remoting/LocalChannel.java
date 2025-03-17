@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -58,33 +59,41 @@ public class LocalChannel implements VirtualChannel {
             }
         });
 
-        return new Future<>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return f.cancel(mayInterruptIfRunning);
-            }
+        return new FutureImpl<>(f);
+    }
 
-            @Override
-            public boolean isCancelled() {
-                return f.isCancelled();
-            }
+    private static class FutureImpl<V> implements Future<V> {
+        private final java.util.concurrent.Future<V> f;
 
-            @Override
-            public boolean isDone() {
-                return f.isDone();
-            }
+        public FutureImpl(java.util.concurrent.Future<V> f) {
+            this.f = Objects.requireNonNull(f);
+        }
 
-            @Override
-            public V get() throws InterruptedException, ExecutionException {
-                return f.get();
-            }
+        @Override
+        public boolean cancel(boolean mayInterruptIfRunning) {
+            return f.cancel(mayInterruptIfRunning);
+        }
 
-            @Override
-            public V get(long timeout, @NonNull TimeUnit unit)
-                    throws InterruptedException, ExecutionException, TimeoutException {
-                return f.get(timeout, unit);
-            }
-        };
+        @Override
+        public boolean isCancelled() {
+            return f.isCancelled();
+        }
+
+        @Override
+        public boolean isDone() {
+            return f.isDone();
+        }
+
+        @Override
+        public V get() throws InterruptedException, ExecutionException {
+            return f.get();
+        }
+
+        @Override
+        public V get(long timeout, @NonNull TimeUnit unit)
+                throws InterruptedException, ExecutionException, TimeoutException {
+            return f.get(timeout, unit);
+        }
     }
 
     @Override

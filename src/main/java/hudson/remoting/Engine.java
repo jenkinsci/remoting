@@ -237,6 +237,7 @@ public class Engine extends Thread {
      * @since 3.8
      */
     @CheckForNull
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public Path workDir = null;
 
     /**
@@ -247,6 +248,7 @@ public class Engine extends Thread {
      * @since 3.8
      */
     @NonNull
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
 
     /**
@@ -255,6 +257,7 @@ public class Engine extends Thread {
      * (e.g. if a filesystem mount gets disconnected).
      * @since 3.8
      */
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     private final DelegatingX509ExtendedTrustManager agentTrustManager =

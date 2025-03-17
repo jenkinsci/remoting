@@ -1,111 +1,55 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
   <!--
-    Exclusions in this section have been triaged and determined to be false positives.
+    Suppress low-priority non-serialization violations below to avoid cluttering the codebase with annotations for
+    low-priority warnings. High-priority warnings, medium-priority warnings, and low-priority serialization warnings
+    should be fixed or suppressed with annotations instead.
   -->
-  <Match>
-    <Or>
-      <!-- We don't care about this behavior -->
-      <Bug pattern="CRLF_INJECTION_LOGS"/>
-      <!-- Pending https://github.com/spotbugs/spotbugs/issues/1515 -->
-      <Bug pattern="DP_CREATE_CLASSLOADER_INSIDE_DO_PRIVILEGED"/>
-      <Bug pattern="DP_DO_INSIDE_DO_PRIVILEGED"/>
-    </Or>
-  </Match>
-  <Match>
-    <Bug pattern="PA_PUBLIC_MUTABLE_OBJECT_ATTRIBUTE"/>
-    <Class name="hudson.remoting.Channel"/>
-    <Or>
-      <Field name="classLoadingCount"/>
-      <Field name="classLoadingPrefetchCacheCount"/>
-      <Field name="classLoadingTime"/>
-      <Field name="resourceLoadingCount"/>
-      <Field name="resourceLoadingTime"/>
-    </Or>
-  </Match>
-  <Match>
-    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
-    <Class name="hudson.remoting.Engine"/>
-    <Or>
-      <Field name="failIfWorkDirIsMissing"/>
-      <Field name="internalDir"/>
-      <Field name="workDir"/>
-    </Or>
-  </Match>
-  <Match>
-    <Bug pattern="PA_PUBLIC_MUTABLE_OBJECT_ATTRIBUTE"/>
-    <Class name="hudson.remoting.Launcher"/>
-    <Or>
-      <Field name="args"/>
-      <Field name="urls"/>
-    </Or>
-  </Match>
-  <Match>
-    <Bug pattern="PA_PUBLIC_PRIMITIVE_ATTRIBUTE"/>
-    <Class name="hudson.remoting.Launcher"/>
-    <Or>
-      <Field name="agentJnlpURL"/>
-      <Field name="auth"/>
-      <Field name="connectionTarget"/>
-      <Field name="failIfWorkDirIsMissing"/>
-      <Field name="headlessMode"/>
-      <Field name="internalDir"/>
-      <Field name="mode"/>
-      <Field name="name"/>
-      <Field name="ping"/>
-      <Field name="secret"/>
-      <Field name="tcpPortFile"/>
-      <Field name="tunnel"/>
-      <Field name="webSocket"/>
-      <Field name="workDir"/>
-    </Or>
-  </Match>
-  <!--
-    Here lies technical debt. Exclusions in this section have not yet been triaged. When working on
-    on this section, pick an exclusion to triage, then:
-    - If it is a false positive, add a @SuppressFBWarnings(value = "[…]", justification = "[…]")
-      annotation indicating the reason why it is a false positive, then remove the exclusion from
-      this section.
-    - If it is not a false positive, fix the bug, then remove the exclusion from this section.
-   -->
-  <Match>
-    <Confidence value="1"/>
-    <Or>
-      <And>
-        <Bug pattern="DM_GC"/>
-        <Class name="hudson.remoting.GCCommand"/>
-      </And>
-      <And>
-        <Bug pattern="DMI_COLLECTION_OF_URLS"/>
-        <Class name="hudson.remoting.JarLoaderImpl"/>
-      </And>
-    </Or>
-  </Match>
-  <Match>
-    <Confidence value="2"/>
-    <Or>
-      <And>
-        <Bug pattern="NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR"/>
-        <Class name="hudson.remoting.ClassFilter"/>
-      </And>
-      <And>
-        <Bug pattern="SE_BAD_FIELD"/>
-        <Class name="hudson.remoting.JarLoaderImpl"/>
-      </And>
-    </Or>
-  </Match>
   <Match>
     <Confidence value="3"/>
     <Or>
+      <And>
+        <Bug pattern="AA_ASSERTION_OF_ARGUMENTS"/>
+        <Or>
+          <And>
+            <Class name="org.jenkinsci.remoting.nio.NioChannelHub"/>
+            <Method name="setFrameSize"/>
+          </And>
+          <And>
+            <Class name="org.jenkinsci.remoting.protocol.ProtocolStack"/>
+            <Method name="toString"/>
+          </And>
+        </Or>
+      </And>
+      <Bug pattern="CRLF_INJECTION_LOGS"/>
       <And>
         <Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"/>
         <Or>
           <Class name="hudson.remoting.Channel"/>
           <Class name="hudson.remoting.Engine"/>
-          <Class name="hudson.remoting.forward.PortForwarder"/>
-          <Class name="hudson.remoting.forward.PortForwarder$1"/>
-          <Class name="hudson.remoting.RemoteInputStream$1"/>
           <Class name="org.jenkinsci.remoting.protocol.impl.NIONetworkLayer"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="PA_PUBLIC_MUTABLE_OBJECT_ATTRIBUTE"/>
+        <Or>
+          <And>
+            <Class name="hudson.remoting.Channel"/>
+            <Or>
+              <Field name="classLoadingCount"/>
+              <Field name="classLoadingPrefetchCacheCount"/>
+              <Field name="classLoadingTime"/>
+              <Field name="resourceLoadingCount"/>
+              <Field name="resourceLoadingTime"/>
+            </Or>
+          </And>
+          <And>
+            <Class name="hudson.remoting.Launcher"/>
+            <Or>
+              <Field name="args"/>
+              <Field name="urls"/>
+            </Or>
+          </And>
         </Or>
       </And>
       <And>
@@ -113,47 +57,22 @@
         <Class name="org.jenkinsci.remoting.org.apache.commons.validator.routines.RegexValidator"/>
       </And>
       <And>
-        <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
+        <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+        <Class name="hudson.remoting.Launcher"/>
         <Or>
-          <Class name="hudson.remoting.AbstractByteArrayCommandTransport"/>
-          <Class name="hudson.remoting.Capability"/>
-          <Class name="hudson.remoting.ChannelBuilder"/>
-          <Class name="hudson.remoting.LocalChannel"/>
-          <Class name="hudson.remoting.RemoteInputStream"/>
+          <Field name="auth"/>
+          <Field name="headlessMode"/>
+        </Or>
+      </And>
+      <And>
+        <Bug pattern="UWF_UNWRITTEN_FIELD"/>
+        <Class name="hudson.remoting.RemoteClassLoader"/>
+        <Or>
+          <Field name="TESTING_CLASS_LOAD"/>
+          <Field name="TESTING_CLASS_REFERENCE_LOAD"/>
+          <Field name="TESTING_RESOURCE_LOAD"/>
         </Or>
       </And>
     </Or>
-  </Match>
-  <Match>
-    <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
-    <Class name="hudson.remoting.Launcher"/>
-    <Or>
-      <Field name="auth"/>
-      <Field name="headlessMode"/>
-    </Or>
-  </Match>
-  <Match>
-    <Bug pattern="UWF_UNWRITTEN_FIELD"/>
-    <Class name="hudson.remoting.RemoteClassLoader"/>
-    <Or>
-      <Field name="TESTING_CLASS_LOAD"/>
-      <Field name="TESTING_CLASS_REFERENCE_LOAD"/>
-      <Field name="TESTING_RESOURCE_LOAD"/>
-    </Or>
-  </Match>
-  <Match>
-    <Bug pattern="AA_ASSERTION_OF_ARGUMENTS"/>
-    <Class name="org.jenkinsci.remoting.nio.NioChannelHub"/>
-    <Method name="setFrameSize"/>
-  </Match>
-  <Match>
-    <Bug pattern="AA_ASSERTION_OF_ARGUMENTS"/>
-    <Class name="org.jenkinsci.remoting.protocol.ProtocolStack"/>
-    <Method name="toString"/>
-  </Match>
-  <Match>
-    <Bug pattern="SS_SHOULD_BE_STATIC"/>
-    <Class name="org.jenkinsci.remoting.protocol.ProtocolStack"/>
-    <Field name="handshakingTimeout"/>
   </Match>
 </FindBugsFilter>

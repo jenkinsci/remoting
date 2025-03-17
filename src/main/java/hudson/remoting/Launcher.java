@@ -100,12 +100,14 @@ import org.xml.sax.SAXException;
         value = "DM_EXIT",
         justification = "This class is runnable. It is eligible to exit in the case of wrong params")
 public class Launcher {
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public Channel.Mode mode = Channel.Mode.BINARY;
 
     /**
      * @deprecated removed without replacement
      */
     @Deprecated
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public boolean ping = true;
 
     /**
@@ -149,6 +151,7 @@ public class Launcher {
                     + "Connection parameters are obtained by parsing the JNLP file.",
             forbids = {"-direct", "-name", "-tunnel", "-url", "-webSocket"})
     @Deprecated
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public URL agentJnlpURL = null;
 
     @Option(
@@ -159,9 +162,11 @@ public class Launcher {
     public String agentJnlpCredentials = null;
 
     @Option(name = "-secret", metaVar = "HEX_SECRET", usage = "Agent connection secret.")
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public String secret;
 
     @Option(name = "-name", usage = "Name of the agent.")
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public String name;
 
     @Option(
@@ -174,6 +179,7 @@ public class Launcher {
      * @deprecated removed without replacement
      */
     @Deprecated
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public File tcpPortFile = null;
 
     /**
@@ -195,6 +201,7 @@ public class Launcher {
      * @deprecated use {@link #agentJnlpCredentials} or {@link #proxyCredentials}
      */
     @Deprecated
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public String auth = null;
 
     /**
@@ -255,6 +262,7 @@ public class Launcher {
      * @deprecated removed without replacement
      */
     @Deprecated
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public InetSocketAddress connectionTarget = null;
 
     /**
@@ -305,6 +313,7 @@ public class Launcher {
             name = "-workDir",
             usage = "Declares the working directory of the remoting instance (stores cache and logs by default)")
     @CheckForNull
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public File workDir = null;
 
     /**
@@ -319,6 +328,7 @@ public class Launcher {
             usage = "Specifies a name of the internal files within a working directory ('remoting' by default)",
             depends = "-workDir")
     @NonNull
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public String internalDir = WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation();
 
     /**
@@ -331,6 +341,7 @@ public class Launcher {
             name = "-failIfWorkDirIsMissing",
             usage = "Fails the initialization if the requested workDir or internalDir are missing ('false' by default)",
             depends = "-workDir")
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     @Option(
@@ -339,12 +350,14 @@ public class Launcher {
             usage = "Connect to the specified host and port, instead of connecting directly to Jenkins. "
                     + "Useful when connection to Jenkins needs to be tunneled. Can be also HOST: or :PORT, "
                     + "in which case the missing portion will be auto-configured like the default behavior.")
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public String tunnel;
 
     /**
      * @deprecated removed without replacement
      */
     @Deprecated
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public boolean headlessMode;
 
     /**
@@ -366,6 +379,7 @@ public class Launcher {
             usage = "Make a WebSocket connection to Jenkins rather than using the TCP port.",
             depends = "-url",
             forbids = {"-direct", "-tunnel", "-credentials", "-noKeepAlive"})
+    @SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE", justification = "TODO needs triage")
     public boolean webSocket;
 
     @Option(
