@@ -46,7 +46,6 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
-import java.security.PrivilegedActionException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -529,7 +528,7 @@ public class Launcher {
         createX509Certificates();
         try {
             sslSocketFactory = Engine.getSSLSocketFactory(x509Certificates, noCertificateCheck);
-        } catch (GeneralSecurityException | PrivilegedActionException e) {
+        } catch (GeneralSecurityException e) {
             throw new RuntimeException(e);
         }
         if (noCertificateCheck) {
