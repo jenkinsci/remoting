@@ -390,9 +390,9 @@ public class SubnetUtilsTest extends TestCase {
 
     public void testToString() {
         final SubnetUtils utils = new SubnetUtils("192.168.0.1/29");
-        assertDoesNotThrow(() -> utils.toString());
+        assertDoesNotThrow(utils::toString);
         final SubnetUtils.SubnetInfo info = utils.getInfo();
-        assertDoesNotThrow(() -> info.toString());
+        assertDoesNotThrow(info::toString);
     }
 
     public void testZeroAddressAndCidr() {

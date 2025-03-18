@@ -27,9 +27,9 @@ class HostPort {
             throw new IllegalArgumentException("Invalid HOST:PORT value: " + value);
         }
         String hostValue = hostPortValue.substring(0, portSeparator).trim();
-        host = hostValue.length() > 0 ? hostValue : defaultHost;
+        host = !hostValue.isEmpty() ? hostValue : defaultHost;
         String portString = hostPortValue.substring(portSeparator + 1).trim();
-        if (portString.length() > 0) {
+        if (!portString.isEmpty()) {
             port = Integer.parseInt(portString);
             if (port <= PORT_MIN || port > PORT_MAX) {
                 throw new IllegalArgumentException(

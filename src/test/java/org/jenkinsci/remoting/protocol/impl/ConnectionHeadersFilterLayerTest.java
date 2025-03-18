@@ -312,11 +312,10 @@ public class ConnectionHeadersFilterLayerTest {
             clientExpectedHeaders.put(String.format("key-%d", i), bigString);
         }
 
-        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
-            ProtocolStack.on(clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
-                    .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders, serverActualHeaders::complete))
-                    .build(new IOBufferMatcherLayer());
-        });
+        final IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> ProtocolStack.on(
+                        clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
+                .filter(new ConnectionHeadersFilterLayer(clientExpectedHeaders, serverActualHeaders::complete))
+                .build(new IOBufferMatcherLayer()));
         assertThat(e.getMessage(), containsString("less than 65536"));
     }
 }

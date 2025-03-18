@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -53,7 +54,7 @@ public class ChannelTest {
         channelRunner.withChannel(channel -> {
             final IOException e = assertThrows(IOException.class, () -> channel.call(new CallableImpl()));
             assertEquals("foobar", e.getCause().getCause().getMessage());
-            assertTrue(e.getCause().getCause() instanceof ClassCastException);
+            assertInstanceOf(ClassCastException.class, e.getCause().getCause());
         });
     }
 

@@ -24,6 +24,7 @@
 package hudson.remoting;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -239,7 +240,7 @@ public class ClassRemotingTest {
             Object o = getOpenChannelOrFail().getRemoteProperty("test");
             assertEquals(o.getClass().getName(), TESTCALLABLE_TRANSFORMED_CLASSNAME);
             assertNotSame(Channel.class.getClassLoader(), o.getClass().getClassLoader());
-            assertTrue(o.getClass().getClassLoader() instanceof RemoteClassLoader);
+            assertInstanceOf(RemoteClassLoader.class, o.getClass().getClassLoader());
             return null;
         }
 

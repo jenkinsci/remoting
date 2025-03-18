@@ -35,7 +35,7 @@ public class PropertiesStringMatcher implements ArgumentMatcher<String> {
     private String expected;
 
     public PropertiesStringMatcher(String expected) {
-        this.expected = expected.substring(expected.indexOf(System.getProperty("line.separator")));
+        this.expected = expected.substring(expected.indexOf(System.lineSeparator()));
     }
 
     @Override
