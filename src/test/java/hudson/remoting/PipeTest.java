@@ -86,7 +86,7 @@ public class PipeTest implements Serializable {
                 assertEquals(in.read(), 0);
             }
 
-            final ExecutionException e = assertThrows(ExecutionException.class, () -> f.get());
+            final ExecutionException e = assertThrows(ExecutionException.class, f::get);
             assertThat(e.getCause(), instanceOf(IOException.class));
         });
     }

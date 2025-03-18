@@ -57,7 +57,7 @@ final class Checksum {
     @Override
     public int hashCode() {
         long l = sum1 ^ sum2;
-        return (int) (l ^ (l >>> 32));
+        return Long.hashCode(l);
     }
 
     @Override

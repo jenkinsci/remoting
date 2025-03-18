@@ -220,7 +220,7 @@ public class Which {
             JarFile jarFile = jcon.getJarFile();
             if (jarFile != null) {
                 String n = jarFile.getName();
-                if (n.length() > 0) { // JDK6u10 needs this
+                if (!n.isEmpty()) { // JDK6u10 needs this
                     return new File(n);
                 } else {
                     // JDK6u10 apparently starts hiding the real jar file name,

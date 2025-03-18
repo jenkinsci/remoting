@@ -515,7 +515,7 @@ public class JnlpAgentEndpointResolver extends JnlpEndpointResolver {
                 //      https://bugs.java.com/view_bug.do?bug_id=8035158
                 //      http://hg.openjdk.java.net/jdk9/jdk9/jdk/rev/50a749f2cade
                 String nonProxyHosts = System.getProperty("http.nonProxyHosts");
-                if (nonProxyHosts != null && nonProxyHosts.length() != 0) {
+                if (nonProxyHosts != null && !nonProxyHosts.isEmpty()) {
                     // Build a list of regexps matching all nonProxyHosts entries
                     StringJoiner sj = new StringJoiner("|");
                     nonProxyHosts = nonProxyHosts.toLowerCase(Locale.ENGLISH);

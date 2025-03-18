@@ -1213,10 +1213,10 @@ public class Engine extends Thread {
             LOGGER.log(Level.FINE, "trustStore type is: {0}", trustStoreType);
             LOGGER.log(Level.FINE, "trustStore provider is: {0}", trustStoreProvider);
 
-            if (trustStoreType.length() != 0) {
+            if (!trustStoreType.isEmpty()) {
                 LOGGER.log(Level.FINE, "init truststore");
 
-                if (trustStoreProvider.length() == 0) {
+                if (trustStoreProvider.isEmpty()) {
                     keystore = KeyStore.getInstance(trustStoreType);
                 } else {
                     keystore = KeyStore.getInstance(trustStoreType, trustStoreProvider);
@@ -1224,7 +1224,7 @@ public class Engine extends Thread {
 
                 char[] trustStorePasswdChars = null;
                 String trustStorePasswd = properties.get("trustStorePasswd");
-                if (trustStorePasswd.length() != 0) {
+                if (!trustStorePasswd.isEmpty()) {
                     trustStorePasswdChars = trustStorePasswd.toCharArray();
                 }
 
