@@ -46,14 +46,11 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.security.AccessController;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.security.SecureRandom;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
@@ -1165,20 +1162,14 @@ public class Engine extends Thread {
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "File path is loaded from system properties.")
     static KeyStore getCacertsKeyStore()
-            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-                    NoSuchAlgorithmException, IOException {
-        Map<String, String> properties =
-                AccessController.doPrivileged((PrivilegedExceptionAction<Map<String, String>>) () -> {
-                    Map<String, String> result = new HashMap<>();
-                    result.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
-                    result.put("javaHome", System.getProperty("java.home"));
-                    result.put(
-                            "trustStoreType",
-                            System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
-                    result.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
-                    result.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
-                    return result;
-                });
+            throws KeyStoreException, NoSuchProviderException, CertificateException, NoSuchAlgorithmException,
+                    IOException {
+        Map<String, String> properties = new HashMap<>();
+        properties.put("trustStore", System.getProperty("javax.net.ssl.trustStore"));
+        properties.put("javaHome", System.getProperty("java.home"));
+        properties.put("trustStoreType", System.getProperty("javax.net.ssl.trustStoreType", KeyStore.getDefaultType()));
+        properties.put("trustStoreProvider", System.getProperty("javax.net.ssl.trustStoreProvider", ""));
+        properties.put("trustStorePasswd", System.getProperty("javax.net.ssl.trustStorePassword", ""));
         KeyStore keystore = null;
 
         FileInputStream trustStoreStream = null;
@@ -1243,20 +1234,18 @@ public class Engine extends Thread {
     }
 
     @CheckForNull
-    private static FileInputStream getFileInputStream(final File file) throws PrivilegedActionException {
-        return AccessController.doPrivileged((PrivilegedExceptionAction<FileInputStream>) () -> {
-            try {
-                return file.exists() ? new FileInputStream(file) : null;
-            } catch (FileNotFoundException e) {
-                return null;
-            }
-        });
+    private static FileInputStream getFileInputStream(final File file) {
+        try {
+            return file.exists() ? new FileInputStream(file) : null;
+        } catch (FileNotFoundException e) {
+            return null;
+        }
     }
 
     @CheckForNull
     private static SSLContext getSSLContext(List<X509Certificate> x509Certificates, boolean noCertificateCheck)
-            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-                    NoSuchAlgorithmException, IOException, KeyManagementException {
+            throws KeyStoreException, NoSuchProviderException, CertificateException, NoSuchAlgorithmException,
+                    IOException, KeyManagementException {
         SSLContext sslContext = null;
         if (noCertificateCheck) {
             sslContext = SSLContext.getInstance("TLS");
@@ -1285,8 +1274,8 @@ public class Engine extends Thread {
     @CheckForNull
     @Restricted(NoExternalUse.class)
     static SSLSocketFactory getSSLSocketFactory(List<X509Certificate> x509Certificates, boolean noCertificateCheck)
-            throws PrivilegedActionException, KeyStoreException, NoSuchProviderException, CertificateException,
-                    NoSuchAlgorithmException, IOException, KeyManagementException {
+            throws KeyStoreException, NoSuchProviderException, CertificateException, NoSuchAlgorithmException,
+                    IOException, KeyManagementException {
         SSLContext sslContext = getSSLContext(x509Certificates, noCertificateCheck);
         return sslContext != null ? sslContext.getSocketFactory() : null;
     }

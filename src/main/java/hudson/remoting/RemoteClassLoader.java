@@ -490,7 +490,7 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         String packageName = name.substring(0, idx);
-        if (getPackage(packageName) != null) { // already defined
+        if (getDefinedPackage(packageName) != null) { // already defined
             return;
         }
 

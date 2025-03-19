@@ -205,7 +205,7 @@ public class PublicKeyMatchingX509ExtendedTrustManager extends X509ExtendedTrust
             throw new CertificateException(String.format(
                     "Public key of the first certificate in chain (subject: '%s') "
                             + "(algorithm: '%s'; format: '%s') does not support binary encoding",
-                    chain[0].getSubjectDN(), chainKey.getAlgorithm(), chainKey.getFormat()));
+                    chain[0].getSubjectX500Principal(), chainKey.getAlgorithm(), chainKey.getFormat()));
         }
         synchronized (publicKeys) {
             if (publicKeys.isEmpty() ? (client ? !strictClient : !strictServer) : isTrusted(chainKey)) {
@@ -214,7 +214,7 @@ public class PublicKeyMatchingX509ExtendedTrustManager extends X509ExtendedTrust
         }
         throw new CertificateException(String.format(
                 "Public key of the first certificate in chain (subject: %s) " + "is not in the list of trusted keys",
-                chain[0].getSubjectDN()));
+                chain[0].getSubjectX500Principal()));
     }
 
     /**
