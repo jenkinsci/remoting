@@ -337,7 +337,8 @@ public class Engine extends Thread {
                 workDirManager.setLoggingConfig(loggingConfigFilePath.toFile());
             }
 
-            final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
+            final Path path =
+                    workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing, agentName);
             jarCacheDirectory = workDirManager.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
             workDirManager.setupLogging(path, agentLog);
         } else if (jarCache == null) {

@@ -76,7 +76,7 @@ public class WorkDirManagerTest {
 
         // Initialize and check the results
         final Path createdDir = WorkDirManager.getInstance()
-                .initializeWorkDir(dir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
+                .initializeWorkDir(dir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false, "x");
         assertThat(
                 "The initialized " + WorkDirManager.DirType.INTERNAL_DIR + " differs from the expected one",
                 createdDir,
@@ -107,7 +107,7 @@ public class WorkDirManagerTest {
 
         // Initialize and check the results
         final Path createdDir = WorkDirManager.getInstance()
-                .initializeWorkDir(workDir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
+                .initializeWorkDir(workDir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false, "x");
         assertThat(
                 "The initialized " + WorkDirManager.DirType.INTERNAL_DIR + " differs from the expected one",
                 createdDir.toFile(),
@@ -129,7 +129,8 @@ public class WorkDirManagerTest {
         final File remotingDir = new File(workDir, internalDirectoryName);
 
         // Initialize and check the results
-        final Path createdDir = WorkDirManager.getInstance().initializeWorkDir(workDir, internalDirectoryName, false);
+        final Path createdDir =
+                WorkDirManager.getInstance().initializeWorkDir(workDir, internalDirectoryName, false, "x");
         assertThat(
                 "The initialized " + WorkDirManager.DirType.INTERNAL_DIR + " differs from the expected one",
                 createdDir.toFile(),
@@ -144,7 +145,7 @@ public class WorkDirManagerTest {
         File foo = tmpDir.newFile("foo");
         try {
             WorkDirManager.getInstance()
-                    .initializeWorkDir(foo, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
+                    .initializeWorkDir(foo, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false, "x");
         } catch (IOException ex) {
             assertThat(
                     "Wrong exception message",
@@ -237,7 +238,7 @@ public class WorkDirManagerTest {
     public void shouldCreateLogFilesOnTheDisk() throws Exception {
         final File workDir = tmpDir.newFolder("workDir");
         final WorkDirManager mngr = WorkDirManager.getInstance();
-        mngr.initializeWorkDir(workDir, "remoting", false);
+        mngr.initializeWorkDir(workDir, "remoting", false, "x");
         mngr.setupLogging(mngr.getLocation(WorkDirManager.DirType.INTERNAL_DIR).toPath(), null);
 
         // Write something to logs
@@ -295,7 +296,7 @@ public class WorkDirManagerTest {
         if (passToManager) {
             mngr.setLoggingConfig(loggingConfigFile);
         }
-        mngr.initializeWorkDir(workDir, "remoting", false);
+        mngr.initializeWorkDir(workDir, "remoting", false, "x");
         mngr.setupLogging(mngr.getLocation(WorkDirManager.DirType.INTERNAL_DIR).toPath(), null);
 
         // Write something to logs
@@ -327,7 +328,7 @@ public class WorkDirManagerTest {
         // Initialize and check the results
         try {
             WorkDirManager.getInstance()
-                    .initializeWorkDir(workDir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), true);
+                    .initializeWorkDir(workDir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), true, "x");
         } catch (IOException ex) {
             assertThat(
                     "Unexpected exception message",
@@ -340,7 +341,7 @@ public class WorkDirManagerTest {
 
     private void assertAllocationFails(File workDir, String internalDirName) throws AssertionError {
         try {
-            WorkDirManager.getInstance().initializeWorkDir(workDir, internalDirName, false);
+            WorkDirManager.getInstance().initializeWorkDir(workDir, internalDirName, false, "x");
         } catch (IOException ex) {
             assertThat(
                     ex.getMessage(),
@@ -363,7 +364,7 @@ public class WorkDirManagerTest {
             throws AssertionError, IOException {
         WorkDirManager instance = WorkDirManager.getInstance();
         instance.disable(type);
-        instance.initializeWorkDir(workDir, "remoting", false);
+        instance.initializeWorkDir(workDir, "remoting", false, "x");
 
         // Checks
         assertThat(
@@ -402,7 +403,7 @@ public class WorkDirManagerTest {
 
         try {
             WorkDirManager.getInstance()
-                    .initializeWorkDir(dir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false);
+                    .initializeWorkDir(dir, WorkDirManager.DirType.INTERNAL_DIR.getDefaultLocation(), false, "x");
         } catch (IOException ex) {
             assertThat(
                     "Wrong exception message for " + flag,

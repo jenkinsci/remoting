@@ -36,8 +36,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -177,6 +181,7 @@ public class WorkDirManager {
      * @param failIfMissing Fail the initialization if the workDir or internalDir are missing.
      *                      This option presumes that the workspace structure gets initialized previously in order to ensure that we do not start up with a borked instance
      *                      (e.g. if a mount gets disconnected).
+     * @param agentName name of the agent
      * @return Initialized directory for internal files within workDir or {@code null} if it is disabled
      * @throws IOException Workspace allocation issue (e.g. the specified directory is not writable).
      *                     In such case Remoting should not start up at all.
@@ -184,7 +189,10 @@ public class WorkDirManager {
     @CheckForNull
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Parameter supplied by user / administrator.")
     public Path initializeWorkDir(
-            final @CheckForNull File workDir, final @NonNull String internalDir, final boolean failIfMissing)
+            final @CheckForNull File workDir,
+            final @NonNull String internalDir,
+            final boolean failIfMissing,
+            @NonNull String agentName)
             throws IOException {
 
         if (!internalDir.matches(SUPPORTED_INTERNAL_DIR_NAME_MASK)) {
@@ -212,6 +220,36 @@ public class WorkDirManager {
             final Path internalDirPath = PathUtils.fileToPath(internalDirFile);
             Files.createDirectories(internalDirPath);
             LOGGER.log(Level.INFO, "Using {0} as a remoting work directory", internalDirPath);
+
+            var pids = internalDirPath.resolve("pids");
+            Files.createDirectories(pids);
+            var others = Files.list(pids)
+                    .map(Path::getFileName)
+                    .map(Path::toString)
+                    .filter(n -> !n.equals(agentName))
+                    .toList();
+            if (!others.isEmpty()) {
+                LOGGER.warning(() -> pids + " suggests this workDir is being used by agents other than " + agentName
+                        + " which could lead to file corruption and other issues: " + others);
+            }
+            var lockFile = pids.resolve(agentName);
+            var fc = FileChannel.open(lockFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+            if (fc.tryLock() == null) {
+                throw new IOException("Another process is already running the agent: " + lockFile);
+            }
+            Channels.newOutputStream(fc)
+                    .write(Long.toString(ProcessHandle.current().pid()).getBytes(StandardCharsets.US_ASCII));
+            Runtime.getRuntime()
+                    .addShutdownHook(new Thread(
+                            () -> {
+                                try {
+                                    fc.close();
+                                    Files.delete(lockFile);
+                                } catch (IOException x) {
+                                    LOGGER.log(Level.WARNING, "failed to clean up " + lockFile, x);
+                                }
+                            },
+                            "clean up " + lockFile));
 
             // Create components of the internal directory
             createInternalDirIfRequired(internalDirFile, DirType.JAR_CACHE_DIR);
