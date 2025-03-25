@@ -85,6 +85,9 @@ public class WorkDirManager {
      */
     public static final String JUL_CONFIG_FILE_SYSTEM_PROPERTY_NAME = "java.util.logging.config.file";
 
+    /** {@link #initializeWorkDir} is called twice. */
+    private Path internalDirPath;
+
     // Status data
     boolean loggingInitialized;
 
@@ -195,6 +198,10 @@ public class WorkDirManager {
             @NonNull String agentName)
             throws IOException {
 
+        if (internalDirPath != null) {
+            return internalDirPath;
+        }
+
         if (!internalDir.matches(SUPPORTED_INTERNAL_DIR_NAME_MASK)) {
             throw new IOException(String.format(
                     "Name of %s ('%s') is not compliant with the required format: %s",
@@ -217,7 +224,7 @@ public class WorkDirManager {
             directories.put(DirType.INTERNAL_DIR, internalDirFile);
 
             // Create the directory on-demand
-            final Path internalDirPath = PathUtils.fileToPath(internalDirFile);
+            internalDirPath = PathUtils.fileToPath(internalDirFile);
             Files.createDirectories(internalDirPath);
             LOGGER.log(Level.INFO, "Using {0} as a remoting work directory", internalDirPath);
 
