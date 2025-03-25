@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -241,22 +242,30 @@ public class WorkDirManager {
             }
             var lockFile = pids.resolve(agentName);
             var fc = FileChannel.open(lockFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-            if (fc.tryLock() == null) {
-                throw new IOException("Another process is already running the agent: " + lockFile);
-            }
-            Channels.newOutputStream(fc)
-                    .write(Long.toString(ProcessHandle.current().pid()).getBytes(StandardCharsets.US_ASCII));
+            var shouldDelete = new AtomicBoolean();
             Runtime.getRuntime()
                     .addShutdownHook(new Thread(
                             () -> {
                                 try {
                                     fc.close();
-                                    Files.delete(lockFile);
                                 } catch (IOException x) {
-                                    LOGGER.log(Level.WARNING, "failed to clean up " + lockFile, x);
+                                    LOGGER.log(Level.WARNING, "failed to close " + lockFile, x);
+                                }
+                                if (shouldDelete.get()) {
+                                    try {
+                                        Files.delete(lockFile);
+                                    } catch (IOException x) {
+                                        LOGGER.log(Level.WARNING, "failed to delete " + lockFile, x);
+                                    }
                                 }
                             },
                             "clean up " + lockFile));
+            if (fc.tryLock() == null) {
+                throw new IOException("Another process is already running the agent: " + lockFile);
+            }
+            shouldDelete.set(true);
+            Channels.newOutputStream(fc)
+                    .write(Long.toString(ProcessHandle.current().pid()).getBytes(StandardCharsets.US_ASCII));
 
             // Create components of the internal directory
             createInternalDirIfRequired(internalDirFile, DirType.JAR_CACHE_DIR);
