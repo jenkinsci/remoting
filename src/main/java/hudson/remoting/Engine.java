@@ -268,19 +268,17 @@ public class Engine extends Thread {
     private final String directConnection;
     private final String instanceIdentity;
     private final Set<String> protocols;
+    private final boolean lockWorkDir;
 
-    public Engine(EngineListener listener, List<URL> hudsonUrls, String secretKey, String agentName) {
-        this(listener, hudsonUrls, secretKey, agentName, null, null, null);
-    }
-
-    public Engine(
+    Engine(
             EngineListener listener,
             List<URL> hudsonUrls,
             String secretKey,
             String agentName,
             String directConnection,
             String instanceIdentity,
-            Set<String> protocols) {
+            Set<String> protocols,
+            boolean lockWorkDir) {
         this.listener = listener;
         this.directConnection = directConnection;
         this.events.add(listener);
@@ -290,6 +288,7 @@ public class Engine extends Thread {
         this.agentName = agentName;
         this.instanceIdentity = instanceIdentity;
         this.protocols = protocols;
+        this.lockWorkDir = lockWorkDir;
         if (candidateUrls.isEmpty() && instanceIdentity == null) {
             throw new IllegalArgumentException("No URLs given");
         }
@@ -343,7 +342,9 @@ public class Engine extends Thread {
             }
 
             final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
-            lock(path);
+            if (lockWorkDir && path != null) {
+                lock(path);
+            }
             jarCacheDirectory = workDirManager.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
             workDirManager.setupLogging(path, agentLog);
         } else if (jarCache == null) {
