@@ -44,8 +44,12 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -69,6 +73,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -337,8 +342,8 @@ public class Engine extends Thread {
                 workDirManager.setLoggingConfig(loggingConfigFilePath.toFile());
             }
 
-            final Path path =
-                    workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing, agentName);
+            final Path path = workDirManager.initializeWorkDir(workDir.toFile(), internalDir, failIfWorkDirIsMissing);
+            lock(path);
             jarCacheDirectory = workDirManager.getLocation(WorkDirManager.DirType.JAR_CACHE_DIR);
             workDirManager.setupLogging(path, agentLog);
         } else if (jarCache == null) {
@@ -368,6 +373,46 @@ public class Engine extends Thread {
         if (!dryRun) {
             this.start();
         }
+    }
+
+    private void lock(Path internalDirPath) throws IOException {
+        var pids = internalDirPath.resolve("pids");
+        Files.createDirectories(pids);
+        var others = Files.list(pids)
+                .map(Path::getFileName)
+                .map(Path::toString)
+                .filter(n -> !n.equals(agentName))
+                .toList();
+        if (!others.isEmpty()) {
+            LOGGER.warning(() -> pids + " suggests this workDir is being used by agents other than " + agentName
+                    + " which could lead to file corruption and other issues: " + others);
+        }
+        var lockFile = pids.resolve(agentName);
+        var fc = FileChannel.open(lockFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+        var shouldDelete = new AtomicBoolean();
+        Runtime.getRuntime()
+                .addShutdownHook(new Thread(
+                        () -> {
+                            try {
+                                fc.close();
+                            } catch (IOException x) {
+                                LOGGER.log(Level.WARNING, "failed to close " + lockFile, x);
+                            }
+                            if (shouldDelete.get()) {
+                                try {
+                                    Files.delete(lockFile);
+                                } catch (IOException x) {
+                                    LOGGER.log(Level.WARNING, "failed to delete " + lockFile, x);
+                                }
+                            }
+                        },
+                        "clean up " + lockFile));
+        if (fc.tryLock() == null) {
+            throw new IOException("Another process is already running the agent: " + lockFile);
+        }
+        shouldDelete.set(true);
+        Channels.newOutputStream(fc)
+                .write(Long.toString(ProcessHandle.current().pid()).getBytes(StandardCharsets.US_ASCII));
     }
 
     /**

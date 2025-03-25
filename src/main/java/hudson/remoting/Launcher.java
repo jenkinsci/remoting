@@ -515,8 +515,7 @@ public class Launcher {
         // On the other hand, in such case there is no need to invoke WorkDirManager and handle the double
         // initialization logic
         final WorkDirManager workDirManager = WorkDirManager.getInstance();
-        final Path internalDirPath =
-                workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing, name);
+        final Path internalDirPath = workDirManager.initializeWorkDir(workDir, internalDir, failIfWorkDirIsMissing);
         if (agentLog != null) {
             workDirManager.disable(WorkDirManager.DirType.LOGS_DIR);
         }
