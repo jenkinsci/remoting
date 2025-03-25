@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.lang.ref.WeakReference;
+import java.lang.ref.Cleaner;
 
 /**
  * This class is equivalent to {@link PipedInputStream}. In the
@@ -34,7 +35,8 @@ import java.lang.ref.WeakReference;
  * synchronization with its counterpart {@link FastPipedOutputStream}.
  *
  * @author WD
- * @see <a href="http://developer.java.sun.com/developer/bugParade/bugs/4404700.html">4404700</a>
+ * @see <a href=
+ *      "http://developer.java.sun.com/developer/bugParade/bugs/4404700.html">4404700</a>
  * @see FastPipedOutputStream
  */
 public class FastPipedInputStream extends InputStream {
@@ -53,16 +55,36 @@ public class FastPipedInputStream extends InputStream {
 
     private final Throwable allocatedAt = new Throwable();
 
+    private static final int DEFAULT_BUFFER_SIZE = 0x10000;
+    private static final Cleaner CLEANER = Cleaner.create();
+
+    /**
+     * Creates a PipedInputStream with a given buffer size.
+     * 
+     * @param bufferSize the size of the buffer
+     */
+    public FastPipedInputStream(int bufferSize) {
+        buffer = new byte[bufferSize];
+        CLEANER.register(this, () -> {
+            try {
+                close();
+            } catch (IOException e) {
+                // ignore
+            }
+        });
+    }
+
     /**
      * Creates an unconnected PipedInputStream with a default buffer size.
      */
     public FastPipedInputStream() {
-        this.buffer = new byte[0x10000];
+        this(DEFAULT_BUFFER_SIZE);
     }
 
     /**
      * Creates a PipedInputStream with a default buffer size and connects it to
      * <code>source</code>.
+     * 
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source) throws IOException {
@@ -72,6 +94,7 @@ public class FastPipedInputStream extends InputStream {
     /**
      * Creates a PipedInputStream with buffer size <code>bufferSize</code> and
      * connects it to <code>source</code>.
+     * 
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source, int bufferSize) throws IOException {
@@ -79,6 +102,13 @@ public class FastPipedInputStream extends InputStream {
             connect(source);
         }
         this.buffer = new byte[bufferSize];
+        CLEANER.register(this, () -> {
+            try {
+                close();
+            } catch (IOException e) {
+                // ignore
+            }
+        });
     }
 
     private void checkSource() throws IOException {
@@ -90,7 +120,8 @@ public class FastPipedInputStream extends InputStream {
 
     @Override
     public int available() throws IOException {
-        /* The circular buffer is inspected to see where the reader and the writer
+        /*
+         * The circular buffer is inspected to see where the reader and the writer
          * are located.
          */
         synchronized (buffer) {
@@ -131,13 +162,8 @@ public class FastPipedInputStream extends InputStream {
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
+    public void mark(int readLimit) {
     }
-
-    @Override
-    public void mark(int readLimit) {}
 
     @Override
     public boolean markSupported() {
@@ -189,8 +215,8 @@ public class FastPipedInputStream extends InputStream {
 
                 // Don't read more than the capacity indicated by len or what's available
                 // in the circular buffer.
-                int amount =
-                        Math.min(len, (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
+                int amount = Math.min(len,
+                        (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
                 System.arraycopy(buffer, readPosition, b, off, amount);
                 readPosition += amount;
 
