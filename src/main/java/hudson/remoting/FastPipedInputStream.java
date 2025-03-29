@@ -24,8 +24,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
-import java.lang.ref.WeakReference;
 import java.lang.ref.Cleaner;
+import java.lang.ref.WeakReference;
 
 /**
  * This class is equivalent to {@link PipedInputStream}. In the
@@ -60,7 +60,7 @@ public class FastPipedInputStream extends InputStream {
 
     /**
      * Creates a PipedInputStream with a given buffer size.
-     * 
+     *
      * @param bufferSize the size of the buffer
      */
     public FastPipedInputStream(int bufferSize) {
@@ -84,7 +84,7 @@ public class FastPipedInputStream extends InputStream {
     /**
      * Creates a PipedInputStream with a default buffer size and connects it to
      * <code>source</code>.
-     * 
+     *
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source) throws IOException {
@@ -94,7 +94,7 @@ public class FastPipedInputStream extends InputStream {
     /**
      * Creates a PipedInputStream with buffer size <code>bufferSize</code> and
      * connects it to <code>source</code>.
-     * 
+     *
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source, int bufferSize) throws IOException {
@@ -162,8 +162,7 @@ public class FastPipedInputStream extends InputStream {
     }
 
     @Override
-    public void mark(int readLimit) {
-    }
+    public void mark(int readLimit) {}
 
     @Override
     public boolean markSupported() {
@@ -215,8 +214,8 @@ public class FastPipedInputStream extends InputStream {
 
                 // Don't read more than the capacity indicated by len or what's available
                 // in the circular buffer.
-                int amount = Math.min(len,
-                        (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
+                int amount =
+                        Math.min(len, (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
                 System.arraycopy(buffer, readPosition, b, off, amount);
                 readPosition += amount;
 
