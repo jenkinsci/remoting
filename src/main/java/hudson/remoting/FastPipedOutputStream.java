@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
-import java.lang.ref.WeakReference;
 import java.lang.ref.Cleaner;
+import java.lang.ref.WeakReference;
 
 /**
  * This class is equivalent to {@link PipedOutputStream}. In the
@@ -65,7 +65,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     /**
      * Creates a PipedOutputStream with a default buffer size and connects it to
      * <code>sink</code>.
-     * 
+     *
      * @exception IOException It was already connected.
      */
     public FastPipedOutputStream(FastPipedInputStream sink) throws IOException {
@@ -75,7 +75,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     /**
      * Creates a PipedOutputStream with buffer size <code>bufferSize</code> and
      * connects it to <code>sink</code>.
-     * 
+     *
      * @exception IOException It was already connected.
      * @deprecated as of 1.350
      *             bufferSize parameter is ignored.
@@ -137,7 +137,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     @Override
     public void write(int b) throws IOException {
-        write(new byte[] { (byte) b });
+        write(new byte[] {(byte) b});
     }
 
     @Override
