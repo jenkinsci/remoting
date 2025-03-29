@@ -25,16 +25,15 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.Writer;
+import java.lang.ref.Cleaner;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.jcip.annotations.GuardedBy;
-import java.lang.ref.Cleaner;
 
 /**
  * {@link Writer} that sends bits to an exported
@@ -110,7 +109,7 @@ final class ProxyWriter extends Writer {
 
     @Override
     public void write(int c) throws IOException {
-        write(new char[] { (char) c }, 0, 1);
+        write(new char[] {(char) c}, 0, 1);
     }
 
     @Override
@@ -140,7 +139,7 @@ final class ProxyWriter extends Writer {
                      * To avoid fragmentation of the pipe window, at least demand that 10% of the
                      * pipe window
                      * be reclaimed.
-                     * 
+                     *
                      * Imagine a large latency network where we are always low on the window size,
                      * and we are continuously sending data of irregular size. In such a
                      * circumstance,
@@ -148,11 +147,11 @@ final class ProxyWriter extends Writer {
                      * (say 4 bytes),
                      * and when its Ack comes back, it gets immediately consumed by another
                      * out-bound Chunk of 4 bytes.
-                     * 
+                     *
                      * Clearly, it's better to wait a bit until we have a sizable pipe window, then
                      * send out
                      * a bigger Chunk, since Chunks have static overheads. This code does just that.
-                     * 
+                     *
                      * (Except when what we are trying to send as a whole is smaller than the
                      * current available
                      * window size, in which case there's no point in waiting.)
@@ -167,13 +166,13 @@ final class ProxyWriter extends Writer {
                      * before we can send a next Chunk. While the Ack is traveling back to us, we
                      * have
                      * to sit idle. This fails to utilize available bandwidth.
-                     * 
+                     *
                      * A better strategy is to create a smaller Chunk, say half the window size.
                      * This allows the other side to send back the ack while we are sending the
                      * second
                      * Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
                      * to overlap, and that improves the utilization.
-                     * 
+                     *
                      * It's not clear what the best size of the chunk to send (there's a certain
                      * overhead in our Command structure, around 100-200 bytes), so I'm just
                      * starting
@@ -220,7 +219,7 @@ final class ProxyWriter extends Writer {
 
     /**
      * Reports error and immediately terminates the writer.
-     * 
+     *
      * @param cause Cause
      * @throws IOException if failed to send the {@link EOF} command to the remote
      *                     side.
@@ -369,7 +368,7 @@ final class ProxyWriter extends Writer {
 
     /**
      * {@link Command} for flushing.
-     * 
+     *
      * @since 2.35
      */
     private static final class Flush extends Command {
@@ -407,7 +406,7 @@ final class ProxyWriter extends Writer {
      *
      * <p>
      * Unlike {@link EOF}, this just unexports but not closes the stream.
-     * 
+     *
      * @since 2.35
      */
     private static class Unexport extends Command {
@@ -473,7 +472,7 @@ final class ProxyWriter extends Writer {
 
     /**
      * {@link Command} to notify the sender that it can send some more data.
-     * 
+     *
      * @since 2.35
      */
     private static class Ack extends Command {
@@ -508,7 +507,7 @@ final class ProxyWriter extends Writer {
 
     /**
      * {@link Command} to notify the sender that the receiver is dead.
-     * 
+     *
      * @since 2.35
      */
     private static final class NotifyDeadWriter extends Command {
