@@ -27,10 +27,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.lang.ref.Cleaner;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.lang.ref.Cleaner;
 
 /**
  * {@link OutputStream} that sends bits to an exported
@@ -49,7 +49,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
     /**
      * Set to the error object if the error is induced.
-     * 
+     *
      * @see #error(Throwable)
      */
     private Throwable error;
@@ -62,8 +62,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      * when it's {@link #connect(Channel,int) connected} later,
      * the data will be sent at once to the remote stream.
      */
-    public ProxyOutputStream() {
-    }
+    public ProxyOutputStream() {}
 
     /**
      * Creates an already connected {@link ProxyOutputStream}.
@@ -101,7 +100,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
     @Override
     public void write(int b) throws IOException {
-        write(new byte[] { (byte) b }, 0, 1);
+        write(new byte[] {(byte) b}, 0, 1);
     }
 
     @Override
@@ -122,7 +121,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                  * To avoid fragmentation of the pipe window, at least demand that 10% of the
                  * pipe window
                  * be reclaimed.
-                 * 
+                 *
                  * Imagine a large latency network where we are always low on the window size,
                  * and we are continuously sending data of irregular size. In such a
                  * circumstance,
@@ -130,11 +129,11 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                  * (say 4 bytes),
                  * and when its Ack comes back, it gets immediately consumed by another
                  * out-bound Chunk of 4 bytes.
-                 * 
+                 *
                  * Clearly, it's better to wait a bit until we have a sizable pipe window, then
                  * send out
                  * a bigger Chunk, since Chunks have static overheads. This code does just that.
-                 * 
+                 *
                  * (Except when what we are trying to send as a whole is smaller than the
                  * current available
                  * window size, in which case there's no point in waiting.)
@@ -149,13 +148,13 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
                  * before we can send a next Chunk. While the Ack is traveling back to us, we
                  * have
                  * to sit idle. This fails to utilize available bandwidth.
-                 * 
+                 *
                  * A better strategy is to create a smaller Chunk, say half the window size.
                  * This allows the other side to send back the ack while we are sending the
                  * second
                  * Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
                  * to overlap, and that improves the utilization.
-                 * 
+                 *
                  * It's not clear what the best size of the chunk to send (there's a certain
                  * overhead in our Command structure, around 100-200 bytes), so I'm just
                  * starting
