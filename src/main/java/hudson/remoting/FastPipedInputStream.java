@@ -168,8 +168,7 @@ public class FastPipedInputStream extends InputStream {
     }
 
     @Override
-    public void mark(int readLimit) {
-    }
+    public void mark(int readLimit) {}
 
     @Override
     public boolean markSupported() {
@@ -221,8 +220,8 @@ public class FastPipedInputStream extends InputStream {
 
                 // Don't read more than the capacity indicated by len or what's available
                 // in the circular buffer.
-                int amount = Math.min(len,
-                        (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
+                int amount =
+                        Math.min(len, (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
                 System.arraycopy(buffer, readPosition, b, off, amount);
                 readPosition += amount;
 
