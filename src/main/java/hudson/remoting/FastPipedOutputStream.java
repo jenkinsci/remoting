@@ -154,7 +154,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     @Override
     public void write(int b) throws IOException {
-        write(new byte[] { (byte) b });
+        write(new byte[] {(byte) b});
     }
 
     @Override
