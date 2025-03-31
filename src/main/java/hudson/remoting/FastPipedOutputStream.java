@@ -49,17 +49,34 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     private static final Cleaner CLEANER = Cleaner.create();
 
     /**
+     * Private static helper method to close the stream without calling overridable
+     * method
+     */
+    private static void closeQuietly(FastPipedOutputStream stream) {
+        try {
+            if (stream.sink != null) {
+                FastPipedInputStream s = stream.sink.get();
+                if (s != null) {
+                    synchronized (s.buffer) {
+                        if (s.closed == null) {
+                            s.closed = new FastPipedInputStream.ClosedBy(null);
+                            // Release all readers
+                            s.buffer.notifyAll();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
+    /**
      * Creates an unconnected PipedOutputStream.
      */
     public FastPipedOutputStream() {
         super();
-        CLEANER.register(this, () -> {
-            try {
-                close();
-            } catch (IOException e) {
-                // ignore
-            }
-        });
+        CLEANER.register(this, () -> closeQuietly(this));
     }
 
     /**
@@ -137,7 +154,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     @Override
     public void write(int b) throws IOException {
-        write(new byte[] {(byte) b});
+        write(new byte[] { (byte) b });
     }
 
     @Override
