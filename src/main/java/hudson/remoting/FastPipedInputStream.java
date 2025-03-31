@@ -59,19 +59,31 @@ public class FastPipedInputStream extends InputStream {
     private static final Cleaner CLEANER = Cleaner.create();
 
     /**
+     * Private static helper method to close the stream without calling overridable
+     * method
+     */
+    private static void closeQuietly(FastPipedInputStream stream) {
+        try {
+            synchronized (stream.buffer) {
+                if (stream.source != null && stream.closed == null) {
+                    stream.closed = new ClosedBy(null);
+                    // Release any pending writers.
+                    stream.buffer.notifyAll();
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
+    /**
      * Creates a PipedInputStream with a given buffer size.
      *
      * @param bufferSize the size of the buffer
      */
     public FastPipedInputStream(int bufferSize) {
         buffer = new byte[bufferSize];
-        CLEANER.register(this, () -> {
-            try {
-                close();
-            } catch (IOException e) {
-                // ignore
-            }
-        });
+        CLEANER.register(this, () -> closeQuietly(this));
     }
 
     /**
@@ -102,13 +114,7 @@ public class FastPipedInputStream extends InputStream {
             connect(source);
         }
         this.buffer = new byte[bufferSize];
-        CLEANER.register(this, () -> {
-            try {
-                close();
-            } catch (IOException e) {
-                // ignore
-            }
-        });
+        CLEANER.register(this, () -> closeQuietly(this));
     }
 
     private void checkSource() throws IOException {
@@ -162,7 +168,8 @@ public class FastPipedInputStream extends InputStream {
     }
 
     @Override
-    public void mark(int readLimit) {}
+    public void mark(int readLimit) {
+    }
 
     @Override
     public boolean markSupported() {
@@ -214,8 +221,8 @@ public class FastPipedInputStream extends InputStream {
 
                 // Don't read more than the capacity indicated by len or what's available
                 // in the circular buffer.
-                int amount =
-                        Math.min(len, (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
+                int amount = Math.min(len,
+                        (writePosition > readPosition ? writePosition : buffer.length) - readPosition);
                 System.arraycopy(buffer, readPosition, b, off, amount);
                 readPosition += amount;
 
