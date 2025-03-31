@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.lang.ref.Cleaner;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,6 +53,8 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      */
     private Throwable error;
 
+    private Cleaner.Cleanable cleanable;
+
     /**
      * Creates unconnected {@link ProxyOutputStream}.
      * The returned stream accepts data right away, and
@@ -68,6 +71,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      */
     public ProxyOutputStream(@NonNull Channel channel, int oid) throws IOException {
         connect(channel, oid);
+        cleanable = CLEANER.register(this, new CleanupChecker(channel, oid));
     }
 
     /**
@@ -165,6 +169,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
     @Override
     public synchronized void close() throws IOException {
         error(null);
+        cleanable.clean();
     }
 
     @Override
@@ -183,17 +188,6 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         channel.send(new EOF(channel.newIoId(), oid, error));
         channel = null;
         oid = -1;
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        // if we haven't done so, release the exported object on the remote side.
-        // if the object is auto-unexported, the export entry could have already been removed.
-        if (channel != null && oid != -1) {
-            channel.send(new Unexport(channel.newIoId(), oid));
-            oid = -1;
-        }
     }
 
     /**
@@ -464,5 +458,22 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         private static final long serialVersionUID = 1L;
     }
 
+    private record CleanupChecker(Channel channel, int oid) implements Runnable {
+
+        @Override
+        public void run() {
+            if (channel != null && oid != -1 && channel.isClosingOrClosed()) {
+                try {
+                    channel.send(new Unexport(channel.newIoId(), oid));
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Channel failed to disconnect properly", e);
+                }
+            }
+        }
+    }
+
     private static final Logger LOGGER = Logger.getLogger(ProxyOutputStream.class.getName());
+
+    private static final Cleaner CLEANER = Cleaner.create(
+            new NamingThreadFactory(new DaemonThreadFactory(), ProxyOutputStream.class.getName() + ".cleaner"));
 }

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 
 /**
@@ -42,6 +43,8 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     WeakReference<FastPipedInputStream> sink;
 
+    private Cleaner.Cleanable cleanable;
+
     private final Throwable allocatedAt = new Throwable();
 
     /**
@@ -58,6 +61,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
      */
     public FastPipedOutputStream(FastPipedInputStream sink) throws IOException {
         connect(sink);
+        cleanable = CLEANER.register(this, new CleanupChecker(new WeakReference<>(sink), allocatedAt));
     }
 
     /**
@@ -86,6 +90,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     @Override
     public void close() throws IOException {
         error(null);
+        cleanable.clean();
     }
 
     @Override
@@ -111,12 +116,6 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         }
         this.sink = new WeakReference<>(sink);
         sink.source = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
     }
 
     @Override
@@ -197,5 +196,25 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         }
     }
 
+    private record CleanupChecker(WeakReference<FastPipedInputStream> sinkRef, Throwable allocatedAt)
+            implements Runnable {
+
+        @Override
+        public void run() {
+            FastPipedInputStream sink = sinkRef.get();
+            if (sink != null) {
+                synchronized (sink.buffer) {
+                    if (sink.closed == null) {
+                        sink.closed = new FastPipedInputStream.ClosedBy(allocatedAt);
+                        sink.buffer.notifyAll();
+                    }
+                }
+            }
+        }
+    }
+
     static final int TIMEOUT = Integer.getInteger(FastPipedOutputStream.class.getName() + ".timeout", 10 * 1000);
+
+    private static final Cleaner CLEANER = Cleaner.create(
+            new NamingThreadFactory(new DaemonThreadFactory(), FastPipedOutputStream.class.getName() + ".cleaner"));
 }

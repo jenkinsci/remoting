@@ -24,6 +24,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 
 /**
@@ -51,6 +52,7 @@ public class FastPipedInputStream extends InputStream {
     int writeLaps = 0;
     int writePosition = 0;
 
+    private Cleaner.Cleanable cleanable;
     private final Throwable allocatedAt = new Throwable();
 
     /**
@@ -58,6 +60,7 @@ public class FastPipedInputStream extends InputStream {
      */
     public FastPipedInputStream() {
         this.buffer = new byte[0x10000];
+        cleanable = CLEANER.register(this, new CleanupChecker(buffer));
     }
 
     /**
@@ -79,6 +82,7 @@ public class FastPipedInputStream extends InputStream {
             connect(source);
         }
         this.buffer = new byte[bufferSize];
+        cleanable = CLEANER.register(this, new CleanupChecker(buffer));
     }
 
     private void checkSource() throws IOException {
@@ -117,6 +121,7 @@ public class FastPipedInputStream extends InputStream {
             // Release any pending writers.
             buffer.notifyAll();
         }
+        cleanable.clean();
     }
 
     /**
@@ -128,12 +133,6 @@ public class FastPipedInputStream extends InputStream {
         }
         this.source = new WeakReference<>(source);
         source.sink = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
     }
 
     @Override
@@ -210,4 +209,17 @@ public class FastPipedInputStream extends InputStream {
             super("The pipe was closed at...", error);
         }
     }
+
+    private record CleanupChecker(byte[] buffer) implements Runnable {
+
+        @Override
+        public void run() {
+            synchronized (buffer) {
+                buffer.notifyAll();
+            }
+        }
+    }
+
+    private static final Cleaner CLEANER = Cleaner.create(
+            new NamingThreadFactory(new DaemonThreadFactory(), FastPipedInputStream.class.getName() + ".cleaner"));
 }
