@@ -188,7 +188,9 @@ final class ProxyWriter extends Writer {
     @Override
     public synchronized void close() throws IOException {
         error(null);
-        cleanable.clean();
+        if (cleanable != null) {
+            cleanable.clean();
+        }
     }
 
     /**

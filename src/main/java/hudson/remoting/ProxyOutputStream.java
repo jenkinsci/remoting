@@ -169,7 +169,9 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
     @Override
     public synchronized void close() throws IOException {
         error(null);
-        cleanable.clean();
+        if (cleanable != null) {
+            cleanable.clean();
+        }
     }
 
     @Override

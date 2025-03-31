@@ -121,7 +121,9 @@ public class FastPipedInputStream extends InputStream {
             // Release any pending writers.
             buffer.notifyAll();
         }
-        cleanable.clean();
+        if (cleanable != null) {
+            cleanable.clean();
+        }
     }
 
     /**

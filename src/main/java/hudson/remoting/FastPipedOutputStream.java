@@ -90,7 +90,9 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     @Override
     public void close() throws IOException {
         error(null);
-        cleanable.clean();
+        if (cleanable != null) {
+            cleanable.clean();
+        }
     }
 
     @Override
