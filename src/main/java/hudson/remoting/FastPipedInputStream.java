@@ -24,6 +24,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 
 /**
@@ -34,7 +35,8 @@ import java.lang.ref.WeakReference;
  * synchronization with its counterpart {@link FastPipedOutputStream}.
  *
  * @author WD
- * @see <a href="http://developer.java.sun.com/developer/bugParade/bugs/4404700.html">4404700</a>
+ * @see <a href=
+ *      "http://developer.java.sun.com/developer/bugParade/bugs/4404700.html">4404700</a>
  * @see FastPipedOutputStream
  */
 public class FastPipedInputStream extends InputStream {
@@ -53,16 +55,48 @@ public class FastPipedInputStream extends InputStream {
 
     private final Throwable allocatedAt = new Throwable();
 
+    private static final int DEFAULT_BUFFER_SIZE = 0x10000;
+    private static final Cleaner CLEANER = Cleaner.create();
+
+    /**
+     * Private static helper method to close the stream without calling overridable
+     * method
+     */
+    private static void closeQuietly(FastPipedInputStream stream) {
+        try {
+            synchronized (stream.buffer) {
+                if (stream.source != null && stream.closed == null) {
+                    stream.closed = new ClosedBy(null);
+                    // Release any pending writers.
+                    stream.buffer.notifyAll();
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
+    /**
+     * Creates a PipedInputStream with a given buffer size.
+     *
+     * @param bufferSize the size of the buffer
+     */
+    public FastPipedInputStream(int bufferSize) {
+        buffer = new byte[bufferSize];
+        CLEANER.register(this, () -> closeQuietly(this));
+    }
+
     /**
      * Creates an unconnected PipedInputStream with a default buffer size.
      */
     public FastPipedInputStream() {
-        this.buffer = new byte[0x10000];
+        this(DEFAULT_BUFFER_SIZE);
     }
 
     /**
      * Creates a PipedInputStream with a default buffer size and connects it to
      * <code>source</code>.
+     *
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source) throws IOException {
@@ -72,6 +106,7 @@ public class FastPipedInputStream extends InputStream {
     /**
      * Creates a PipedInputStream with buffer size <code>bufferSize</code> and
      * connects it to <code>source</code>.
+     *
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source, int bufferSize) throws IOException {
@@ -79,6 +114,7 @@ public class FastPipedInputStream extends InputStream {
             connect(source);
         }
         this.buffer = new byte[bufferSize];
+        CLEANER.register(this, () -> closeQuietly(this));
     }
 
     private void checkSource() throws IOException {
@@ -90,7 +126,8 @@ public class FastPipedInputStream extends InputStream {
 
     @Override
     public int available() throws IOException {
-        /* The circular buffer is inspected to see where the reader and the writer
+        /*
+         * The circular buffer is inspected to see where the reader and the writer
          * are located.
          */
         synchronized (buffer) {
@@ -128,12 +165,6 @@ public class FastPipedInputStream extends InputStream {
         }
         this.source = new WeakReference<>(source);
         source.sink = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
     }
 
     @Override

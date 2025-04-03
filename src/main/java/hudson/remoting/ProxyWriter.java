@@ -25,11 +25,11 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.Writer;
+import java.lang.ref.Cleaner;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,7 +56,8 @@ final class ProxyWriter extends Writer {
 
     /**
      * Keeps the close request cause.
-     * If the field is not {@code null}, it means that the writer is being closed and hence not writable anymore.
+     * If the field is not {@code null}, it means that the writer is being closed
+     * and hence not writable anymore.
      */
     @CheckForNull
     private Throwable closeCause;
@@ -66,14 +67,18 @@ final class ProxyWriter extends Writer {
      */
     private volatile boolean channelReleased;
 
+    private static final Cleaner CLEANER = Cleaner.create();
+
     /**
      * Creates an already connected {@link ProxyWriter}.
      *
      * @param oid
-     *      The object id of the exported {@link Writer}.
+     *            The object id of the exported {@link Writer}.
      */
     public ProxyWriter(@NonNull Channel channel, int oid) throws IOException {
         connect(channel, oid);
+        // Register this instance with the cleaner
+        CLEANER.register(this, new CleanupAction(channel, oid));
     }
 
     /**
@@ -131,37 +136,48 @@ final class ProxyWriter extends Writer {
                 int sendable;
                 try {
                     /*
-                       To avoid fragmentation of the pipe window, at least demand that 10% of the pipe window
-                       be reclaimed.
-
-                       Imagine a large latency network where we are always low on the window size,
-                       and we are continuously sending data of irregular size. In such a circumstance,
-                       a fragmentation will happen. We start sending out a small Chunk at a time (say 4 bytes),
-                       and when its Ack comes back, it gets immediately consumed by another out-bound Chunk of 4 bytes.
-
-                       Clearly, it's better to wait a bit until we have a sizable pipe window, then send out
-                       a bigger Chunk, since Chunks have static overheads. This code does just that.
-
-                       (Except when what we are trying to send as a whole is smaller than the current available
-                       window size, in which case there's no point in waiting.)
-                    */
+                     * To avoid fragmentation of the pipe window, at least demand that 10% of the
+                     * pipe window
+                     * be reclaimed.
+                     *
+                     * Imagine a large latency network where we are always low on the window size,
+                     * and we are continuously sending data of irregular size. In such a
+                     * circumstance,
+                     * a fragmentation will happen. We start sending out a small Chunk at a time
+                     * (say 4 bytes),
+                     * and when its Ack comes back, it gets immediately consumed by another
+                     * out-bound Chunk of 4 bytes.
+                     *
+                     * Clearly, it's better to wait a bit until we have a sizable pipe window, then
+                     * send out
+                     * a bigger Chunk, since Chunks have static overheads. This code does just that.
+                     *
+                     * (Except when what we are trying to send as a whole is smaller than the
+                     * current available
+                     * window size, in which case there's no point in waiting.)
+                     */
                     sendable = Math.min(window.get(Math.min(max / 10, len)), len);
                     /*
-                       Imagine if we have a lot of data to send and the pipe window is fully available.
-                       If we create one Chunk that fully uses the window size, we need to wait for the
-                       whole Chunk to get to the other side, then the Ack to come back to this side,
-                       before we can send a next Chunk. While the Ack is traveling back to us, we have
-                       to sit idle. This fails to utilize available bandwidth.
-
-                       A better strategy is to create a smaller Chunk, say half the window size.
-                       This allows the other side to send back the ack while we are sending the second
-                       Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
-                       to overlap, and that improves the utilization.
-
-                       It's not clear what the best size of the chunk to send (there's a certain
-                       overhead in our Command structure, around 100-200 bytes), so I'm just starting
-                       with 2. Further analysis would be needed to determine the best value.
-                    */
+                     * Imagine if we have a lot of data to send and the pipe window is fully
+                     * available.
+                     * If we create one Chunk that fully uses the window size, we need to wait for
+                     * the
+                     * whole Chunk to get to the other side, then the Ack to come back to this side,
+                     * before we can send a next Chunk. While the Ack is traveling back to us, we
+                     * have
+                     * to sit idle. This fails to utilize available bandwidth.
+                     *
+                     * A better strategy is to create a smaller Chunk, say half the window size.
+                     * This allows the other side to send back the ack while we are sending the
+                     * second
+                     * Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
+                     * to overlap, and that improves the utilization.
+                     *
+                     * It's not clear what the best size of the chunk to send (there's a certain
+                     * overhead in our Command structure, around 100-200 bytes), so I'm just
+                     * starting
+                     * with 2. Further analysis would be needed to determine the best value.
+                     */
                     sendable = Math.min(sendable, max / 2);
                 } catch (InterruptedException e) {
                     throw (IOException) new InterruptedIOException().initCause(e);
@@ -190,8 +206,10 @@ final class ProxyWriter extends Writer {
     /**
      * Gets the close cause.
      *
-     * @return Close cause. {@code null} if the writer close has not been requested yet.
-     *         Nonnull values indicate that the writer may be still active, but it won't accept new write commands in such case.
+     * @return Close cause. {@code null} if the writer close has not been requested
+     *         yet.
+     *         Nonnull values indicate that the writer may be still active, but it
+     *         won't accept new write commands in such case.
      * @since 3.15
      */
     @CheckForNull
@@ -201,9 +219,12 @@ final class ProxyWriter extends Writer {
 
     /**
      * Reports error and immediately terminates the writer.
+     *
      * @param cause Cause
-     * @throws IOException if failed to send the {@link EOF} command to the remote side.
-     *                     The writer will be considered as closed even in such case.
+     * @throws IOException if failed to send the {@link EOF} command to the remote
+     *                     side.
+     *                     The writer will be considered as closed even in such
+     *                     case.
      */
     public void error(@CheckForNull Throwable cause) throws IOException {
         Throwable terminationCause = cause != null ? cause : new IOException("ProxyWriter close has been requested");
@@ -224,18 +245,21 @@ final class ProxyWriter extends Writer {
 
         if (closeCause == null) {
             // There is a slight risk of race condition here, but we do not really care.
-            // If two termination events come at the same time, we will just cache a random one.
+            // If two termination events come at the same time, we will just cache a random
+            // one.
             this.closeCause = terminationCause;
         }
 
         synchronized (this) {
-            // TODO: Bug. If the channel cannot send the command, the channel object will be never released and garbage
+            // TODO: Bug. If the channel cannot send the command, the channel object will be
+            // never released and garbage
             // collected
             if (channel != null) {
-                // Close the writer on the remote side. This call may be invoked multiple times until the channel is
+                // Close the writer on the remote side. This call may be invoked multiple times
+                // until the channel is
                 // released
                 // TODO: send cause over the channel
-                channel.send(new EOF(channel.newIoId(), oid /*,error*/));
+                channel.send(new EOF(channel.newIoId(), oid /* ,error */));
                 channel = null;
                 channelReleased = true;
                 oid = -1;
@@ -243,21 +267,35 @@ final class ProxyWriter extends Writer {
         }
     }
 
-    @Override
-    // TODO: really?
-    @SuppressFBWarnings(value = "FI_FINALIZER_NULLS_FIELDS", justification = "As designed")
-    protected synchronized void finalize() throws Throwable {
-        super.finalize();
-        // if we haven't done so, release the exported object on the remote side.
-        // if the object is auto-unexported, the export entry could have already been removed.
-        if (channel != null) {
-            if (channel.remoteCapability.supportsProxyWriter2_35()) {
-                channel.send(new Unexport(channel.newIoId(), oid));
-            } else {
-                channel.send(new EOF(channel.newIoId(), oid));
+    /**
+     * Cleanup action that's executed when this object is garbage collected.
+     */
+    private static class CleanupAction implements Runnable {
+        private Channel channel;
+        private final int oid;
+
+        CleanupAction(Channel channel, int oid) {
+            this.channel = channel;
+            this.oid = oid;
+        }
+
+        @Override
+        public void run() {
+            // if we haven't done so, release the exported object on the remote side.
+            // if the object is auto-unexported, the export entry could have already been
+            // removed.
+            if (channel != null) {
+                try {
+                    if (channel.remoteCapability.supportsProxyWriter2_35()) {
+                        channel.send(new Unexport(channel.newIoId(), oid));
+                    } else {
+                        channel.send(new EOF(channel.newIoId(), oid));
+                    }
+                } catch (IOException e) {
+                    // the channel may already be closed, in which case this is expected
+                    LOGGER.log(Level.FINE, "Failed to unexport object", e);
+                }
             }
-            channel = null;
-            oid = -1;
         }
     }
 
@@ -271,7 +309,8 @@ final class ProxyWriter extends Writer {
 
         public Chunk(int ioId, int oid, char[] buf, int start, int len) {
             // to improve the performance when a channel is used purely as a pipe,
-            // don't record the stack trace. On FilePath.writeToTar case, the stack trace and the OOS header
+            // don't record the stack trace. On FilePath.writeToTar case, the stack trace
+            // and the OOS header
             // takes up about 1.5K.
             super(false);
             this.ioId = ioId;
@@ -329,6 +368,7 @@ final class ProxyWriter extends Writer {
 
     /**
      * {@link Command} for flushing.
+     *
      * @since 2.35
      */
     private static final class Flush extends Command {
@@ -366,6 +406,7 @@ final class ProxyWriter extends Writer {
      *
      * <p>
      * Unlike {@link EOF}, this just unexports but not closes the stream.
+     *
      * @since 2.35
      */
     private static class Unexport extends Command {
@@ -405,7 +446,8 @@ final class ProxyWriter extends Writer {
         @Override
         protected void execute(final Channel channel) {
             final Writer os = (Writer) channel.getExportedObjectOrNull(oid);
-            // EOF may be late to the party if we interrupt request, hence we do not fail for this command
+            // EOF may be late to the party if we interrupt request, hence we do not fail
+            // for this command
             if (os == null) { // Input stream has not been closed yet
                 LOGGER.log(Level.FINE, "ProxyWriter with oid=%s has been already unexported", oid);
                 return;
@@ -430,6 +472,7 @@ final class ProxyWriter extends Writer {
 
     /**
      * {@link Command} to notify the sender that it can send some more data.
+     *
      * @since 2.35
      */
     private static class Ack extends Command {
@@ -464,6 +507,7 @@ final class ProxyWriter extends Writer {
 
     /**
      * {@link Command} to notify the sender that the receiver is dead.
+     *
      * @since 2.35
      */
     private static final class NotifyDeadWriter extends Command {

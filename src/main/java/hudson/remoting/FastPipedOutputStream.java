@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 
 /**
@@ -35,7 +36,8 @@ import java.lang.ref.WeakReference;
  * synchronization with its counterpart {@link FastPipedInputStream}.
  *
  * @author WD
- * @see <a href="http://developer.java.sun.com/developer/bugParade/bugs/4404700.html">4404700</a>
+ * @see <a href=
+ *      "http://developer.java.sun.com/developer/bugParade/bugs/4404700.html">4404700</a>
  * @see FastPipedOutputStream
  */
 public class FastPipedOutputStream extends OutputStream implements ErrorPropagatingOutputStream {
@@ -44,16 +46,43 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     private final Throwable allocatedAt = new Throwable();
 
+    private static final Cleaner CLEANER = Cleaner.create();
+
+    /**
+     * Private static helper method to close the stream without calling overridable
+     * method
+     */
+    private static void closeQuietly(FastPipedOutputStream stream) {
+        try {
+            if (stream.sink != null) {
+                FastPipedInputStream s = stream.sink.get();
+                if (s != null) {
+                    synchronized (s.buffer) {
+                        if (s.closed == null) {
+                            s.closed = new FastPipedInputStream.ClosedBy(null);
+                            // Release all readers
+                            s.buffer.notifyAll();
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+    }
+
     /**
      * Creates an unconnected PipedOutputStream.
      */
     public FastPipedOutputStream() {
         super();
+        CLEANER.register(this, () -> closeQuietly(this));
     }
 
     /**
      * Creates a PipedOutputStream with a default buffer size and connects it to
      * <code>sink</code>.
+     *
      * @exception IOException It was already connected.
      */
     public FastPipedOutputStream(FastPipedInputStream sink) throws IOException {
@@ -63,9 +92,10 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     /**
      * Creates a PipedOutputStream with buffer size <code>bufferSize</code> and
      * connects it to <code>sink</code>.
+     *
      * @exception IOException It was already connected.
      * @deprecated as of 1.350
-     *      bufferSize parameter is ignored.
+     *             bufferSize parameter is ignored.
      */
     @Deprecated
     public FastPipedOutputStream(FastPipedInputStream sink, int bufferSize) throws IOException {
@@ -114,12 +144,6 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
-    }
-
-    @Override
     public void flush() throws IOException {
         FastPipedInputStream s = sink();
         synchronized (s.buffer) {
@@ -159,7 +183,8 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
                     // The circular buffer is full, so wait for some reader to consume
                     // something.
 
-                    // release a reference to 's' during the wait so that if the reader has abandoned the pipe
+                    // release a reference to 's' during the wait so that if the reader has
+                    // abandoned the pipe
                     // we can tell.
                     byte[] buf = s.buffer;
 
