@@ -49,25 +49,36 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     private static final Cleaner CLEANER = Cleaner.create();
 
     /**
-     * Private static helper method to close the stream without calling overridable
-     * method
+     * Cleanup action for resource management that avoids reference to the outer
+     * class instance.
      */
-    private static void closeQuietly(FastPipedOutputStream stream) {
-        try {
-            if (stream.sink != null) {
-                FastPipedInputStream s = stream.sink.get();
-                if (s != null) {
-                    synchronized (s.buffer) {
-                        if (s.closed == null) {
-                            s.closed = new FastPipedInputStream.ClosedBy(null);
+    private static final class CleanAction implements Runnable {
+        private final WeakReference<FastPipedOutputStream> streamRef;
+
+        CleanAction(FastPipedOutputStream stream) {
+            this.streamRef = new WeakReference<>(stream);
+        }
+
+        @Override
+        public void run() {
+            FastPipedOutputStream stream = streamRef.get();
+            if (stream == null) {
+                return;
+            }
+
+            WeakReference<FastPipedInputStream> sinkRef = stream.sink;
+            if (sinkRef != null) {
+                FastPipedInputStream sink = sinkRef.get();
+                if (sink != null) {
+                    synchronized (sink.buffer) {
+                        if (sink.closed == null) {
+                            sink.closed = new FastPipedInputStream.ClosedBy(null);
                             // Release all readers
-                            s.buffer.notifyAll();
+                            sink.buffer.notifyAll();
                         }
                     }
                 }
             }
-        } catch (Exception e) {
-            // ignore
         }
     }
 
@@ -76,7 +87,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
      */
     public FastPipedOutputStream() {
         super();
-        CLEANER.register(this, () -> closeQuietly(this));
+        CLEANER.register(this, new CleanAction(this));
     }
 
     /**
