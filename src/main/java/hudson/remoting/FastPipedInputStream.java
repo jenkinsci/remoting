@@ -59,20 +59,32 @@ public class FastPipedInputStream extends InputStream {
     private static final Cleaner CLEANER = Cleaner.create();
 
     /**
-     * Private static helper method to close the stream without calling overridable
-     * method
+     * Cleanup action for resource management that avoids reference to the outer
+     * class instance.
      */
-    private static void closeQuietly(FastPipedInputStream stream) {
-        try {
-            synchronized (stream.buffer) {
+    private static final class CleanAction implements Runnable {
+        private final byte[] buffer;
+        private final WeakReference<FastPipedInputStream> streamRef;
+
+        CleanAction(FastPipedInputStream stream) {
+            this.buffer = stream.buffer;
+            this.streamRef = new WeakReference<>(stream);
+        }
+
+        @Override
+        public void run() {
+            FastPipedInputStream stream = streamRef.get();
+            if (stream == null) {
+                return;
+            }
+
+            synchronized (buffer) {
                 if (stream.source != null && stream.closed == null) {
                     stream.closed = new ClosedBy(null);
                     // Release any pending writers.
-                    stream.buffer.notifyAll();
+                    buffer.notifyAll();
                 }
             }
-        } catch (Exception e) {
-            // ignore
         }
     }
 
@@ -83,7 +95,7 @@ public class FastPipedInputStream extends InputStream {
      */
     public FastPipedInputStream(int bufferSize) {
         buffer = new byte[bufferSize];
-        CLEANER.register(this, () -> closeQuietly(this));
+        CLEANER.register(this, new CleanAction(this));
     }
 
     /**
@@ -110,11 +122,11 @@ public class FastPipedInputStream extends InputStream {
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source, int bufferSize) throws IOException {
+        this.buffer = new byte[bufferSize];
         if (source != null) {
             connect(source);
         }
-        this.buffer = new byte[bufferSize];
-        CLEANER.register(this, () -> closeQuietly(this));
+        CLEANER.register(this, new CleanAction(this));
     }
 
     private void checkSource() throws IOException {
