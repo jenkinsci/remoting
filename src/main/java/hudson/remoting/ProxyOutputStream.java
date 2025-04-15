@@ -49,7 +49,6 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
     /**
      * Set to the error object if the error is induced.
-     *
      * @see #error(Throwable)
      */
     private Throwable error;
@@ -68,7 +67,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      * Creates an already connected {@link ProxyOutputStream}.
      *
      * @param oid
-     *            The object id of the exported {@link OutputStream}.
+     *      The object id of the exported {@link OutputStream}.
      */
     public ProxyOutputStream(@NonNull Channel channel, int oid) throws IOException {
         connect(channel, oid);
@@ -118,48 +117,37 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
             while (len > 0) {
                 /*
-                 * To avoid fragmentation of the pipe window, at least demand that 10% of the
-                 * pipe window
-                 * be reclaimed.
-                 *
-                 * Imagine a large latency network where we are always low on the window size,
-                 * and we are continuously sending data of irregular size. In such a
-                 * circumstance,
-                 * a fragmentation will happen. We start sending out a small Chunk at a time
-                 * (say 4 bytes),
-                 * and when its Ack comes back, it gets immediately consumed by another
-                 * out-bound Chunk of 4 bytes.
-                 *
-                 * Clearly, it's better to wait a bit until we have a sizable pipe window, then
-                 * send out
-                 * a bigger Chunk, since Chunks have static overheads. This code does just that.
-                 *
-                 * (Except when what we are trying to send as a whole is smaller than the
-                 * current available
-                 * window size, in which case there's no point in waiting.)
-                 */
+                   To avoid fragmentation of the pipe window, at least demand that 10% of the pipe window
+                   be reclaimed.
+
+                   Imagine a large latency network where we are always low on the window size,
+                   and we are continuously sending data of irregular size. In such a circumstance,
+                   a fragmentation will happen. We start sending out a small Chunk at a time (say 4 bytes),
+                   and when its Ack comes back, it gets immediately consumed by another out-bound Chunk of 4 bytes.
+
+                   Clearly, it's better to wait a bit until we have a sizable pipe window, then send out
+                   a bigger Chunk, since Chunks have static overheads. This code does just that.
+
+                   (Except when what we are trying to send as a whole is smaller than the current available
+                   window size, in which case there's no point in waiting.)
+                */
                 int sendable = Math.min(window.get(Math.min(max / 10, len)), len);
                 /*
-                 * Imagine if we have a lot of data to send and the pipe window is fully
-                 * available.
-                 * If we create one Chunk that fully uses the window size, we need to wait for
-                 * the
-                 * whole Chunk to get to the other side, then the Ack to come back to this side,
-                 * before we can send a next Chunk. While the Ack is traveling back to us, we
-                 * have
-                 * to sit idle. This fails to utilize available bandwidth.
-                 *
-                 * A better strategy is to create a smaller Chunk, say half the window size.
-                 * This allows the other side to send back the ack while we are sending the
-                 * second
-                 * Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
-                 * to overlap, and that improves the utilization.
-                 *
-                 * It's not clear what the best size of the chunk to send (there's a certain
-                 * overhead in our Command structure, around 100-200 bytes), so I'm just
-                 * starting
-                 * with 2. Further analysis would be needed to determine the best value.
-                 */
+                   Imagine if we have a lot of data to send and the pipe window is fully available.
+                   If we create one Chunk that fully uses the window size, we need to wait for the
+                   whole Chunk to get to the other side, then the Ack to come back to this side,
+                   before we can send a next Chunk. While the Ack is traveling back to us, we have
+                   to sit idle. This fails to utilize available bandwidth.
+
+                   A better strategy is to create a smaller Chunk, say half the window size.
+                   This allows the other side to send back the ack while we are sending the second
+                   Chunk. In a network with a non-trivial latency, this allows Chunk and Ack
+                   to overlap, and that improves the utilization.
+
+                   It's not clear what the best size of the chunk to send (there's a certain
+                   overhead in our Command structure, around 100-200 bytes), so I'm just starting
+                   with 2. Further analysis would be needed to determine the best value.
+                */
                 sendable = Math.min(sendable, max / 2);
 
                 channel.send(new Chunk(channel.newIoId(), oid, b, off, sendable));
@@ -231,41 +219,30 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
     }
 
     /**
-     * I/O operations in remoting gets executed by a separate pipe thread
-     * asynchronously.
-     * So if a closure performs some I/O (such as writing to the RemoteOutputStream)
-     * then returns,
-     * it is possible that the calling thread unblocks before the I/O actually
-     * completes.
+     * I/O operations in remoting gets executed by a separate pipe thread asynchronously.
+     * So if a closure performs some I/O (such as writing to the RemoteOutputStream) then returns,
+     * it is possible that the calling thread unblocks before the I/O actually completes.
      * <p>
-     * This race condition creates a truncation problem like JENKINS-9189 or
-     * JENKINS-7871.
-     * The initial fix for this was to introduce {@link Channel#syncLocalIO()}, but
-     * given the
-     * recurrence in JENKINS-9189, I concluded that it's too error prone to expect
-     * the user of the
+     * This race condition creates a truncation problem like JENKINS-9189 or JENKINS-7871.
+     * The initial fix for this was to introduce {@link Channel#syncLocalIO()}, but given the
+     * recurrence in JENKINS-9189, I concluded that it's too error prone to expect the user of the
      * remoting to make such a call in the right place.
      * <p>
-     * So the goal of this code is to automatically ensure the proper ordering of
-     * the return from
-     * the {@link Request#call(Channel)} and the I/O operations done during the
-     * call. We do this
-     * by attributing I/O call to a {@link Request}, then keeping track of the last
-     * I/O operation
+     * So the goal of this code is to automatically ensure the proper ordering of the return from
+     * the {@link Request#call(Channel)} and the I/O operations done during the call. We do this
+     * by attributing I/O call to a {@link Request}, then keeping track of the last I/O operation
      * performed.
      *
      * @deprecated as of 2.16
-     *             {@link PipeWriter} does this job better, but kept for backward
-     *             compatibility to communicate
-     *             with earlier version of remoting without losing the original fix
-     *             to JENKINS-9189 completely.
+     *      {@link PipeWriter} does this job better, but kept for backward compatibility to communicate
+     *      with earlier version of remoting without losing the original fix to JENKINS-9189 completely.
      */
     @Deprecated
     private static void markForIoSync(Channel channel, int requestId, java.util.concurrent.Future<?> ioOp) {
         Request<?, ?> call = channel.pendingCalls.get(requestId);
         // call==null if:
-        // 1) the remote peer uses old version that doesn't set the requestId field
-        // 2) a bug in the code, but in that case we are being defensive
+        //  1) the remote peer uses old version that doesn't set the requestId field
+        //  2) a bug in the code, but in that case we are being defensive
         if (call != null) {
             call.lastIo = ioOp;
         }
@@ -282,8 +259,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
         public Chunk(int ioId, int oid, byte[] buf, int start, int len) {
             // to improve the performance when a channel is used purely as a pipe,
-            // don't record the stack trace. On FilePath.writeToTar case, the stack trace
-            // and the OOS header
+            // don't record the stack trace. On FilePath.writeToTar case, the stack trace and the OOS header
             // takes up about 1.5K.
             super(false);
             this.ioId = ioId;
@@ -426,8 +402,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         @Override
         protected void execute(final Channel channel) {
             final OutputStream os = (OutputStream) channel.getExportedObjectOrNull(oid);
-            // EOF may be late to the party if we interrupt request, hence we do not fail
-            // for this command
+            // EOF may be late to the party if we interrupt request, hence we do not fail for this command
             if (os == null) { // Input stream has not been closed yet
                 LOGGER.log(Level.FINE, "InputStream with oid=%s has been already unexported", oid);
                 return;
