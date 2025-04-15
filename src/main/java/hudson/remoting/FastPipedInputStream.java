@@ -35,8 +35,7 @@ import java.lang.ref.WeakReference;
  * synchronization with its counterpart {@link FastPipedOutputStream}.
  *
  * @author WD
- * @see <a href=
- *      "http://developer.java.sun.com/developer/bugParade/bugs/4404700.html">4404700</a>
+ * @see <a href="http://developer.java.sun.com/developer/bugParade/bugs/4404700.html">4404700</a>
  * @see FastPipedOutputStream
  */
 public class FastPipedInputStream extends InputStream {
@@ -90,7 +89,6 @@ public class FastPipedInputStream extends InputStream {
 
     /**
      * Creates a PipedInputStream with a given buffer size.
-     *
      * @param bufferSize the size of the buffer
      */
     public FastPipedInputStream(int bufferSize) {
@@ -108,7 +106,6 @@ public class FastPipedInputStream extends InputStream {
     /**
      * Creates a PipedInputStream with a default buffer size and connects it to
      * <code>source</code>.
-     *
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source) throws IOException {
@@ -118,7 +115,6 @@ public class FastPipedInputStream extends InputStream {
     /**
      * Creates a PipedInputStream with buffer size <code>bufferSize</code> and
      * connects it to <code>source</code>.
-     *
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source, int bufferSize) throws IOException {
@@ -138,8 +134,7 @@ public class FastPipedInputStream extends InputStream {
 
     @Override
     public int available() throws IOException {
-        /*
-         * The circular buffer is inspected to see where the reader and the writer
+        /* The circular buffer is inspected to see where the reader and the writer
          * are located.
          */
         synchronized (buffer) {
