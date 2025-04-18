@@ -23,8 +23,6 @@ import java.util.Locale;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Duration format styles.
@@ -34,7 +32,6 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @author Phillip Webb
  * @author Valentine Wu
  */
-@Restricted(NoExternalUse.class)
 public enum DurationStyle {
 
     /**
