@@ -69,7 +69,7 @@ public class EngineTest {
     @Issue("JENKINS-44290")
     public void shouldInitializeCorrectlyWithDefaults() throws Exception {
         EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME, null, null, null, false);
         engine.startEngine(true);
 
         // Cache will go to ~/.jenkins , we do not want to worry about this repo
@@ -83,7 +83,7 @@ public class EngineTest {
         File jarCache = new File(tmpDir.getRoot(), "jarCache");
 
         EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME, null, null, null, false);
         engine.setJarCache(new FileSystemJarCache(jarCache, true));
         engine.startEngine(true);
 
@@ -95,7 +95,7 @@ public class EngineTest {
     public void shouldInitializeCorrectlyWithWorkDir() throws Exception {
         File workDir = new File(tmpDir.getRoot(), "workDir");
         EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME, null, null, null, false);
         engine.setWorkDir(workDir.toPath());
         engine.startEngine(true);
 
@@ -113,7 +113,7 @@ public class EngineTest {
         File workDir = new File(tmpDir.getRoot(), "workDir");
         File jarCache = new File(tmpDir.getRoot(), "jarCache");
         EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME, null, null, null, false);
         engine.setWorkDir(workDir.toPath());
         engine.setJarCache(new FileSystemJarCache(jarCache, true));
         engine.startEngine(true);
@@ -127,7 +127,7 @@ public class EngineTest {
     @Issue("JENKINS-60926")
     public void getAgentName() {
         EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME, null, null, null, false);
         assertThat(engine.getAgentName(), is(AGENT_NAME));
     }
 
@@ -139,7 +139,7 @@ public class EngineTest {
                 throw new NoReconnectException();
             }
         };
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME, null, null, null, false);
         engine.setNoReconnect(true);
         assertThrows(NoReconnectException.class, engine::run);
     }
@@ -169,7 +169,7 @@ public class EngineTest {
                 }
             }
         };
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME, null, null, null, false);
         assertThrows("Should have tried at least twice", ExpectedException.class, engine::run);
     }
 
