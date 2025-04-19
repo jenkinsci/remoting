@@ -24,6 +24,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 
 /**
@@ -53,11 +54,53 @@ public class FastPipedInputStream extends InputStream {
 
     private final Throwable allocatedAt = new Throwable();
 
+    private static final int DEFAULT_BUFFER_SIZE = 0x10000;
+    private static final Cleaner CLEANER = Cleaner.create();
+
+    /**
+     * Cleanup action for resource management that avoids reference to the outer
+     * class instance.
+     */
+    private static final class CleanAction implements Runnable {
+        private final byte[] buffer;
+        private final WeakReference<FastPipedInputStream> streamRef;
+
+        CleanAction(FastPipedInputStream stream) {
+            this.buffer = stream.buffer;
+            this.streamRef = new WeakReference<>(stream);
+        }
+
+        @Override
+        public void run() {
+            FastPipedInputStream stream = streamRef.get();
+            if (stream == null) {
+                return;
+            }
+
+            synchronized (buffer) {
+                if (stream.source != null && stream.closed == null) {
+                    stream.closed = new ClosedBy(null);
+                    // Release any pending writers.
+                    buffer.notifyAll();
+                }
+            }
+        }
+    }
+
+    /**
+     * Creates a PipedInputStream with a given buffer size.
+     * @param bufferSize the size of the buffer
+     */
+    public FastPipedInputStream(int bufferSize) {
+        buffer = new byte[bufferSize];
+        CLEANER.register(this, new CleanAction(this));
+    }
+
     /**
      * Creates an unconnected PipedInputStream with a default buffer size.
      */
     public FastPipedInputStream() {
-        this.buffer = new byte[0x10000];
+        this(DEFAULT_BUFFER_SIZE);
     }
 
     /**
@@ -75,10 +118,11 @@ public class FastPipedInputStream extends InputStream {
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source, int bufferSize) throws IOException {
+        this.buffer = new byte[bufferSize];
         if (source != null) {
             connect(source);
         }
-        this.buffer = new byte[bufferSize];
+        CLEANER.register(this, new CleanAction(this));
     }
 
     private void checkSource() throws IOException {
@@ -128,12 +172,6 @@ public class FastPipedInputStream extends InputStream {
         }
         this.source = new WeakReference<>(source);
         source.sink = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
     }
 
     @Override

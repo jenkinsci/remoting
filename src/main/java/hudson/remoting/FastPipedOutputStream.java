@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 
 /**
@@ -44,11 +45,48 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     private final Throwable allocatedAt = new Throwable();
 
+    private static final Cleaner CLEANER = Cleaner.create();
+
+    /**
+     * Cleanup action for resource management that avoids reference to the outer
+     * class instance.
+     */
+    private static final class CleanAction implements Runnable {
+        private final WeakReference<FastPipedOutputStream> streamRef;
+
+        CleanAction(FastPipedOutputStream stream) {
+            this.streamRef = new WeakReference<>(stream);
+        }
+
+        @Override
+        public void run() {
+            FastPipedOutputStream stream = streamRef.get();
+            if (stream == null) {
+                return;
+            }
+
+            WeakReference<FastPipedInputStream> sinkRef = stream.sink;
+            if (sinkRef != null) {
+                FastPipedInputStream sink = sinkRef.get();
+                if (sink != null) {
+                    synchronized (sink.buffer) {
+                        if (sink.closed == null) {
+                            sink.closed = new FastPipedInputStream.ClosedBy(null);
+                            // Release all readers
+                            sink.buffer.notifyAll();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Creates an unconnected PipedOutputStream.
      */
     public FastPipedOutputStream() {
         super();
+        CLEANER.register(this, new CleanAction(this));
     }
 
     /**
@@ -63,6 +101,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     /**
      * Creates a PipedOutputStream with buffer size <code>bufferSize</code> and
      * connects it to <code>sink</code>.
+     *
      * @exception IOException It was already connected.
      * @deprecated as of 1.350
      *      bufferSize parameter is ignored.
@@ -111,12 +150,6 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         }
         this.sink = new WeakReference<>(sink);
         sink.source = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
     }
 
     @Override
