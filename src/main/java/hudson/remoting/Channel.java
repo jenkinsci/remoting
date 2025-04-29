@@ -2050,17 +2050,23 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
      * anywhere in the exception or suppressed exception chain.
      */
     public static boolean isClosedChannelException(@CheckForNull Throwable t) {
-        if (t instanceof ClosedChannelException) {
+        return _isClosedChannelException(t, new HashSet<>());
+    }
+
+    private static boolean _isClosedChannelException(@CheckForNull Throwable t, Set<Throwable> seen) {
+        if (t == null) {
+            return false;
+        } else if (!seen.add(t)) {
+            return false;
+        } else if (t instanceof ClosedChannelException) {
             return true;
         } else if (t instanceof ChannelClosedException) {
             return true;
         } else if (t instanceof EOFException) {
             return true;
-        } else if (t == null) {
-            return false;
         } else {
-            return isClosedChannelException(t.getCause())
-                    || Stream.of(t.getSuppressed()).anyMatch(Channel::isClosedChannelException);
+            return _isClosedChannelException(t.getCause(), seen)
+                    || Stream.of(t.getSuppressed()).anyMatch(x -> _isClosedChannelException(x, seen));
         }
     }
 
