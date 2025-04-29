@@ -239,7 +239,7 @@ final class ProxyWriter extends Writer {
                 // Close the writer on the remote side. This call may be invoked multiple times until the channel is
                 // released
                 // TODO: send cause over the channel
-                channel.send(new EOF(channel.newIoId(), oid /* ,error */));
+                channel.send(new EOF(channel.newIoId(), oid /*,error*/));
                 channel = null;
                 channelReleased = true;
                 oid = -1;
