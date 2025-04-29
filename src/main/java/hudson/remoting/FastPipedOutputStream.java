@@ -101,7 +101,6 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     /**
      * Creates a PipedOutputStream with buffer size <code>bufferSize</code> and
      * connects it to <code>sink</code>.
-     *
      * @exception IOException It was already connected.
      * @deprecated as of 1.350
      *      bufferSize parameter is ignored.
