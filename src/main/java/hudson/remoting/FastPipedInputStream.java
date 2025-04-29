@@ -79,9 +79,11 @@ public class FastPipedInputStream extends InputStream {
 
             synchronized (buffer) {
                 if (stream.source != null && stream.closed == null) {
-                    stream.closed = new ClosedBy(null);
-                    // Release any pending writers.
-                    buffer.notifyAll();
+                    try {
+                        stream.close();
+                    } catch (IOException e) {
+                        // Ignore the exception during cleanup
+                    }
                 }
             }
         }
