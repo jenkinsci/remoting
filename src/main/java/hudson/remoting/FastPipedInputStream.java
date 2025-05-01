@@ -54,7 +54,6 @@ public class FastPipedInputStream extends InputStream {
 
     private final Throwable allocatedAt = new Throwable();
 
-    private static final int DEFAULT_BUFFER_SIZE = 0x10000;
     private static final Cleaner CLEANER = Cleaner.create();
 
     /**
@@ -63,46 +62,25 @@ public class FastPipedInputStream extends InputStream {
      */
     private static final class CleanAction implements Runnable {
         private final byte[] buffer;
-        private final WeakReference<FastPipedInputStream> streamRef;
 
         CleanAction(FastPipedInputStream stream) {
             this.buffer = stream.buffer;
-            this.streamRef = new WeakReference<>(stream);
         }
 
         @Override
         public void run() {
-            FastPipedInputStream stream = streamRef.get();
-            if (stream == null) {
-                return;
-            }
-
             synchronized (buffer) {
-                if (stream.source != null && stream.closed == null) {
-                    try {
-                        stream.close();
-                    } catch (IOException e) {
-                        // Ignore the exception during cleanup
-                    }
-                }
+                // Simply notify any waiting threads - we don't need to access or modify the stream
+                buffer.notifyAll();
             }
         }
-    }
-
-    /**
-     * Creates a PipedInputStream with a given buffer size.
-     * @param bufferSize the size of the buffer
-     */
-    public FastPipedInputStream(int bufferSize) {
-        buffer = new byte[bufferSize];
-        CLEANER.register(this, new CleanAction(this));
     }
 
     /**
      * Creates an unconnected PipedInputStream with a default buffer size.
      */
     public FastPipedInputStream() {
-        this(DEFAULT_BUFFER_SIZE);
+        this.buffer = new byte[0x10000];
     }
 
     /**
