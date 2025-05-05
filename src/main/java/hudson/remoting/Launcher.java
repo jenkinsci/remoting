@@ -344,6 +344,13 @@ public class Launcher {
     public boolean failIfWorkDirIsMissing = WorkDirManager.DEFAULT_FAIL_IF_WORKDIR_IS_MISSING;
 
     @Option(
+            name = "-lockWorkDir",
+            usage =
+                    "Acquires a file lock on -workDir to ensure it is only used by one agent process at a time. Recommended for permanent agents.",
+            depends = "-workDir")
+    public boolean lockWorkDir;
+
+    @Option(
             name = "-tunnel",
             metaVar = "HOST:PORT",
             usage = "Connect to the specified host and port, instead of connecting directly to Jenkins. "
@@ -1112,7 +1119,14 @@ public class Launcher {
     private Engine createEngine() throws IOException {
         LOGGER.log(Level.INFO, "Setting up agent: {0}", name);
         Engine engine = new Engine(
-                new CuiListener(), urls, secret, name, directConnection, instanceIdentity, new HashSet<>(protocols));
+                new CuiListener(),
+                urls,
+                secret,
+                name,
+                directConnection,
+                instanceIdentity,
+                new HashSet<>(protocols),
+                lockWorkDir);
         engine.setWebSocket(webSocket);
         if (webSocketHeaders != null) {
             engine.setWebSocketHeaders(webSocketHeaders);
