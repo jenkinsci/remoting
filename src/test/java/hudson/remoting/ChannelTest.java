@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -11,6 +13,7 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.util.GCTask;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectStreamException;
@@ -18,6 +21,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
@@ -28,6 +32,7 @@ import java.util.logging.Logger;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.Issue;
@@ -482,5 +487,38 @@ public class ChannelTest {
             }
         }
         fail("Expected ChannelClosedException, but the call has completed without any exception");
+    }
+
+    @Test
+    public void isClosedChannelException() {
+        assertThat(Channel.isClosedChannelException(null), is(false));
+        assertThat(Channel.isClosedChannelException(new IOException()), is(false));
+        assertThat(Channel.isClosedChannelException(new ClosedChannelException()), is(true));
+        assertThat(Channel.isClosedChannelException(new ChannelClosedException((Channel) null, null)), is(true));
+        assertThat(Channel.isClosedChannelException(new EOFException()), is(true));
+        assertThat(Channel.isClosedChannelException(new RuntimeException(new ClosedChannelException())), is(true));
+        {
+            var main = new RuntimeException();
+            main.addSuppressed(new ClosedChannelException());
+            assertThat(Channel.isClosedChannelException(main), is(true));
+        }
+        {
+            var level2 = new RuntimeException(new ClosedChannelException());
+            var level3 = new RuntimeException();
+            level3.addSuppressed(level2);
+            assertThat(Channel.isClosedChannelException(new RuntimeException(level3)), is(true));
+        }
+        {
+            var cycle1 = new RuntimeException();
+            var cycle2 = new RuntimeException(cycle1);
+            cycle1.addSuppressed(cycle2);
+            assertThat(Channel.isClosedChannelException(cycle2), is(false));
+        }
+        {
+            var cycle1 = new ClosedChannelException();
+            var cycle2 = new RuntimeException(cycle1);
+            cycle1.addSuppressed(cycle2);
+            assertThat(Channel.isClosedChannelException(cycle2), is(true));
+        }
     }
 }
