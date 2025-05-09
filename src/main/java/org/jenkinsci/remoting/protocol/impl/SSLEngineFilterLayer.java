@@ -344,7 +344,7 @@ public class SSLEngineFilterLayer extends FilterLayer {
 
                     switch (result.getStatus()) {
                         case BUFFER_UNDERFLOW:
-                            /* we need more data */
+                        /* we need more data */
                         case CLOSED:
                             /* connection is already closed */
                             done = true;
