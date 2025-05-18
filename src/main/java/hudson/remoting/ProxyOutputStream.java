@@ -205,8 +205,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         @Override
         public void run() {
             // if we haven't done so, release the exported object on the remote side.
-            // if the object is auto-unexported, the export entry could have already been
-            // removed.
+            // if the object is auto-unexported, the export entry could have already been removed.
             if (channel != null && oid != -1) {
                 try {
                     channel.send(new Unexport(channel.newIoId(), oid));

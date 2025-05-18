@@ -262,8 +262,7 @@ final class ProxyWriter extends Writer {
         @Override
         public void run() {
             // if we haven't done so, release the exported object on the remote side.
-            // if the object is auto-unexported, the export entry could have already been
-            // removed.
+            // if the object is auto-unexported, the export entry could have already been removed.
             if (channel != null) {
                 try {
                     if (channel.remoteCapability.supportsProxyWriter2_35()) {
