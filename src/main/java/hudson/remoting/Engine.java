@@ -536,12 +536,20 @@ public class Engine extends Thread {
     }
 
     @Override
-    @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
     public void run() {
-        if (webSocket) {
-            runWebSocket();
-            return;
+        try {
+            if (webSocket) {
+                runWebSocket();
+            } else {
+                runTcp();
+            }
+        } finally {
+            events.completed();
         }
+    }
+
+    @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
+    private void runTcp() {
         // Create the engine
         try {
             try (IOHub hub = IOHub.create(executor)) {

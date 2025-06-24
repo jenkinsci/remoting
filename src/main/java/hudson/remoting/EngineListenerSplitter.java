@@ -54,4 +54,11 @@ public class EngineListenerSplitter implements EngineListener {
             l.onReconnect();
         }
     }
+
+    @Override
+    public void completed() {
+        for (EngineListener l : listeners) {
+            l.completed();
+        }
+    }
 }
