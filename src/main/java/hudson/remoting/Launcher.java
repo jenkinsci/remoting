@@ -1118,7 +1118,13 @@ public class Launcher {
     private Engine createEngine(SettableFuture<Void> completion) throws IOException {
         LOGGER.log(Level.INFO, "Setting up agent: {0}", name);
         Engine engine = new Engine(
-                new CuiListener(completion), urls, secret, name, directConnection, instanceIdentity, new HashSet<>(protocols));
+                new CuiListener(completion),
+                urls,
+                secret,
+                name,
+                directConnection,
+                instanceIdentity,
+                new HashSet<>(protocols));
         engine.setWebSocket(webSocket);
         if (webSocketHeaders != null) {
             engine.setWebSocketHeaders(webSocketHeaders);
