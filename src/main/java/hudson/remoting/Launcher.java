@@ -1182,12 +1182,6 @@ public class Launcher {
             LOGGER.log(Level.SEVERE, t.getMessage(), t);
             System.exit(-1);
         }
-
-        @Override
-        public void onDisconnect() {}
-
-        @Override
-        public void onReconnect() {}
     }
 
     private static String communicationProtocolName;

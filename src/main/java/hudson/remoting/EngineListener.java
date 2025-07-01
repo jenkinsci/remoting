@@ -23,18 +23,8 @@
  */
 package hudson.remoting;
 
-import javax.swing.SwingUtilities;
-
 /**
  * Receives status notification from {@link Engine}.
- *
- * <p>
- * The callback will be invoked on a non-GUI thread, so if the implementation
- * wants to touch Swing, {@link SwingUtilities#invokeLater(Runnable)} would be needed.
- *
- * <p>
- * To implement this interface outside this module, extend from {@link EngineListenerAdapter}
- * instead to protect against method additions in the future.
  *
  * @author Kohsuke Kawaguchi
  */
@@ -42,26 +32,26 @@ public interface EngineListener {
     /**
      * Status message that indicates the progress of the operation.
      */
-    void status(String msg);
+    default void status(String msg) {}
 
     /**
      * Status message, with additional stack trace that indicates an error that was recovered.
      */
-    void status(String msg, Throwable t);
+    default void status(String msg, Throwable t) {}
 
     /**
      * Fatal error that's non recoverable.
      */
-    void error(Throwable t);
+    default void error(Throwable t) {}
 
     /**
      * Called when a connection is terminated.
      */
-    void onDisconnect();
+    default void onDisconnect() {}
 
     /**
      * Called when a re-connection is about to be attempted.
      * @since 2.0
      */
-    void onReconnect();
+    default void onReconnect() {}
 }

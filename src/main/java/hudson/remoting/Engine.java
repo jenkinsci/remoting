@@ -278,7 +278,9 @@ public class Engine extends Thread {
             Set<String> protocols) {
         this.listener = listener;
         this.directConnection = directConnection;
-        this.events.add(listener);
+        if (listener != null) {
+            this.events.add(listener);
+        }
         this.candidateUrls =
                 hudsonUrls.stream().map(Engine::ensureTrailingSlash).collect(Collectors.toList());
         this.secretKey = secretKey;
