@@ -1203,12 +1203,6 @@ public class Launcher {
         public void completed() {
             completion.set(null);
         }
-
-        @Override
-        public void onDisconnect() {}
-
-        @Override
-        public void onReconnect() {}
     }
 
     private static String communicationProtocolName;

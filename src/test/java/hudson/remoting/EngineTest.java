@@ -68,8 +68,7 @@ public class EngineTest {
     @Test
     @Issue("JENKINS-44290")
     public void shouldInitializeCorrectlyWithDefaults() throws Exception {
-        EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.startEngine(true);
 
         // Cache will go to ~/.jenkins , we do not want to worry about this repo
@@ -82,8 +81,7 @@ public class EngineTest {
     public void shouldInitializeCorrectlyWithCustomCache() throws Exception {
         File jarCache = new File(tmpDir.getRoot(), "jarCache");
 
-        EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setJarCache(new FileSystemJarCache(jarCache, true));
         engine.startEngine(true);
 
@@ -94,8 +92,7 @@ public class EngineTest {
     @Test
     public void shouldInitializeCorrectlyWithWorkDir() throws Exception {
         File workDir = new File(tmpDir.getRoot(), "workDir");
-        EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setWorkDir(workDir.toPath());
         engine.startEngine(true);
 
@@ -112,8 +109,7 @@ public class EngineTest {
     public void shouldUseCustomCacheDirIfRequired() throws Exception {
         File workDir = new File(tmpDir.getRoot(), "workDir");
         File jarCache = new File(tmpDir.getRoot(), "jarCache");
-        EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setWorkDir(workDir.toPath());
         engine.setJarCache(new FileSystemJarCache(jarCache, true));
         engine.startEngine(true);
@@ -126,14 +122,13 @@ public class EngineTest {
     @Test
     @Issue("JENKINS-60926")
     public void getAgentName() {
-        EngineListener l = new TestEngineListener();
-        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         assertThat(engine.getAgentName(), is(AGENT_NAME));
     }
 
     @Test(timeout = 5_000)
     public void shouldNotReconnect() {
-        EngineListener l = new TestEngineListener() {
+        EngineListener l = new EngineListener() {
             @Override
             public void error(Throwable t) {
                 throw new NoReconnectException();
@@ -148,8 +143,13 @@ public class EngineTest {
 
     @Test(timeout = 30_000)
     public void shouldReconnectOnJnlpAgentEndpointResolutionExceptions() {
-        EngineListener l = new TestEngineListener() {
+        EngineListener l = new EngineListener() {
             private int count;
+
+            @Override
+            public void status(String msg) {
+                status(msg, null);
+            }
 
             @Override
             public void status(String msg, Throwable t) {
@@ -174,32 +174,4 @@ public class EngineTest {
     }
 
     private static class ExpectedException extends RuntimeException {}
-
-    private static class TestEngineListener implements EngineListener {
-
-        @Override
-        public void status(String msg) {
-            status(msg, null);
-        }
-
-        @Override
-        public void status(String msg, Throwable t) {
-            // Do nothing
-        }
-
-        @Override
-        public void error(Throwable t) {
-            // Do nothing
-        }
-
-        @Override
-        public void onDisconnect() {
-            // Do nothing
-        }
-
-        @Override
-        public void onReconnect() {
-            // Do nothing
-        }
-    }
 }

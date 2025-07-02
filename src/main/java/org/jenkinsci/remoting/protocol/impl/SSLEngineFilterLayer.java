@@ -343,14 +343,11 @@ public class SSLEngineFilterLayer extends FilterLayer {
                     processResult(handshakeStatus, result);
 
                     switch (result.getStatus()) {
-                        case BUFFER_UNDERFLOW:
-                            /* we need more data */
-                        case CLOSED:
-                            /* connection is already closed */
+                        case BUFFER_UNDERFLOW: /* we need more data */
+                        case CLOSED: /* connection is already closed */
                             done = true;
                             break;
-                        case BUFFER_OVERFLOW:
-                            /* resize output buffer */
+                        case BUFFER_OVERFLOW: /* resize output buffer */
                             int newCapacity = appBuffer.capacity() * 2;
                             stack().release(appBuffer);
                             appBuffer = stack().acquire(newCapacity);
