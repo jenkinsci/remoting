@@ -128,21 +128,7 @@ public class Engine extends Thread {
     /**
      * Thread pool that sets {@link #CURRENT}.
      */
-    private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
-
-        @Override
-        public Thread newThread(@NonNull final Runnable r) {
-            Thread thread = defaultFactory.newThread(() -> {
-                CURRENT.set(Engine.this);
-                r.run();
-            });
-            thread.setDaemon(true);
-            thread.setUncaughtExceptionHandler(
-                    (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in thread " + t));
-            return thread;
-        }
-    });
+    private final ExecutorService executor;
 
     /**
      * @deprecated
@@ -276,6 +262,7 @@ public class Engine extends Thread {
             String directConnection,
             String instanceIdentity,
             Set<String> protocols) {
+        executor = makeExecutor(this, agentName);
         this.listener = listener;
         this.directConnection = directConnection;
         if (listener != null) {
@@ -306,6 +293,25 @@ public class Engine extends Thread {
                 throw new IllegalArgumentException(x);
             }
         }
+    }
+
+    private static ExecutorService makeExecutor(Engine engine, String agentName) {
+        return Executors.newCachedThreadPool(new ThreadFactory() {
+            private final ThreadFactory defaultFactory =
+                    new NamingThreadFactory(Executors.defaultThreadFactory(), agentName);
+
+            @Override
+            public Thread newThread(@NonNull final Runnable r) {
+                Thread thread = defaultFactory.newThread(() -> {
+                    CURRENT.set(engine);
+                    r.run();
+                });
+                thread.setDaemon(true);
+                thread.setUncaughtExceptionHandler(
+                        (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in thread " + t));
+                return thread;
+            }
+        });
     }
 
     /**
@@ -546,6 +552,7 @@ public class Engine extends Thread {
                 runTcp();
             }
         } finally {
+            executor.shutdown(); // TODO Java 21 maybe .close()
             events.completed();
         }
     }
