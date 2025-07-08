@@ -1611,9 +1611,6 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                 terminate(e);
                 return;
             }
-            if (jarCache instanceof Closeable c) {
-                c.close();
-            }
             outClosed = new IOException(
                     diagnosis); // last command sent. no further command allowed. lock guarantees that no command will
             // slip inbetween

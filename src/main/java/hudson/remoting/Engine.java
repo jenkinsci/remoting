@@ -34,6 +34,7 @@ import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -553,6 +554,13 @@ public class Engine extends Thread {
             }
         } finally {
             executor.shutdown(); // TODO Java 21 maybe .close()
+            if (jarCache instanceof Closeable c) {
+                try {
+                    c.close();
+                } catch (IOException x) {
+                    LOGGER.log(Level.WARNING, null, x);
+                }
+            }
             events.completed();
         }
     }
