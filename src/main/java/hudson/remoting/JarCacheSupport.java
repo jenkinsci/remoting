@@ -2,6 +2,7 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.CompletableFuture;
@@ -21,7 +22,7 @@ import java.util.logging.Logger;
  * @author Kohsuke Kawaguchi
  * @since 2.24
  */
-public abstract class JarCacheSupport extends JarCache {
+public abstract class JarCacheSupport extends JarCache implements Closeable {
     /**
      * Remember in-progress jar file resolution to avoid retrieving the same jar file twice.
      */
@@ -73,6 +74,12 @@ public abstract class JarCacheSupport extends JarCache {
         final CompletableFuture<URL> promise = new CompletableFuture<>();
         downloader.submit(new DownloadRunnable(channel, sum1, sum2, key, promise));
         return promise;
+    }
+
+    @Override
+    public void close() throws IOException {
+        // TODO Java 21 maybe just use ExecutorService.close()
+        downloader.shutdown();
     }
 
     private class DownloadRunnable implements Runnable {

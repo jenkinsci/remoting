@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -77,6 +78,7 @@ import org.jenkinsci.remoting.engine.JnlpAgentEndpointResolver;
 import org.jenkinsci.remoting.engine.WorkDirManager;
 import org.jenkinsci.remoting.util.DurationFormatter;
 import org.jenkinsci.remoting.util.PathUtils;
+import org.jenkinsci.remoting.util.SettableFuture;
 import org.jenkinsci.remoting.util.https.NoCheckHostnameVerifier;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
@@ -275,8 +277,7 @@ public class Launcher {
     public void setConnectTo(String target) {
         String[] tokens = target.split(":");
         if (tokens.length != 2) {
-            System.err.println("Illegal parameter: " + target);
-            System.exit(1);
+            throw new IllegalArgumentException(target);
         }
         connectionTarget = new InetSocketAddress(tokens[0], Integer.parseInt(tokens[1]));
         System.err.println(
@@ -723,11 +724,14 @@ public class Launcher {
 
     private void runAsInboundAgent() throws CmdLineException, IOException, InterruptedException {
         validateInboundAgentArgs(this);
-        Engine engine = createEngine();
+        SettableFuture<Void> completion = SettableFuture.create();
+        Engine engine = createEngine(completion);
         engine.startEngine();
         try {
-            engine.join();
+            completion.get();
             LOGGER.fine("Engine has died");
+        } catch (ExecutionException x) {
+            throw new IllegalStateException(x.getCause());
         } finally {
             // if we are programmatically driven by other code, allow them to interrupt our blocking main thread to kill
             // the on-going connection to Jenkins
@@ -1109,10 +1113,16 @@ public class Launcher {
         }
     }
 
-    private Engine createEngine() throws IOException {
+    private Engine createEngine(SettableFuture<Void> completion) throws IOException {
         LOGGER.log(Level.INFO, "Setting up agent: {0}", name);
         Engine engine = new Engine(
-                new CuiListener(), urls, secret, name, directConnection, instanceIdentity, new HashSet<>(protocols));
+                new CuiListener(completion),
+                urls,
+                secret,
+                name,
+                directConnection,
+                instanceIdentity,
+                new HashSet<>(protocols));
         engine.setWebSocket(webSocket);
         if (webSocketHeaders != null) {
             engine.setWebSocketHeaders(webSocketHeaders);
@@ -1164,6 +1174,13 @@ public class Launcher {
      * {@link EngineListener} implementation that sends output to {@link Logger}.
      */
     private static final class CuiListener implements EngineListener {
+
+        private final SettableFuture<Void> completion;
+
+        CuiListener(SettableFuture<Void> completion) {
+            this.completion = completion;
+        }
+
         @Override
         public void status(String msg, Throwable t) {
             LOGGER.log(Level.INFO, msg, t);
@@ -1175,12 +1192,14 @@ public class Launcher {
         }
 
         @Override
-        @SuppressFBWarnings(
-                value = "DM_EXIT",
-                justification = "Yes, we really want to exit in the case of severe error")
         public void error(Throwable t) {
-            LOGGER.log(Level.SEVERE, t.getMessage(), t);
-            System.exit(-1);
+            LOGGER.log(Level.FINE, null, t); // thrown out of runAsInboundAgent so printed by caller
+            completion.setException(t);
+        }
+
+        @Override
+        public void completed() {
+            completion.set(null);
         }
     }
 

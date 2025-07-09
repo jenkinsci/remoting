@@ -34,6 +34,7 @@ import jakarta.websocket.EndpointConfig;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.Session;
 import jakarta.websocket.WebSocketContainer;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -84,6 +85,7 @@ import net.jcip.annotations.NotThreadSafe;
 import org.glassfish.tyrus.client.ClientManager;
 import org.glassfish.tyrus.client.ClientProperties;
 import org.glassfish.tyrus.client.SslEngineConfigurator;
+import org.glassfish.tyrus.core.BaseContainer;
 import org.jenkinsci.remoting.engine.Jnlp4ConnectionState;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpoint;
 import org.jenkinsci.remoting.engine.JnlpAgentEndpointConfigurator;
@@ -128,21 +130,7 @@ public class Engine extends Thread {
     /**
      * Thread pool that sets {@link #CURRENT}.
      */
-    private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
-        private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
-
-        @Override
-        public Thread newThread(@NonNull final Runnable r) {
-            Thread thread = defaultFactory.newThread(() -> {
-                CURRENT.set(Engine.this);
-                r.run();
-            });
-            thread.setDaemon(true);
-            thread.setUncaughtExceptionHandler(
-                    (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in thread " + t));
-            return thread;
-        }
-    });
+    private final ExecutorService executor;
 
     /**
      * @deprecated
@@ -276,6 +264,7 @@ public class Engine extends Thread {
             String directConnection,
             String instanceIdentity,
             Set<String> protocols) {
+        executor = makeExecutor(this, agentName);
         this.listener = listener;
         this.directConnection = directConnection;
         if (listener != null) {
@@ -306,6 +295,25 @@ public class Engine extends Thread {
                 throw new IllegalArgumentException(x);
             }
         }
+    }
+
+    private static ExecutorService makeExecutor(Engine engine, String agentName) {
+        return Executors.newCachedThreadPool(new ThreadFactory() {
+            private final ThreadFactory defaultFactory =
+                    new NamingThreadFactory(Executors.defaultThreadFactory(), agentName);
+
+            @Override
+            public Thread newThread(@NonNull final Runnable r) {
+                Thread thread = defaultFactory.newThread(() -> {
+                    CURRENT.set(engine);
+                    r.run();
+                });
+                thread.setDaemon(true);
+                thread.setUncaughtExceptionHandler(
+                        (t, e) -> LOGGER.log(Level.SEVERE, e, () -> "Uncaught exception in thread " + t));
+                return thread;
+            }
+        });
     }
 
     /**
@@ -538,12 +546,28 @@ public class Engine extends Thread {
     }
 
     @Override
-    @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
     public void run() {
-        if (webSocket) {
-            runWebSocket();
-            return;
+        try {
+            if (webSocket) {
+                runWebSocket();
+            } else {
+                runTcp();
+            }
+        } finally {
+            executor.shutdown(); // TODO Java 21 maybe .close()
+            if (jarCache instanceof Closeable c) {
+                try {
+                    c.close();
+                } catch (IOException x) {
+                    LOGGER.log(Level.WARNING, null, x);
+                }
+            }
+            events.completed();
         }
+    }
+
+    @SuppressFBWarnings(value = "HARD_CODE_PASSWORD", justification = "Password doesn't need to be protected.")
+    private void runTcp() {
         // Create the engine
         try {
             try (IOHub hub = IOHub.create(executor)) {
@@ -750,68 +774,73 @@ public class Engine extends Thread {
                 SSLContext sslContext = getSSLContext(candidateCertificates, disableHttpsCertValidation);
                 String wsUrl = hudsonUrl.toString().replaceFirst("^http", "ws");
                 WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-                if (container instanceof ClientManager) {
-                    ClientManager client = (ClientManager) container;
+                try {
+                    if (container instanceof ClientManager client) {
 
-                    String proxyHost = System.getProperty("http.proxyHost", System.getenv("proxy_host"));
-                    String proxyPort = System.getProperty("http.proxyPort");
-                    if (proxyHost != null
-                            && "http".equals(hudsonUrl.getProtocol())
-                            && NoProxyEvaluator.shouldProxy(hudsonUrl.getHost())) {
-                        URI proxyUri;
-                        if (proxyPort != null) {
-                            proxyUri = URI.create(String.format("http://%s:%s", proxyHost, proxyPort));
-                        } else {
-                            proxyUri = URI.create(String.format("http://%s", proxyHost));
+                        String proxyHost = System.getProperty("http.proxyHost", System.getenv("proxy_host"));
+                        String proxyPort = System.getProperty("http.proxyPort");
+                        if (proxyHost != null
+                                && "http".equals(hudsonUrl.getProtocol())
+                                && NoProxyEvaluator.shouldProxy(hudsonUrl.getHost())) {
+                            URI proxyUri;
+                            if (proxyPort != null) {
+                                proxyUri = URI.create(String.format("http://%s:%s", proxyHost, proxyPort));
+                            } else {
+                                proxyUri = URI.create(String.format("http://%s", proxyHost));
+                            }
+                            client.getProperties().put(ClientProperties.PROXY_URI, proxyUri);
+                            if (proxyCredentials != null) {
+                                client.getProperties()
+                                        .put(
+                                                ClientProperties.PROXY_HEADERS,
+                                                Map.of(
+                                                        "Proxy-Authorization",
+                                                        "Basic "
+                                                                + Base64.getEncoder()
+                                                                        .encodeToString(proxyCredentials.getBytes(
+                                                                                StandardCharsets.UTF_8))));
+                            }
                         }
-                        client.getProperties().put(ClientProperties.PROXY_URI, proxyUri);
-                        if (proxyCredentials != null) {
-                            client.getProperties()
-                                    .put(
-                                            ClientProperties.PROXY_HEADERS,
-                                            Map.of(
-                                                    "Proxy-Authorization",
-                                                    "Basic "
-                                                            + Base64.getEncoder()
-                                                                    .encodeToString(proxyCredentials.getBytes(
-                                                                            StandardCharsets.UTF_8))));
+
+                        if (sslContext != null) {
+                            SslEngineConfigurator sslEngineConfigurator = new SslEngineConfigurator(sslContext);
+                            if (hostnameVerifier != null) {
+                                sslEngineConfigurator.setHostnameVerifier(hostnameVerifier);
+                            }
+                            client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
                         }
                     }
-
-                    if (sslContext != null) {
-                        SslEngineConfigurator sslEngineConfigurator = new SslEngineConfigurator(sslContext);
-                        if (hostnameVerifier != null) {
-                            sslEngineConfigurator.setHostnameVerifier(hostnameVerifier);
-                        }
-                        client.getProperties().put(ClientProperties.SSL_ENGINE_CONFIGURATOR, sslEngineConfigurator);
+                    if (!succeedsWithRetries(() -> this.pingSuccessful(sslContext))) {
+                        return;
+                    }
+                    if (!succeedsWithRetries(() -> {
+                        container.connectToServer(
+                                new AgentEndpoint(),
+                                ClientEndpointConfig.Builder.create()
+                                        .configurator(headerHandler)
+                                        .build(),
+                                URI.create(wsUrl + "wsagents/"));
+                        return true;
+                    })) {
+                        return;
+                    }
+                    while (ch.get() == null) {
+                        Thread.sleep(100);
+                    }
+                    this.protocolName = "WebSocket";
+                    events.status("Connected");
+                    ch.get().join();
+                    events.status("Terminated");
+                    if (noReconnect) {
+                        return;
+                    }
+                    events.onDisconnect();
+                    reconnect();
+                } finally {
+                    if (container instanceof BaseContainer baseContainer) {
+                        baseContainer.shutdown();
                     }
                 }
-                if (!succeedsWithRetries(() -> this.pingSuccessful(sslContext))) {
-                    return;
-                }
-                if (!succeedsWithRetries(() -> {
-                    container.connectToServer(
-                            new AgentEndpoint(),
-                            ClientEndpointConfig.Builder.create()
-                                    .configurator(headerHandler)
-                                    .build(),
-                            URI.create(wsUrl + "wsagents/"));
-                    return true;
-                })) {
-                    return;
-                }
-                while (ch.get() == null) {
-                    Thread.sleep(100);
-                }
-                this.protocolName = "WebSocket";
-                events.status("Connected");
-                ch.get().join();
-                events.status("Terminated");
-                if (noReconnect) {
-                    return;
-                }
-                events.onDisconnect();
-                reconnect();
             }
         } catch (Exception e) {
             events.error(e);

@@ -54,4 +54,9 @@ public interface EngineListener {
      * @since 2.0
      */
     default void onReconnect() {}
+
+    /**
+     * Called when {@link Engine#run} exits, whether due to {@link #error} or normally.
+     */
+    default void completed() {}
 }
