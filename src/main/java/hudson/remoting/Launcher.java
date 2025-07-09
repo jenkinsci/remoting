@@ -730,8 +730,6 @@ public class Launcher {
         try {
             completion.get();
             LOGGER.fine("Engine has died");
-        } catch (InterruptedException x) {
-            throw x;
         } catch (ExecutionException x) {
             throw new IllegalStateException(x.getCause());
         } finally {
