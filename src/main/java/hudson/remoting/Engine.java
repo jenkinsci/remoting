@@ -264,6 +264,7 @@ public class Engine extends Thread {
             String directConnection,
             String instanceIdentity,
             Set<String> protocols) {
+        setName("Engine for " + agentName);
         executor = makeExecutor(this, agentName);
         this.listener = listener;
         this.directConnection = directConnection;
