@@ -25,13 +25,10 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
 
     private static final Logger LOGGER = Logger.getLogger(JarLoaderImpl.class.getName());
 
-    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TODO needs triage")
-    private final ConcurrentMap<Checksum, URL> knownJars = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Checksum, URL> KNOWN_JARS = new ConcurrentHashMap<>();
 
-    @SuppressFBWarnings(
-            value = {"DMI_COLLECTION_OF_URLS", "SE_BAD_FIELD"},
-            justification = "TODO needs triage")
-    private final ConcurrentMap<URL, Checksum> checksums = new ConcurrentHashMap<>();
+    @SuppressFBWarnings(value = "DMI_COLLECTION_OF_URLS", justification = "TODO needs triage")
+    private static final ConcurrentMap<URL, Checksum> CHECKSUMS = new ConcurrentHashMap<>();
 
     @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TODO needs triage")
     private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<>());
@@ -42,7 +39,7 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
             justification = "This is only used for managing the jar cache as files, not URLs.")
     public void writeJarTo(long sum1, long sum2, OutputStream sink) throws IOException, InterruptedException {
         Checksum k = new Checksum(sum1, sum2);
-        URL url = knownJars.get(k);
+        URL url = KNOWN_JARS.get(k);
         if (url == null) {
             throw new IOException("Unadvertised jar file " + k);
         }
@@ -93,15 +90,15 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
      * Obtains the checksum for the jar at the specified URL.
      */
     public Checksum calcChecksum(URL jar) throws IOException {
-        Checksum v = checksums.get(jar); // cache hit
+        Checksum v = CHECKSUMS.get(jar); // cache hit
         if (v != null) {
             return v;
         }
 
         v = Checksum.forURL(jar);
 
-        knownJars.put(v, jar);
-        checksums.put(jar, v);
+        KNOWN_JARS.put(v, jar);
+        CHECKSUMS.put(jar, v);
         return v;
     }
 
