@@ -81,24 +81,30 @@ public abstract class PingThread extends Thread {
     @Override
     public void run() {
         try {
-            while (true) {
-                long nextCheck = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(interval);
+            try {
+                while (true) {
+                    long nextCheck = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(interval);
 
-                ping();
+                    ping();
 
-                // wait until the next check
-                long diff;
-                while ((diff = nextCheck - System.nanoTime()) > 0) {
-                    TimeUnit.NANOSECONDS.sleep(diff);
+                    // wait until the next check
+                    long diff;
+                    while ((diff = nextCheck - System.nanoTime()) > 0) {
+                        TimeUnit.NANOSECONDS.sleep(diff);
+                    }
                 }
+            } catch (ChannelClosedException e) {
+                LOGGER.log(Level.SEVERE, getName() + " is closed. Terminating", e);
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, getName() + " failed to ping " + channel.getName(), e);
+                onDead(e);
+            } catch (InterruptedException e) {
+                // use interruption as a way to terminate the ping thread.
+                LOGGER.log(Level.SEVERE, getName() + " is interrupted. Terminating", e);
             }
-        } catch (ChannelClosedException e) {
-            LOGGER.fine(getName() + " is closed. Terminating");
-        } catch (IOException e) {
-            onDead(e);
-        } catch (InterruptedException e) {
-            // use interruption as a way to terminate the ping thread.
-            LOGGER.fine(getName() + " is interrupted. Terminating");
+        } catch (Exception e) {
+            // this should never happen, but just in case
+            LOGGER.log(Level.SEVERE, "Unexpected exception in PingThread " + getName(), e);
         }
     }
 
