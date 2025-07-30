@@ -305,8 +305,11 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
         public void onReceiveHeaders(Map<String, String> headers) throws ConnectionRefusalException {
             if (!client) {
                 String clientName = headers.get(JnlpConnectionState.CLIENT_NAME_KEY);
-                if (clientDatabase == null || !clientDatabase.exists(clientName)) {
-                    throw new ConnectionRefusalException("Unknown client name: " + clientName);
+                if (clientDatabase == null) {
+                    throw new ConnectionRefusalException("Client database is not available");
+                }
+                if (clientName == null) {
+                    throw new ConnectionRefusalException("no client name provided in headers");
                 }
                 X509Certificate certificate = event.getCertificate();
                 JnlpClientDatabase.ValidationResult validation = certificate == null
@@ -326,7 +329,7 @@ public class JnlpProtocol4Handler extends JnlpProtocolHandler<Jnlp4ConnectionSta
                         String secretKey = clientDatabase.getSecretOf(clientName);
                         if (secretKey == null) {
                             // should never get hear unless there is a race condition in removing an entry from the DB
-                            throw new ConnectionRefusalException("Unknown client name: " + clientName);
+                            throw new ConnectionRefusalException("Race condition removed secret key for " + clientName);
                         }
                         if (!MessageDigest.isEqual(
                                 secretKey.getBytes(StandardCharsets.UTF_8),

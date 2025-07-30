@@ -59,7 +59,7 @@ THE SOFTWARE.
   </scm>
 
   <properties>
-    <changelist>999999-SNAPSHOT</changelist>
+    <changelist>3283.v92c105e0f819.01</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}</gitHubRepo>
     <build.type>private</build.type>
     <spotbugs.effort>Max</spotbugs.effort>
