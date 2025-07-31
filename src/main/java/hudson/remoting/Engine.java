@@ -831,7 +831,7 @@ public class Engine extends Thread {
                     }
                     this.protocolName = "WebSocket";
                     events.status("Connected");
-                    ensureWatchDogPingThread(ptRef, ch.get());
+                    ensureWatchdogPingThread(ptRef, ch.get());
                     ch.get().join();
                     events.status("Terminated");
                     if (noReconnect) {
@@ -1402,7 +1402,7 @@ public class Engine extends Thread {
      * exists.
      * @param channel the channel to monitor
      */
-    private void ensureWatchDogPingThread(AtomicReference<PingThread> ptRef, Channel channel) {
+    private void ensureWatchdogPingThread(AtomicReference<PingThread> ptRef, Channel channel) {
         if (ptRef.get() != null && ptRef.get().isAlive()) {
             LOGGER.fine("remoting-ping-thread is already running, terminating and starting a new one");
             try {
@@ -1414,7 +1414,7 @@ public class Engine extends Thread {
                 ptRef.set(null); // reset the reference
             }
         }
-        ptRef.set(new WsChannelWatchDogPingThread(channel));
+        ptRef.set(new WsChannelWatchdogPingThread(channel));
         ptRef.get().start();
         LOGGER.fine("remoting-ping-thread started");
     }
@@ -1423,10 +1423,10 @@ public class Engine extends Thread {
      * This ping thread implementation is to prevent the channel from being stuck after it is Connected, but before the
      * controller installs the PingThread - <a href="https://github.com/jenkinsci/jenkins/blob/master/core/src/main/java/hudson/slaves/ChannelPinger.java">ChannelPinger</a>
      */
-    private static class WsChannelWatchDogPingThread extends PingThread {
+    private static class WsChannelWatchdogPingThread extends PingThread {
         private final Channel channel;
 
-        public WsChannelWatchDogPingThread(Channel channel) {
+        public WsChannelWatchdogPingThread(Channel channel) {
             super(channel, 120_000, 5_000); // 2 minutes timeout, 5 seconds interval
             setName(getClass().getSimpleName() + " for " + channel);
             setDaemon(true);
