@@ -628,6 +628,7 @@ public class Engine extends Thread {
             addedHeaders.put(JnlpConnectionState.CLIENT_NAME_KEY, List.of(agentName));
             addedHeaders.put(JnlpConnectionState.SECRET_KEY, List.of(secretKey));
             addedHeaders.put(Capability.KEY, List.of(localCap));
+            AtomicReference<PingThread> ptRef = new AtomicReference<>();
             if (webSocketHeaders != null) {
                 for (Map.Entry<String, String> entry : webSocketHeaders.entrySet()) {
                     addedHeaders.put(entry.getKey(), List.of(entry.getValue()));
@@ -830,6 +831,7 @@ public class Engine extends Thread {
                     }
                     this.protocolName = "WebSocket";
                     events.status("Connected");
+                    ensureWatchDogPingThread(ptRef, ch.get());
                     ch.get().join();
                     events.status("Terminated");
                     if (noReconnect) {
@@ -1387,6 +1389,72 @@ public class Engine extends Thread {
                 headers.remove(JnlpConnectionState.COOKIE_KEY);
             } else {
                 headers.put(JnlpConnectionState.COOKIE_KEY, cookie);
+            }
+        }
+    }
+
+    /**
+     * Installs a ping thread for a websocket connection channel.
+     * This helps prevent ws channel stuck forever, sometimes the initial RPC request to the controller itself hangs,
+     * failing to install the ping thread from the controller (e.g., ChannelPinger from Jenkins core).
+     *
+     * @param ptRef AtomicReference to hold the ping thread reference to ensure only one ping thread per channel
+     * exists.
+     * @param channel the channel to monitor
+     */
+    private void ensureWatchDogPingThread(AtomicReference<PingThread> ptRef, Channel channel) {
+        if (ptRef.get() != null && ptRef.get().isAlive()) {
+            LOGGER.fine("remoting-ping-thread is already running, terminating and starting a new one");
+            try {
+                ptRef.get().interrupt();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to interrupt and join the ping thread", e);
+                events.status("Failed to interrupt and join the ping thread", e);
+            } finally {
+                ptRef.set(null); // reset the reference
+            }
+        }
+        ptRef.set(new WsChannelWatchDogPingThread(channel));
+        ptRef.get().start();
+        LOGGER.fine("remoting-ping-thread started");
+    }
+
+    /**
+     * This ping thread implementation is to prevent the channel from being stuck after it is Connected, but before the
+     * controller installs the PingThread - <a href="https://github.com/jenkinsci/jenkins/blob/master/core/src/main/java/hudson/slaves/ChannelPinger.java">ChannelPinger</a>
+     */
+    private static class WsChannelWatchDogPingThread extends PingThread {
+        private final Channel channel;
+
+        public WsChannelWatchDogPingThread(Channel channel) {
+            super(channel, 120_000, 5_000); // 2 minutes timeout, 5 seconds interval
+            setName(getClass().getSimpleName() + " for " + channel);
+            setDaemon(true);
+            this.channel = channel;
+            LOGGER.fine("Created " + getName());
+            setUncaughtExceptionHandler((t, e) -> {
+                LOGGER.log(Level.SEVERE, "Uncaught exception " + t, e);
+                onDead(e);
+            });
+        }
+
+        @Deprecated
+        @Override
+        protected void onDead() {
+            LOGGER.fine(getName() + "#onDead() called, but should not be used. Use onDead(Throwable) instead.");
+        }
+
+        @Override
+        protected void onDead(Throwable diagnosis) {
+            if (channel.isClosingOrClosed()) {
+                LOGGER.log(Level.FINE, diagnosis, () -> getName() + " Terminating, channels is already closed.");
+            } else {
+                LOGGER.log(Level.FINE, diagnosis, () -> getName() + " Terminating, closing the channel.");
+                try {
+                    channel.close(diagnosis);
+                } catch (IOException x) {
+                    LOGGER.log(Level.WARNING, getName() + " could not close " + channel.getName(), x);
+                }
             }
         }
     }
