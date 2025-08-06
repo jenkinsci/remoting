@@ -24,6 +24,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 
 /**
@@ -53,6 +54,28 @@ public class FastPipedInputStream extends InputStream {
 
     private final Throwable allocatedAt = new Throwable();
 
+    private static final Cleaner CLEANER = Cleaner.create();
+
+    /**
+     * Cleanup action for resource management that avoids reference to the outer
+     * class instance.
+     */
+    private static final class CleanAction implements Runnable {
+        private final byte[] buffer;
+
+        CleanAction(FastPipedInputStream stream) {
+            this.buffer = stream.buffer;
+        }
+
+        @Override
+        public void run() {
+            synchronized (buffer) {
+                // Simply notify any waiting threads - we don't need to access or modify the stream
+                buffer.notifyAll();
+            }
+        }
+    }
+
     /**
      * Creates an unconnected PipedInputStream with a default buffer size.
      */
@@ -75,10 +98,11 @@ public class FastPipedInputStream extends InputStream {
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source, int bufferSize) throws IOException {
+        this.buffer = new byte[bufferSize];
         if (source != null) {
             connect(source);
         }
-        this.buffer = new byte[bufferSize];
+        CLEANER.register(this, new CleanAction(this));
     }
 
     private void checkSource() throws IOException {
@@ -128,12 +152,6 @@ public class FastPipedInputStream extends InputStream {
         }
         this.source = new WeakReference<>(source);
         source.sink = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
     }
 
     @Override

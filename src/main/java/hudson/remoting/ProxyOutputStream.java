@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.lang.ref.Cleaner;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,6 +53,8 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      */
     private Throwable error;
 
+    private static final Cleaner CLEANER = Cleaner.create();
+
     /**
      * Creates unconnected {@link ProxyOutputStream}.
      * The returned stream accepts data right away, and
@@ -68,6 +71,8 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      */
     public ProxyOutputStream(@NonNull Channel channel, int oid) throws IOException {
         connect(channel, oid);
+        // Register this instance with the cleaner
+        CLEANER.register(this, new CleanupAction(channel, oid));
     }
 
     /**
@@ -185,14 +190,30 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         oid = -1;
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        // if we haven't done so, release the exported object on the remote side.
-        // if the object is auto-unexported, the export entry could have already been removed.
-        if (channel != null && oid != -1) {
-            channel.send(new Unexport(channel.newIoId(), oid));
-            oid = -1;
+    /**
+     * Cleanup action that's executed when this object is garbage collected.
+     */
+    private static class CleanupAction implements Runnable {
+        private Channel channel;
+        private final int oid;
+
+        CleanupAction(Channel channel, int oid) {
+            this.channel = channel;
+            this.oid = oid;
+        }
+
+        @Override
+        public void run() {
+            // if we haven't done so, release the exported object on the remote side.
+            // if the object is auto-unexported, the export entry could have already been removed.
+            if (channel != null && oid != -1) {
+                try {
+                    channel.send(new Unexport(channel.newIoId(), oid));
+                } catch (IOException e) {
+                    // the channel may already be closed, in which case this is expected
+                    LOGGER.log(Level.FINE, "Failed to unexport object", e);
+                }
+            }
         }
     }
 
