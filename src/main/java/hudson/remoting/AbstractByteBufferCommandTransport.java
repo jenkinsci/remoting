@@ -25,6 +25,7 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.nio.Buffer;
@@ -166,6 +167,9 @@ public abstract class AbstractByteBufferCommandTransport extends CommandTranspor
      * @throws IOException          if something goes wrong during the receive.
      * @throws InterruptedException if interrupted during the receive.
      */
+    @SuppressFBWarnings(
+            value = {"SF_DEAD_STORE_DUE_TO_SWITCH_FALLTHROUGH", "SF_SWITCH_FALLTHROUGH"},
+            justification = "TODO: Remove when https://github.com/spotbugs/spotbugs/issues/3617 is fixed")
     public final void receive(@NonNull ByteBuffer data) throws IOException, InterruptedException {
         while (receiver != null && readCommandIndex > 0) {
             processCommand();
