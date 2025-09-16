@@ -62,7 +62,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -415,7 +417,7 @@ public class Engine extends Thread {
 
     @CheckForNull
     public Map<String, String> getWebSocketHeaders() {
-        return webSocketHeaders != null ? Map.copyOf(webSocketHeaders) : Map.of();
+        return webSocketHeaders != null ? Collections.unmodifiableMap(new LinkedHashMap<>(webSocketHeaders)) : Map.of();
     }
 
     /**
