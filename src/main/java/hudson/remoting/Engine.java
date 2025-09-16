@@ -413,6 +413,11 @@ public class Engine extends Thread {
         this.webSocket = webSocket;
     }
 
+    @CheckForNull
+    public Map<String, String> getWebSocketHeaders() {
+        return webSocketHeaders != null ? Map.copyOf(webSocketHeaders) : Map.of();
+    }
+
     /**
      * Sets map of custom websocket headers. These headers will be applied to the websocket connection to Jenkins.
      *
