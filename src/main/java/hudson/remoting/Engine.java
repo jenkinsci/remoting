@@ -62,7 +62,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -413,6 +415,11 @@ public class Engine extends Thread {
         this.webSocket = webSocket;
     }
 
+    @NonNull
+    public Map<String, String> getWebSocketHeaders() {
+        return webSocketHeaders != null ? Collections.unmodifiableMap(new LinkedHashMap<>(webSocketHeaders)) : Map.of();
+    }
+
     /**
      * Sets map of custom websocket headers. These headers will be applied to the websocket connection to Jenkins.
      *
@@ -628,11 +635,6 @@ public class Engine extends Thread {
             addedHeaders.put(JnlpConnectionState.CLIENT_NAME_KEY, List.of(agentName));
             addedHeaders.put(JnlpConnectionState.SECRET_KEY, List.of(secretKey));
             addedHeaders.put(Capability.KEY, List.of(localCap));
-            if (webSocketHeaders != null) {
-                for (Map.Entry<String, String> entry : webSocketHeaders.entrySet()) {
-                    addedHeaders.put(entry.getKey(), List.of(entry.getValue()));
-                }
-            }
             while (true) {
                 AtomicReference<Channel> ch = new AtomicReference<>();
                 class HeaderHandler extends ClientEndpointConfig.Configurator {
@@ -641,6 +643,11 @@ public class Engine extends Thread {
                     @Override
                     public void beforeRequest(Map<String, List<String>> headers) {
                         headers.putAll(addedHeaders);
+                        if (webSocketHeaders != null) {
+                            for (var entry : webSocketHeaders.entrySet()) {
+                                headers.put(entry.getKey(), List.of(entry.getValue()));
+                            }
+                        }
                         LOGGER.fine(() -> "Sending: " + headers);
                     }
 
