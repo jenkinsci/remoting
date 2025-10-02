@@ -1164,25 +1164,11 @@ public class Engine extends Thread {
      * @throws IOException Connection failure or invalid parameter specification
      */
     private Socket connectTcp(@NonNull JnlpAgentEndpoint endpoint) throws IOException, InterruptedException {
-
         String msg = "Connecting to " + endpoint.getHost() + ':' + endpoint.getPort();
         events.status(msg);
-        int retry = 1;
-        while (true) {
-            try {
-                final Socket s =
-                        endpoint.open(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
-                s.setKeepAlive(keepAlive);
-                return s;
-            } catch (IOException e) {
-                if (retry++ > 10) {
-                    throw e;
-                }
-                // TODO refactor various sleep statements into a common method
-                TimeUnit.SECONDS.sleep(10);
-                events.status(msg + " (retrying:" + retry + ")", e);
-            }
-        }
+        Socket s = endpoint.open(SOCKET_TIMEOUT); // default is 30 mins. See PingThread for the ping interval
+        s.setKeepAlive(keepAlive);
+        return s;
     }
 
     /**
