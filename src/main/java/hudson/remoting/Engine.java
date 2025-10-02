@@ -1159,7 +1159,7 @@ public class Engine extends Thread {
     }
 
     /**
-     * Connects to TCP agent host:port, with a few retries.
+     * Connects to TCP agent host:port.
      * @param endpoint Connection endpoint
      * @throws IOException Connection failure or invalid parameter specification
      */
