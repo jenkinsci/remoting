@@ -24,7 +24,6 @@
 package org.jenkinsci.remoting.protocol.impl;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
@@ -123,9 +122,6 @@ public class NIONetworkLayer extends NetworkLayer implements IOHubReadyListener 
      * {@inheritDoc}
      */
     @Override
-    @SuppressFBWarnings(
-            value = "CWO_CLOSED_WITHOUT_OPENED",
-            justification = "TODO: Remove when https://github.com/spotbugs/spotbugs/issues/3616 is fixed")
     public void ready(boolean accept, boolean connect, boolean read, boolean write) {
         if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "{0} - entering ready({1}, {2}, {3}, {4})", new Object[] {

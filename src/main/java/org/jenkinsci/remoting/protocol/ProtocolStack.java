@@ -294,9 +294,6 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      *
      * @param listener the listener.
      */
-    @SuppressFBWarnings(
-            value = "CWO_CLOSED_WITHOUT_OPENED",
-            justification = "TODO: Remove when https://github.com/spotbugs/spotbugs/issues/3616 is fixed")
     public void addListener(Listener listener) {
         stackLock.writeLock().lock();
         try {
@@ -311,9 +308,6 @@ public class ProtocolStack<T> implements Closeable, ByteBufferPool {
      *
      * @param listener the listener.
      */
-    @SuppressFBWarnings(
-            value = "CWO_CLOSED_WITHOUT_OPENED",
-            justification = "TODO: Remove when https://github.com/spotbugs/spotbugs/issues/3616 is fixed")
     public void removeListener(Listener listener) {
         stackLock.writeLock().lock();
         try {

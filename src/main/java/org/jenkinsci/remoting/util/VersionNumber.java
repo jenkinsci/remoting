@@ -232,7 +232,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
                         value = "milestone";
                         break;
                     default:
-                        /* fall through? */
+                    /* fall through? */
                 }
             }
             this.value = ALIASES.getProperty(value, value);
