@@ -231,8 +231,7 @@ public class VersionNumber implements Comparable<VersionNumber> {
                     case 'm':
                         value = "milestone";
                         break;
-                    default:
-                    /* fall through? */
+                    default: /* fall through? */
                 }
             }
             this.value = ALIASES.getProperty(value, value);
