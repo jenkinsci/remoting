@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collections;
@@ -90,16 +91,19 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
      * Obtains the checksum for the jar at the specified URL.
      */
     public Checksum calcChecksum(URL jar) throws IOException {
-        Checksum v = CHECKSUMS.get(jar); // cache hit
-        if (v != null) {
-            return v;
+        try {
+            return CHECKSUMS.computeIfAbsent(jar, u -> {
+                try {
+                    Checksum c = Checksum.forURL(u);
+                    KNOWN_JARS.put(c, u);
+                    return c;
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
         }
-
-        v = Checksum.forURL(jar);
-
-        KNOWN_JARS.put(v, jar);
-        CHECKSUMS.put(jar, v);
-        return v;
     }
 
     /**
