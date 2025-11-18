@@ -165,12 +165,6 @@ THE SOFTWARE.
       <artifactId>junit-jupiter-params</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- can be removed once https://github.com/jenkinsci/remoting-test-client/pull/51 is released and version of remoting-test-client is bumped -->
-    <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
@@ -310,14 +304,14 @@ THE SOFTWARE.
                 <artifactItem>
                   <groupId>org.jenkins-ci</groupId>
                   <artifactId>remoting-test-client</artifactId>
-                  <version>1.3</version>
+                  <version>68.vc9a_c9f451b_7b_</version>
                   <outputDirectory>target/test-classes</outputDirectory>
                   <destFileName>remoting-test-client.jar</destFileName>
                 </artifactItem>
                 <artifactItem>
                   <groupId>org.jenkins-ci</groupId>
                   <artifactId>remoting-test-client</artifactId>
-                  <version>1.3</version>
+                  <version>68.vc9a_c9f451b_7b_</version>
                   <classifier>tests</classifier>
                   <outputDirectory>target/test-classes</outputDirectory>
                   <destFileName>remoting-test-client-tests.jar</destFileName>
