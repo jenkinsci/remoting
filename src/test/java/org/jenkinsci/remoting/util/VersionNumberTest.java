@@ -23,9 +23,12 @@
  */
 package org.jenkinsci.remoting.util;
 
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Xavier Le Vourch
@@ -33,9 +36,10 @@ import junit.framework.TestCase;
 // Copied from
 // https://github.com/jenkinsci/lib-version-number/blob/master/src/test/java/hudson/util/VersionNumberTest.java
 // We didn't want to introduce a dependency on another library and had troubles getting shading to work.
-public class VersionNumberTest extends TestCase {
+class VersionNumberTest {
 
-    public void testIsNewerThan() {
+    @Test
+    void testIsNewerThan() {
         assertTrue(new VersionNumber("2.0.*").isNewerThan(new VersionNumber("2.0")));
         assertTrue(new VersionNumber("2.1-SNAPSHOT").isNewerThan(new VersionNumber("2.0.*")));
         assertTrue(new VersionNumber("2.1").isNewerThan(new VersionNumber("2.1-SNAPSHOT")));
@@ -50,13 +54,15 @@ public class VersionNumberTest extends TestCase {
         assertEquals(new VersionNumber("2.0.0"), new VersionNumber("2.0"));
     }
 
-    public void testEarlyAccess() {
+    @Test
+    void testEarlyAccess() {
         assertTrue(new VersionNumber("2.0.ea2").isNewerThan(new VersionNumber("2.0.ea1")));
         assertTrue(new VersionNumber("2.0.ea1").isNewerThan(new VersionNumber("2.0.ea")));
         assertEquals(new VersionNumber("2.0.ea"), new VersionNumber("2.0.ea0"));
     }
 
-    public void testSnapshots() {
+    @Test
+    void testSnapshots() {
         assertTrue(new VersionNumber("1.12")
                 .isNewerThan(new VersionNumber("1.12-SNAPSHOT (private-08/24/2008 12:13-hudson)")));
         assertTrue(new VersionNumber("1.12-SNAPSHOT (private-08/24/2008 12:13-hudson)")
@@ -69,7 +75,8 @@ public class VersionNumberTest extends TestCase {
         assertTrue(new VersionNumber("1.11.*").isNewerThan(new VersionNumber("1.11.9")));
     }
 
-    public void testTimestamps() {
+    @Test
+    void testTimestamps() {
         assertTrue(new VersionNumber("2.0.3-20170207.105042-1").isNewerThan(new VersionNumber("2.0.2")));
         assertTrue(new VersionNumber("2.0.3").isNewerThan(new VersionNumber("2.0.3-20170207.105042-1")));
         assertEquals(new VersionNumber("2.0.3-20170207.105042-1"), new VersionNumber("2.0.3-SNAPSHOT"));
@@ -86,7 +93,8 @@ public class VersionNumberTest extends TestCase {
         assertFalse(new VersionNumber("2.0.3-20170207.105042-1").isOlderThan(new VersionNumber("2.0.3-SNAPSHOT")));
     }
 
-    public void testDigit() {
+    @Test
+    void testDigit() {
         assertEquals(32, new VersionNumber("2.32.3.1-SNAPSHOT").getDigitAt(1));
         assertEquals(3, new VersionNumber("2.32.3.1-SNAPSHOT").getDigitAt(2));
         assertEquals(1, new VersionNumber("2.32.3.1-SNAPSHOT").getDigitAt(3));
@@ -102,7 +110,8 @@ public class VersionNumberTest extends TestCase {
         assertEquals(-1, new VersionNumber("").getDigitAt(0));
     }
 
-    public void testOrEqualTo() {
+    @Test
+    void testOrEqualTo() {
         assertTrue(new VersionNumber("1.8").isNewerThanOrEqualTo(new VersionNumber("1.8")));
         assertTrue(new VersionNumber("1.9").isNewerThanOrEqualTo(new VersionNumber("1.8")));
         assertTrue(new VersionNumber("2").isNewerThanOrEqualTo(new VersionNumber("1.8")));

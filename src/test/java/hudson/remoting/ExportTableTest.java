@@ -12,9 +12,10 @@ import org.junit.jupiter.api.Test;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ExportTableTest {
+class ExportTableTest {
+
     @Test
-    public void testDiagnosis() throws Exception {
+    void testDiagnosis() throws Exception {
         try {
             ExportTable.EXPORT_TRACES = true;
             ExportTable e = new ExportTable();

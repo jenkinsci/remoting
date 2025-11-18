@@ -25,184 +25,230 @@ package org.jenkinsci.remoting.protocol.cert;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.Socket;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLEngine;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class PublicKeyMatchingX509ExtendedTrustManagerTest {
+class PublicKeyMatchingX509ExtendedTrustManagerTest {
 
-    private PublicKeyMatchingX509ExtendedTrustManager instance =
-            new PublicKeyMatchingX509ExtendedTrustManager(key.getPublic());
+    private final PublicKeyMatchingX509ExtendedTrustManager instance =
+            new PublicKeyMatchingX509ExtendedTrustManager(KEY.getPublic());
 
-    public static RSAKeyPairRule key = new RSAKeyPairRule("main");
-    public static RSAKeyPairRule altKey = new RSAKeyPairRule("main");
+    @Order(0)
+    @RegisterExtension
+    private static final RSAKeyPairExtension KEY = new RSAKeyPairExtension("main");
 
-    public static X509CertificateRule cert = new X509CertificateRule("main", key, key, null, -1, 1, TimeUnit.HOURS);
-    public static X509CertificateRule altCert =
-            new X509CertificateRule("main", altKey, altKey, null, -1, 1, TimeUnit.HOURS);
+    @Order(1)
+    @RegisterExtension
+    private static final X509CertificateExtension CERT =
+            new X509CertificateExtension("main", KEY, KEY, null, -1, 1, TimeUnit.HOURS);
 
-    @ClassRule
-    public static RuleChain chain =
-            RuleChain.outerRule(key).around(cert).around(altKey).around(altCert);
+    @Order(2)
+    @RegisterExtension
+    private static final RSAKeyPairExtension ALT_KEY = new RSAKeyPairExtension("main");
+
+    @Order(3)
+    @RegisterExtension
+    private static final X509CertificateExtension ALT_CERT =
+            new X509CertificateExtension("main", ALT_KEY, ALT_KEY, null, -1, 1, TimeUnit.HOURS);
 
     @Test
-    public void checkClientTrusted() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {cert.certificate()}, "RSA");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkClientTrusted_nullNonNull() throws Exception {
-        instance.checkClientTrusted(null, "RSA");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkClientTrusted_nonNullNull() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {cert.certificate()}, null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkClientTrusted_nonNullEmpty() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {cert.certificate()}, "");
+    void checkClientTrusted() throws Exception {
+        instance.checkClientTrusted(new X509Certificate[] {CERT.certificate()}, "RSA");
     }
 
     @Test
-    public void checkServerTrusted() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {cert.certificate()}, "RSA");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkServerTrusted_nullNonNull() throws Exception {
-        instance.checkServerTrusted(null, "RSA");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkServerTrusted_nonNullNull() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {cert.certificate()}, null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkServerTrusted_nonNullEmpty() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {cert.certificate()}, "");
+    void checkClientTrusted_nullNonNull() {
+        assertThrows(IllegalArgumentException.class, () -> instance.checkClientTrusted(null, "RSA"));
     }
 
     @Test
-    public void checkClientTrusted1() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {cert.certificate()}, "RSA", new Socket());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkClientTrusted1_nullNonNull() throws Exception {
-        instance.checkClientTrusted(null, "RSA", new Socket());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkClientTrusted1_nonNullNull() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {cert.certificate()}, null, new Socket());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkClientTrusted1_nonNullEmpty() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {cert.certificate()}, "", new Socket());
+    void checkClientTrusted_nonNullNull() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkClientTrusted(new X509Certificate[] {CERT.certificate()}, null));
     }
 
     @Test
-    public void checkServerTrusted1() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {cert.certificate()}, "RSA", new Socket());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkServerTrusted1_nullNonNull() throws Exception {
-        instance.checkServerTrusted(null, "RSA", new Socket());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkServerTrusted1_nonNullNull() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {cert.certificate()}, null, new Socket());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkServerTrusted1_nonNullEmpty() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {cert.certificate()}, "", new Socket());
+    void checkClientTrusted_nonNullEmpty() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkClientTrusted(new X509Certificate[] {CERT.certificate()}, ""));
     }
 
     @Test
-    public void checkClientTrusted2() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {cert.certificate()}, "RSA", (SSLEngine) null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkClientTrusted2_nullNonNull() throws Exception {
-        instance.checkClientTrusted(null, "RSA", (SSLEngine) null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkClientTrusted2_nonNullNull() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {cert.certificate()}, null, (SSLEngine) null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkClientTrusted2_nonNullEmpty() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {cert.certificate()}, "", (SSLEngine) null);
+    void checkServerTrusted() throws Exception {
+        instance.checkServerTrusted(new X509Certificate[] {CERT.certificate()}, "RSA");
     }
 
     @Test
-    public void checkServerTrusted2() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {cert.certificate()}, "RSA", (SSLEngine) null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkServerTrusted2_nullNonNull() throws Exception {
-        instance.checkServerTrusted(null, "RSA", (SSLEngine) null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkServerTrusted2_nonNullNull() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {cert.certificate()}, null, (SSLEngine) null);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void checkServerTrusted2_nonNullEmpty() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {cert.certificate()}, "", (SSLEngine) null);
-    }
-
-    @Test(expected = CertificateException.class)
-    public void checkClientUntrusted() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {altCert.certificate()}, "RSA");
-    }
-
-    @Test(expected = CertificateException.class)
-    public void checkServerUntrusted() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {altCert.certificate()}, "RSA");
-    }
-
-    @Test(expected = CertificateException.class)
-    public void checkClientUntrusted1() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {altCert.certificate()}, "RSA", new Socket());
-    }
-
-    @Test(expected = CertificateException.class)
-    public void checkServerUntrusted1() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {altCert.certificate()}, "RSA", new Socket());
-    }
-
-    @Test(expected = CertificateException.class)
-    public void checkClientUntrusted2() throws Exception {
-        instance.checkClientTrusted(new X509Certificate[] {altCert.certificate()}, "RSA", (SSLEngine) null);
-    }
-
-    @Test(expected = CertificateException.class)
-    public void checkServerUntrusted2() throws Exception {
-        instance.checkServerTrusted(new X509Certificate[] {altCert.certificate()}, "RSA", (SSLEngine) null);
+    void checkServerTrusted_nullNonNull() {
+        assertThrows(IllegalArgumentException.class, () -> instance.checkServerTrusted(null, "RSA"));
     }
 
     @Test
-    public void getAcceptedIssuers() {
+    void checkServerTrusted_nonNullNull() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkServerTrusted(new X509Certificate[] {CERT.certificate()}, null));
+    }
+
+    @Test
+    void checkServerTrusted_nonNullEmpty() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkServerTrusted(new X509Certificate[] {CERT.certificate()}, ""));
+    }
+
+    @Test
+    void checkClientTrusted1() throws Exception {
+        instance.checkClientTrusted(new X509Certificate[] {CERT.certificate()}, "RSA", new Socket());
+    }
+
+    @Test
+    void checkClientTrusted1_nullNonNull() {
+        assertThrows(IllegalArgumentException.class, () -> instance.checkClientTrusted(null, "RSA", new Socket()));
+    }
+
+    @Test
+    void checkClientTrusted1_nonNullNull() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkClientTrusted(new X509Certificate[] {CERT.certificate()}, null, new Socket()));
+    }
+
+    @Test
+    void checkClientTrusted1_nonNullEmpty() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkClientTrusted(new X509Certificate[] {CERT.certificate()}, "", new Socket()));
+    }
+
+    @Test
+    void checkServerTrusted1() throws Exception {
+        instance.checkServerTrusted(new X509Certificate[] {CERT.certificate()}, "RSA", new Socket());
+    }
+
+    @Test
+    void checkServerTrusted1_nullNonNull() {
+        assertThrows(IllegalArgumentException.class, () -> instance.checkServerTrusted(null, "RSA", new Socket()));
+    }
+
+    @Test
+    void checkServerTrusted1_nonNullNull() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkServerTrusted(new X509Certificate[] {CERT.certificate()}, null, new Socket()));
+    }
+
+    @Test
+    void checkServerTrusted1_nonNullEmpty() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkServerTrusted(new X509Certificate[] {CERT.certificate()}, "", new Socket()));
+    }
+
+    @Test
+    void checkClientTrusted2() throws Exception {
+        instance.checkClientTrusted(new X509Certificate[] {CERT.certificate()}, "RSA", (SSLEngine) null);
+    }
+
+    @Test
+    void checkClientTrusted2_nullNonNull() {
+        assertThrows(IllegalArgumentException.class, () -> instance.checkClientTrusted(null, "RSA", (SSLEngine) null));
+    }
+
+    @Test
+    void checkClientTrusted2_nonNullNull() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkClientTrusted(new X509Certificate[] {CERT.certificate()}, null, (SSLEngine) null));
+    }
+
+    @Test
+    void checkClientTrusted2_nonNullEmpty() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkClientTrusted(new X509Certificate[] {CERT.certificate()}, "", (SSLEngine) null));
+    }
+
+    @Test
+    void checkServerTrusted2() throws Exception {
+        instance.checkServerTrusted(new X509Certificate[] {CERT.certificate()}, "RSA", (SSLEngine) null);
+    }
+
+    @Test
+    void checkServerTrusted2_nullNonNull() {
+        assertThrows(IllegalArgumentException.class, () -> instance.checkServerTrusted(null, "RSA", (SSLEngine) null));
+    }
+
+    @Test
+    void checkServerTrusted2_nonNullNull() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkServerTrusted(new X509Certificate[] {CERT.certificate()}, null, (SSLEngine) null));
+    }
+
+    @Test
+    void checkServerTrusted2_nonNullEmpty() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> instance.checkServerTrusted(new X509Certificate[] {CERT.certificate()}, "", (SSLEngine) null));
+    }
+
+    @Test
+    void checkClientUntrusted() {
+        assertThrows(
+                CertificateException.class,
+                () -> instance.checkClientTrusted(new X509Certificate[] {ALT_CERT.certificate()}, "RSA"));
+    }
+
+    @Test
+    void checkServerUntrusted() {
+        assertThrows(
+                CertificateException.class,
+                () -> instance.checkServerTrusted(new X509Certificate[] {ALT_CERT.certificate()}, "RSA"));
+    }
+
+    @Test
+    void checkClientUntrusted1() {
+        assertThrows(
+                CertificateException.class,
+                () -> instance.checkClientTrusted(new X509Certificate[] {ALT_CERT.certificate()}, "RSA", new Socket()));
+    }
+
+    @Test
+    void checkServerUntrusted1() {
+        assertThrows(
+                CertificateException.class,
+                () -> instance.checkServerTrusted(new X509Certificate[] {ALT_CERT.certificate()}, "RSA", new Socket()));
+    }
+
+    @Test
+    void checkClientUntrusted2() {
+        assertThrows(
+                CertificateException.class,
+                () -> instance.checkClientTrusted(
+                        new X509Certificate[] {ALT_CERT.certificate()}, "RSA", (SSLEngine) null));
+    }
+
+    @Test
+    void checkServerUntrusted2() {
+        assertThrows(
+                CertificateException.class,
+                () -> instance.checkServerTrusted(
+                        new X509Certificate[] {ALT_CERT.certificate()}, "RSA", (SSLEngine) null));
+    }
+
+    @Test
+    void getAcceptedIssuers() {
         assertThat(instance.getAcceptedIssuers(), notNullValue());
     }
 }

@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016, CloudBees, Inc.
+ * Copyright (c) 2017 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,28 +21,31 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.remoting.protocol.cert;
+package org.jenkinsci.remoting.engine;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.DSAPrivateKey;
-import java.security.interfaces.DSAPublicKey;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class DSAKeyPairRule extends KeyPairRule<DSAPublicKey, DSAPrivateKey> {
+/**
+ * Contains automatic state reset for {@link WorkDirManager}.
+ * @author Oleg Nenashev
+ */
+public class WorkDirManagerExtension implements BeforeEachCallback, AfterEachCallback {
 
-    public DSAKeyPairRule() {
-        super("");
-    }
+    private final WorkDirManager instance = WorkDirManager.getInstance();
 
-    public DSAKeyPairRule(String id) {
-        super(id);
+    public WorkDirManager getInstance() {
+        return instance;
     }
 
     @Override
-    protected KeyPair generateKeyPair() throws NoSuchAlgorithmException {
-        KeyPairGenerator gen = KeyPairGenerator.getInstance("DSA");
-        gen.initialize(1024); // maximum supported by JVM with export restrictions
-        return gen.generateKeyPair();
+    public void beforeEach(ExtensionContext context) {
+        WorkDirManager.reset();
+    }
+
+    @Override
+    public void afterEach(ExtensionContext context) {
+        WorkDirManager.reset();
     }
 }

@@ -29,12 +29,12 @@ import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ProxyExceptionTest {
+class ProxyExceptionTest {
 
     @Test
-    public void breaksCyclesInCauses() {
+    void breaksCyclesInCauses() {
         Exception cyclic1 = new Exception("cyclic1");
         Exception cyclic2 = new Exception("cyclic2", cyclic1);
         cyclic1.initCause(cyclic2);
@@ -48,7 +48,7 @@ public class ProxyExceptionTest {
     }
 
     @Test
-    public void breaksCyclesInSuppressedExceptions() {
+    void breaksCyclesInSuppressedExceptions() {
         Exception cyclic1 = new Exception("cyclic1");
         Exception cyclic2 = new Exception("cyclic2");
         cyclic1.addSuppressed(cyclic2);

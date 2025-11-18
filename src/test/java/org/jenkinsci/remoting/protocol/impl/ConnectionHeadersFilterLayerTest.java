@@ -29,7 +29,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.Pipe;
@@ -40,65 +40,73 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
-import org.jenkinsci.remoting.protocol.IOHubRule;
+import org.jenkinsci.remoting.protocol.IOHubExtension;
 import org.jenkinsci.remoting.protocol.NetworkLayerFactory;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
-import org.jenkinsci.remoting.protocol.RepeatRule;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Named;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-@RunWith(Theories.class)
-public class ConnectionHeadersFilterLayerTest {
+@ParameterizedClass
+@MethodSource("parameters")
+@Timeout(value = 10, unit = TimeUnit.SECONDS)
+class ConnectionHeadersFilterLayerTest {
 
-    @Rule
-    public TestName name = new TestName();
+    @RegisterExtension
+    private final IOHubExtension selector = new IOHubExtension();
 
-    private IOHubRule selector = new IOHubRule();
+    @Parameter(0)
+    private NetworkLayerFactory serverFactory;
 
-    @Rule
-    public RuleChain chain =
-            RuleChain.outerRule(selector).around(new RepeatRule()).around(new Timeout(10, TimeUnit.SECONDS));
+    @Parameter(1)
+    private NetworkLayerFactory clientFactory;
 
     private Pipe clientToServer;
     private Pipe serverToClient;
 
-    @DataPoint("blocking I/O")
-    public static NetworkLayerFactory blocking() {
-        return new NetworkLayerFactory.BIO();
+    static Stream<Arguments> parameters() {
+        return Stream.of(
+                Arguments.of(
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO()),
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO())),
+                Arguments.of(
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO()),
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO())),
+                Arguments.of(
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO()),
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO())),
+                Arguments.of(
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO()),
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO())));
     }
 
-    @DataPoint("non-blocking I/O")
-    public static NetworkLayerFactory nonBlocking() {
-        return new NetworkLayerFactory.NIO();
-    }
-
-    @Before
-    public void setUpPipe() throws Exception {
+    @BeforeEach
+    void beforeEach() throws Exception {
         clientToServer = Pipe.open();
         serverToClient = Pipe.open();
     }
 
-    @After
-    public void tearDownPipe() {
+    @AfterEach
+    void afterEach() {
         IOUtils.closeQuietly(clientToServer.sink());
         IOUtils.closeQuietly(clientToServer.source());
         IOUtils.closeQuietly(serverToClient.sink());
         IOUtils.closeQuietly(serverToClient.source());
     }
 
-    @Theory
-    public void smokes(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    @Test
+    void smokes() throws Exception {
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                 .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {}))
@@ -120,8 +128,8 @@ public class ConnectionHeadersFilterLayerTest {
         client.get().awaitClose();
     }
 
-    @Theory
-    public void clientRejects(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    @Test
+    void clientRejects() throws Exception {
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                 .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
@@ -140,8 +148,8 @@ public class ConnectionHeadersFilterLayerTest {
         assertThat(server.get().getCloseCause(), instanceOf(PermanentConnectionRefusalException.class));
     }
 
-    @Theory
-    public void serverRejects(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    @Test
+    void serverRejects() throws Exception {
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                 .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {}))
@@ -160,8 +168,8 @@ public class ConnectionHeadersFilterLayerTest {
         assertThat(server.get().getCloseCause(), instanceOf(PermanentConnectionRefusalException.class));
     }
 
-    @Theory
-    public void bothReject(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    @Test
+    void bothReject() throws Exception {
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                 .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
@@ -182,8 +190,8 @@ public class ConnectionHeadersFilterLayerTest {
         assertThat(server.get().getCloseCause(), instanceOf(PermanentConnectionRefusalException.class));
     }
 
-    @Theory
-    public void clientRefuses(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    @Test
+    void clientRefuses() throws Exception {
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                 .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
@@ -210,8 +218,8 @@ public class ConnectionHeadersFilterLayerTest {
                         not(instanceOf(PermanentConnectionRefusalException.class))));
     }
 
-    @Theory
-    public void serverRefuses(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    @Test
+    void serverRefuses() throws Exception {
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                 .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {}))
@@ -238,8 +246,8 @@ public class ConnectionHeadersFilterLayerTest {
                         not(instanceOf(PermanentConnectionRefusalException.class))));
     }
 
-    @Theory
-    public void bothRefuse(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    @Test
+    void bothRefuse() throws Exception {
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(selector.hub(), serverToClient.source(), clientToServer.sink()))
                 .filter(new ConnectionHeadersFilterLayer(Collections.emptyMap(), headers -> {
@@ -268,8 +276,8 @@ public class ConnectionHeadersFilterLayerTest {
                         not(instanceOf(PermanentConnectionRefusalException.class))));
     }
 
-    @Theory
-    public void headerExchange(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    @Test
+    void headerExchange() throws Exception {
         Random entropy = new Random();
         final CompletableFuture<Map<String, String>> serverActualHeaders = new CompletableFuture<>();
         Map<String, String> clientExpectedHeaders = new HashMap<>();
@@ -303,8 +311,8 @@ public class ConnectionHeadersFilterLayerTest {
         assertThat(clientActualHeaders.get(1000, TimeUnit.MICROSECONDS), is(clientExpectedHeaders));
     }
 
-    @Theory
-    public void tooBigHeader(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
+    @Test
+    void tooBigHeader() {
         final CompletableFuture<Map<String, String>> serverActualHeaders = new CompletableFuture<>();
         Map<String, String> clientExpectedHeaders = new HashMap<>(64);
         String bigString = "Too Big!".repeat(128);

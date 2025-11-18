@@ -25,18 +25,19 @@ package org.jenkinsci.remoting.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assume.assumeThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ByteBufferQueueInputStreamTest {
+class ByteBufferQueueInputStreamTest {
+
     @Test
-    public void readAll() throws Exception {
+    void readAll() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -47,7 +48,7 @@ public class ByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void readLimit() throws Exception {
+    void readLimit() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -58,7 +59,7 @@ public class ByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void readSome() throws Exception {
+    void readSome() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -69,7 +70,7 @@ public class ByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void readBytes() throws Exception {
+    void readBytes() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -86,7 +87,7 @@ public class ByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void readBytesOffset() throws Exception {
+    void readBytesOffset() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -107,7 +108,7 @@ public class ByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void skipRead() throws Exception {
+    void skipRead() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -131,13 +132,13 @@ public class ByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void markRead() throws Exception {
+    void markRead() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
         queue.put(ByteBuffer.wrap(str.getBytes(StandardCharsets.UTF_8)));
         ByteBufferQueueInputStream instance = new ByteBufferQueueInputStream(queue);
-        assumeThat(instance.markSupported(), is(true));
+        assumeTrue(instance.markSupported());
         instance.mark(4);
         instance.read(new byte[3]);
         instance.reset();

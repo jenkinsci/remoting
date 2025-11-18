@@ -23,26 +23,46 @@
  */
 package org.jenkinsci.remoting.protocol.cert;
 
+import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class ECKeyPairRule extends KeyPairRule<ECPublicKey, ECPrivateKey> {
+public abstract class KeyPairExtension<PUB extends PublicKey, PRIV extends PrivateKey>
+        implements BeforeAllCallback, AfterAllCallback {
 
-    public ECKeyPairRule() {
-        super("");
+    private final String id;
+    private KeyPair keys;
+
+    protected KeyPairExtension() {
+        this("");
     }
 
-    public ECKeyPairRule(String id) {
-        super(id);
+    protected KeyPairExtension(String id) {
+        this.id = id;
+    }
+
+    public PUB getPublic() {
+        return (PUB) keys.getPublic();
+    }
+
+    public PRIV getPrivate() {
+        return (PRIV) keys.getPrivate();
     }
 
     @Override
-    protected KeyPair generateKeyPair() throws NoSuchAlgorithmException {
-        KeyPairGenerator gen = KeyPairGenerator.getInstance("EC");
-        gen.initialize(256); // this is the default keysize supported by SunEC
-        return gen.generateKeyPair();
+    public void beforeAll(ExtensionContext context) throws Exception {
+        keys = generateKeyPair();
     }
+
+    @Override
+    public void afterAll(ExtensionContext context) {
+        keys = null;
+    }
+
+    protected abstract KeyPair generateKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException;
 }

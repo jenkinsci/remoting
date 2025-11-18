@@ -1,23 +1,24 @@
 package hudson.remoting;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StreamCorruptedException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class FlightRecorderInputStreamTest {
+class FlightRecorderInputStreamTest {
+
     @Test
-    public void diagnosis() throws Exception {
+    void diagnosis() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject("abc");
@@ -33,7 +34,7 @@ public class FlightRecorderInputStreamTest {
         assertEquals("def", ois.readObject());
 
         final StreamCorruptedException e =
-                assertThrows("Expecting a corruption", StreamCorruptedException.class, ois::readObject);
+                assertThrows(StreamCorruptedException.class, ois::readObject, "Expecting a corruption");
         DiagnosedStreamCorruptionException t = fis.analyzeCrash(e, "test");
         t.printStackTrace();
         assertNull(t.getDiagnoseFailure());
@@ -43,7 +44,7 @@ public class FlightRecorderInputStreamTest {
     }
 
     @Test
-    public void bounding() throws Exception {
+    void bounding() throws Exception {
         int sz = (int) (FlightRecorderInputStream.BUFFER_SIZE * /* not a round multiple */ 5.3);
         byte[] stuff = new byte[sz];
         for (int i = 0; i < sz; i++) {

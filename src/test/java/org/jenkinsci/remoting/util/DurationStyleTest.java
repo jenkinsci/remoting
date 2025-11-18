@@ -1,13 +1,14 @@
 package org.jenkinsci.remoting.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class DurationStyleTest {
+class DurationStyleTest {
+
     @Test
-    public void typical() {
+    void typical() {
         assertEquals(Duration.ofSeconds(1), DurationStyle.detectAndParse("1s"));
         assertEquals(Duration.ofMinutes(2), DurationStyle.detectAndParse("2m"));
         assertEquals(Duration.ofHours(3), DurationStyle.detectAndParse("3h"));
@@ -15,7 +16,7 @@ public class DurationStyleTest {
     }
 
     @Test
-    public void negative() {
+    void negative() {
         assertEquals(Duration.ofSeconds(1).negated(), DurationStyle.detectAndParse("-1s"));
     }
 }

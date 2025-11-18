@@ -172,11 +172,11 @@ public class ProtocolStackLoopbackLoadStress {
 
     private static class NoOpCallable implements Callable<Void, IOException> {
 
-        private static final AtomicLong noops = new AtomicLong();
+        private static final AtomicLong NO_OPS = new AtomicLong();
 
         @Override
         public Void call() throws IOException {
-            noops.incrementAndGet();
+            NO_OPS.incrementAndGet();
             return null;
         }
 
@@ -267,8 +267,8 @@ public class ProtocolStackLoopbackLoadStress {
         stress.hub.execute(() -> {
             long start = System.currentTimeMillis();
             long last = start;
-            long initialNoops = NoOpCallable.noops.get();
-            long previousNoops = NoOpCallable.noops.get();
+            long initialNoops = NoOpCallable.NO_OPS.get();
+            long previousNoops = NoOpCallable.NO_OPS.get();
             while (true) {
                 long next = last + 1000;
                 long wait;
@@ -280,7 +280,7 @@ public class ProtocolStackLoopbackLoadStress {
                     }
                 }
                 long now = System.currentTimeMillis();
-                long currentNoops = NoOpCallable.noops.get();
+                long currentNoops = NoOpCallable.NO_OPS.get();
                 double noopsPerSecond = (currentNoops - initialNoops) * 1000.0 / (now - start);
                 double instantNoopsPerSecond = (currentNoops - previousNoops) * 1000.0 / (now - last);
                 System.out.printf(

@@ -4,7 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.Channel;
@@ -25,28 +25,31 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.nio.NioChannelHub;
 import org.jenkinsci.remoting.protocol.IOHub;
-import org.jenkinsci.remoting.protocol.cert.RSAKeyPairRule;
-import org.jenkinsci.remoting.protocol.cert.SSLContextRule;
-import org.jenkinsci.remoting.protocol.cert.X509CertificateRule;
+import org.jenkinsci.remoting.protocol.cert.RSAKeyPairExtension;
+import org.jenkinsci.remoting.protocol.cert.SSLContextExtension;
+import org.jenkinsci.remoting.protocol.cert.X509CertificateExtension;
 import org.jenkinsci.remoting.protocol.impl.ConnectionHeadersFilterLayer;
 import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.experimental.theories.DataPoints;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-@RunWith(Theories.class)
-public class JnlpProtocolHandlerTest {
+@ParameterizedClass
+@MethodSource("parameters")
+class JnlpProtocolHandlerTest {
 
     private static final Consumer<JnlpConnectionState> APPROVING_STATE_CONSUMER = JnlpConnectionState::approve;
     private static final Consumer<JnlpConnectionState> REJECTING_STATE_CONSUMER =
@@ -58,54 +61,91 @@ public class JnlpProtocolHandlerTest {
     private IOHub selector;
     private NioChannelHub hub;
 
-    private static RSAKeyPairRule clientKey = new RSAKeyPairRule();
-    private static RSAKeyPairRule serverKey = new RSAKeyPairRule();
-    private static RSAKeyPairRule caRootKey = new RSAKeyPairRule();
-    private static X509CertificateRule caRootCert = X509CertificateRule.create("caRoot", caRootKey, caRootKey, null);
-    private static X509CertificateRule clientCert =
-            X509CertificateRule.create("client", clientKey, caRootKey, caRootCert);
-    private static X509CertificateRule serverCert =
-            X509CertificateRule.create("server", serverKey, caRootKey, caRootCert);
-    private static X509CertificateRule expiredClientCert =
-            X509CertificateRule.create("expiredClient", clientKey, caRootKey, caRootCert, -10, -5, TimeUnit.DAYS);
-    private static X509CertificateRule notYetValidServerCert =
-            X509CertificateRule.create("notYetValidServer", serverKey, caRootKey, caRootCert, +5, +10, TimeUnit.DAYS);
-    private static SSLContextRule clientCtx = new SSLContextRule("client")
-            .as(clientKey, clientCert, caRootCert)
-            .trusting(caRootCert)
-            .trusting(serverCert);
-    private static SSLContextRule serverCtx = new SSLContextRule("server")
-            .as(serverKey, serverCert, caRootCert)
-            .trusting(caRootCert)
-            .trusting(clientCert);
-    private static SSLContextRule expiredClientCtx = new SSLContextRule("expiredClient")
-            .as(clientKey, expiredClientCert, caRootCert)
-            .trusting(caRootCert)
-            .trusting(serverCert);
-    private static SSLContextRule notYetValidServerCtx = new SSLContextRule("notYetValidServer")
-            .as(serverKey, notYetValidServerCert, caRootCert)
-            .trusting(caRootCert)
-            .trusting(clientCert);
-    private static SSLContextRule untrustingClientCtx =
-            new SSLContextRule("untrustingClient").as(clientKey, clientCert).trusting(caRootCert);
-    private static SSLContextRule untrustingServerCtx =
-            new SSLContextRule("untrustingServer").as(serverKey, serverCert).trusting(caRootCert);
+    @Order(0)
+    @RegisterExtension
+    private static final RSAKeyPairExtension CA_ROOT_KEY = new RSAKeyPairExtension();
 
-    @ClassRule
-    public static RuleChain staticCtx = RuleChain.outerRule(caRootKey)
-            .around(clientKey)
-            .around(serverKey)
-            .around(caRootCert)
-            .around(clientCert)
-            .around(serverCert)
-            .around(expiredClientCert)
-            .around(notYetValidServerCert)
-            .around(clientCtx)
-            .around(serverCtx)
-            .around(expiredClientCtx)
-            .around(notYetValidServerCtx)
-            .around(untrustingClientCtx)
-            .around(untrustingServerCtx);
+    @Order(1)
+    @RegisterExtension
+    private static final RSAKeyPairExtension CLIENT_KEY = new RSAKeyPairExtension();
+
+    @Order(2)
+    @RegisterExtension
+    private static final RSAKeyPairExtension SERVER_KEY = new RSAKeyPairExtension();
+
+    @Order(3)
+    @RegisterExtension
+    private static final X509CertificateExtension CA_ROOT_CERT =
+            X509CertificateExtension.create("caRoot", CA_ROOT_KEY, CA_ROOT_KEY, null);
+
+    @Order(4)
+    @RegisterExtension
+    private static final X509CertificateExtension CLIENT_CERT =
+            X509CertificateExtension.create("client", CLIENT_KEY, CA_ROOT_KEY, CA_ROOT_CERT);
+
+    @Order(5)
+    @RegisterExtension
+    private static final X509CertificateExtension SERVER_CERT =
+            X509CertificateExtension.create("server", SERVER_KEY, CA_ROOT_KEY, CA_ROOT_CERT);
+
+    @Order(6)
+    @RegisterExtension
+    private static final X509CertificateExtension EXPIRED_CLIENT_CERT = X509CertificateExtension.create(
+            "expiredClient", CLIENT_KEY, CA_ROOT_KEY, CA_ROOT_CERT, -10, -5, TimeUnit.DAYS);
+
+    @Order(7)
+    @RegisterExtension
+    private static final X509CertificateExtension NOT_YET_VALID_SERVER_CERT = X509CertificateExtension.create(
+            "notYetValidServer", SERVER_KEY, CA_ROOT_KEY, CA_ROOT_CERT, +5, +10, TimeUnit.DAYS);
+
+    @Order(8)
+    @RegisterExtension
+    private static final SSLContextExtension CLIENT_CTX = new SSLContextExtension("client")
+            .as(CLIENT_KEY, CLIENT_CERT, CA_ROOT_CERT)
+            .trusting(CA_ROOT_CERT)
+            .trusting(SERVER_CERT);
+
+    @Order(9)
+    @RegisterExtension
+    private static final SSLContextExtension SERVER_CTX = new SSLContextExtension("server")
+            .as(SERVER_KEY, SERVER_CERT, CA_ROOT_CERT)
+            .trusting(CA_ROOT_CERT)
+            .trusting(CLIENT_CERT);
+
+    @Order(10)
+    @RegisterExtension
+    private static final SSLContextExtension EXPIRED_CLIENT_CTX = new SSLContextExtension("expiredClient")
+            .as(CLIENT_KEY, EXPIRED_CLIENT_CERT, CA_ROOT_CERT)
+            .trusting(CA_ROOT_CERT)
+            .trusting(SERVER_CERT);
+
+    @Order(11)
+    @RegisterExtension
+    private static final SSLContextExtension NOT_YET_VALID_SERVER_CTX = new SSLContextExtension("notYetValidServer")
+            .as(SERVER_KEY, NOT_YET_VALID_SERVER_CERT, CA_ROOT_CERT)
+            .trusting(CA_ROOT_CERT)
+            .trusting(CLIENT_CERT);
+
+    @Order(12)
+    @RegisterExtension
+    private static final SSLContextExtension UNTRUSTING_CLIENT_CTX = new SSLContextExtension("untrustingClient")
+            .as(CLIENT_KEY, CLIENT_CERT)
+            .trusting(CA_ROOT_CERT);
+
+    @Order(13)
+    @RegisterExtension
+    private static final SSLContextExtension UNTRUSTING_SERVER_CTX = new SSLContextExtension("untrustingServer")
+            .as(SERVER_KEY, SERVER_CERT)
+            .trusting(CA_ROOT_CERT);
+
+    @Parameter(0)
+    private Factory factory;
+
+    @Parameter(1)
+    private boolean useNioHubServer;
+
+    @Parameter(2)
+    private boolean useNioHubClient;
 
     private ServerSocketChannel baseServerSocket;
     private SocketChannel clientSocketChannel;
@@ -113,19 +153,19 @@ public class JnlpProtocolHandlerTest {
     private Channel serverRemotingChannel;
     private Channel clientRemotingChannel;
 
-    @BeforeClass
-    public static void setUpClass() {
+    @BeforeAll
+    static void beforeAll() {
         Logger.getLogger(ConnectionHeadersFilterLayer.class.getName()).setLevel(Level.WARNING);
         executorService = Executors.newCachedThreadPool();
     }
 
-    @AfterClass
-    public static void tearDownClass() {
+    @AfterAll
+    static void afterAll() {
         executorService.shutdownNow();
     }
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void beforeEach() throws Exception {
         selector = IOHub.create(executorService);
         hub = new NioChannelHub(executorService);
         executorService.submit(hub);
@@ -136,8 +176,8 @@ public class JnlpProtocolHandlerTest {
         serverSocketChannel = baseServerSocket.accept();
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void afterEach() {
         IOUtils.closeQuietly(serverRemotingChannel);
         IOUtils.closeQuietly(clientRemotingChannel);
         IOUtils.closeQuietly(clientSocketChannel);
@@ -147,8 +187,8 @@ public class JnlpProtocolHandlerTest {
         IOUtils.closeQuietly(selector);
     }
 
-    @Theory
-    public void happyPath(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Throwable {
+    @Test
+    void happyPath() throws Throwable {
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler =
                 createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
         JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler =
@@ -166,8 +206,8 @@ public class JnlpProtocolHandlerTest {
         assertThat(clientRemotingChannel, notNullValue());
     }
 
-    @Theory
-    public void serverRejects(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
+    @Test
+    void serverRejects() throws Exception {
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler =
                 createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
         JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler =
@@ -181,8 +221,8 @@ public class JnlpProtocolHandlerTest {
         assertChannelFails(clientChannelFuture, serverChannelFuture, ConnectionRefusalException.class);
     }
 
-    @Theory
-    public void serverIgnores(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
+    @Test
+    void serverIgnores() throws Exception {
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler =
                 createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
         JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler =
@@ -196,8 +236,8 @@ public class JnlpProtocolHandlerTest {
         assertChannelFails(clientChannelFuture, serverChannelFuture, IOException.class);
     }
 
-    @Theory
-    public void clientRejects(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
+    @Test
+    void clientRejects() throws Exception {
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler =
                 createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
         JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler =
@@ -211,8 +251,8 @@ public class JnlpProtocolHandlerTest {
         assertChannelFails(clientChannelFuture, serverChannelFuture, IOException.class);
     }
 
-    @Theory
-    public void clientIgnores(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
+    @Test
+    void clientIgnores() throws Exception {
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler =
                 createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
         JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler =
@@ -226,8 +266,8 @@ public class JnlpProtocolHandlerTest {
         assertChannelFails(clientChannelFuture, serverChannelFuture, ConnectionRefusalException.class);
     }
 
-    @Theory
-    public void doesNotExist(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
+    @Test
+    void doesNotExist() throws Exception {
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler =
                 createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, false);
         JnlpProtocolHandler<? extends JnlpConnectionState> clientProtocolHandler =
@@ -241,8 +281,8 @@ public class JnlpProtocolHandlerTest {
         assertChannelFails(clientChannelFuture, serverChannelFuture, ConnectionRefusalException.class);
     }
 
-    @Theory
-    public void wrongSecret(Factory factory, boolean useNioHubServer, boolean useNioHubClient) throws Exception {
+    @Test
+    void wrongSecret() throws Exception {
         Logger.getLogger(JnlpProtocol4Handler.class.getName()).setLevel(Level.SEVERE);
         JnlpProtocolHandler<? extends JnlpConnectionState> serverProtocolHandler =
                 createServerProtocolHandler(factory, useNioHubServer, SECRET_KEY, true);
@@ -287,7 +327,7 @@ public class JnlpProtocolHandlerTest {
     private JnlpProtocolHandler<? extends JnlpConnectionState> createClientProtocolHandler(
             Factory factory, boolean useNioHubClient) {
         return factory.create(
-                null, executorService, selector, useNioHubClient ? hub : null, clientCtx.context(), useNioHubClient);
+                null, executorService, selector, useNioHubClient ? hub : null, CLIENT_CTX.context(), useNioHubClient);
     }
 
     private JnlpProtocolHandler<? extends JnlpConnectionState> createServerProtocolHandler(
@@ -307,7 +347,7 @@ public class JnlpProtocolHandlerTest {
                 executorService,
                 selector,
                 hub,
-                serverCtx.context(),
+                SERVER_CTX.context(),
                 useNioHubServer);
     }
 
@@ -343,32 +383,30 @@ public class JnlpProtocolHandlerTest {
         }
     }
 
-    @DataPoints
-    public static boolean[] useNioHub() {
-        return new boolean[] {true, false};
-    }
+    static Stream<Arguments> parameters() {
+        Factory factory = new Factory() {
+            @Override
+            public JnlpProtocolHandler<? extends JnlpConnectionState> create(
+                    JnlpClientDatabase db,
+                    ExecutorService svc,
+                    IOHub selector,
+                    NioChannelHub hub,
+                    SSLContext ctx,
+                    boolean preferNio) {
+                return new JnlpProtocol4Handler(db, svc, selector, ctx, false, preferNio);
+            }
 
-    @DataPoints
-    public static Factory[] protocols() {
-        return new Factory[] {
-            new Factory() {
-                @Override
-                public JnlpProtocolHandler<? extends JnlpConnectionState> create(
-                        JnlpClientDatabase db,
-                        ExecutorService svc,
-                        IOHub selector,
-                        NioChannelHub hub,
-                        SSLContext ctx,
-                        boolean preferNio) {
-                    return new JnlpProtocol4Handler(db, svc, selector, ctx, false, preferNio);
-                }
-
-                @Override
-                public String toString() {
-                    return "JNLP4-connect";
-                }
+            @Override
+            public String toString() {
+                return "JNLP4-connect";
             }
         };
+
+        return Stream.of(
+                Arguments.of(factory, true, true),
+                Arguments.of(factory, true, false),
+                Arguments.of(factory, false, true),
+                Arguments.of(factory, false, false));
     }
 
     private static class StateListener extends JnlpConnectionStateListener {

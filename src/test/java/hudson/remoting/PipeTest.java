@@ -50,13 +50,14 @@ import org.jvnet.hudson.test.Issue;
  *
  * @author Kohsuke Kawaguchi
  */
-public class PipeTest implements Serializable {
+class PipeTest implements Serializable {
+
     /**
      * Test the "remote-write local-read" pipe.
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testRemoteWrite(ChannelRunner channelRunner) throws Exception {
+    void testRemoteWrite(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             Pipe p = Pipe.createRemoteToLocal();
             Future<Integer> f = channel.callAsync(new WritingCallable(p));
@@ -78,12 +79,12 @@ public class PipeTest implements Serializable {
     @For(Pipe.class)
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testReaderCloseWhileWriterIsStillWriting(ChannelRunner channelRunner) throws Exception {
+    void testReaderCloseWhileWriterIsStillWriting(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final Pipe p = Pipe.createRemoteToLocal();
             final Future<Void> f = channel.callAsync(new InfiniteWriter(p));
             try (InputStream in = p.getIn()) {
-                assertEquals(in.read(), 0);
+                assertEquals(0, in.read());
             }
 
             final ExecutionException e = assertThrows(ExecutionException.class, f::get);
@@ -133,7 +134,7 @@ public class PipeTest implements Serializable {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testLocalWrite(ChannelRunner channelRunner) throws Exception {
+    void testLocalWrite(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             Pipe p = Pipe.createLocalToRemote();
             Future<Integer> f = channel.callAsync(new ReadingCallable(p));
@@ -148,7 +149,7 @@ public class PipeTest implements Serializable {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testLocalWrite2(ChannelRunner channelRunner) throws Exception {
+    void testLocalWrite2(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             Pipe p = Pipe.createLocalToRemote();
             Future<Integer> f = channel.callAsync(new ReadingCallable(p));
@@ -172,7 +173,7 @@ public class PipeTest implements Serializable {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testSaturation(ChannelRunner channelRunner) throws Exception {
+    void testSaturation(ChannelRunner channelRunner) throws Exception {
         assumeFalse(
                 channelRunner instanceof InProcessCompatibilityRunner,
                 "can't do this test without the throttling support.");
@@ -296,7 +297,7 @@ public class PipeTest implements Serializable {
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
     @Disabled
-    public void testSendBigStuff(ChannelRunner channelRunner) throws Exception {
+    void testSendBigStuff(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             try (OutputStream f = channel.call(new DevNullSink())) {
                 for (int i = 0; i < 1024 * 1024; i++) {
@@ -311,7 +312,7 @@ public class PipeTest implements Serializable {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testQuickBurstWrite(ChannelRunner channelRunner) throws Exception {
+    void testQuickBurstWrite(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final Pipe p = Pipe.createLocalToRemote();
             Future<Integer> f = channel.callAsync(new QuickBurstCallable(p));

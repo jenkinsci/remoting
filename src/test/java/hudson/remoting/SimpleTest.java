@@ -40,11 +40,11 @@ import org.junit.jupiter.params.provider.MethodSource;
  *
  * @author Kohsuke Kawaguchi
  */
-public class SimpleTest {
+class SimpleTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void test1(ChannelRunner channelRunner) throws Exception {
+    void test1(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             int r = channel.call(new Callable1());
             System.out.println("result=" + r);
@@ -54,7 +54,7 @@ public class SimpleTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void test1Async(ChannelRunner channelRunner) throws Exception {
+    void test1Async(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             Future<Integer> r = channel.callAsync(new Callable1());
             System.out.println("result=" + r.get());
@@ -74,22 +74,22 @@ public class SimpleTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void test2(ChannelRunner channelRunner) throws Exception {
+    void test2(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final RuntimeException e = assertThrows(RuntimeException.class, () -> channel.call(new Callable2()));
-            assertEquals(e.getMessage(), "foo");
+            assertEquals("foo", e.getMessage());
         });
     }
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void test2Async(ChannelRunner channelRunner) throws Exception {
+    void test2Async(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final ExecutionException e = assertThrows(ExecutionException.class, () -> {
                 Future<Integer> r = channel.callAsync(new Callable2());
                 r.get();
             });
-            assertEquals(e.getCause().getMessage(), "foo");
+            assertEquals("foo", e.getCause().getMessage());
         });
     }
 
@@ -107,7 +107,7 @@ public class SimpleTest {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void test3(ChannelRunner channelRunner) throws Exception {
+    void test3(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             Foo c = new Foo() {};
             Foo r = channel.call(new Echo<>(channel.export(Foo.class, c)));
@@ -140,7 +140,7 @@ public class SimpleTest {
     // @Bug(4611)
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testCancellation(ChannelRunner channelRunner) throws Exception {
+    void testCancellation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             Cancellable task = new Cancellable();
             Future<Integer> r = channel.callAsync(task);

@@ -26,9 +26,7 @@ package org.jenkinsci.remoting.protocol;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -46,31 +44,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.io.IOUtils;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class IOHubTest {
+class IOHubTest {
 
-    @Rule
-    public IOHubRule hub = new IOHubRule();
-
-    @Test
-    @IOHubRule.Skip
-    public void noHub() {
-        assertThat(hub.executorService(), nullValue());
-        assertThat(hub.hub(), nullValue());
-    }
+    @RegisterExtension
+    private final IOHubExtension hub = new IOHubExtension();
 
     @Test
-    @IOHubRule.Skip("foo")
-    public void hubForDifferentId() {
-        assertThat(hub.executorService(), notNullValue());
-        assertThat(hub.hub(), notNullValue());
-    }
-
-    @Test
-    public void hubCanRunTasks() throws Exception {
+    void hubCanRunTasks() throws Exception {
         final CountDownLatch started = new CountDownLatch(1);
         final CountDownLatch finish = new CountDownLatch(1);
         final CountDownLatch finished = new CountDownLatch(1);
@@ -92,7 +76,7 @@ public class IOHubTest {
     }
 
     @Test
-    public void canAcceptSocketConnections() throws Exception {
+    void canAcceptSocketConnections() throws Exception {
         final ServerSocketChannel srv = ServerSocketChannel.open();
         srv.bind(new InetSocketAddress(0));
         srv.configureBlocking(false);
@@ -150,7 +134,7 @@ public class IOHubTest {
     }
 
     @Test
-    public void afterReadyInterestIsCleared() throws Exception {
+    void afterReadyInterestIsCleared() throws Exception {
         final ServerSocketChannel srv = ServerSocketChannel.open();
         srv.bind(new InetSocketAddress(0));
         srv.configureBlocking(false);
@@ -217,10 +201,10 @@ public class IOHubTest {
         }
     }
 
-    @Ignore(
+    @Disabled(
             "TODO flakes: Read timed out; or expected java.net.SocketTimeoutException to be thrown, but nothing was thrown")
     @Test
-    public void noReadyCallbackIfInterestRemoved() throws Exception {
+    void noReadyCallbackIfInterestRemoved() throws Exception {
         final ServerSocketChannel srv = ServerSocketChannel.open();
         srv.bind(new InetSocketAddress(0));
         srv.configureBlocking(false);
