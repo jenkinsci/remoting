@@ -23,8 +23,8 @@
  */
 package hudson.remoting;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.SocketException;
@@ -34,7 +34,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class NonSerializableExceptionTest {
+class NonSerializableExceptionTest {
+
     /**
      * Makes sure non-serializable exceptions are gracefully handled.
      *
@@ -42,7 +43,7 @@ public class NonSerializableExceptionTest {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void test1(ChannelRunner channelRunner) throws Throwable {
+    void test1(ChannelRunner channelRunner) throws Throwable {
         channelRunner.withChannel(channel -> {
             final ProxyException p = assertThrows(ProxyException.class, () -> channel.call(new Failure()));
             // verify that we got the right kind of exception

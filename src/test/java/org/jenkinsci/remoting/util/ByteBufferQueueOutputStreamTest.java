@@ -28,11 +28,12 @@ import static org.hamcrest.Matchers.is;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ByteBufferQueueOutputStreamTest {
+class ByteBufferQueueOutputStreamTest {
+
     @Test
-    public void writeAll() throws Exception {
+    void writeAll() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -43,7 +44,7 @@ public class ByteBufferQueueOutputStreamTest {
     }
 
     @Test
-    public void writeSome() throws Exception {
+    void writeSome() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -54,7 +55,7 @@ public class ByteBufferQueueOutputStreamTest {
     }
 
     @Test
-    public void writeBytes() throws Exception {
+    void writeBytes() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);

@@ -1,6 +1,6 @@
 package hudson.remoting;
 
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -19,6 +19,7 @@ import org.jenkinsci.remoting.nio.NioChannelHub;
  * Runs a channel over NIO+socket.
  */
 public class NioSocketRunner extends AbstractNioChannelRunner {
+
     @Override
     public Channel start() throws Exception {
         final SynchronousQueue<Channel> southHandoff = new SynchronousQueue<>();

@@ -12,6 +12,7 @@ import org.apache.commons.io.IOUtils;
  * @author Kohsuke Kawaguchi
  */
 public class JarCertDump {
+
     public static void main(String[] args) throws IOException {
         try (JarFile j = new JarFile(new File(args[0]))) {
             JarEntry je = j.getJarEntry("hudson/remoting/Channel.class");

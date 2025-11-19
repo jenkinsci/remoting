@@ -65,6 +65,7 @@ THE SOFTWARE.
     <spotbugs.effort>Max</spotbugs.effort>
     <spotbugs.threshold>Low</spotbugs.threshold>
     <spotless.check.skip>false</spotless.check.skip>
+    <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <bc-version>1.82</bc-version>
     <argLine>-Xms256M -Xmx256M -XX:+TieredCompilation -XX:TieredStopAtLevel=1</argLine>
   </properties>
@@ -162,11 +163,6 @@ THE SOFTWARE.
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -308,14 +304,14 @@ THE SOFTWARE.
                 <artifactItem>
                   <groupId>org.jenkins-ci</groupId>
                   <artifactId>remoting-test-client</artifactId>
-                  <version>1.3</version>
+                  <version>68.vc9a_c9f451b_7b_</version>
                   <outputDirectory>target/test-classes</outputDirectory>
                   <destFileName>remoting-test-client.jar</destFileName>
                 </artifactItem>
                 <artifactItem>
                   <groupId>org.jenkins-ci</groupId>
                   <artifactId>remoting-test-client</artifactId>
-                  <version>1.3</version>
+                  <version>68.vc9a_c9f451b_7b_</version>
                   <classifier>tests</classifier>
                   <outputDirectory>target/test-classes</outputDirectory>
                   <destFileName>remoting-test-client-tests.jar</destFileName>

@@ -1,6 +1,6 @@
 package hudson.remoting;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
  * Runs a channel in a separate JVM by launching a new JVM.
  */
 public class ForkRunner implements ChannelRunner {
+
     private Process proc;
     private ExecutorService executor;
     private Copier copier;
@@ -51,7 +52,7 @@ public class ForkRunner implements ChannelRunner {
         copier.join();
         int r = proc.waitFor();
 
-        assertEquals("exit code should have been 0", 0, r);
+        assertEquals(0, r, "exit code should have been 0");
     }
 
     @Override

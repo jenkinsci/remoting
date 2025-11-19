@@ -25,11 +25,11 @@ package org.jenkinsci.remoting.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.concurrent.CancellationException;
@@ -39,21 +39,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Stephen Connolly
  */
-public class SettableFutureTest {
+class SettableFutureTest {
+
     private SettableFuture<String> future;
 
     private ExecutorService exec;
     private CountDownLatch latch;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void beforeEach() {
         exec = Executors.newCachedThreadPool();
         latch = new CountDownLatch(1);
         future = SettableFuture.create();
@@ -63,30 +64,30 @@ public class SettableFutureTest {
         assertFalse(future.isCancelled());
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void afterEach() {
         exec.shutdownNow();
     }
 
     @Test
-    public void defaultState() {
+    void defaultState() {
         assertThrows(TimeoutException.class, () -> future.get(5, TimeUnit.MILLISECONDS));
     }
 
     @Test
-    public void setValue() throws Exception {
+    void setValue() throws Exception {
         assertTrue(future.set("value"));
         assertCompletedFuture("value");
     }
 
     @Test
-    public void setFailure() throws Exception {
+    void setFailure() throws Exception {
         assertTrue(future.setException(new Exception("failure")));
         assertFailedFuture("failure");
     }
 
     @Test
-    public void setFailureNull() throws Exception {
+    void setFailureNull() throws Exception {
         assertThrows(NullPointerException.class, () -> future.setException(null));
         assertFalse(future.isDone());
         assertTrue(future.setException(new Exception("failure")));
@@ -94,20 +95,20 @@ public class SettableFutureTest {
     }
 
     @Test
-    public void cancel() throws Exception {
+    void cancel() throws Exception {
         assertTrue(future.cancel(true));
         assertCancelledFuture();
     }
 
     @Test
-    public void create() {
+    void create() {
         SettableFuture<Integer> future = SettableFuture.create();
         assertFalse(future.isDone());
         assertFalse(future.isCancelled());
     }
 
     @Test
-    public void setValue_simpleThreaded() throws Exception {
+    void setValue_simpleThreaded() throws Exception {
         SettableFuture<Integer> future = SettableFuture.create();
         assertTrue(future.set(42));
         // Later attempts to set the future should return false.
@@ -120,7 +121,7 @@ public class SettableFutureTest {
     }
 
     @Test
-    public void setException() {
+    void setException() {
         SettableFuture<Object> future = SettableFuture.create();
         Exception e = new Exception("foobarbaz");
         assertTrue(future.setException(e));
@@ -136,13 +137,13 @@ public class SettableFutureTest {
     }
 
     @Test
-    public void cancel_beforeSet() {
+    void cancel_beforeSet() {
         SettableFuture<Object> async = SettableFuture.create();
         async.cancel(true);
         assertFalse(async.set(42));
     }
 
-    public void assertCompletedFuture(@Nullable Object expectedValue) throws InterruptedException, ExecutionException {
+    private void assertCompletedFuture(@Nullable Object expectedValue) throws Exception {
         assertTrue(future.isDone());
         assertFalse(future.isCancelled());
 
@@ -153,7 +154,7 @@ public class SettableFutureTest {
         assertEquals(expectedValue, future.get());
     }
 
-    public void assertCancelledFuture() throws InterruptedException, ExecutionException {
+    private void assertCancelledFuture() throws Exception {
         assertTrue(future.isDone());
         assertTrue(future.isCancelled());
 
@@ -162,9 +163,9 @@ public class SettableFutureTest {
         assertTrue(future.isCancelled());
 
         assertThrows(
-                "Future should throw CancellationException on cancel.",
                 CancellationException.class,
-                () -> future.get());
+                () -> future.get(),
+                "Future should throw CancellationException on cancel.");
     }
 
     public void assertFailedFuture(@Nullable String message) throws InterruptedException {
@@ -176,7 +177,7 @@ public class SettableFutureTest {
         assertFalse(future.isCancelled());
 
         final ExecutionException e =
-                assertThrows("Future should rethrow the exception.", ExecutionException.class, () -> future.get());
+                assertThrows(ExecutionException.class, () -> future.get(), "Future should rethrow the exception.");
         assertThat(e.getCause().getMessage(), is(message));
     }
 }

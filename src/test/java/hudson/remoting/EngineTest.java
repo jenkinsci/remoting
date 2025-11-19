@@ -27,71 +27,74 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.net.URL;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.engine.WorkDirManager;
-import org.jenkinsci.remoting.engine.WorkDirManagerRule;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.jenkinsci.remoting.engine.WorkDirManagerExtension;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 import org.jvnet.hudson.test.Issue;
 
 /**
  * Tests of {@link Engine}
  * @author Oleg Nenashev
  */
-public class EngineTest {
+class EngineTest {
+
     private static final Logger LOGGER = Logger.getLogger(EngineTest.class.getName());
 
     private static final String SECRET_KEY = "Hello, world!";
     private static final String AGENT_NAME = "testAgent";
     private List<URL> jenkinsUrls;
 
-    @Rule
-    public TemporaryFolder tmpDir = new TemporaryFolder();
+    @TempDir
+    private File tmpDir;
 
-    @Rule
-    public WorkDirManagerRule mgr = new WorkDirManagerRule();
+    @RegisterExtension
+    private final WorkDirManagerExtension mgr = new WorkDirManagerExtension();
 
-    @Before
-    public void init() throws Exception {
+    @BeforeEach
+    void beforeEach() throws Exception {
         jenkinsUrls = List.of(new URL("http://my.jenkins.not.existent"));
     }
 
     @Test
     @Issue("JENKINS-44290")
-    public void shouldInitializeCorrectlyWithDefaults() throws Exception {
+    void shouldInitializeCorrectlyWithDefaults() throws Exception {
         Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.startEngine(true);
 
         // Cache will go to ~/.jenkins , we do not want to worry about this repo
         assertTrue(
-                "Default JarCache should be touched: " + JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath(),
-                JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.exists());
+                JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.exists(),
+                "Default JarCache should be touched: " + JarCache.DEFAULT_NOWS_JAR_CACHE_LOCATION.getAbsolutePath());
     }
 
     @Test
-    public void shouldInitializeCorrectlyWithCustomCache() throws Exception {
-        File jarCache = new File(tmpDir.getRoot(), "jarCache");
+    void shouldInitializeCorrectlyWithCustomCache() throws Exception {
+        File jarCache = new File(tmpDir, "jarCache");
 
         Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setJarCache(new FileSystemJarCache(jarCache, true));
         engine.startEngine(true);
 
         // Cache will go to ~/.jenkins , should be touched by default
-        assertTrue("The specified JarCache should be touched: " + jarCache.getAbsolutePath(), jarCache.exists());
+        assertTrue(jarCache.exists(), "The specified JarCache should be touched: " + jarCache.getAbsolutePath());
     }
 
     @Test
-    public void shouldInitializeCorrectlyWithWorkDir() throws Exception {
-        File workDir = new File(tmpDir.getRoot(), "workDir");
+    void shouldInitializeCorrectlyWithWorkDir() throws Exception {
+        File workDir = new File(tmpDir, "workDir");
         Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setWorkDir(workDir.toPath());
         engine.startEngine(true);
@@ -102,13 +105,13 @@ public class EngineTest {
                 "The initialized work directory should equal to the one passed in parameters",
                 workDirLoc,
                 equalTo(workDir));
-        assertTrue("The work directory should exist", workDir.exists());
+        assertTrue(workDir.exists(), "The work directory should exist");
     }
 
     @Test
-    public void shouldUseCustomCacheDirIfRequired() throws Exception {
-        File workDir = new File(tmpDir.getRoot(), "workDir");
-        File jarCache = new File(tmpDir.getRoot(), "jarCache");
+    void shouldUseCustomCacheDirIfRequired() throws Exception {
+        File workDir = new File(tmpDir, "workDir");
+        File jarCache = new File(tmpDir, "jarCache");
         Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         engine.setWorkDir(workDir.toPath());
         engine.setJarCache(new FileSystemJarCache(jarCache, true));
@@ -121,13 +124,14 @@ public class EngineTest {
 
     @Test
     @Issue("JENKINS-60926")
-    public void getAgentName() {
+    void getAgentName() {
         Engine engine = new Engine(null, jenkinsUrls, SECRET_KEY, AGENT_NAME);
         assertThat(engine.getAgentName(), is(AGENT_NAME));
     }
 
-    @Test(timeout = 5_000)
-    public void shouldNotReconnect() {
+    @Test
+    @Timeout(value = 5_000, unit = TimeUnit.MILLISECONDS)
+    void shouldNotReconnect() {
         EngineListener l = new EngineListener() {
             @Override
             public void error(Throwable t) {
@@ -141,8 +145,9 @@ public class EngineTest {
 
     private static class NoReconnectException extends RuntimeException {}
 
-    @Test(timeout = 30_000)
-    public void shouldReconnectOnJnlpAgentEndpointResolutionExceptions() {
+    @Test
+    @Timeout(value = 30_000, unit = TimeUnit.MILLISECONDS)
+    void shouldReconnectOnJnlpAgentEndpointResolutionExceptions() {
         EngineListener l = new EngineListener() {
             private int count;
 
@@ -170,7 +175,7 @@ public class EngineTest {
             }
         };
         Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
-        assertThrows("Should have tried at least twice", ExpectedException.class, engine::run);
+        assertThrows(ExpectedException.class, engine::run, "Should have tried at least twice");
     }
 
     private static class ExpectedException extends RuntimeException {}

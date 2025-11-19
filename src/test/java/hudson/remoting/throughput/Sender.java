@@ -1,6 +1,6 @@
 package hudson.remoting.throughput;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import hudson.remoting.CallableBase;
 import hudson.remoting.Channel;

@@ -1,5 +1,7 @@
 package hudson.remoting;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -7,20 +9,20 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class SingleLaneExecutorServiceTest extends Assert {
-    ExecutorService base = Executors.newFixedThreadPool(5);
-    ExecutorService lane1 = new SingleLaneExecutorService(base);
-    ExecutorService lane2 = new SingleLaneExecutorService(base);
+class SingleLaneExecutorServiceTest {
 
-    @After
-    public void tearDown() {
+    private final ExecutorService base = Executors.newFixedThreadPool(5);
+    private final ExecutorService lane1 = new SingleLaneExecutorService(base);
+    private final ExecutorService lane2 = new SingleLaneExecutorService(base);
+
+    @AfterEach
+    void afterEach() {
         base.shutdown();
     }
 
@@ -29,7 +31,7 @@ public class SingleLaneExecutorServiceTest extends Assert {
      * The second lane should finish first and the first heavy lane should take turns.
      */
     @Test
-    public void laneIndependence() throws Exception {
+    void laneIndependence() throws Exception {
         final Object lock = new Object();
         final StringBuilder record = new StringBuilder();
         synchronized (lock) {
@@ -56,7 +58,7 @@ public class SingleLaneExecutorServiceTest extends Assert {
      * Tasks should execute in order even when there are a lot of capacities to execute them.
      */
     @Test
-    public void fifo() throws Exception {
+    void fifo() throws Exception {
         final Random r = new Random(0);
 
         class Workload {

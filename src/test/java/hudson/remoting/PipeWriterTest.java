@@ -14,18 +14,18 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class PipeWriterTest implements Serializable, PipeWriterTestChecker {
+class PipeWriterTest implements Serializable, PipeWriterTestChecker {
     /**
      * {@link OutputStream} that is slow to act.
      */
-    transient SlowOutputStream slow = new SlowOutputStream();
+    private final transient SlowOutputStream slow = new SlowOutputStream();
 
-    RemoteOutputStream ros = new RemoteOutputStream(slow);
+    private final RemoteOutputStream ros = new RemoteOutputStream(slow);
 
     /**
      * Proxy that can be used from the other side to verify the state.
      */
-    PipeWriterTestChecker checker;
+    private PipeWriterTestChecker checker;
 
     <T extends Exception> void withChannel(ChannelRunner channelRunner, ChannelRunner.ConsumerThrowable<Channel, T> f)
             throws Exception {
@@ -89,7 +89,7 @@ public class PipeWriterTest implements Serializable, PipeWriterTestChecker {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testResponseIoCoord(ChannelRunner channelRunner) throws Exception {
+    void testResponseIoCoord(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
         withChannel(channelRunner, channel -> {
             channel.call(new ResponseCallableWriter());
@@ -103,7 +103,7 @@ public class PipeWriterTest implements Serializable, PipeWriterTestChecker {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testResponseIoCoordFlush(ChannelRunner channelRunner) throws Exception {
+    void testResponseIoCoordFlush(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
         withChannel(channelRunner, channel -> {
             channel.call(new ResponseCallableFlusher());
@@ -116,7 +116,7 @@ public class PipeWriterTest implements Serializable, PipeWriterTestChecker {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testResponseIoCoordClose(ChannelRunner channelRunner) throws Exception {
+    void testResponseIoCoordClose(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
         withChannel(channelRunner, channel -> {
             channel.call(new ResponseCallableCloser());
@@ -150,7 +150,7 @@ public class PipeWriterTest implements Serializable, PipeWriterTestChecker {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testRequestIoCoord(ChannelRunner channelRunner) throws Exception {
+    void testRequestIoCoord(ChannelRunner channelRunner) throws Exception {
         withChannel(channelRunner, channel -> {
             channel.call(new RequestCallableWriter());
             assertSlowStreamTouched();
@@ -159,7 +159,7 @@ public class PipeWriterTest implements Serializable, PipeWriterTestChecker {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testRequestIoCoordFlush(ChannelRunner channelRunner) throws Exception {
+    void testRequestIoCoordFlush(ChannelRunner channelRunner) throws Exception {
         withChannel(channelRunner, channel -> {
             channel.call(new RequestCallableFlusher());
             assertSlowStreamTouched();
@@ -168,7 +168,7 @@ public class PipeWriterTest implements Serializable, PipeWriterTestChecker {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testRequestIoCoordClose(ChannelRunner channelRunner) throws Exception {
+    void testRequestIoCoordClose(ChannelRunner channelRunner) throws Exception {
         withChannel(channelRunner, channel -> {
             channel.call(new RequestCallableCloser());
             assertSlowStreamTouched();

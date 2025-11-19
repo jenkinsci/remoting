@@ -1,5 +1,7 @@
 package org.jenkinsci.remoting.nio;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -8,31 +10,31 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 import java.nio.charset.StandardCharsets;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class FifoBufferTest extends Assert {
-    FifoBuffer buf = new FifoBuffer(8, 256);
+class FifoBufferTest {
+
+    private final FifoBuffer buf = new FifoBuffer(8, 256);
 
     @Test
-    public void readWrite() throws Exception {
+    void readWrite() throws Exception {
         buf.write(b(TEN));
         buf.close();
         assertEquals(10, buf.readable());
 
         byte[] b = new byte[16];
         int r = buf.read(b);
-        assertEquals(r, 10);
-        assertEquals(new String(b, 0, r), TEN);
+        assertEquals(10, r);
+        assertEquals(TEN, new String(b, 0, r));
 
         assertEquals(-1, buf.readable());
     }
 
     @Test
-    public void nio() throws Exception {
+    void nio() throws Exception {
         buf.write(b(TEN));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -54,7 +56,7 @@ public class FifoBufferTest extends Assert {
     }
 
     @Test
-    public void nonBlockingWrite() throws Exception {
+    void nonBlockingWrite() throws Exception {
         buf.setLimit(185);
 
         for (int i = 0; i < 18; i++) {
@@ -75,7 +77,7 @@ public class FifoBufferTest extends Assert {
     }
 
     @Test
-    public void receive() throws Exception {
+    void receive() throws Exception {
         for (int i = 0; i < 25; i++) {
             assertEquals(10, buf.receive(Channels.newChannel(bs(TEN))));
         }
@@ -93,7 +95,7 @@ public class FifoBufferTest extends Assert {
     }
 
     @Test
-    public void peek() throws Exception {
+    void peek() throws Exception {
         for (int i = 0; i < 4; i++) {
             buf.write(b(TEN));
         }

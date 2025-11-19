@@ -31,47 +31,63 @@ import java.nio.channels.Pipe;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Stream;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
 import org.jenkinsci.remoting.protocol.IOHub;
 import org.jenkinsci.remoting.protocol.NetworkLayerFactory;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Named;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-@RunWith(Theories.class)
-public class NetworkLayerTest {
+@ParameterizedClass
+@MethodSource("parameters")
+class NetworkLayerTest {
 
     private Pipe clientToServer;
     private Pipe serverToClient;
     private ExecutorService executorService;
     private IOHub hub;
 
-    @DataPoint("blocking I/O")
-    public static NetworkLayerFactory blocking() {
-        return new NetworkLayerFactory.BIO();
+    @Parameter(0)
+    private NetworkLayerFactory serverFactory;
+
+    @Parameter(1)
+    private NetworkLayerFactory clientFactory;
+
+    static Stream<Arguments> parameters() {
+        return Stream.of(
+                Arguments.of(
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO()),
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO())),
+                Arguments.of(
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO()),
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO())),
+                Arguments.of(
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO()),
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO())),
+                Arguments.of(
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO()),
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO())));
     }
 
-    @DataPoint("non-blocking I/O")
-    public static NetworkLayerFactory nonBlocking() {
-        return new NetworkLayerFactory.NIO();
-    }
-
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void beforeEach() throws Exception {
         clientToServer = Pipe.open();
         serverToClient = Pipe.open();
         executorService = Executors.newFixedThreadPool(8);
         hub = IOHub.create(executorService);
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    void afterEach() throws Exception {
         hub.close();
         executorService.shutdownNow();
         IOUtils.closeQuietly(clientToServer.sink());
@@ -80,9 +96,8 @@ public class NetworkLayerTest {
         IOUtils.closeQuietly(serverToClient.source());
     }
 
-    @Theory
-    public void doBasicSendReceive(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @Test
+    void doBasicSendReceive() throws Exception {
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
                         clientFactory.create(hub, serverToClient.source(), clientToServer.sink()))
                 .build(new IOBufferMatcherLayer());

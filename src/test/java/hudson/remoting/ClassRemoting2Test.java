@@ -23,13 +23,13 @@
  */
 package hudson.remoting;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
-import org.junit.After;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -53,7 +53,7 @@ import org.jvnet.hudson.test.Issue;
     NioSocketRunner.class,
     NioPipeRunner.class,
 })
-public class ClassRemoting2Test {
+class ClassRemoting2Test {
 
     private static final String PROVIDER_METHOD = "provider";
 
@@ -62,8 +62,8 @@ public class ClassRemoting2Test {
         return Stream.of(new InProcessRunner(), new NioSocketRunner(), new NioPipeRunner());
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    void afterEach() {
         RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = null;
         RemoteClassLoader.TESTING_CLASS_LOAD = null;
         RemoteClassLoader.TESTING_RESOURCE_LOAD = null;
@@ -73,7 +73,7 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-19453")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testSingleInterruptionOfClassCreation(ChannelRunner channelRunner) throws Exception {
+    void testSingleInterruptionOfClassCreation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
             final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
@@ -95,7 +95,7 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-19453")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testMultipleInterruptionOfClassCreation(ChannelRunner channelRunner) throws Exception {
+    void testMultipleInterruptionOfClassCreation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
             final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
@@ -116,7 +116,7 @@ public class ClassRemoting2Test {
 
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testContinuedInterruptionOfClassCreation(ChannelRunner channelRunner) throws Exception {
+    void testContinuedInterruptionOfClassCreation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
             final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
@@ -128,14 +128,14 @@ public class ClassRemoting2Test {
             RemoteClassLoader.TESTING_CLASS_LOAD = new InterruptInvocation(3, 10);
             Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-            assertThrows("Should have timed out, exceeding the max retries.", ExecutionException.class, f1::get);
+            assertThrows(ExecutionException.class, f1::get, "Should have timed out, exceeding the max retries.");
         });
     }
 
     @Issue("JENKINS-36991")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testSingleInterruptionOfClassReferenceCreation(ChannelRunner channelRunner) throws Exception {
+    void testSingleInterruptionOfClassReferenceCreation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
             final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
@@ -158,7 +158,7 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-36991")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testMultipleInterruptionOfClassReferenceCreation(ChannelRunner channelRunner) throws Exception {
+    void testMultipleInterruptionOfClassReferenceCreation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
             final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
@@ -180,7 +180,7 @@ public class ClassRemoting2Test {
 
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testContinuedInterruptionOfClassReferenceCreation(ChannelRunner channelRunner) throws Exception {
+    void testContinuedInterruptionOfClassReferenceCreation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
             final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
@@ -193,7 +193,7 @@ public class ClassRemoting2Test {
 
             Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-            assertThrows("Should have timed out, exceeding the max retries.", ExecutionException.class, f1::get);
+            assertThrows(ExecutionException.class, f1::get, "Should have timed out, exceeding the max retries.");
         });
     }
 
@@ -201,7 +201,7 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testSingleInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner)
+    void testSingleInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner)
             throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
@@ -220,7 +220,7 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testMultipleInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner)
+    void testMultipleInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner)
             throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
@@ -241,7 +241,7 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testContinuedInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner)
+    void testContinuedInterruptionOfClassInitializationWithStaticResourceReference(ChannelRunner channelRunner)
             throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
@@ -253,14 +253,14 @@ public class ClassRemoting2Test {
             RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 10);
             Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-            assertThrows("Should have timed out, exceeding the max retries.", ExecutionException.class, f1::get);
+            assertThrows(ExecutionException.class, f1::get, "Should have timed out, exceeding the max retries.");
         });
     }
 
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testSingleInterruptionOfFindResources(ChannelRunner channelRunner) throws Exception {
+    void testSingleInterruptionOfFindResources(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
             final Callable<Object, Exception> callable =
@@ -278,7 +278,7 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testMultipleInterruptionOfFindResources(ChannelRunner channelRunner) throws Exception {
+    void testMultipleInterruptionOfFindResources(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
             final Callable<Object, Exception> callable =
@@ -298,7 +298,7 @@ public class ClassRemoting2Test {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(PROVIDER_METHOD)
-    public void testContinuedInterruptionOfFindResources(ChannelRunner channelRunner) throws Exception {
+    void testContinuedInterruptionOfFindResources(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
             final Callable<Object, Exception> callable =
@@ -309,7 +309,7 @@ public class ClassRemoting2Test {
             RemoteClassLoader.TESTING_RESOURCE_LOAD = new InterruptInvocation(1, 10);
             Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
-            assertThrows("Should have timed out, exceeding the max retries.", ExecutionException.class, f1::get);
+            assertThrows(ExecutionException.class, f1::get, "Should have timed out, exceeding the max retries.");
         });
     }
 

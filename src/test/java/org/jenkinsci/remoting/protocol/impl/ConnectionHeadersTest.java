@@ -28,31 +28,31 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ConnectionHeadersTest {
+class ConnectionHeadersTest {
 
     @Test
-    public void emptyRoundTrip() throws Exception {
+    void emptyRoundTrip() throws Exception {
         assertThat(
                 ConnectionHeaders.fromString(ConnectionHeaders.toString(Collections.emptyMap())),
                 is(Collections.<String, String>emptyMap()));
     }
 
     @Test
-    public void singleValueRoundTrip() throws Exception {
+    void singleValueRoundTrip() throws Exception {
         assertThat(ConnectionHeaders.fromString(ConnectionHeaders.toString(Map.of("a", "b"))), is(Map.of("a", "b")));
     }
 
     @Test
-    public void multiValueRoundTrip() throws Exception {
+    void multiValueRoundTrip() throws Exception {
         Map<String, String> payload = new TreeMap<>();
         payload.put("a", "b");
         payload.put("c", null);
@@ -66,12 +66,12 @@ public class ConnectionHeadersTest {
     }
 
     @Test
-    public void newlineEscaping() {
+    void newlineEscaping() {
         assertThat(ConnectionHeaders.toString(Map.of("a\nmultiline\nkey", "b")), not(containsString("\n")));
     }
 
     @Test
-    public void paddedData_1() throws Exception {
+    void paddedData_1() throws Exception {
         Map<String, String> expected = new TreeMap<>();
         expected.put("key", "value");
         expected.put("foo", "bar");
@@ -81,124 +81,138 @@ public class ConnectionHeadersTest {
     }
 
     @Test
-    public void paddedData_2() throws Exception {
+    void paddedData_2() throws Exception {
         Map<String, String> expected = new TreeMap<>();
         expected.put("key", "value/other");
         expected.put("foo", "bar\\manchu");
-        assertThat(
-                ConnectionHeaders.fromString(
-                        " \b\t\n\r\f{ \b\t\n\r\f\"key\" \b\t\n\r\f: \b\t\n\r\f\"value\\/other\" \b\t\n\r\f, \b\t\n\r\f\"foo\" "
-                                + "\b\t\n\r\f: \b\t\n\r\f\"bar\\\\manchu\" \b\t\n\r\f} \b\t\n\r\f"),
-                is(expected));
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_0() throws Exception {
-        ConnectionHeaders.fromString("   foobar   ");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_1() throws Exception {
-        ConnectionHeaders.fromString("{foo:bar}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_2() throws Exception {
-        ConnectionHeaders.fromString("    []   ");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_3() throws Exception {
-        ConnectionHeaders.fromString("{}{}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_4() throws Exception {
-        ConnectionHeaders.fromString("{null:null}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_5() throws Exception {
-        ConnectionHeaders.fromString("{'foo':'bar'}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_6() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":{}}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_7() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":[]}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_8() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":null,}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_9() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":\"\\u\"}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_10() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":\"\\q\"}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_11() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\\u\":\"2\"}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_12() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\\w\":\"ho\"}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_13() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\"=\"bar\"}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_14() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":\"bar\"}//comment");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_15() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":nULL}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_16() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":nuLL}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_17() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":nulL}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_18() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":nu}");
-    }
-
-    @Test(expected = ConnectionHeaders.ParseException.class)
-    public void malformedData_19() throws Exception {
-        ConnectionHeaders.fromString("{\"foo\":\"bar\";\"foobar\":null}");
-    }
-
-    @Test(expected = IllegalAccessException.class)
-    public void utilityClass_1() throws Exception {
-        ConnectionHeaders.class.getDeclaredConstructor().newInstance();
+        assertThat(ConnectionHeaders.fromString("""
+                                 \b\t
+                                \r\f{ \b\t
+                                \r\f"key" \b\t
+                                \r\f: \b\t
+                                \r\f"value\\/other" \b\t
+                                \r\f, \b\t
+                                \r\f"foo" \
+                                \b\t
+                                \r\f: \b\t
+                                \r\f"bar\\\\manchu" \b\t
+                                \r\f} \b\t
+                                \r\f"""), is(expected));
     }
 
     @Test
-    public void utilityClass_2() throws Exception {
+    void malformedData_0() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("   foobar   "));
+    }
+
+    @Test
+    void malformedData_1() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{foo:bar}"));
+    }
+
+    @Test
+    void malformedData_2() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("    []   "));
+    }
+
+    @Test
+    void malformedData_3() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{}{}"));
+    }
+
+    @Test
+    void malformedData_4() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{null:null}"));
+    }
+
+    @Test
+    void malformedData_5() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{'foo':'bar'}"));
+    }
+
+    @Test
+    void malformedData_6() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\":{}}"));
+    }
+
+    @Test
+    void malformedData_7() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\":[]}"));
+    }
+
+    @Test
+    void malformedData_8() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\":null,}"));
+    }
+
+    @Test
+    void malformedData_9() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\":\"\\u\"}"));
+    }
+
+    @Test
+    void malformedData_10() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\":\"\\q\"}"));
+    }
+
+    @Test
+    void malformedData_11() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\\u\":\"2\"}"));
+    }
+
+    @Test
+    void malformedData_12() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\\w\":\"ho\"}"));
+    }
+
+    @Test
+    void malformedData_13() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\"=\"bar\"}"));
+    }
+
+    @Test
+    void malformedData_14() {
+        assertThrows(
+                ConnectionHeaders.ParseException.class,
+                () -> ConnectionHeaders.fromString("{\"foo\":\"bar\"}//comment"));
+    }
+
+    @Test
+    void malformedData_15() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\":nULL}"));
+    }
+
+    @Test
+    void malformedData_16() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\":nuLL}"));
+    }
+
+    @Test
+    void malformedData_17() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\":nulL}"));
+    }
+
+    @Test
+    void malformedData_18() {
+        assertThrows(ConnectionHeaders.ParseException.class, () -> ConnectionHeaders.fromString("{\"foo\":nu}"));
+    }
+
+    @Test
+    void malformedData_19() {
+        assertThrows(
+                ConnectionHeaders.ParseException.class,
+                () -> ConnectionHeaders.fromString("{\"foo\":\"bar\";\"foobar\":null}"));
+    }
+
+    @Test
+    void utilityClass_1() {
+        assertThrows(
+                IllegalAccessException.class,
+                () -> ConnectionHeaders.class.getDeclaredConstructor().newInstance());
+    }
+
+    @Test
+    void utilityClass_2() throws Exception {
         Constructor<ConnectionHeaders> constructor = ConnectionHeaders.class.getDeclaredConstructor();
         constructor.setAccessible(true);
 

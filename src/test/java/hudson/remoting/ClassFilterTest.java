@@ -1,8 +1,8 @@
 package hudson.remoting;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.ByteArrayInputStream;
@@ -17,8 +17,8 @@ import java.io.Serializable;
 import java.io.StringWriter;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 import org.jenkinsci.remoting.nio.NioChannelBuilder;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests the effect of {@link ClassFilter}.
@@ -37,7 +37,7 @@ import org.junit.Test;
  *
  * @author Kohsuke Kawaguchi
  */
-public class ClassFilterTest implements Serializable {
+class ClassFilterTest implements Serializable {
 
     /**
      * North can defend itself from south but not the other way around.
@@ -91,8 +91,8 @@ public class ClassFilterTest implements Serializable {
         clearRecord();
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    void afterEach() throws Exception {
         if (runner != null) {
             runner.stop(north);
         }
@@ -102,7 +102,7 @@ public class ClassFilterTest implements Serializable {
      * Makes sure {@link Capability#read(InputStream)} rejects unexpected payload.
      */
     @Test
-    public void capabilityRead() throws Exception {
+    void capabilityRead() throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ObjectOutputStream oos = new ObjectOutputStream(Channel.Mode.TEXT.wrap(baos))) {
             oos.writeObject(new Security218("rifle"));
@@ -118,7 +118,7 @@ public class ClassFilterTest implements Serializable {
      * {@link UserRequest#deserialize(Channel, byte[], ClassLoader)} with multiclassloader support.
      */
     @Test
-    public void userRequest() throws Exception {
+    void userRequest() throws Exception {
         setUp();
         userRequestTestSequence();
     }
@@ -128,7 +128,7 @@ public class ClassFilterTest implements Serializable {
      * {@link UserRequest#deserialize(Channel, byte[], ClassLoader)} *without* multiclassloader support.
      */
     @Test
-    public void userRequest_singleClassLoader() throws Exception {
+    void userRequest_singleClassLoader() throws Exception {
         setUpWithNoCapacity();
         userRequestTestSequence();
     }
@@ -143,7 +143,7 @@ public class ClassFilterTest implements Serializable {
         // the test case that should be rejected by a filter.
         final IOException e = assertThrows(IOException.class, () -> fire("napoleon", south));
         String msg = toString(e);
-        assertTrue(msg, msg.contains("Rejected: " + Security218.class.getName()));
+        assertTrue(msg.contains("Rejected: " + Security218.class.getName()), msg);
         assertEquals("", getAttack());
     }
 
@@ -161,7 +161,7 @@ public class ClassFilterTest implements Serializable {
      * by {@link ChunkedCommandTransport}.
      */
     @Test
-    public void transport_chunking() throws Exception {
+    void transport_chunking() throws Exception {
         setUp();
         commandStreamTestSequence();
     }
@@ -172,7 +172,7 @@ public class ClassFilterTest implements Serializable {
      * by not having the chunking capability.
      */
     @Test
-    public void transport_non_chunking() throws Exception {
+    void transport_non_chunking() throws Exception {
         setUpWithNoCapacity();
         commandStreamTestSequence();
     }
@@ -182,7 +182,7 @@ public class ClassFilterTest implements Serializable {
      * {@link AbstractByteArrayCommandTransport#setup(Channel, CommandTransport.CommandReceiver)}
      */
     @Test
-    public void transport_nio() throws Exception {
+    void transport_nio() throws Exception {
         setUp(new NioSocketRunner() {
             @Override
             protected NioChannelBuilder configureNorth() {

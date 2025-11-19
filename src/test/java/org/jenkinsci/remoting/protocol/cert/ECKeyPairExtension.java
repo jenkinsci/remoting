@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2004-2015, Sun Microsystems, Inc., Kohsuke Kawaguchi, CloudBees, Inc.
+ * Copyright (c) 2016, CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,25 +21,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.remoting.engine;
+package org.jenkinsci.remoting.protocol.cert;
 
-import org.mockito.ArgumentMatcher;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
 
-/**
- * Matcher that allows comparing Properties.store() results that may differ
- * only in the date comment line.
- *
- * @author Akshay Dayal
- */
-public class PropertiesStringMatcher implements ArgumentMatcher<String> {
-    private String expected;
+public class ECKeyPairExtension extends KeyPairExtension<ECPublicKey, ECPrivateKey> {
 
-    public PropertiesStringMatcher(String expected) {
-        this.expected = expected.substring(expected.indexOf(System.lineSeparator()));
+    public ECKeyPairExtension() {
+        super("");
+    }
+
+    public ECKeyPairExtension(String id) {
+        super(id);
     }
 
     @Override
-    public boolean matches(String argument) {
-        return argument.endsWith(expected);
+    protected KeyPair generateKeyPair() throws NoSuchAlgorithmException {
+        KeyPairGenerator gen = KeyPairGenerator.getInstance("EC");
+        gen.initialize(256); // this is the default keysize supported by SunEC
+        return gen.generateKeyPair();
     }
 }

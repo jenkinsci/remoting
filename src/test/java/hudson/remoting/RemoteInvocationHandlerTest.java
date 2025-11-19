@@ -9,11 +9,11 @@ import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class RemoteInvocationHandlerTest {
+class RemoteInvocationHandlerTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testMethodSelection(ChannelRunner channelRunner) throws Exception {
+    void testMethodSelection(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final Impl i = new Impl();
             channel.call(new Task(i));
@@ -23,7 +23,7 @@ public class RemoteInvocationHandlerTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testExportPrimary(ChannelRunner channelRunner) throws Exception {
+    void testExportPrimary(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final Impl i = new Impl();
             Contract2 c2 = channel.export(Contract2.class, i);
@@ -35,7 +35,7 @@ public class RemoteInvocationHandlerTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testExportSecondary(ChannelRunner channelRunner) throws Exception {
+    void testExportSecondary(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final Impl i = new Impl();
             Contract c1 = channel.export(Contract.class, i);
@@ -109,7 +109,7 @@ public class RemoteInvocationHandlerTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testAsyncCall(ChannelRunner channelRunner) throws Exception {
+    void testAsyncCall(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final AsyncImpl i = new AsyncImpl();
             AsyncContract c = channel.export(AsyncContract.class, i);

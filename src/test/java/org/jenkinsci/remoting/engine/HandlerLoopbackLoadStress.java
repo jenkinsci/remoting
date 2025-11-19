@@ -425,7 +425,7 @@ public class HandlerLoopbackLoadStress {
                             long start = System.currentTimeMillis();
                             clientChannel.call(callable);
                             if (config.client != null) {
-                                NoOpCallable.noops.incrementAndGet();
+                                NoOpCallable.NO_OPS.incrementAndGet();
                             }
                             times++;
                             if (times % 1000 == 0) {
@@ -552,7 +552,7 @@ public class HandlerLoopbackLoadStress {
 
     private static class NoOpCallable implements Callable<Void, IOException> {
 
-        private static final AtomicLong noops = new AtomicLong();
+        private static final AtomicLong NO_OPS = new AtomicLong();
 
         private final byte[] payload;
 
@@ -562,7 +562,7 @@ public class HandlerLoopbackLoadStress {
 
         @Override
         public Void call() throws IOException {
-            noops.incrementAndGet();
+            NO_OPS.incrementAndGet();
             return null;
         }
 
@@ -752,7 +752,7 @@ public class HandlerLoopbackLoadStress {
 
         public Metrics() {
             time = System.currentTimeMillis();
-            noops = NoOpCallable.noops.get();
+            noops = NoOpCallable.NO_OPS.get();
             uptime = runtimeMXBean.getUptime();
             cpu = getProcessCpuTime();
             gc = new TreeMap<>();

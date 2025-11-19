@@ -30,25 +30,25 @@ import java.util.Locale;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.regex.Pattern;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
-@Ignore("This is not a test just a benchmark and is here for ease of running")
-public class RegExpBenchmark {
+@Disabled("This is not a test just a benchmark and is here for ease of running")
+class RegExpBenchmark {
 
-    final Pattern p1 = Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*");
-    final Pattern p2 = Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*");
-    final Pattern p3 = Pattern.compile("^.*org\\.apache\\.xalan\\..*");
+    private static final Pattern P_1 = Pattern.compile("^org\\.codehaus\\.groovy\\.runtime\\..*");
+    private static final Pattern P_2 = Pattern.compile("^org\\.apache\\.commons\\.collections\\.functors\\..*");
+    private static final Pattern P_3 = Pattern.compile("^.*org\\.apache\\.xalan\\..*");
 
-    final Pattern p4 = Pattern.compile(
+    private static final Pattern P_4 = Pattern.compile(
             "^(?:(?:org\\.(?:codehaus\\.groovy\\.runtime|apache\\.commons\\.collections\\.functors))|.*?org\\.apache\\.xalan)\\..*");
 
-    final String s1 = "org.codehaus.groovy.runtime.";
-    final String s2 = "org.apache.commons.collections.functors.";
-    final String s3 = "org.apache.xalan.";
+    private static final String S_1 = "org.codehaus.groovy.runtime.";
+    private static final String S_2 = "org.apache.commons.collections.functors.";
+    private static final String S_3 = "org.apache.xalan.";
 
     @Test
-    public void repeatedBenchMark() throws Exception {
+    void repeatedBenchMark() throws Exception {
         for (int i = 0; i < 10; i++) {
             benchmark();
             System.gc();
@@ -58,7 +58,7 @@ public class RegExpBenchmark {
     }
 
     @Test
-    public void benchmark() throws Exception {
+    void benchmark() throws Exception {
         System.out.println("there are " + getAllRTClasses().size());
 
         List<String> classes = getAllRTClasses();
@@ -117,9 +117,9 @@ public class RegExpBenchmark {
     private List<String> checkClassesRegExp(List<String> classnames) {
         List<String> blacklistedClasses = new ArrayList<>();
         for (String s : classnames) {
-            if (p1.matcher(s).matches()
-                    || p2.matcher(s).matches()
-                    || p3.matcher(s).matches()) {
+            if (P_1.matcher(s).matches()
+                    || P_2.matcher(s).matches()
+                    || P_3.matcher(s).matches()) {
                 // something with a side effect
                 blacklistedClasses.add(s);
             }
@@ -130,7 +130,7 @@ public class RegExpBenchmark {
     private List<String> checkClassesSingleRegExp(List<String> classnames) {
         List<String> blacklistedClasses = new ArrayList<>();
         for (String s : classnames) {
-            if (p4.matcher(s).matches()) {
+            if (P_4.matcher(s).matches()) {
                 // something with a side effect
                 blacklistedClasses.add(s);
             }
@@ -141,7 +141,7 @@ public class RegExpBenchmark {
     private List<String> checkClassesString(List<String> classnames) {
         List<String> blacklistedClasses = new ArrayList<>();
         for (String s : classnames) {
-            if (s.startsWith(s1) || s.startsWith(s2) || s.contains(s3)) {
+            if (s.startsWith(S_1) || s.startsWith(S_2) || s.contains(S_3)) {
                 // something with a side effect
                 blacklistedClasses.add(s);
             }

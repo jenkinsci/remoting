@@ -1,8 +1,8 @@
 package hudson.remoting;
 
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -10,13 +10,16 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StreamCorruptedException;
 import java.io.StringWriter;
-import org.junit.Test;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class DiagnosedStreamCorruptionExceptionTest {
-    byte[] payload = {
+class DiagnosedStreamCorruptionExceptionTest {
+
+    private final byte[] payload = {
         0,
         0,
         0,
@@ -33,7 +36,7 @@ public class DiagnosedStreamCorruptionExceptionTest {
     };
 
     @Test
-    public void exercise() throws Exception {
+    void exercise() throws Exception {
         ClassicCommandTransport ct = (ClassicCommandTransport) new ChannelBuilder("dummy", null)
                 .withMode(Channel.Mode.BINARY)
                 .withBaseLoader(getClass().getClassLoader())
@@ -53,8 +56,8 @@ public class DiagnosedStreamCorruptionExceptionTest {
             }
 
             String msg = s.toString();
-            assertTrue(msg, msg.contains("Read ahead: 0x02 0x03 0x04 0x05"));
-            assertTrue(msg, msg.contains("invalid type code: 01"));
+            assertTrue(msg.contains("Read ahead: 0x02 0x03 0x04 0x05"), msg);
+            assertTrue(msg.contains("invalid type code: 01"), msg);
             assertSame(StreamCorruptedException.class, e.getCause().getClass());
         }
     }
@@ -62,8 +65,9 @@ public class DiagnosedStreamCorruptionExceptionTest {
     /**
      * This tests the behaviour of the diagnosis blocking on a non-completed stream, as the writer end is kept open.
      */
-    @Test(timeout = 3000)
-    public void blockingStreamShouldNotPreventDiagnosis() throws Exception {
+    @Test
+    @Timeout(value = 3000, unit = TimeUnit.MILLISECONDS)
+    void blockingStreamShouldNotPreventDiagnosis() throws Exception {
         try (FastPipedInputStream in = new FastPipedInputStream();
                 FastPipedOutputStream out = new FastPipedOutputStream(in)) {
             out.write(payload);

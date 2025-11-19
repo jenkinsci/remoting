@@ -29,7 +29,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class PrefetchingTest implements Serializable {
+class PrefetchingTest implements Serializable {
+
     private transient URLClassLoader cl;
     private File dir;
 
@@ -66,7 +67,7 @@ public class PrefetchingTest implements Serializable {
     }
 
     @AfterEach
-    protected void tearDown() throws Exception {
+    void afterEach() throws Exception {
         if (cl != null) {
             cl.close();
             cl = null;
@@ -101,7 +102,7 @@ public class PrefetchingTest implements Serializable {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testJarLoadingTest(ChannelRunner channelRunner) throws Exception {
+    void testJarLoadingTest(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
         withChannel(channelRunner, channel -> {
             channel.call(new ForceJarLoad(sum1));
@@ -135,7 +136,7 @@ public class PrefetchingTest implements Serializable {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testGetResource(ChannelRunner channelRunner) throws Exception {
+    void testGetResource(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
         withChannel(channelRunner, channel -> {
             channel.call(new ForceJarLoad(sum1));
@@ -153,7 +154,7 @@ public class PrefetchingTest implements Serializable {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testGetResource_precache(ChannelRunner channelRunner) throws Exception {
+    void testGetResource_precache(ChannelRunner channelRunner) throws Exception {
         withChannel(channelRunner, channel -> {
             Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResource")
                     .getDeclaredConstructor()
@@ -167,7 +168,7 @@ public class PrefetchingTest implements Serializable {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testGetResourceAsStream(ChannelRunner channelRunner) throws Exception {
+    void testGetResourceAsStream(ChannelRunner channelRunner) throws Exception {
         withChannel(channelRunner, channel -> {
             Callable<String, IOException> c =
                     (Callable<String, IOException>) cl.loadClass("test.HelloGetResourceAsStream")
@@ -198,7 +199,7 @@ public class PrefetchingTest implements Serializable {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testGetResources(ChannelRunner channelRunner) throws Exception {
+    void testGetResources(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
         withChannel(channelRunner, channel -> {
             channel.call(new ForceJarLoad(sum1));
@@ -227,7 +228,7 @@ public class PrefetchingTest implements Serializable {
             "TODO flakes: jar:file:/tmp/remoting-cache….jar!/test/hello.txt::hello ==> expected: <true> but was: <false>")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testGetResources_precache(ChannelRunner channelRunner) throws Exception {
+    void testGetResources_precache(ChannelRunner channelRunner) throws Exception {
         withChannel(channelRunner, channel -> {
             Callable<String, IOException> c = (Callable<String, IOException>) cl.loadClass("test.HelloGetResources")
                     .getDeclaredConstructor()
@@ -246,7 +247,7 @@ public class PrefetchingTest implements Serializable {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testInnerClass(ChannelRunner channelRunner) throws Exception {
+    void testInnerClass(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
         withChannel(channelRunner, channel -> {
             Echo<Object> e = new Echo<>();

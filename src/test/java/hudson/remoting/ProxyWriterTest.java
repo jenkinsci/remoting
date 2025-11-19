@@ -14,8 +14,8 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.logging.StreamHandler;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.Issue;
@@ -23,25 +23,26 @@ import org.jvnet.hudson.test.Issue;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ProxyWriterTest implements Serializable {
-    ByteArrayOutputStream log = new ByteArrayOutputStream();
-    StreamHandler logRecorder = new StreamHandler(log, new SimpleFormatter()) {
+class ProxyWriterTest implements Serializable {
+
+    private final ByteArrayOutputStream log = new ByteArrayOutputStream();
+    private final StreamHandler logRecorder = new StreamHandler(log, new SimpleFormatter()) {
         @Override
         public synchronized void publish(LogRecord record) {
             super.publish(record);
             flush();
         }
     };
-    Logger logger = Logger.getLogger(Channel.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(Channel.class.getName());
 
-    @Before
-    public void setUp() throws Exception {
-        logger.addHandler(logRecorder);
+    @BeforeEach
+    void beforeEach() {
+        LOGGER.addHandler(logRecorder);
     }
 
-    @After
-    public void tearDown() throws Exception {
-        logger.removeHandler(logRecorder);
+    @AfterEach
+    void afterEach() {
+        LOGGER.removeHandler(logRecorder);
     }
 
     volatile boolean streamClosed;
@@ -51,7 +52,7 @@ public class ProxyWriterTest implements Serializable {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testAllCalls(ChannelRunner channelRunner) throws Exception {
+    void testAllCalls(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             StringWriter sw = new StringWriter();
             final RemoteWriter w = new RemoteWriter(sw);
@@ -86,7 +87,7 @@ public class ProxyWriterTest implements Serializable {
     @Issue("JENKINS-20769")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testRemoteGC(ChannelRunner channelRunner) throws Exception {
+    void testRemoteGC(ChannelRunner channelRunner) throws Exception {
         assumeFalse(
                 channelRunner instanceof InProcessCompatibilityRunner,
                 "in the legacy mode ProxyWriter will try to close the stream, so can't run this test");
@@ -105,7 +106,7 @@ public class ProxyWriterTest implements Serializable {
             // and if GC doesn't happen within this loop, the test can pass
             // even when the underlying problem exists.
             for (int i = 0; i < 30; i++) {
-                assertEquals(0, log.size(), "There shouldn't be any errors: " + log.toString());
+                assertEquals(0, log.size(), "There shouldn't be any errors: " + log);
 
                 Thread.sleep(100);
                 if (channel.call(new GcCallable())) {
@@ -126,7 +127,7 @@ public class ProxyWriterTest implements Serializable {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testWriteAndSync(ChannelRunner channelRunner) throws Exception {
+    void testWriteAndSync(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             StringWriter sw = new StringWriter();
             final RemoteWriter w = new RemoteWriter(sw);

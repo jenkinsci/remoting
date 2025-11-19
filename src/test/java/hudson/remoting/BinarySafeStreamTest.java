@@ -41,9 +41,10 @@ import org.junit.jupiter.api.Test;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class BinarySafeStreamTest {
+class BinarySafeStreamTest {
+
     @Test
-    public void test1() throws IOException {
+    void test1() throws IOException {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         byte[] data = "Sending some data to make sure it's encoded".getBytes(StandardCharsets.UTF_8);
         try (OutputStream o = BinarySafeStream.wrap(buf)) {
@@ -59,7 +60,7 @@ public class BinarySafeStreamTest {
     }
 
     @Test
-    public void testSingleWrite() throws IOException {
+    void testSingleWrite() throws IOException {
         byte[] ds = getDataSet(65536);
         String master = Base64.getEncoder().encodeToString(ds);
 
@@ -71,7 +72,7 @@ public class BinarySafeStreamTest {
     }
 
     @Test
-    public void testChunkedWrites() throws IOException {
+    void testChunkedWrites() throws IOException {
         byte[] ds = getDataSet(65536);
         String master = Base64.getEncoder().encodeToString(ds);
 
@@ -85,12 +86,12 @@ public class BinarySafeStreamTest {
     }
 
     @Test
-    public void testRoundtripNoFlush() throws IOException {
+    void testRoundtripNoFlush() throws IOException {
         _testRoundtrip(false);
     }
 
     @Test
-    public void testRoundtripFlush() throws IOException {
+    void testRoundtripFlush() throws IOException {
         _testRoundtrip(true);
     }
 
@@ -99,7 +100,7 @@ public class BinarySafeStreamTest {
         Random r = new Random(0);
 
         for (int i = 0; i < 16; i++) {
-            if (dump) {
+            if (DUMP) {
                 System.out.println("test started");
             }
             ByteArrayOutputStream buf = new ByteArrayOutputStream();
@@ -107,7 +108,7 @@ public class BinarySafeStreamTest {
 
             decodeByMaster(buf.toString(), dataSet);
 
-            if (dump) {
+            if (DUMP) {
                 System.out.println("------");
             }
 
@@ -123,7 +124,7 @@ public class BinarySafeStreamTest {
                 fail(msg);
             }
 
-            if (dump) {
+            if (DUMP) {
                 System.out.println("------");
             }
         }
@@ -163,7 +164,7 @@ public class BinarySafeStreamTest {
                 switch (r.nextInt(3)) {
                     case 0:
                         int ch = in.read();
-                        if (dump) {
+                        if (DUMP) {
                             System.out.println("read1(" + ch + ')');
                         }
                         assertTrue(255 >= ch && ch >= -1); // make sure the range is [-1,255]
@@ -180,7 +181,7 @@ public class BinarySafeStreamTest {
 
                         byte[] tmp = new byte[start + chunk + trail];
                         int len = in.read(tmp, start, chunk);
-                        if (dump) {
+                        if (DUMP) {
                             System.out.println(
                                     "read2(" + print(tmp, start, len) + ",len=" + len + ",chunk=" + chunk + ")");
                         }
@@ -190,10 +191,10 @@ public class BinarySafeStreamTest {
 
                         // check extra data corruption
                         for (int i = 0; i < start; i++) {
-                            assertEquals(tmp[i], 0);
+                            assertEquals(0, tmp[i]);
                         }
                         for (int i = 0; i < trail; i++) {
-                            assertEquals(tmp[start + chunk + i], 0);
+                            assertEquals(0, tmp[start + chunk + i]);
                         }
 
                         out.write(tmp, start, len);
@@ -203,7 +204,7 @@ public class BinarySafeStreamTest {
                         len = r.nextInt(16);
                         tmp = new byte[len];
                         len = in.read(tmp);
-                        if (dump) {
+                        if (DUMP) {
                             System.out.println("read3(" + print(tmp, 0, len) + ",len=" + len + ')');
                         }
                         if (len == -1) {
@@ -235,5 +236,5 @@ public class BinarySafeStreamTest {
         return out.append('}').toString();
     }
 
-    private static final boolean dump = false;
+    private static final boolean DUMP = false;
 }
