@@ -1081,8 +1081,14 @@ public class Engine extends Thread {
                         }
 
                         // On failure form a new connection.
-                        jnlpSocket.close();
-                        jnlpSocket = null;
+                        if (jnlpSocket != null) {
+                            try {
+                                jnlpSocket.close();
+                            } catch (IOException e) {
+                                events.status("Failed to close socket", e);
+                            }
+                            jnlpSocket = null;
+                        }
                     }
 
                     // If no protocol worked.
