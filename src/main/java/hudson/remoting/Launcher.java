@@ -493,6 +493,11 @@ public class Launcher {
                         "WARNING: The \"-jnlpUrl\" argument is deprecated. Use \"-url\" and \"-name\" instead, potentially also passing in \"-webSocket\", \"-tunnel\", and/or work directory options as needed.");
                 bootstrapInboundAgent(); // calls initialize() internally
             } else {
+                // JENKINS-72881: If workDir is not explicitly set, use current directory by default
+                // This matches the behavior of -jnlpUrl which receives workDir from server (typically ".")
+                if (workDir == null) {
+                    workDir = new File(System.getProperty("user.dir"));
+                }
                 initialize();
             }
             runAsInboundAgent();
