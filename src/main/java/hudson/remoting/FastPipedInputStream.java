@@ -24,7 +24,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class is equivalent to {@link PipedInputStream}. In the
@@ -38,6 +41,10 @@ import java.lang.ref.WeakReference;
  * @see FastPipedOutputStream
  */
 public class FastPipedInputStream extends InputStream {
+
+    private static final Logger LOGGER = Logger.getLogger(FastPipedInputStream.class.getName());
+
+    private static final Cleaner CLEANER = Cleaner.create();
 
     final byte[] buffer;
     /**
@@ -58,6 +65,7 @@ public class FastPipedInputStream extends InputStream {
      */
     public FastPipedInputStream() {
         this.buffer = new byte[0x10000];
+        CLEANER.register(this, new CleanupChecker(this.buffer));
     }
 
     /**
@@ -79,6 +87,7 @@ public class FastPipedInputStream extends InputStream {
             connect(source);
         }
         this.buffer = new byte[bufferSize];
+        CLEANER.register(this, new CleanupChecker(this.buffer));
     }
 
     private void checkSource() throws IOException {
@@ -128,12 +137,6 @@ public class FastPipedInputStream extends InputStream {
         }
         this.source = new WeakReference<>(source);
         source.sink = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
     }
 
     @Override
@@ -208,6 +211,24 @@ public class FastPipedInputStream extends InputStream {
     static final class ClosedBy extends Throwable {
         ClosedBy(Throwable error) {
             super("The pipe was closed at...", error);
+        }
+    }
+
+    private static final class CleanupChecker implements Runnable {
+        private final byte[] buffer;
+
+        CleanupChecker(byte[] buffer) {
+            this.buffer = buffer;
+        }
+
+        @Override
+        public void run() {
+            if (buffer != null) {
+                synchronized (buffer) {
+                    LOGGER.log(Level.WARNING, "FastPipedInputStream was not closed before being released");
+                    buffer.notifyAll();
+                }
+            }
         }
     }
 }

@@ -26,7 +26,10 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class is equivalent to {@link PipedOutputStream}. In the
@@ -41,6 +44,10 @@ import java.lang.ref.WeakReference;
  */
 public class FastPipedOutputStream extends OutputStream implements ErrorPropagatingOutputStream {
 
+    private static final Logger LOGGER = Logger.getLogger(FastPipedOutputStream.class.getName());
+
+    private static final Cleaner CLEANER = Cleaner.create();
+
     WeakReference<FastPipedInputStream> sink;
 
     private final Throwable allocatedAt = new Throwable();
@@ -50,6 +57,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
      */
     public FastPipedOutputStream() {
         super();
+        CLEANER.register(this, new CleanupChecker(null));
     }
 
     /**
@@ -59,6 +67,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
      */
     public FastPipedOutputStream(FastPipedInputStream sink) throws IOException {
         connect(sink);
+        CLEANER.register(this, new CleanupChecker(this.sink));
     }
 
     /**
@@ -112,12 +121,6 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         }
         this.sink = new WeakReference<>(sink);
         sink.source = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
     }
 
     @Override
@@ -202,4 +205,28 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     }
 
     static final int TIMEOUT = Integer.getInteger(FastPipedOutputStream.class.getName() + ".timeout", 10 * 1000);
+
+    private static final class CleanupChecker implements Runnable {
+        private final WeakReference<FastPipedInputStream> sink;
+
+        CleanupChecker(WeakReference<FastPipedInputStream> sink) {
+            this.sink = sink;
+        }
+
+        @Override
+        public void run() {
+            if (sink != null) {
+                FastPipedInputStream s = sink.get();
+                if (s != null) {
+                    synchronized (s.buffer) {
+                        if (s.closed == null) {
+                            LOGGER.log(Level.WARNING, "FastPipedOutputStream was not closed before being released");
+                            s.closed = new FastPipedInputStream.ClosedBy(null);
+                            s.buffer.notifyAll();
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
