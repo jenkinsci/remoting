@@ -2,7 +2,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
-import java.net.URL;
 import java.util.Map;
 
 /**
@@ -22,11 +21,6 @@ class DumbClassLoaderBridge implements RemoteClassLoader.IClassLoader {
 
     DumbClassLoaderBridge(@NonNull RemoteClassLoader.IClassLoader base) {
         this.base = base;
-    }
-
-    @Override
-    public byte[] fetchJar(URL url) throws IOException {
-        return base.fetchJar(url);
     }
 
     @Override
