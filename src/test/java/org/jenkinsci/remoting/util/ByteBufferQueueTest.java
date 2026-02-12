@@ -27,17 +27,17 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import java.nio.ByteBuffer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ByteBufferQueueTest {
+class ByteBufferQueueTest {
 
     @Test
-    public void newInstanceIsEmpty() {
+    void newInstanceIsEmpty() {
         assertThat(new ByteBufferQueue(100).hasRemaining(), is(false));
     }
 
     @Test
-    public void putEmptyBufferAndStillEmpty() {
+    void putEmptyBufferAndStillEmpty() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(1);
         src.flip();
@@ -46,7 +46,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putOneByteAndHasRemaining() {
+    void putOneByteAndHasRemaining() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(1);
         src.put((byte) 0);
@@ -56,7 +56,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putGetByteAndHasRemaining() {
+    void putGetByteAndHasRemaining() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
             byte b = (byte) i;
@@ -68,7 +68,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putOneByteGetSequences() {
+    void putOneByteGetSequences() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(1);
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
@@ -88,7 +88,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putGetOneByteSequences() {
+    void putGetOneByteSequences() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(1);
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
@@ -108,7 +108,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putGetByteSequences() {
+    void putGetByteSequences() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
             byte b = (byte) i;
@@ -124,7 +124,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putGetByteArraySequences() {
+    void putGetByteArraySequences() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         byte[] dst = new byte[1];
         for (int i = Byte.MIN_VALUE; i <= Byte.MAX_VALUE; i++) {
@@ -142,7 +142,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putGetDrainsQueue() {
+    void putGetDrainsQueue() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(1);
         src.put((byte) 0);
@@ -153,7 +153,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putGetFillsDestLeavingRemaining() {
+    void putGetFillsDestLeavingRemaining() {
         ByteBufferQueue queue = new ByteBufferQueue(100);
         ByteBuffer src = ByteBuffer.allocate(4);
         src.put((byte) 0);
@@ -177,7 +177,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putPutGetUngetPutGetGetGet() {
+    void putPutGetUngetPutGetGetGet() {
         ByteBufferQueue queue = new ByteBufferQueue(2);
         ByteBuffer src = ByteBuffer.allocate(4);
         src.put((byte) 0);
@@ -242,7 +242,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putPutGetBigUngetBigPutGetGetGet() {
+    void putPutGetBigUngetBigPutGetGetGet() {
         ByteBufferQueue queue = new ByteBufferQueue(2);
         ByteBuffer src = ByteBuffer.allocate(4);
         src.put((byte) 0);
@@ -311,7 +311,7 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void putPutGetBigUngetBiggerPutGetGetGet() {
+    void putPutGetBigUngetBiggerPutGetGetGet() {
         ByteBufferQueue queue = new ByteBufferQueue(2);
         ByteBuffer src = ByteBuffer.allocate(4);
         src.put((byte) 0);
@@ -383,22 +383,22 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void internalBufferOverflow_8_48_12() {
+    void internalBufferOverflow_8_48_12() {
         internalBufferOverflow(8, 48, 12);
     }
 
     @Test
-    public void internalBufferOverflow_7_47_11() {
+    void internalBufferOverflow_7_47_11() {
         internalBufferOverflow(7, 47, 11);
     }
 
     @Test
-    public void internalBufferOverflow_13_1123_7() {
+    void internalBufferOverflow_13_1123_7() {
         internalBufferOverflow(7, 47, 11);
     }
 
     @Test
-    public void internalBufferOverflow_13_3391_23() {
+    void internalBufferOverflow_13_3391_23() {
         internalBufferOverflow(7, 47, 11);
     }
 
@@ -428,17 +428,17 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void interleavedReadWrite_8_12_4_16_1() {
+    void interleavedReadWrite_8_12_4_16_1() {
         interleavedReadWrite(8, 12, 4, 16, 1);
     }
 
     @Test
-    public void interleavedReadWrite_8_16_4_12_1() {
+    void interleavedReadWrite_8_16_4_12_1() {
         interleavedReadWrite(8, 16, 4, 12, 1);
     }
 
     @Test
-    public void interleavedReadWrite_7_11_13_17_3() {
+    void interleavedReadWrite_7_11_13_17_3() {
         interleavedReadWrite(7, 11, 13, 17, 3);
     }
 
@@ -484,21 +484,21 @@ public class ByteBufferQueueTest {
     }
 
     @Test
-    public void interleavingReadWrite_7_11_13_853_19_5() {
+    void interleavingReadWrite_7_11_13_853_19_5() {
         interleavingReadWrite(7, 11, 13, 853, 19, 5);
     }
 
     @Test
-    public void interleavingReadWrite_7_11_13_853_5_19() {
+    void interleavingReadWrite_7_11_13_853_5_19() {
         interleavingReadWrite(7, 11, 13, 853, 19, 5);
     }
 
     @Test
-    public void interleavingReadWrite_23_37_53_1051_13_29() {
+    void interleavingReadWrite_23_37_53_1051_13_29() {
         interleavingReadWrite(23, 37, 53, 1051, 13, 29);
     }
 
-    public void interleavingReadWrite(
+    private void interleavingReadWrite(
             int intSize, int srcSize, int dstSize, int srcCount, int srcModulus, int dstModulus) {
         ByteBufferQueue queue = new ByteBufferQueue(intSize);
         ByteBuffer src = ByteBuffer.allocate(srcSize);

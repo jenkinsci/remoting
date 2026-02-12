@@ -1,7 +1,7 @@
 package hudson.remoting;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -9,26 +9,26 @@ import com.google.common.io.Files;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Tests for {@link Checksum}.
  *
  * @author Akshay Dayal
  */
-public class ChecksumTest {
+class ChecksumTest {
 
     private static final String FILE_CONTENTS1 = "These are the file contents";
     private static final String FILE_CONTENTS2 = "These are some other file contents";
 
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
+    @TempDir
+    private File tmp;
 
     @Test
-    public void testForFileAndURL() throws Exception {
+    void testForFileAndURL() throws Exception {
         File tmpFile1 = createTmpFile("file1.txt", FILE_CONTENTS1);
         File tmpFile2 = createTmpFile("file2.txt", FILE_CONTENTS2);
         HashCode hash1 = Files.asByteSource(tmpFile1).hash(Hashing.sha256());
@@ -46,7 +46,7 @@ public class ChecksumTest {
     }
 
     private File createTmpFile(String name, String contents) throws Exception {
-        File tmpFile = tmp.newFile(name);
+        File tmpFile = newFile(tmp, name);
         Files.asCharSink(tmpFile, StandardCharsets.UTF_8).write(contents);
         return tmpFile;
     }
@@ -64,5 +64,11 @@ public class ChecksumTest {
             }
         }
         return new Checksum(sum1, sum2);
+    }
+
+    private static File newFile(File parent, String child) throws IOException {
+        File result = new File(parent, child);
+        result.createNewFile();
+        return result;
     }
 }

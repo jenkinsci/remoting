@@ -39,151 +39,168 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLHandshakeException;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.remoting.protocol.IOBufferMatcher;
 import org.jenkinsci.remoting.protocol.IOBufferMatcherLayer;
-import org.jenkinsci.remoting.protocol.IOHubRule;
+import org.jenkinsci.remoting.protocol.IOHubExtension;
 import org.jenkinsci.remoting.protocol.NetworkLayerFactory;
 import org.jenkinsci.remoting.protocol.ProtocolStack;
-import org.jenkinsci.remoting.protocol.Repeat;
-import org.jenkinsci.remoting.protocol.RepeatRule;
-import org.jenkinsci.remoting.protocol.cert.RSAKeyPairRule;
-import org.jenkinsci.remoting.protocol.cert.SSLContextRule;
-import org.jenkinsci.remoting.protocol.cert.X509CertificateRule;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.DataPoints;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
-import org.junit.runner.RunWith;
+import org.jenkinsci.remoting.protocol.cert.RSAKeyPairExtension;
+import org.jenkinsci.remoting.protocol.cert.SSLContextExtension;
+import org.jenkinsci.remoting.protocol.cert.X509CertificateExtension;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Named;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-@RunWith(Theories.class)
-public class SSLEngineFilterLayerTest {
+@ParameterizedClass
+@MethodSource("parameters")
+@Timeout(value = 30, unit = TimeUnit.SECONDS)
+class SSLEngineFilterLayerTest {
 
-    private static final boolean fullTests = Boolean.getBoolean("fullTests");
+    private static final boolean FULL_TESTS = Boolean.getBoolean("fullTests");
 
-    private static RSAKeyPairRule clientKey = new RSAKeyPairRule();
-    private static RSAKeyPairRule serverKey = new RSAKeyPairRule();
-    private static RSAKeyPairRule caRootKey = new RSAKeyPairRule();
-    private static X509CertificateRule caRootCert = X509CertificateRule.create("caRoot", caRootKey, caRootKey, null);
-    private static X509CertificateRule clientCert =
-            X509CertificateRule.create("client", clientKey, caRootKey, caRootCert);
-    private static X509CertificateRule serverCert =
-            X509CertificateRule.create("server", serverKey, caRootKey, caRootCert);
-    private static X509CertificateRule expiredClientCert =
-            X509CertificateRule.create("expiredClient", clientKey, caRootKey, caRootCert, -10, -5, TimeUnit.DAYS);
-    private static X509CertificateRule notYetValidServerCert =
-            X509CertificateRule.create("notYetValidServer", serverKey, caRootKey, caRootCert, +5, +10, TimeUnit.DAYS);
-    private static SSLContextRule clientCtx = new SSLContextRule("client")
-            .as(clientKey, clientCert, caRootCert)
-            .trusting(caRootCert)
-            .trusting(serverCert);
-    private static SSLContextRule serverCtx = new SSLContextRule("server")
-            .as(serverKey, serverCert, caRootCert)
-            .trusting(caRootCert)
-            .trusting(clientCert);
-    private static SSLContextRule expiredClientCtx = new SSLContextRule("expiredClient")
-            .as(clientKey, expiredClientCert, caRootCert)
-            .trusting(caRootCert)
-            .trusting(serverCert);
-    private static SSLContextRule notYetValidServerCtx = new SSLContextRule("notYetValidServer")
-            .as(serverKey, notYetValidServerCert, caRootCert)
-            .trusting(caRootCert)
-            .trusting(clientCert);
-    private static SSLContextRule untrustingClientCtx =
-            new SSLContextRule("untrustingClient").as(clientKey, clientCert).trusting(caRootCert);
-    private static SSLContextRule untrustingServerCtx =
-            new SSLContextRule("untrustingServer").as(serverKey, serverCert).trusting(caRootCert);
+    @Order(0)
+    @RegisterExtension
+    private static final RSAKeyPairExtension CA_ROOT_KEY = new RSAKeyPairExtension();
 
-    @ClassRule
-    public static RuleChain staticCtx = RuleChain.outerRule(caRootKey)
-            .around(clientKey)
-            .around(serverKey)
-            .around(caRootCert)
-            .around(clientCert)
-            .around(serverCert)
-            .around(expiredClientCert)
-            .around(notYetValidServerCert)
-            .around(clientCtx)
-            .around(serverCtx)
-            .around(expiredClientCtx)
-            .around(notYetValidServerCtx)
-            .around(untrustingClientCtx)
-            .around(untrustingServerCtx);
+    @Order(1)
+    @RegisterExtension
+    private static final RSAKeyPairExtension CLIENT_KEY = new RSAKeyPairExtension();
 
-    @Rule
-    public IOHubRule selector = new IOHubRule();
+    @Order(2)
+    @RegisterExtension
+    private static final RSAKeyPairExtension SERVER_KEY = new RSAKeyPairExtension();
 
-    @Rule
-    public TestName name = new TestName();
+    @Order(3)
+    @RegisterExtension
+    private static final X509CertificateExtension CA_ROOT_CERT =
+            X509CertificateExtension.create("caRoot", CA_ROOT_KEY, CA_ROOT_KEY, null);
 
-    private Timeout globalTimeout = new Timeout(30, TimeUnit.SECONDS);
+    @Order(4)
+    @RegisterExtension
+    private static final X509CertificateExtension CLIENT_CERT =
+            X509CertificateExtension.create("client", CLIENT_KEY, CA_ROOT_KEY, CA_ROOT_CERT);
 
-    @Rule
-    public RuleChain ctx = RuleChain.outerRule(new RepeatRule()).around(globalTimeout);
+    @Order(5)
+    @RegisterExtension
+    private static final X509CertificateExtension SERVER_CERT =
+            X509CertificateExtension.create("server", SERVER_KEY, CA_ROOT_KEY, CA_ROOT_CERT);
+
+    @Order(6)
+    @RegisterExtension
+    private static final X509CertificateExtension EXPIRED_CLIENT_CERT = X509CertificateExtension.create(
+            "expiredClient", CLIENT_KEY, CA_ROOT_KEY, CA_ROOT_CERT, -10, -5, TimeUnit.DAYS);
+
+    @Order(7)
+    @RegisterExtension
+    private static final X509CertificateExtension NOT_YET_VALID_SERVER_CERT = X509CertificateExtension.create(
+            "notYetValidServer", SERVER_KEY, CA_ROOT_KEY, CA_ROOT_CERT, +5, +10, TimeUnit.DAYS);
+
+    @Order(8)
+    @RegisterExtension
+    private static final SSLContextExtension CLIENT_CTX = new SSLContextExtension("client")
+            .as(CLIENT_KEY, CLIENT_CERT, CA_ROOT_CERT)
+            .trusting(CA_ROOT_CERT)
+            .trusting(SERVER_CERT);
+
+    @Order(9)
+    @RegisterExtension
+    private static final SSLContextExtension SERVER_CTX = new SSLContextExtension("server")
+            .as(SERVER_KEY, SERVER_CERT, CA_ROOT_CERT)
+            .trusting(CA_ROOT_CERT)
+            .trusting(CLIENT_CERT);
+
+    @Order(10)
+    @RegisterExtension
+    private static final SSLContextExtension EXPIRED_CLIENT_CTX = new SSLContextExtension("expiredClient")
+            .as(CLIENT_KEY, EXPIRED_CLIENT_CERT, CA_ROOT_CERT)
+            .trusting(CA_ROOT_CERT)
+            .trusting(SERVER_CERT);
+
+    @Order(11)
+    @RegisterExtension
+    private static final SSLContextExtension NOT_YET_VALID_SERVER_CTX = new SSLContextExtension("notYetValidServer")
+            .as(SERVER_KEY, NOT_YET_VALID_SERVER_CERT, CA_ROOT_CERT)
+            .trusting(CA_ROOT_CERT)
+            .trusting(CLIENT_CERT);
+
+    @Order(12)
+    @RegisterExtension
+    private static final SSLContextExtension UNTRUSTING_CLIENT_CTX = new SSLContextExtension("untrustingClient")
+            .as(CLIENT_KEY, CLIENT_CERT)
+            .trusting(CA_ROOT_CERT);
+
+    @Order(13)
+    @RegisterExtension
+    private static final SSLContextExtension UNTRUSTING_SERVER_CTX = new SSLContextExtension("untrustingServer")
+            .as(SERVER_KEY, SERVER_CERT)
+            .trusting(CA_ROOT_CERT);
+
+    @RegisterExtension
+    private final IOHubExtension selector = new IOHubExtension();
+
+    @Parameter(0)
+    private NetworkLayerFactory serverFactory;
+
+    @Parameter(1)
+    private NetworkLayerFactory clientFactory;
 
     private Pipe clientToServer;
     private Pipe serverToClient;
 
-    @DataPoint("blocking I/O")
-    public static NetworkLayerFactory blocking() {
-        return new NetworkLayerFactory.BIO();
+    private String name;
+
+    static Stream<Arguments> parameters() {
+        return Stream.of(
+                Arguments.of(
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO()),
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO())),
+                Arguments.of(
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO()),
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO())),
+                Arguments.of(
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO()),
+                        Named.of("blocking I/O", new NetworkLayerFactory.BIO())),
+                Arguments.of(
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO()),
+                        Named.of("non-blocking I/O", new NetworkLayerFactory.NIO())));
     }
 
-    @DataPoint("non-blocking I/O")
-    public static NetworkLayerFactory nonBlocking() {
-        return new NetworkLayerFactory.NIO();
-    }
-
-    @DataPoints
-    public static BatchSendBufferingFilterLayer[] batchSizes() {
-        List<BatchSendBufferingFilterLayer> result = new ArrayList<>();
-        if (fullTests) {
-            int length = 16;
-            while (length < 65536) {
-                result.add(new BatchSendBufferingFilterLayer(length));
-                if (length < 16) {
-                    length = length * 2;
-                } else {
-                    length = length * 3 / 2;
-                }
-            }
-        } else {
-            result.add(new BatchSendBufferingFilterLayer(16));
-            result.add(new BatchSendBufferingFilterLayer(4096));
-            result.add(new BatchSendBufferingFilterLayer(65536));
-        }
-        return result.toArray(new BatchSendBufferingFilterLayer[0]);
-    }
-
-    @Before
-    public void setUpPipe() throws Exception {
+    @BeforeEach
+    void beforeEach(TestInfo info) throws Exception {
+        name = info.getTestMethod().orElseThrow().getName();
         clientToServer = Pipe.open();
         serverToClient = Pipe.open();
     }
 
-    @After
-    public void tearDownPipe() {
+    @AfterEach
+    void afterEach() {
         IOUtils.closeQuietly(clientToServer.sink());
         IOUtils.closeQuietly(clientToServer.source());
         IOUtils.closeQuietly(serverToClient.sink());
         IOUtils.closeQuietly(serverToClient.source());
     }
 
-    @Theory
-    public void smokes(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        SSLEngine serverEngine = serverCtx.createSSLEngine();
+    @Test
+    void smokes() throws Exception {
+        SSLEngine serverEngine = SERVER_CTX.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = clientCtx.createSSLEngine();
+        SSLEngine clientEngine = CLIENT_CTX.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
@@ -207,13 +224,12 @@ public class SSLEngineFilterLayerTest {
         client.get().awaitClose();
     }
 
-    @Theory
-    public void clientRejectsServer(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
-        SSLEngine serverEngine = serverCtx.createSSLEngine();
+    @Test
+    void clientRejectsServer() throws Exception {
+        SSLEngine serverEngine = SERVER_CTX.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = clientCtx.createSSLEngine();
+        SSLEngine clientEngine = CLIENT_CTX.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
@@ -237,18 +253,15 @@ public class SSLEngineFilterLayerTest {
         assertThat(serverMatcher.getCloseCause(), instanceOf(ClosedChannelException.class));
     }
 
-    @Theory
-    public void serverRejectsClient(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
-        Logger.getLogger(name.getMethodName())
-                .log(Level.INFO, "Starting test with server {0} client {1}", new Object[] {
-                    serverFactory.getClass().getSimpleName(),
-                    clientFactory.getClass().getSimpleName(),
-                });
-        SSLEngine serverEngine = serverCtx.createSSLEngine();
+    @Test
+    void serverRejectsClient() throws Exception {
+        Logger.getLogger(name).log(Level.INFO, "Starting test with server {0} client {1}", new Object[] {
+            serverFactory.getClass().getSimpleName(), clientFactory.getClass().getSimpleName(),
+        });
+        SSLEngine serverEngine = SERVER_CTX.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = clientCtx.createSSLEngine();
+        SSLEngine clientEngine = CLIENT_CTX.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
@@ -266,22 +279,21 @@ public class SSLEngineFilterLayerTest {
         IOBufferMatcher clientMatcher = client.get();
         IOBufferMatcher serverMatcher = server.get();
 
-        Logger.getLogger(name.getMethodName()).log(Level.INFO, "Waiting for client close");
+        Logger.getLogger(name).log(Level.INFO, "Waiting for client close");
         clientMatcher.awaitClose();
-        Logger.getLogger(name.getMethodName()).log(Level.INFO, "Waiting for server close");
+        Logger.getLogger(name).log(Level.INFO, "Waiting for server close");
         serverMatcher.awaitClose();
         assertThat(clientMatcher.getCloseCause(), instanceOf(ClosedChannelException.class));
         assertThat(serverMatcher.getCloseCause(), instanceOf(ConnectionRefusalException.class));
-        Logger.getLogger(name.getMethodName()).log(Level.INFO, "Done");
+        Logger.getLogger(name).log(Level.INFO, "Done");
     }
 
-    @Theory
-    public void untrustingClientDoesNotConnect(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
-        SSLEngine serverEngine = serverCtx.createSSLEngine();
+    @Test
+    void untrustingClientDoesNotConnect() throws Exception {
+        SSLEngine serverEngine = SERVER_CTX.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = untrustingClientCtx.createSSLEngine();
+        SSLEngine clientEngine = UNTRUSTING_CLIENT_CTX.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
@@ -303,13 +315,12 @@ public class SSLEngineFilterLayerTest {
         assertThat(serverMatcher.getCloseCause(), instanceOf(ClosedChannelException.class));
     }
 
-    @Theory
-    public void expiredClientDoesNotConnect(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
-        SSLEngine serverEngine = serverCtx.createSSLEngine();
+    @Test
+    void expiredClientDoesNotConnect() throws Exception {
+        SSLEngine serverEngine = SERVER_CTX.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = expiredClientCtx.createSSLEngine();
+        SSLEngine clientEngine = EXPIRED_CLIENT_CTX.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
@@ -331,13 +342,12 @@ public class SSLEngineFilterLayerTest {
         assertThat(serverMatcher.getCloseCause(), instanceOf(SSLHandshakeException.class));
     }
 
-    @Theory
-    public void clientDoesNotConnectToNotYetValidServer(
-            NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory) throws Exception {
-        SSLEngine serverEngine = notYetValidServerCtx.createSSLEngine();
+    @Test
+    void clientDoesNotConnectToNotYetValidServer() throws Exception {
+        SSLEngine serverEngine = NOT_YET_VALID_SERVER_CTX.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = expiredClientCtx.createSSLEngine();
+        SSLEngine clientEngine = EXPIRED_CLIENT_CTX.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> client = ProtocolStack.on(
@@ -359,94 +369,75 @@ public class SSLEngineFilterLayerTest {
         assertThat(serverMatcher.getCloseCause(), instanceOf(ClosedChannelException.class));
     }
 
-    @Theory
-    @Repeat(value = 16, stopAfter = 1)
-    public void concurrentStress_1_1(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @RepeatedTest(value = 16, failureThreshold = 1)
+    void concurrentStress_1_1() throws Exception {
         concurrentStress(serverFactory, clientFactory, 1, 1);
     }
 
-    @Theory
-    @Repeat(value = 16, stopAfter = 1)
-    public void concurrentStress_512_512(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @RepeatedTest(value = 16, failureThreshold = 1)
+    void concurrentStress_512_512() throws Exception {
         concurrentStress(serverFactory, clientFactory, 512, 512);
     }
 
-    @Theory
-    @Repeat(value = 16, stopAfter = 1)
-    public void concurrentStress_1k_1k(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @RepeatedTest(value = 16, failureThreshold = 1)
+    void concurrentStress_1k_1k() throws Exception {
         concurrentStress(serverFactory, clientFactory, 1024, 1024);
     }
 
-    @Theory
-    @Repeat(value = 16, stopAfter = 1)
-    public void concurrentStress_2k_1k(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @RepeatedTest(value = 16, failureThreshold = 1)
+    void concurrentStress_2k_1k() throws Exception {
         concurrentStress(serverFactory, clientFactory, 2048, 1024);
     }
 
-    @Theory
-    @Repeat(value = 16, stopAfter = 1)
-    public void concurrentStress_1k_2k(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @RepeatedTest(value = 16, failureThreshold = 1)
+    void concurrentStress_1k_2k() throws Exception {
         concurrentStress(serverFactory, clientFactory, 1024, 2048);
     }
 
-    @Theory
-    @Repeat(value = 16, stopAfter = 1)
-    public void concurrentStress_2k_2k(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @RepeatedTest(value = 16, failureThreshold = 1)
+    void concurrentStress_2k_2k() throws Exception {
         concurrentStress(serverFactory, clientFactory, 2048, 2048);
     }
 
-    @Theory
-    public void concurrentStress_4k_4k_minus_1(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @Test
+    void concurrentStress_4k_4k_minus_1() throws Exception {
         concurrentStress(serverFactory, clientFactory, 4095, 4095);
     }
 
-    @Theory
-    public void concurrentStress_4k_4k(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @Test
+    void concurrentStress_4k_4k() throws Exception {
         concurrentStress(serverFactory, clientFactory, 4096, 4096);
     }
 
-    @Theory
-    public void concurrentStress_4k_4k_plus_1(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @Test
+    void concurrentStress_4k_4k_plus_1() throws Exception {
         concurrentStress(serverFactory, clientFactory, 4097, 4097);
     }
 
-    @Theory
-    public void concurrentStress_16k_16k_minus_1(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @Test
+    void concurrentStress_16k_16k_minus_1() throws Exception {
         concurrentStress(serverFactory, clientFactory, 16383, 16383);
     }
 
-    @Theory
-    public void concurrentStress_16k_16k(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @Test
+    void concurrentStress_16k_16k() throws Exception {
         concurrentStress(serverFactory, clientFactory, 16384, 16384);
     }
 
-    @Theory
-    public void concurrentStress_16k_16k_plus_1(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @Test
+    void concurrentStress_16k_16k_plus_1() throws Exception {
         concurrentStress(serverFactory, clientFactory, 16385, 16385);
     }
 
-    @Theory
-    public void concurrentStress_64k_64k(NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory)
-            throws Exception {
+    @Test
+    void concurrentStress_64k_64k() throws Exception {
         concurrentStress(serverFactory, clientFactory, 65536, 65536);
     }
 
     private void concurrentStress(
             NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory, int serverLimit, int clientLimit)
             throws IOException, InterruptedException, ExecutionException {
-        Logger.getLogger(name.getMethodName())
+        Logger.getLogger(name)
                 .log(
                         Level.INFO,
                         "Starting test with server {0} client {1} serverLimit {2} clientLimit {3}",
@@ -456,10 +447,10 @@ public class SSLEngineFilterLayerTest {
                             serverLimit,
                             clientLimit
                         });
-        SSLEngine serverEngine = serverCtx.createSSLEngine();
+        SSLEngine serverEngine = SERVER_CTX.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = clientCtx.createSSLEngine();
+        SSLEngine clientEngine = CLIENT_CTX.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> clientStack = ProtocolStack.on(
@@ -493,20 +484,37 @@ public class SSLEngineFilterLayerTest {
         assertThat(server.asByteArray(), SequentialSender.matcher(clientLimit));
     }
 
-    @Theory
-    public void sendingBiggerAndBiggerBatches(
-            NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory, BatchSendBufferingFilterLayer batch)
+    static List<BatchSendBufferingFilterLayer> batches() {
+        List<BatchSendBufferingFilterLayer> result = new ArrayList<>();
+        if (FULL_TESTS) {
+            int length = 16;
+            while (length < 65536) {
+                result.add(new BatchSendBufferingFilterLayer(length));
+                if (length < 16) {
+                    length = length * 2;
+                } else {
+                    length = length * 3 / 2;
+                }
+            }
+        } else {
+            result.add(new BatchSendBufferingFilterLayer(16));
+            result.add(new BatchSendBufferingFilterLayer(4096));
+            result.add(new BatchSendBufferingFilterLayer(65536));
+        }
+        return result;
+    }
+
+    @ParameterizedTest
+    @MethodSource("batches")
+    void sendingBiggerAndBiggerBatches(BatchSendBufferingFilterLayer batch)
             throws IOException, InterruptedException, ExecutionException {
-        Logger.getLogger(name.getMethodName())
-                .log(Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[] {
-                    serverFactory.getClass().getSimpleName(),
-                    clientFactory.getClass().getSimpleName(),
-                    batch
-                });
-        SSLEngine serverEngine = serverCtx.createSSLEngine();
+        Logger.getLogger(name).log(Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[] {
+            serverFactory.getClass().getSimpleName(), clientFactory.getClass().getSimpleName(), batch
+        });
+        SSLEngine serverEngine = SERVER_CTX.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = clientCtx.createSSLEngine();
+        SSLEngine clientEngine = CLIENT_CTX.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> clientStack = ProtocolStack.on(
@@ -522,7 +530,7 @@ public class SSLEngineFilterLayerTest {
 
         final IOBufferMatcher client = clientStack.get();
         final IOBufferMatcher server = serverStack.get();
-        int amount = fullTests ? 65536 * 4 : 16384;
+        int amount = FULL_TESTS ? 65536 * 4 : 16384;
         Future<Void> serverWork = selector.executorService().submit(new SequentialSender(server, amount, 13));
 
         serverWork.get();
@@ -539,20 +547,17 @@ public class SSLEngineFilterLayerTest {
         assertThat(client.asByteArray(), SequentialSender.matcher(amount));
     }
 
-    @Theory
-    public void bidiSendingBiggerAndBiggerBatches(
-            NetworkLayerFactory serverFactory, NetworkLayerFactory clientFactory, BatchSendBufferingFilterLayer batch)
+    @ParameterizedTest
+    @MethodSource("batches")
+    void bidiSendingBiggerAndBiggerBatches(BatchSendBufferingFilterLayer batch)
             throws IOException, InterruptedException, ExecutionException {
-        Logger.getLogger(name.getMethodName())
-                .log(Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[] {
-                    serverFactory.getClass().getSimpleName(),
-                    clientFactory.getClass().getSimpleName(),
-                    batch
-                });
-        SSLEngine serverEngine = serverCtx.createSSLEngine();
+        Logger.getLogger(name).log(Level.INFO, "Starting test with server {0} client {1} batch {2}", new Object[] {
+            serverFactory.getClass().getSimpleName(), clientFactory.getClass().getSimpleName(), batch
+        });
+        SSLEngine serverEngine = SERVER_CTX.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = clientCtx.createSSLEngine();
+        SSLEngine clientEngine = CLIENT_CTX.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         BatchSendBufferingFilterLayer clientBatch = batch.clone();
@@ -574,9 +579,9 @@ public class SSLEngineFilterLayerTest {
 
         final IOBufferMatcher client = clientStack.get();
         final IOBufferMatcher server = serverStack.get();
-        int clientAmount = fullTests ? 65536 * 4 : 16384;
+        int clientAmount = FULL_TESTS ? 65536 * 4 : 16384;
         Future<Void> clientWork = selector.executorService().submit(new SequentialSender(client, clientAmount, 11));
-        int serverAmount = fullTests ? 65536 * 4 : 16384;
+        int serverAmount = FULL_TESTS ? 65536 * 4 : 16384;
         Future<Void> serverWork = selector.executorService().submit(new SequentialSender(server, serverAmount, 13));
 
         clientWork.get();

@@ -26,10 +26,6 @@ package org.jenkinsci.remoting.protocol.cert;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -37,7 +33,6 @@ import java.security.Provider;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -50,32 +45,32 @@ import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class SSLContextRule implements TestRule {
+public class SSLContextExtension implements BeforeAllCallback, AfterAllCallback {
 
     private final List<KeyWithChain> keys;
 
-    private final List<X509CertificateRule> certificates;
+    private final List<X509CertificateExtension> certificates;
 
     private final String id;
-    private SSLContext context;
+    private SSLContext sslContext;
     private boolean validityChecking;
 
-    public SSLContextRule() {
+    public SSLContextExtension() {
         this("");
     }
 
-    public SSLContextRule(String id) {
+    public SSLContextExtension(String id) {
         this.keys = new ArrayList<>();
         this.certificates = new ArrayList<>();
         this.id = id;
     }
 
     private static KeyStore createKeyStore(
-            @CheckForNull List<X509CertificateRule> certificates,
+            @CheckForNull List<X509CertificateExtension> certificates,
             @CheckForNull List<KeyWithChain> keys,
             @NonNull char[] password)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
@@ -83,7 +78,7 @@ public class SSLContextRule implements TestRule {
         int id = 1;
         store.load(null, password);
         if (certificates != null) {
-            for (X509CertificateRule certificate : certificates) {
+            for (X509CertificateExtension certificate : certificates) {
                 store.setCertificateEntry("cert-" + id, certificate.certificate());
                 id++;
             }
@@ -101,6 +96,7 @@ public class SSLContextRule implements TestRule {
         return store;
     }
 
+    @SafeVarargs
     private static <TYPE, SUBTYPE extends TYPE> SUBTYPE findFirst(Class<SUBTYPE> type, TYPE... options) {
         if (options == null) {
             return null;
@@ -113,119 +109,99 @@ public class SSLContextRule implements TestRule {
         return null;
     }
 
-    public SSLContextRule as(RSAKeyPairRule key, X509CertificateRule... chain) {
+    public SSLContextExtension as(RSAKeyPairExtension key, X509CertificateExtension... chain) {
         this.keys.add(new KeyWithChain(key, chain));
         return this;
     }
 
-    public SSLContextRule trusting(X509CertificateRule certificate) {
+    public SSLContextExtension trusting(X509CertificateExtension certificate) {
         this.certificates.add(certificate);
         return this;
     }
 
-    public SSLContextRule withValidityChecking() {
+    public SSLContextExtension withValidityChecking() {
         this.validityChecking = true;
         return this;
     }
 
-    public SSLContextRule withoutValidityChecking() {
+    public SSLContextExtension withoutValidityChecking() {
         this.validityChecking = false;
         return this;
     }
 
     public SSLContext context() {
-        return context;
+        return sslContext;
     }
 
     public String getProtocol() {
-        return context.getProtocol();
+        return sslContext.getProtocol();
     }
 
     public Provider getProvider() {
-        return context.getProvider();
+        return sslContext.getProvider();
     }
 
     public SSLSocketFactory getSocketFactory() {
-        return context.getSocketFactory();
+        return sslContext.getSocketFactory();
     }
 
     public SSLServerSocketFactory getServerSocketFactory() {
-        return context.getServerSocketFactory();
+        return sslContext.getServerSocketFactory();
     }
 
     public SSLEngine createSSLEngine() {
-        return context.createSSLEngine();
+        return sslContext.createSSLEngine();
     }
 
     public SSLEngine createSSLEngine(String s, int i) {
-        return context.createSSLEngine(s, i);
+        return sslContext.createSSLEngine(s, i);
     }
 
     public SSLSessionContext getServerSessionContext() {
-        return context.getServerSessionContext();
+        return sslContext.getServerSessionContext();
     }
 
     public SSLSessionContext getClientSessionContext() {
-        return context.getClientSessionContext();
+        return sslContext.getClientSessionContext();
     }
 
     public SSLParameters getDefaultSSLParameters() {
-        return context.getDefaultSSLParameters();
+        return sslContext.getDefaultSSLParameters();
     }
 
     public SSLParameters getSupportedSSLParameters() {
-        return context.getSupportedSSLParameters();
+        return sslContext.getSupportedSSLParameters();
     }
 
     @Override
-    public Statement apply(final Statement base, Description description) {
-        Skip skip = description.getAnnotation(Skip.class);
-        if (skip != null
-                && (skip.value().length == 0 || Arrays.asList(skip.value()).contains(id))) {
-            return base;
-        }
-        return new Statement() {
-            @Override
-            public void evaluate() throws Throwable {
-                context = SSLContext.getInstance("TLS");
-                char[] password = "password".toCharArray();
-                KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-                kmf.init(createKeyStore(null, keys, password), password);
-                KeyManager[] keyManagers = kmf.getKeyManagers();
+    public void beforeAll(ExtensionContext context) throws Exception {
+        sslContext = SSLContext.getInstance("TLS");
+        char[] password = "password".toCharArray();
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(createKeyStore(null, keys, password), password);
+        KeyManager[] keyManagers = kmf.getKeyManagers();
 
-                final TrustManagerFactory tmf =
-                        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-                tmf.init(createKeyStore(certificates, null, password));
-                TrustManager[] trustManagers = new TrustManager[1];
-                trustManagers[0] = validityChecking
-                        ? new ValidityCheckingX509ExtendedTrustManager(
-                                findFirst(X509ExtendedTrustManager.class, tmf.getTrustManagers()))
-                        : findFirst(X509ExtendedTrustManager.class, tmf.getTrustManagers());
+        final TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(createKeyStore(certificates, null, password));
+        TrustManager[] trustManagers = new TrustManager[1];
+        trustManagers[0] = validityChecking
+                ? new ValidityCheckingX509ExtendedTrustManager(
+                        findFirst(X509ExtendedTrustManager.class, tmf.getTrustManagers()))
+                : findFirst(X509ExtendedTrustManager.class, tmf.getTrustManagers());
 
-                context.init(keyManagers, trustManagers, null);
-                try {
-                    base.evaluate();
-                } finally {
-                    context = null;
-                }
-            }
-        };
+        sslContext.init(keyManagers, trustManagers, null);
     }
 
-    /**
-     * Indicate the the rule should be skipped for the annotated tests.
-     */
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target({ElementType.METHOD, ElementType.TYPE})
-    public @interface Skip {
-        String[] value() default {};
+    @Override
+    public void afterAll(ExtensionContext context) {
+        sslContext = null;
     }
 
     private static class KeyWithChain {
-        private final RSAKeyPairRule key;
-        private final X509CertificateRule[] chain;
+        private final RSAKeyPairExtension key;
+        private final X509CertificateExtension[] chain;
 
-        public KeyWithChain(RSAKeyPairRule key, X509CertificateRule... chain) {
+        public KeyWithChain(RSAKeyPairExtension key, X509CertificateExtension... chain) {
             this.key = key;
             this.chain = chain;
         }

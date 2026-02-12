@@ -34,10 +34,11 @@ import org.objectweb.asm.ClassReader;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class PrefetchTest {
+class PrefetchTest {
+
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testPrefetch(ChannelRunner channelRunner) throws Exception {
+    void testPrefetch(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             VerifyTask vt = new VerifyTask();
             assertTrue(channel.preloadJar(vt, ClassReader.class));

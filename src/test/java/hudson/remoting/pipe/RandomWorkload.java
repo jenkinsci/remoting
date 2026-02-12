@@ -1,10 +1,11 @@
 package hudson.remoting.pipe;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Random;
-import org.junit.Assert;
 
 /**
  * Use {@link Random} with the fixed seed as the data stream to detect corruption.
@@ -13,7 +14,7 @@ import org.junit.Assert;
  *
  * @author Kohsuke Kawaguchi
  */
-public class RandomWorkload extends Assert implements Workload {
+public class RandomWorkload implements Workload {
     private final long size;
 
     /**

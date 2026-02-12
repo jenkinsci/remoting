@@ -5,6 +5,7 @@
  * @author Kohsuke Kawaguchi
  */
 public class TrafficAnalyzer {
+
     public static void main(String[] args) throws Exception {
         hudson.remoting.TrafficAnalyzer.main(args);
     }

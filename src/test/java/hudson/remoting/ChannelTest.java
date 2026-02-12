@@ -40,12 +40,13 @@ import org.jvnet.hudson.test.Issue;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ChannelTest {
+class ChannelTest {
+
     private static final Logger LOGGER = Logger.getLogger(ChannelTest.class.getName());
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testCapability(ChannelRunner channelRunner) throws Exception {
+    void testCapability(ChannelRunner channelRunner) throws Exception {
         assumeFalse(
                 channelRunner instanceof InProcessCompatibilityRunner,
                 "In-process runner does not support multi-classloader RPC");
@@ -55,7 +56,7 @@ public class ChannelTest {
     @Issue("JENKINS-9050")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testFailureInDeserialization(ChannelRunner channelRunner) throws Exception {
+    void testFailureInDeserialization(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final IOException e = assertThrows(IOException.class, () -> channel.call(new CallableImpl()));
             assertEquals("foobar", e.getCause().getCause().getMessage());
@@ -82,12 +83,12 @@ public class ChannelTest {
     @Issue("JENKINS-10424")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testExportCallerDeallocation(ChannelRunner channelRunner) throws Exception {
+    void testExportCallerDeallocation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             for (int i = 0; i < 100; i++) {
                 final GreeterImpl g = new GreeterImpl();
                 channel.call(new GreetingTask(g));
-                assertEquals(g.name, "Kohsuke");
+                assertEquals("Kohsuke", g.name);
                 assertFalse(
                         channel.exportedObjects.isExported(g),
                         "in this scenario, auto-unexport by the caller should kick in.");
@@ -101,12 +102,12 @@ public class ChannelTest {
     @Issue("JENKINS-10424")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testExportCalleeDeallocation(ChannelRunner channelRunner) throws Exception {
+    void testExportCalleeDeallocation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             for (int j = 0; j < 10; j++) {
                 final GreeterImpl g = new GreeterImpl();
                 channel.call(new GreetingTask(channel.export(Greeter.class, g)));
-                assertEquals(g.name, "Kohsuke");
+                assertEquals("Kohsuke", g.name);
                 boolean isExported = channel.exportedObjects.isExported(g);
                 if (!isExported) {
                     // it is unlikely but possible that GC happens on remote node
@@ -137,7 +138,7 @@ public class ChannelTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testGetSetProperty(ChannelRunner channelRunner) throws Exception {
+    void testGetSetProperty(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             channel.setProperty("foo", "bar");
             assertEquals("bar", channel.getProperty("foo"));
@@ -152,7 +153,7 @@ public class ChannelTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testWaitForRemoteProperty(ChannelRunner channelRunner) throws Exception {
+    void testWaitForRemoteProperty(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             Future<Void> f = channel.callAsync(new WaitForRemotePropertyCallable());
             assertEquals("bar", channel.waitForRemoteProperty("foo"));
@@ -206,7 +207,7 @@ public class ChannelTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testClassLoaderHolder(ChannelRunner channelRunner) throws Exception {
+    void testClassLoaderHolder(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             URLClassLoader ucl = new URLClassLoader(new URL[0]);
             ClassLoaderHolder h = channel.call(new Echo<>(new ClassLoaderHolder(ucl)));
@@ -232,7 +233,7 @@ public class ChannelTest {
     @Issue("JENKINS-39150")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testDiagnostics(ChannelRunner channelRunner) throws Exception {
+    void testDiagnostics(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof ForkRunner, "Can't call diagnostics on forked runners");
         channelRunner.withChannel(channel -> {
             StringWriter sw = new StringWriter();
@@ -247,7 +248,7 @@ public class ChannelTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testCallSiteStacktrace(ChannelRunner channelRunner) throws Exception {
+    void testCallSiteStacktrace(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final Exception e = assertThrows(Exception.class, () -> this.failRemotelyToBeWrappedLocally(channel));
             assertEquals("Local Nested", e.getMessage());
@@ -291,7 +292,7 @@ public class ChannelTest {
     @Issue("JENKINS-45023")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testShouldNotAcceptUserRequestsWhenIsBeingClosed(ChannelRunner channelRunner) throws Exception {
+    void testShouldNotAcceptUserRequestsWhenIsBeingClosed(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             // Create a sample request to the channel
             final Callable<Void, Exception> testPayload = new NeverEverCallable();
@@ -318,7 +319,7 @@ public class ChannelTest {
     @Issue("JENKINS-45294")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testShouldNotAcceptUserRPCRequestsWhenIsBeingClosed(ChannelRunner channelRunner) throws Exception {
+    void testShouldNotAcceptUserRPCRequestsWhenIsBeingClosed(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             Collection<String> src = new ArrayList<>();
             src.add("Hello");
@@ -490,7 +491,7 @@ public class ChannelTest {
     }
 
     @Test
-    public void isClosedChannelException() {
+    void isClosedChannelException() {
         assertThat(Channel.isClosedChannelException(null), is(false));
         assertThat(Channel.isClosedChannelException(new IOException()), is(false));
         assertThat(Channel.isClosedChannelException(new ClosedChannelException()), is(true));

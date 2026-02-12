@@ -1,7 +1,7 @@
 package hudson.remoting;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -12,10 +12,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ChannelFilterTest {
+class ChannelFilterTest {
+
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testFilter(ChannelRunner channelRunner) throws Exception {
+    void testFilter(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             channel.addLocalExecutionInterceptor(new CallableDecorator() {
                 @Override
@@ -56,7 +57,7 @@ public class ChannelFilterTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testBlacklisting(ChannelRunner channelRunner) throws Exception {
+    void testBlacklisting(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             channel.addLocalExecutionInterceptor(new CallableDecorator() {
                 @Override

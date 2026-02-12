@@ -1,13 +1,14 @@
 package org.jenkinsci.remoting.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class DurationFormatterTest {
+class DurationFormatterTest {
+
     @Test
-    public void typical() {
+    void typical() {
         assertEquals("1 second", DurationFormatter.format(Duration.ofSeconds(1)));
         assertEquals("2 seconds", DurationFormatter.format(Duration.ofSeconds(2)));
         assertEquals(

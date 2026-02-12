@@ -18,13 +18,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class RemoteInputStreamTest {
+class RemoteInputStreamTest {
+
     /**
      * Makes sure non-greedy RemoteInputStream is not completely dead on arrival.
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testNonGreedy(ChannelRunner channelRunner) throws Exception {
+    void testNonGreedy(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
             channel.call(new Read(new RemoteInputStream(in, RemoteInputStream.Flag.NOT_GREEDY), toBytes("1234")));
@@ -37,7 +38,7 @@ public class RemoteInputStreamTest {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testGreedy(ChannelRunner channelRunner) throws Exception {
+    void testGreedy(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
             channel.call(new Read(new RemoteInputStream(in, RemoteInputStream.Flag.GREEDY), toBytes("1234")));
@@ -79,7 +80,7 @@ public class RemoteInputStreamTest {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testGreedy2(ChannelRunner channelRunner) throws Exception {
+    void testGreedy2(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             ByteArrayInputStream in = new ByteArrayInputStream(toBytes("12345678"));
             final RemoteInputStream i = new RemoteInputStream(in, RemoteInputStream.Flag.GREEDY);
@@ -112,7 +113,7 @@ public class RemoteInputStreamTest {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testErrorPropagation(ChannelRunner channelRunner) throws Exception {
+    void testErrorPropagation(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             for (RemoteInputStream.Flag f : List.of(RemoteInputStream.Flag.GREEDY, RemoteInputStream.Flag.NOT_GREEDY)) {
                 InputStream in = new SequenceInputStream(

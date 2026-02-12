@@ -21,6 +21,7 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
@@ -120,6 +121,9 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     }
 
     @Override
+    @SuppressFBWarnings(
+            value = "NN_NAKED_NOTIFY",
+            justification = "TODO: change to mutable state likely happened elsewhere")
     public void flush() throws IOException {
         FastPipedInputStream s = sink();
         synchronized (s.buffer) {

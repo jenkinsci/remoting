@@ -47,15 +47,15 @@ import org.objectweb.asm.Opcodes;
  *
  * @author Kohsuke Kawaguchi
  */
-public class ClassRemotingTest {
+class ClassRemotingTest {
 
-    static final String TESTCALLABLE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestCallable";
-    static final String TESTLINKAGE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestLinkage";
+    private static final String TESTCALLABLE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestCallable";
+    private static final String TESTLINKAGE_TRANSFORMED_CLASSNAME = "hudson.rem0ting.TestLinkage";
 
     @Disabled("TODO flakes: Artificial testing interrupt.")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void test1(ChannelRunner channelRunner) throws Throwable {
+    void test1(ChannelRunner channelRunner) throws Throwable {
         channelRunner.withChannel(channel -> {
             // call a class that's only available on DummyClassLoader, so that on the remote channel
             // it will be fetched from this class loader and not from the system classloader.
@@ -74,7 +74,7 @@ public class ClassRemotingTest {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testRemoteProperty(ChannelRunner channelRunner) throws Exception {
+    void testRemoteProperty(ChannelRunner channelRunner) throws Exception {
         assumeFalse(
                 channelRunner instanceof InProcessCompatibilityRunner,
                 "this test cannot run in the compatibility mode without the multi-classloader serialization support,"
@@ -94,7 +94,7 @@ public class ClassRemotingTest {
     @Issue("JENKINS-6604")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testRaceCondition(ChannelRunner channelRunner) throws Throwable {
+    void testRaceCondition(ChannelRunner channelRunner) throws Throwable {
         channelRunner.withChannel(channel -> {
             DummyClassLoader parent = new DummyClassLoader(TestCallable.class);
             DummyClassLoader child1 = new DummyClassLoader(parent, TestCallable.Sub.class);
@@ -119,7 +119,7 @@ public class ClassRemotingTest {
     @Disabled("TODO flakes: Artificial testing interrupt.")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testClassCreation_TestCallable(ChannelRunner channelRunner) throws Exception {
+    void testClassCreation_TestCallable(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             DummyClassLoader dummyClassLoader = new DummyClassLoader(TestCallable.class);
             final Callable<Object, Exception> callable =
@@ -137,7 +137,7 @@ public class ClassRemotingTest {
 
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testClassCreation_TestLinkage(ChannelRunner channelRunner) throws Exception {
+    void testClassCreation_TestLinkage(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
             final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
@@ -156,7 +156,7 @@ public class ClassRemotingTest {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testClassCreation_TestStaticResourceReference(ChannelRunner channelRunner) throws Exception {
+    void testClassCreation_TestStaticResourceReference(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticResourceReference.class);
             final Callable<Object, Exception> callable =
@@ -172,7 +172,7 @@ public class ClassRemotingTest {
     @Issue("JENKINS-61103")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testClassCreation_TestFindResources(ChannelRunner channelRunner) throws Exception {
+    void testClassCreation_TestFindResources(ChannelRunner channelRunner) throws Exception {
         channelRunner.withChannel(channel -> {
             final DummyClassLoader dcl = new DummyClassLoader(TestStaticGetResources.class);
             final Callable<Object, Exception> callable =
@@ -238,7 +238,7 @@ public class ClassRemotingTest {
         @Override
         public Object call() throws IOException {
             Object o = getOpenChannelOrFail().getRemoteProperty("test");
-            assertEquals(o.getClass().getName(), TESTCALLABLE_TRANSFORMED_CLASSNAME);
+            assertEquals(TESTCALLABLE_TRANSFORMED_CLASSNAME, o.getClass().getName());
             assertNotSame(Channel.class.getClassLoader(), o.getClass().getClassLoader());
             assertInstanceOf(RemoteClassLoader.class, o.getClass().getClassLoader());
             return null;

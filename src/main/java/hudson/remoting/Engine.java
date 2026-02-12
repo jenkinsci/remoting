@@ -1039,7 +1039,7 @@ public class Engine extends Thread {
                 agentTrustManager.setDelegate(delegate);
 
                 events.status("Handshaking");
-                Socket jnlpSocket = connectTcp(endpoint);
+                Socket jnlpSocket = null;
                 Channel channel = null;
 
                 try {
@@ -1050,9 +1050,6 @@ public class Engine extends Thread {
                             events.status("Protocol " + protocol.getName() + " is not enabled, skipping");
                             continue;
                         }
-                        if (jnlpSocket == null) {
-                            jnlpSocket = connectTcp(endpoint);
-                        }
                         if (!endpoint.isProtocolSupported(protocol.getName())) {
                             events.status("Server reports protocol " + protocol.getName() + " not supported, skipping");
                             continue;
@@ -1060,6 +1057,7 @@ public class Engine extends Thread {
                         triedAtLeastOneProtocol = true;
                         events.status("Trying protocol: " + protocol.getName());
                         try {
+                            jnlpSocket = connectTcp(endpoint);
                             channel = protocol.connect(
                                             jnlpSocket,
                                             headers,
@@ -1083,8 +1081,14 @@ public class Engine extends Thread {
                         }
 
                         // On failure form a new connection.
-                        jnlpSocket.close();
-                        jnlpSocket = null;
+                        if (jnlpSocket != null) {
+                            try {
+                                jnlpSocket.close();
+                            } catch (IOException e) {
+                                events.status("Failed to close socket", e);
+                            }
+                            jnlpSocket = null;
+                        }
                     }
 
                     // If no protocol worked.

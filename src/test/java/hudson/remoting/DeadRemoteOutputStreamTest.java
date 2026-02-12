@@ -25,7 +25,7 @@ public class DeadRemoteOutputStreamTest implements Serializable {
      */
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
-    public void testDeadWriterNotification(ChannelRunner channelRunner) throws Exception {
+    void testDeadWriterNotification(ChannelRunner channelRunner) throws Exception {
         assumeFalse(channelRunner instanceof InProcessCompatibilityRunner);
         channelRunner.withChannel(channel -> {
             final OutputStream os = new RemoteOutputStream(new OutputStream() {

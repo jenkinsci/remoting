@@ -28,7 +28,7 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import hudson.remoting.Callable;
 import hudson.remoting.Channel;
@@ -46,9 +46,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLEngine;
 import org.jenkinsci.remoting.RoleChecker;
-import org.jenkinsci.remoting.protocol.cert.RSAKeyPairRule;
-import org.jenkinsci.remoting.protocol.cert.SSLContextRule;
-import org.jenkinsci.remoting.protocol.cert.X509CertificateRule;
+import org.jenkinsci.remoting.protocol.cert.RSAKeyPairExtension;
+import org.jenkinsci.remoting.protocol.cert.SSLContextExtension;
+import org.jenkinsci.remoting.protocol.cert.X509CertificateExtension;
 import org.jenkinsci.remoting.protocol.impl.AckFilterLayer;
 import org.jenkinsci.remoting.protocol.impl.BIONetworkLayer;
 import org.jenkinsci.remoting.protocol.impl.ChannelApplicationLayer;
@@ -57,36 +57,34 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.protocol.impl.HoldFilterLayer;
 import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
 import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class ProtocolStackImplTest {
+@Timeout(value = 60, unit = TimeUnit.SECONDS)
+class ProtocolStackImplTest {
 
-    @Rule
-    public IOHubRule selector = new IOHubRule();
+    @RegisterExtension
+    private final IOHubExtension selector = new IOHubExtension();
 
-    @Rule
-    public TestName name = new TestName();
+    @Order(0)
+    @RegisterExtension
+    private static final RSAKeyPairExtension KEYS = new RSAKeyPairExtension();
 
-    private static RSAKeyPairRule keys = new RSAKeyPairRule();
-    private static X509CertificateRule certificate = X509CertificateRule.selfSigned(keys);
-    private static SSLContextRule context =
-            new SSLContextRule().as(keys, certificate).trusting(certificate);
+    @Order(1)
+    @RegisterExtension
+    private static final X509CertificateExtension CERTIFICATE = X509CertificateExtension.selfSigned(KEYS);
 
-    @ClassRule
-    public static RuleChain staticCtx =
-            RuleChain.outerRule(keys).around(certificate).around(context);
-
-    @Rule
-    public RuleChain ctx = RuleChain.outerRule(new RepeatRule()).around(new Timeout(60, TimeUnit.SECONDS));
+    @Order(2)
+    @RegisterExtension
+    private static final SSLContextExtension CONTEXT =
+            new SSLContextExtension().as(KEYS, CERTIFICATE).trusting(CERTIFICATE);
 
     @Test
-    public void basicReadthrough() throws Exception {
+    void basicReadthrough() throws Exception {
         Pipe input = Pipe.open();
         Pipe output = Pipe.open();
 
@@ -106,7 +104,7 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void basicWritethrough() throws Exception {
+    void basicWritethrough() throws Exception {
         Pipe input = Pipe.open();
         Pipe output = Pipe.open();
 
@@ -137,7 +135,7 @@ public class ProtocolStackImplTest {
      * {@link Pipe#sink()} will just throw an {@link IOException} with {@literal Broken pipe} as the message.
      */
     @Test
-    public void pipeCloseSource() throws Exception {
+    void pipeCloseSource() throws Exception {
         Pipe pipe = Pipe.open();
         assertThat(pipe.source().isOpen(), is(true));
         assertThat(pipe.sink().isOpen(), is(true));
@@ -161,7 +159,7 @@ public class ProtocolStackImplTest {
      * {@link Pipe#source()} will just return {@literal -1} from the {@link Pipe.SourceChannel#read(ByteBuffer)}.
      */
     @Test
-    public void pipeCloseSink() throws Exception {
+    void pipeCloseSink() throws Exception {
         Pipe pipe = Pipe.open();
         assertThat(pipe.source().isOpen(), is(true));
         assertThat(pipe.sink().isOpen(), is(true));
@@ -181,7 +179,7 @@ public class ProtocolStackImplTest {
      * all the buffered data has been read.
      */
     @Test
-    public void pipeCloseSinkAfterWrite() throws Exception {
+    void pipeCloseSinkAfterWrite() throws Exception {
         Pipe pipe = Pipe.open();
         assertThat(pipe.source().isOpen(), is(true));
         assertThat(pipe.sink().isOpen(), is(true));
@@ -198,7 +196,7 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void pipeBasicBackToBack() throws Exception {
+    void pipeBasicBackToBack() throws Exception {
         Pipe eastToWest = Pipe.open();
         Pipe westToEast = Pipe.open();
         ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
@@ -220,7 +218,7 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void socketBasicBackToBack() throws Exception {
+    void socketBasicBackToBack() throws Exception {
         ServerSocketChannel eastServer = ServerSocketChannel.open();
         eastServer.socket().bind(new InetSocketAddress(0));
         SocketChannel westChannel = SocketChannel.open();
@@ -245,7 +243,7 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void pipeBasicBackToBackWithAck() throws Exception {
+    void pipeBasicBackToBackWithAck() throws Exception {
         Pipe eastToWest = Pipe.open();
         Pipe westToEast = Pipe.open();
         ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
@@ -270,7 +268,7 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void socketBasicBackToBackWithAck() throws Exception {
+    void socketBasicBackToBackWithAck() throws Exception {
         ServerSocketChannel eastServer = ServerSocketChannel.open();
         eastServer.socket().bind(new InetSocketAddress(0));
         SocketChannel westChannel = SocketChannel.open();
@@ -298,13 +296,13 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void pipeBasicBackToBackWithAckSSLEngine() throws Exception {
+    void pipeBasicBackToBackWithAckSSLEngine() throws Exception {
         Pipe eastToWest = Pipe.open();
         Pipe westToEast = Pipe.open();
-        SSLEngine westEngine = context.createSSLEngine();
+        SSLEngine westEngine = CONTEXT.createSSLEngine();
         westEngine.setUseClientMode(false);
         westEngine.setNeedClientAuth(true);
-        SSLEngine eastEngine = context.createSSLEngine();
+        SSLEngine eastEngine = CONTEXT.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
@@ -331,16 +329,16 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void socketBasicBackToBackWithAckSSLEngine() throws Exception {
+    void socketBasicBackToBackWithAckSSLEngine() throws Exception {
         ServerSocketChannel eastServer = ServerSocketChannel.open();
         eastServer.socket().bind(new InetSocketAddress(0));
         SocketChannel westChannel = SocketChannel.open();
         westChannel.connect(eastServer.getLocalAddress());
         SocketChannel eastChannel = eastServer.accept();
-        SSLEngine westEngine = context.createSSLEngine();
+        SSLEngine westEngine = CONTEXT.createSSLEngine();
         westEngine.setUseClientMode(false);
         westEngine.setNeedClientAuth(true);
-        SSLEngine eastEngine = context.createSSLEngine();
+        SSLEngine eastEngine = CONTEXT.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
@@ -367,13 +365,13 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void pipeBasicBackToBackWithAckSSLEngineHeaders() throws Exception {
+    void pipeBasicBackToBackWithAckSSLEngineHeaders() throws Exception {
         Pipe eastToWest = Pipe.open();
         Pipe westToEast = Pipe.open();
-        SSLEngine westEngine = context.createSSLEngine();
+        SSLEngine westEngine = CONTEXT.createSSLEngine();
         westEngine.setUseClientMode(false);
         westEngine.setNeedClientAuth(true);
-        SSLEngine eastEngine = context.createSSLEngine();
+        SSLEngine eastEngine = CONTEXT.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
@@ -402,16 +400,16 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void socketBasicBackToBackWithAckSSLEngineHeaders() throws Exception {
+    void socketBasicBackToBackWithAckSSLEngineHeaders() throws Exception {
         ServerSocketChannel eastServer = ServerSocketChannel.open();
         eastServer.socket().bind(new InetSocketAddress(0));
         SocketChannel westChannel = SocketChannel.open();
         westChannel.connect(eastServer.getLocalAddress());
         SocketChannel eastChannel = eastServer.accept();
-        SSLEngine westEngine = context.createSSLEngine();
+        SSLEngine westEngine = CONTEXT.createSSLEngine();
         westEngine.setUseClientMode(false);
         westEngine.setNeedClientAuth(true);
-        SSLEngine eastEngine = context.createSSLEngine();
+        SSLEngine eastEngine = CONTEXT.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
         ProtocolStack<IOBufferMatcher> east = ProtocolStack.on(
@@ -440,13 +438,13 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void pipeChannelFullProtocolBIO() throws Exception {
+    void pipeChannelFullProtocolBIO() throws Exception {
         Pipe eastToWest = Pipe.open();
         Pipe westToEast = Pipe.open();
-        SSLEngine westEngine = context.createSSLEngine();
+        SSLEngine westEngine = CONTEXT.createSSLEngine();
         westEngine.setUseClientMode(false);
         westEngine.setNeedClientAuth(true);
-        SSLEngine eastEngine = context.createSSLEngine();
+        SSLEngine eastEngine = CONTEXT.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
         ProtocolStack<Future<Channel>> east = ProtocolStack.on(
@@ -469,16 +467,16 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void socketChannelFullProtocolBIO() throws Exception {
+    void socketChannelFullProtocolBIO() throws Exception {
         ServerSocketChannel eastServer = ServerSocketChannel.open();
         eastServer.socket().bind(new InetSocketAddress(0));
         SocketChannel westChannel = SocketChannel.open();
         westChannel.connect(eastServer.getLocalAddress());
         SocketChannel eastChannel = eastServer.accept();
-        SSLEngine westEngine = context.createSSLEngine();
+        SSLEngine westEngine = CONTEXT.createSSLEngine();
         westEngine.setUseClientMode(false);
         westEngine.setNeedClientAuth(true);
-        SSLEngine eastEngine = context.createSSLEngine();
+        SSLEngine eastEngine = CONTEXT.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
         ProtocolStack<Future<Channel>> east = ProtocolStack.on(
@@ -503,13 +501,13 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void pipeFullProtocolNIO() throws Exception {
+    void pipeFullProtocolNIO() throws Exception {
         Pipe eastToWest = Pipe.open();
         Pipe westToEast = Pipe.open();
-        SSLEngine westEngine = context.createSSLEngine();
+        SSLEngine westEngine = CONTEXT.createSSLEngine();
         westEngine.setUseClientMode(false);
         westEngine.setNeedClientAuth(true);
-        SSLEngine eastEngine = context.createSSLEngine();
+        SSLEngine eastEngine = CONTEXT.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
         ProtocolStack<Future<Channel>> east = ProtocolStack.on(
@@ -532,16 +530,16 @@ public class ProtocolStackImplTest {
     }
 
     @Test
-    public void socketChannelFullProtocolNIO() throws Exception {
+    void socketChannelFullProtocolNIO() throws Exception {
         ServerSocketChannel eastServer = ServerSocketChannel.open();
         eastServer.socket().bind(new InetSocketAddress(0));
         SocketChannel westChannel = SocketChannel.open();
         westChannel.connect(eastServer.getLocalAddress());
         SocketChannel eastChannel = eastServer.accept();
-        SSLEngine westEngine = context.createSSLEngine();
+        SSLEngine westEngine = CONTEXT.createSSLEngine();
         westEngine.setUseClientMode(false);
         westEngine.setNeedClientAuth(true);
-        SSLEngine eastEngine = context.createSSLEngine();
+        SSLEngine eastEngine = CONTEXT.createSSLEngine();
         eastEngine.setUseClientMode(true);
 
         ProtocolStack<Future<Channel>> east = ProtocolStack.on(
@@ -563,15 +561,14 @@ public class ProtocolStackImplTest {
         east.get().get().close();
     }
 
-    @Test
-    @Repeat(16)
-    public void pipeChannelFullProtocolNIO_clientRejects() throws Exception {
+    @RepeatedTest(16)
+    void pipeChannelFullProtocolNIO_clientRejects() throws Exception {
         Pipe clientToServer = Pipe.open();
         Pipe serverToClient = Pipe.open();
-        SSLEngine serverEngine = context.createSSLEngine();
+        SSLEngine serverEngine = CONTEXT.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = context.createSSLEngine();
+        SSLEngine clientEngine = CONTEXT.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<Future<Channel>> client = ProtocolStack.on(
@@ -590,33 +587,32 @@ public class ProtocolStackImplTest {
                 .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"), headers -> {}))
                 .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        final ExecutionException ce =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException ce = assertThrows(
+                ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(ce.getCause(), instanceOf(ConnectionRefusalException.class));
 
-        final ExecutionException se =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException se = assertThrows(
+                ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(
                 se.getCause(),
                 anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
     }
 
-    @Test
-    @Repeat(16)
-    public void socketChannelFullProtocolNIO_clientRejects() throws Exception {
+    @RepeatedTest(16)
+    void socketChannelFullProtocolNIO_clientRejects() throws Exception {
         ServerSocketChannel serverServerSocketChannel = ServerSocketChannel.open();
         serverServerSocketChannel.socket().bind(new InetSocketAddress(0));
         SocketChannel clientSocketChannel = SocketChannel.open();
         clientSocketChannel.connect(serverServerSocketChannel.getLocalAddress());
         SocketChannel serverSocketChannel = serverServerSocketChannel.accept();
-        SSLEngine serverEngine = context.createSSLEngine();
+        SSLEngine serverEngine = CONTEXT.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = context.createSSLEngine();
+        SSLEngine clientEngine = CONTEXT.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<Future<Channel>> client = ProtocolStack.on(
@@ -635,30 +631,29 @@ public class ProtocolStackImplTest {
                 .filter(new ConnectionHeadersFilterLayer(Map.of("id", "server"), headers -> {}))
                 .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        final ExecutionException ce =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException ce = assertThrows(
+                ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(ce.getCause(), instanceOf(ConnectionRefusalException.class));
 
-        final ExecutionException se =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException se = assertThrows(
+                ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(
                 se.getCause(),
                 anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
     }
 
-    @Test
-    @Repeat(16)
-    public void pipeChannelFullProtocolNIO_serverRejects() throws Exception {
+    @RepeatedTest(16)
+    void pipeChannelFullProtocolNIO_serverRejects() throws Exception {
         Pipe clientToServer = Pipe.open();
         Pipe serverToClient = Pipe.open();
-        SSLEngine serverEngine = context.createSSLEngine();
+        SSLEngine serverEngine = CONTEXT.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = context.createSSLEngine();
+        SSLEngine clientEngine = CONTEXT.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<Future<Channel>> client = ProtocolStack.on(
@@ -677,33 +672,32 @@ public class ProtocolStackImplTest {
                 }))
                 .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        final ExecutionException ce =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException ce = assertThrows(
+                ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(
                 ce.getCause(),
                 anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
 
-        final ExecutionException se =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException se = assertThrows(
+                ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(se.getCause(), instanceOf(ConnectionRefusalException.class));
     }
 
-    @Test
-    @Repeat(16)
-    public void socketChannelFullProtocolNIO_serverRejects() throws Exception {
+    @RepeatedTest(16)
+    void socketChannelFullProtocolNIO_serverRejects() throws Exception {
         ServerSocketChannel serverServerSocketChannel = ServerSocketChannel.open();
         serverServerSocketChannel.socket().bind(new InetSocketAddress(0));
         SocketChannel clientSocketChannel = SocketChannel.open();
         clientSocketChannel.connect(serverServerSocketChannel.getLocalAddress());
         SocketChannel serverSocketChannel = serverServerSocketChannel.accept();
-        SSLEngine serverEngine = context.createSSLEngine();
+        SSLEngine serverEngine = CONTEXT.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = context.createSSLEngine();
+        SSLEngine clientEngine = CONTEXT.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         ProtocolStack<Future<Channel>> client = ProtocolStack.on(
@@ -722,31 +716,31 @@ public class ProtocolStackImplTest {
                 }))
                 .build(new ChannelApplicationLayer(selector.executorService(), null));
 
-        final ExecutionException ce =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException ce = assertThrows(
+                ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(
                 ce.getCause(),
                 anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
 
-        final ExecutionException se =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException se = assertThrows(
+                ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(se.getCause(), instanceOf(ConnectionRefusalException.class));
     }
 
-    @Ignore("TODO flake: ConnectionRefusal Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
-    @Test
-    @Repeat(16)
-    public void pipeChannelFullProtocolNIO_invalidAck() throws Exception {
+    @Disabled(
+            "TODO flake: ConnectionRefusal Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
+    @RepeatedTest(16)
+    void pipeChannelFullProtocolNIO_invalidAck() throws Exception {
         Pipe clientToServer = Pipe.open();
         Pipe serverToClient = Pipe.open();
-        SSLEngine serverEngine = context.createSSLEngine();
+        SSLEngine serverEngine = CONTEXT.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = context.createSSLEngine();
+        SSLEngine clientEngine = CONTEXT.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         HoldFilterLayer clientHold = new HoldFilterLayer();
@@ -769,37 +763,36 @@ public class ProtocolStackImplTest {
         clientHold.release();
         serverHold.release();
 
-        final ExecutionException ce =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException ce = assertThrows(
+                ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(
                 ce.getCause(),
                 anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
 
-        final ExecutionException se =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException se = assertThrows(
+                ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(
                 se.getCause(),
                 anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
     }
 
-    @Ignore(
+    @Disabled(
             "TODO flake: ConnectionRefusalException: Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
-    @Test
-    @Repeat(16)
-    public void socketChannelFullProtocolNIO_invalidAck() throws Exception {
+    @RepeatedTest(16)
+    void socketChannelFullProtocolNIO_invalidAck() throws Exception {
         ServerSocketChannel serverServerSocketChannel = ServerSocketChannel.open();
         serverServerSocketChannel.socket().bind(new InetSocketAddress(0));
         SocketChannel clientSocketChannel = SocketChannel.open();
         clientSocketChannel.connect(serverServerSocketChannel.getLocalAddress());
         SocketChannel serverSocketChannel = serverServerSocketChannel.accept();
-        SSLEngine serverEngine = context.createSSLEngine();
+        SSLEngine serverEngine = CONTEXT.createSSLEngine();
         serverEngine.setUseClientMode(false);
         serverEngine.setNeedClientAuth(true);
-        SSLEngine clientEngine = context.createSSLEngine();
+        SSLEngine clientEngine = CONTEXT.createSSLEngine();
         clientEngine.setUseClientMode(true);
 
         HoldFilterLayer clientHold = new HoldFilterLayer();
@@ -822,18 +815,18 @@ public class ProtocolStackImplTest {
         clientHold.release();
         serverHold.release();
 
-        final ExecutionException ce =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> client.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException ce = assertThrows(
+                ExecutionException.class,
+                () -> client.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(
                 ce.getCause(),
                 anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
 
-        final ExecutionException se =
-                assertThrows("Expected Connection refusal", ExecutionException.class, () -> server.get()
-                        .get()
-                        .call(new ProbeCallable()));
+        final ExecutionException se = assertThrows(
+                ExecutionException.class,
+                () -> server.get().get().call(new ProbeCallable()),
+                "Expected Connection refusal");
         assertThat(
                 se.getCause(),
                 anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));

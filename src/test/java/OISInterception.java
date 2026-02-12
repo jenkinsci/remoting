@@ -12,6 +12,7 @@ import java.util.Set;
  * @author Kohsuke Kawaguchi
  */
 public class OISInterception {
+
     public static void main(String[] args) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {

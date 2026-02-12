@@ -31,11 +31,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class FastByteBufferQueueInputStreamTest {
+class FastByteBufferQueueInputStreamTest {
+
     @Test
-    public void readAll() throws Exception {
+    void readAll() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -46,7 +47,7 @@ public class FastByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void readLimit() throws Exception {
+    void readLimit() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -57,7 +58,7 @@ public class FastByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void readSome() throws Exception {
+    void readSome() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -68,7 +69,7 @@ public class FastByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void readBytes() throws Exception {
+    void readBytes() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -86,7 +87,7 @@ public class FastByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void readBytesOffset() throws Exception {
+    void readBytesOffset() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -108,7 +109,7 @@ public class FastByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void skipRead() throws Exception {
+    void skipRead() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);
@@ -132,7 +133,7 @@ public class FastByteBufferQueueInputStreamTest {
     }
 
     @Test
-    public void markRead() throws Exception {
+    void markRead() throws Exception {
         String str = "AbCdEfGhIjKlMnOpQrStUvWxYz";
 
         ByteBufferQueue queue = new ByteBufferQueue(10);

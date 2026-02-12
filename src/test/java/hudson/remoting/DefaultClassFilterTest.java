@@ -27,9 +27,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
@@ -37,15 +39,14 @@ import org.apache.commons.io.IOUtils;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-public class DefaultClassFilterTest {
+class DefaultClassFilterTest {
 
     /** Some classes that should be matched by the default class filter */
-    private static final List<String> defaultBadClasses = Arrays.asList(
+    private static final List<String> DEFAULT_BAD_CLASSES = Arrays.asList(
             "org.codehaus.groovy.runtime.Bob",
             "org.apache.commons.collections.functors.Wibble",
             "org.apache.xalan.Bogus",
@@ -53,18 +54,18 @@ public class DefaultClassFilterTest {
             "org.springframework.core.SomeClass",
             "org.springframework.wibble.ExceptionHandler");
     /** Some classes that should not be matched by the default class filter */
-    private static final List<String> defaultOKClasses = Arrays.asList(
+    private static final List<String> DEFAULT_OK_CLASSES = Arrays.asList(
             "java.lang.String",
             "java.lang.Object",
             "java.util.ArrayList",
             "org.springframework.core.NestedRuntimeException",
             "org.springframework.a.b.c.yada.SomeSuperException");
 
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
+    @TempDir
+    private File folder;
 
-    @After
-    public void clearProperty() {
+    @AfterEach
+    void afterEach() {
         setOverrideProperty(null);
     }
 
@@ -72,14 +73,14 @@ public class DefaultClassFilterTest {
      * Checks that the defaults are loaded when no override is provided.
      */
     @Test
-    public void testDefaultsNoOverride() {
+    void testDefaultsNoOverride() {
         assertThat(
                 "Default blacklist is not blacklisting some classes",
-                defaultBadClasses,
+                DEFAULT_BAD_CLASSES,
                 everyItem(is(BlackListMatcher.blacklisted())));
         assertThat(
                 "Default blacklist is not allowing some classes",
-                defaultOKClasses,
+                DEFAULT_OK_CLASSES,
                 everyItem(is(not(BlackListMatcher.blacklisted()))));
     }
 
@@ -87,9 +88,9 @@ public class DefaultClassFilterTest {
      * Checks that the overrides are loaded when the property is provided and the file exists.
      */
     @Test
-    public void testDefaultsOverrideExists() throws Exception {
+    void testDefaultsOverrideExists() throws Exception {
         List<String> badClasses = Arrays.asList("eric.Clapton", "john.winston.ono.Lennon", "jimmy.Page");
-        File f = folder.newFile("overrides.txt");
+        File f = newFile(folder, "overrides.txt");
         try (FileOutputStream fos = new FileOutputStream(f)) {
             for (String s : badClasses) {
                 IOUtils.write(s, fos, StandardCharsets.UTF_8);
@@ -99,30 +100,28 @@ public class DefaultClassFilterTest {
         setOverrideProperty(f.getAbsolutePath());
         assertThat(
                 "Default blacklist should not be used",
-                defaultBadClasses,
+                DEFAULT_BAD_CLASSES,
                 everyItem(is(not(BlackListMatcher.blacklisted()))));
         assertThat("Custom blacklist should be used", badClasses, everyItem(is(BlackListMatcher.blacklisted())));
         assertThat(
                 "Custom blacklist is not allowing some classes",
-                defaultOKClasses,
+                DEFAULT_OK_CLASSES,
                 everyItem(is(not(BlackListMatcher.blacklisted()))));
     }
 
     /**
      * Checks that if given an invalid pattern in the overrides then the defaults are used.
      */
-    @Test(expected = Error.class)
-    public void testDefaultsAreUsedIfOverridesAreGarbage() throws Exception {
-        /* initialize ClassFilter class to avoid `java.lang.NoClassDefFoundError` */
+    @Test
+    void testDefaultsAreUsedIfOverridesAreGarbage() throws Exception {
         try {
             ClassFilter.createDefaultInstance();
-            clearProperty();
+            setOverrideProperty(null);
         } catch (Throwable t) {
             System.err.println("First initialization: " + t.getMessage());
         }
-
         List<String> badClasses = List.of("Z{100,0}" /* min > max for repetition */);
-        File f = folder.newFile("overrides.txt");
+        File f = newFile(folder, "overrides.txt");
         try (FileOutputStream fos = new FileOutputStream(f)) {
             for (String s : badClasses) {
                 IOUtils.write(s, fos, StandardCharsets.UTF_8);
@@ -130,18 +129,16 @@ public class DefaultClassFilterTest {
             }
         }
         setOverrideProperty(f.getAbsolutePath());
-
-        ClassFilter.createDefaultInstance();
+        assertThrows(Error.class, ClassFilter::createDefaultInstance);
     }
 
     /**
      * Checks that the defaults are loaded when the override property is provided and the file does not exist.
      */
-    @Test(expected = Error.class)
-    public void testDefaultsRemainWhenOverrideDoesExists() throws Exception {
-        setOverrideProperty(
-                folder.getRoot().toString() + "/DO_NOT_CREATE_THIS_FILE_OR_ELSE_BAD_THINGS_WILL_HAPPEN_TO_YOU");
-        ClassFilter.createDefaultInstance();
+    @Test
+    void testDefaultsRemainWhenOverrideDoesExists() {
+        setOverrideProperty(folder + "/DO_NOT_CREATE_THIS_FILE_OR_ELSE_BAD_THINGS_WILL_HAPPEN_TO_YOU");
+        assertThrows(Error.class, ClassFilter::createDefaultInstance);
     }
 
     public static void setOverrideProperty(String value) {
@@ -180,5 +177,11 @@ public class DefaultClassFilterTest {
         public void describeTo(Description description) {
             description.appendText("blacklisted");
         }
+    }
+
+    private static File newFile(File parent, String child) throws IOException {
+        File result = new File(parent, child);
+        result.createNewFile();
+        return result;
     }
 }

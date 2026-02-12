@@ -29,13 +29,13 @@ import java.security.NoSuchAlgorithmException;
 import javax.crypto.interfaces.DHPrivateKey;
 import javax.crypto.interfaces.DHPublicKey;
 
-public class DHKeyPairRule extends KeyPairRule<DHPublicKey, DHPrivateKey> {
+public class DHKeyPairExtension extends KeyPairExtension<DHPublicKey, DHPrivateKey> {
 
-    public DHKeyPairRule() {
+    public DHKeyPairExtension() {
         super("");
     }
 
-    public DHKeyPairRule(String id) {
+    public DHKeyPairExtension(String id) {
         super(id);
     }
 

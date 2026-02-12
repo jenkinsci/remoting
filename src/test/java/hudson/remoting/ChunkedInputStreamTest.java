@@ -1,5 +1,8 @@
 package hudson.remoting;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.remoting.pipe.RandomWorkload;
 import hudson.remoting.pipe.Workload;
@@ -13,23 +16,22 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import org.jenkinsci.remoting.nio.FifoBuffer;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Kohsuke Kawaguchi
  */
-public class ChunkedInputStreamTest extends Assert {
+class ChunkedInputStreamTest {
 
-    FifoBuffer buf = new FifoBuffer(53, 1024 * 1024);
-    ChunkedInputStream i = new ChunkedInputStream(buf.getInputStream());
-    ChunkedOutputStream o = new ChunkedOutputStream(37, buf.getOutputStream());
+    private final FifoBuffer buf = new FifoBuffer(53, 1024 * 1024);
+    private final ChunkedInputStream i = new ChunkedInputStream(buf.getInputStream());
+    private final ChunkedOutputStream o = new ChunkedOutputStream(37, buf.getOutputStream());
 
-    ExecutorService es = Executors.newFixedThreadPool(2);
+    private final ExecutorService es = Executors.newFixedThreadPool(2);
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void afterEach() {
         es.shutdown();
     }
 
@@ -37,12 +39,12 @@ public class ChunkedInputStreamTest extends Assert {
      * Just copy 10MB of random data.
      */
     @Test
-    public void tenMegaCopy() throws Exception {
+    void tenMegaCopy() throws Exception {
         test(new RandomWorkload(10 * 1024 * 1024), i, new AutoChunkedOutputStream(o));
     }
 
     @Test
-    public void boundaryPositionCheck() throws Exception {
+    void boundaryPositionCheck() throws Exception {
         test(
                 new Workload() {
                     int size = 1024;

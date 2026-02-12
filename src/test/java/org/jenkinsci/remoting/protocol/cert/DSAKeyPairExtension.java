@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2017 CloudBees, Inc.
+ * Copyright (c) 2016, CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,37 +21,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.jenkinsci.remoting.engine;
+package org.jenkinsci.remoting.protocol.cert;
 
-import org.junit.rules.ExternalResource;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.DSAPrivateKey;
+import java.security.interfaces.DSAPublicKey;
 
-/**
- * Contains automatic state reset for {@link WorkDirManager}.
- * @author Oleg Nenashev
- */
-public class WorkDirManagerRule extends ExternalResource {
+public class DSAKeyPairExtension extends KeyPairExtension<DSAPublicKey, DSAPrivateKey> {
 
-    WorkDirManager instance;
+    public DSAKeyPairExtension() {
+        super("");
+    }
 
-    public WorkDirManager getInstance() {
-        return instance;
+    public DSAKeyPairExtension(String id) {
+        super(id);
     }
 
     @Override
-    public Statement apply(Statement base, Description description) {
-        instance = WorkDirManager.getInstance();
-        return super.apply(base, description);
-    }
-
-    @Override
-    protected void after() {
-        WorkDirManager.reset();
-    }
-
-    @Override
-    protected void before() {
-        WorkDirManager.reset();
+    protected KeyPair generateKeyPair() throws NoSuchAlgorithmException {
+        KeyPairGenerator gen = KeyPairGenerator.getInstance("DSA");
+        gen.initialize(1024); // maximum supported by JVM with export restrictions
+        return gen.generateKeyPair();
     }
 }

@@ -25,13 +25,13 @@
 package org.jenkinsci.remoting.engine;
 
 import java.net.Inet6Address;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public final class JnlpAgentEndpointResolverTest {
+class JnlpAgentEndpointResolverTest {
 
     /** @see Inet6Address */
     @Test
-    public void getResolvedHttpProxyAddressIPv6() throws Exception {
+    void getResolvedHttpProxyAddressIPv6() throws Exception {
         JnlpAgentEndpointResolver.getResolvedHttpProxyAddress("localhost", 12345);
         JnlpAgentEndpointResolver.getResolvedHttpProxyAddress("127.0.0.1", 12345);
         // Ignore return value, just assert that it does not throw an exception:

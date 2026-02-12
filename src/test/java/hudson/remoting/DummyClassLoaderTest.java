@@ -30,9 +30,10 @@ import org.junit.jupiter.api.Test;
 /**
  * @author Kohsuke Kawaguchi
  */
-public class DummyClassLoaderTest {
+class DummyClassLoaderTest {
+
     @Test
-    public void testLoad() throws Throwable {
+    void testLoad() throws Throwable {
         Callable<Object, Throwable> c = (Callable<Object, Throwable>) DummyClassLoader.apply(TestCallable.class);
         System.out.println(c.call());
         // make sure that the returned class is loaded from the dummy classloader

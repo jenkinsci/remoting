@@ -28,7 +28,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
@@ -43,29 +43,29 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import org.apache.commons.io.IOUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class ProtocolStackTest {
+class ProtocolStackTest {
 
     private ExecutorService executorService;
     private IOHub selector;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void beforeEach() throws Exception {
         executorService = Executors.newCachedThreadPool();
         selector = IOHub.create(executorService);
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void afterEach() {
         IOUtils.closeQuietly(selector);
         executorService.shutdownNow();
     }
 
     @Test
-    public void initSequence() throws IOException {
+    void initSequence() throws IOException {
         Logger logger = Logger.getLogger(ProtocolStack.class.getName());
         CapturingHandler handler = new CapturingHandler();
         assertThat(logger.isLoggable(Level.FINEST), is(false));
@@ -163,7 +163,7 @@ public class ProtocolStackTest {
     }
 
     @Test
-    public void initSequenceFailure() {
+    void initSequenceFailure() {
         Logger logger = Logger.getLogger(ProtocolStack.class.getName());
         CapturingHandler handler = new CapturingHandler();
         assertThat(logger.isLoggable(Level.FINEST), is(false));
@@ -273,7 +273,7 @@ public class ProtocolStackTest {
     }
 
     @Test
-    public void stackCloseSequence() throws IOException {
+    void stackCloseSequence() throws IOException {
         Logger logger = Logger.getLogger(ProtocolStack.class.getName());
         CapturingHandler handler = new CapturingHandler();
         assertThat(logger.isLoggable(Level.FINEST), is(false));

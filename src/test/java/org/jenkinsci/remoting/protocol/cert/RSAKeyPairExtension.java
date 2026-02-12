@@ -29,13 +29,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
-public class RSAKeyPairRule extends KeyPairRule<RSAPublicKey, RSAPrivateKey> {
+public class RSAKeyPairExtension extends KeyPairExtension<RSAPublicKey, RSAPrivateKey> {
 
-    public RSAKeyPairRule() {
+    public RSAKeyPairExtension() {
         super("");
     }
 
-    public RSAKeyPairRule(String id) {
+    public RSAKeyPairExtension(String id) {
         super(id);
     }
 

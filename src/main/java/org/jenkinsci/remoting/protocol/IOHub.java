@@ -25,6 +25,7 @@ package org.jenkinsci.remoting.protocol;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.OverrideMustInvoke;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.remoting.Future;
 import java.io.Closeable;
 import java.io.IOException;
@@ -449,6 +450,9 @@ public class IOHub implements Executor, Closeable, Runnable, ByteBufferPool {
      */
     @Override
     @Restricted(NoExternalUse.class)
+    @SuppressFBWarnings(
+            value = "NN_NAKED_NOTIFY",
+            justification = "TODO: change to mutable state likely happened elsewhere")
     public final void run() {
         Thread selectorThread = Thread.currentThread();
         String oldName = selectorThread.getName();
