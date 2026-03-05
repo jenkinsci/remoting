@@ -30,6 +30,7 @@ import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.Writer;
+import java.lang.ref.Cleaner;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,6 +41,12 @@ import net.jcip.annotations.GuardedBy;
  * {@link Writer} on a remote machine.
  */
 final class ProxyWriter extends Writer {
+    private static final Cleaner CLEANER = Cleaner.create();
+
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "Cleaner registration must be kept strongly reachable")
+    private Cleaner.Cleanable cleanable;
 
     @GuardedBy("this")
     private Channel channel;
@@ -88,7 +95,7 @@ final class ProxyWriter extends Writer {
         }
         this.channel = channel;
         this.oid = oid;
-
+        CLEANER.register(this, new CleanupTask(channel, oid));
         window = channel.getPipeWindow(oid);
 
         // if we already have bytes to write, do so now.
@@ -243,24 +250,6 @@ final class ProxyWriter extends Writer {
         }
     }
 
-    @Override
-    // TODO: really?
-    @SuppressFBWarnings(value = "FI_FINALIZER_NULLS_FIELDS", justification = "As designed")
-    protected synchronized void finalize() throws Throwable {
-        super.finalize();
-        // if we haven't done so, release the exported object on the remote side.
-        // if the object is auto-unexported, the export entry could have already been removed.
-        if (channel != null) {
-            if (channel.remoteCapability.supportsProxyWriter2_35()) {
-                channel.send(new Unexport(channel.newIoId(), oid));
-            } else {
-                channel.send(new EOF(channel.newIoId(), oid));
-            }
-            channel = null;
-            oid = -1;
-        }
-    }
-
     /**
      * {@link Command} for sending bytes.
      */
@@ -412,11 +401,6 @@ final class ProxyWriter extends Writer {
             }
             channel.pipeWriter.submit(ioId, () -> {
                 channel.unexport(oid, createdAt, false);
-                try {
-                    os.close();
-                } catch (IOException e) {
-                    // ignore errors
-                }
             });
         }
 
@@ -489,4 +473,24 @@ final class ProxyWriter extends Writer {
     }
 
     private static final Logger LOGGER = Logger.getLogger(ProxyWriter.class.getName());
-}
+
+    private static class CleanupTask implements Runnable {
+        private final Channel channel;
+        private final int oid;
+
+        CleanupTask(Channel channel, int oid) {
+            this.channel = channel;
+            this.oid = oid;
+        }
+
+        @Override
+        public void run() {
+            try {
+                // Sends the dead signal using all THREE required arguments
+                channel.send(new NotifyDeadWriter(channel, null, oid));
+            } catch (Exception e) {
+                // Ignore errors during cleanup
+            }
+        }
+    } // Closes CleanupTask
+} // Closes ProxyWriter (MUST BE THE VERY LAST LINE)
