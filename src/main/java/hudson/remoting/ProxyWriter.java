@@ -25,7 +25,6 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -42,11 +41,6 @@ import net.jcip.annotations.GuardedBy;
  */
 final class ProxyWriter extends Writer {
     private static final Cleaner CLEANER = Cleaner.create();
-
-    @SuppressFBWarnings(
-            value = "URF_UNREAD_FIELD",
-            justification = "Cleaner registration must be kept strongly reachable")
-    private Cleaner.Cleanable cleanable;
 
     @GuardedBy("this")
     private Channel channel;
@@ -488,8 +482,8 @@ final class ProxyWriter extends Writer {
             try {
                 // Sends the dead signal using all THREE required arguments
                 channel.send(new NotifyDeadWriter(channel, null, oid));
-            } catch (Exception e) {
-                // Ignore errors during cleanup
+            } catch (IOException e) {
+                // ignore cleanup failures
             }
         }
     } // Closes CleanupTask

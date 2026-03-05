@@ -199,24 +199,24 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
 
     static final int TIMEOUT = Integer.getInteger(FastPipedOutputStream.class.getName() + ".timeout", 10 * 1000);
 
-        private static class CleanupTask implements Runnable {
-            private final WeakReference<FastPipedInputStream> sinkRef;
+    private static class CleanupTask implements Runnable {
+        private final WeakReference<FastPipedInputStream> sinkRef;
 
-            CleanupTask(WeakReference<FastPipedInputStream> sinkRef) {
-                this.sinkRef = sinkRef;
-            }
+        CleanupTask(WeakReference<FastPipedInputStream> sinkRef) {
+            this.sinkRef = sinkRef;
+        }
 
-            @Override
-            public void run() {
-                FastPipedInputStream s = sinkRef.get();
-                if (s != null) {
-                    synchronized (s.buffer) {
-                        if (s.closed == null) {
-                            s.closed = new FastPipedInputStream.ClosedBy(null);
-                            s.buffer.notifyAll();
-                        }
+        @Override
+        public void run() {
+            FastPipedInputStream s = sinkRef.get();
+            if (s != null) {
+                synchronized (s.buffer) {
+                    if (s.closed == null) {
+                        s.closed = new FastPipedInputStream.ClosedBy(null);
+                        s.buffer.notifyAll();
                     }
                 }
             }
         }
+    }
 }
