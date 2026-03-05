@@ -115,12 +115,6 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
-    }
-
-    @Override
     @SuppressFBWarnings(
             value = "NN_NAKED_NOTIFY",
             justification = "TODO: change to mutable state likely happened elsewhere")
@@ -202,4 +196,24 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     }
 
     static final int TIMEOUT = Integer.getInteger(FastPipedOutputStream.class.getName() + ".timeout", 10 * 1000);
+
+    private static class CleanupTask implements Runnable {
+        private final FastPipedInputStream sink;
+
+        CleanupTask(FastPipedInputStream sink) {
+            this.sink = sink;
+        }
+
+        @Override
+        @SuppressFBWarnings(
+                value = "NN_NAKED_NOTIFY",
+                justification = "Waking up threads during GC, state is irrelevant")
+        public void run() {
+            if (sink != null && sink.buffer != null) {
+                synchronized (sink.buffer) {
+                    sink.buffer.notifyAll(); // Wake up any pending readers
+                }
+            }
+        }
+    }
 }
