@@ -676,33 +676,6 @@ final class RemoteClassLoader extends URLClassLoader {
     }
 
     /**
-     * Prefetches the jar into this class loader.
-     *
-     * @param jar Jar to be prefetched. Note that this file is an file on the other end,
-     *            and doesn't point to anything meaningful locally.
-     * @return true if the prefetch happened. false if the jar is already prefetched.
-     * @deprecated Only left in for compatibility with pre-2024-08 remoting. Use {@link #prefetch(java.net.URL, byte[])} instead.
-     * @see Channel#preloadJar(Callable, Class[])
-     * @see hudson.remoting.PreloadJarTask
-     * @see hudson.remoting.PreloadJarTask2
-     */
-    @Deprecated
-    /*package*/ boolean prefetch(URL jar) throws IOException {
-        synchronized (prefetchedJars) {
-            if (prefetchedJars.contains(jar)) {
-                return false;
-            }
-
-            String p = jar.getPath().replace('\\', '/');
-            p = Util.getBaseName(p);
-            File localJar = Util.makeResource(p, proxy.fetchJar(jar));
-            addURL(localJar.toURI().toURL());
-            prefetchedJars.add(jar);
-            return true;
-        }
-    }
-
-    /**
      * Prefetches the specified jar with the specified content into this classloader.
      * @param jar Jar to be prefetched. Note that this file is an file on the other end,
      *            and doesn't point to anything meaningful locally.
@@ -873,9 +846,6 @@ final class RemoteClassLoader extends URLClassLoader {
      * Remoting interface.
      */
     public interface IClassLoader {
-        @Deprecated
-        byte[] fetchJar(URL url) throws IOException;
-
         /**
          * Retrieves the bytecode of a class.
          */
@@ -996,31 +966,6 @@ final class RemoteClassLoader extends URLClassLoader {
         public ClassLoaderProxy(@NonNull ClassLoader cl, Channel channel) {
             this.cl = cl;
             this.channel = channel;
-        }
-
-        @Override
-        @SuppressFBWarnings(
-                value = "URLCONNECTION_SSRF_FD",
-                justification = "URL validation is being done through JarURLValidator")
-        public byte[] fetchJar(URL url) throws IOException {
-            final Object o = channel.getProperty(JarURLValidator.class);
-            if (o == null) {
-                final boolean disabled = Boolean.getBoolean(Channel.class.getName() + ".DISABLE_JAR_URL_VALIDATOR");
-                LOGGER.log(Level.FINE, "Default behavior for URL: " + url + " with disabled flag: " + disabled);
-                if (!disabled) {
-                    throw new IOException(
-                            "No hudson.remoting.JarURLValidator has been set for this channel, so all #fetchJar calls are rejected."
-                                    + " This is likely a bug in Jenkins."
-                                    + " As a workaround, try updating the agent.jar file.");
-                }
-            } else {
-                if (o instanceof JarURLValidator) {
-                    ((JarURLValidator) o).validate(url);
-                } else {
-                    throw new IOException("Unexpected channel property hudson.remoting.JarURLValidator value: " + o);
-                }
-            }
-            return Util.readFully(url.openStream());
         }
 
         @Override
@@ -1317,11 +1262,6 @@ final class RemoteClassLoader extends URLClassLoader {
         }
 
         @Override
-        public byte[] fetchJar(URL url) throws IOException {
-            return proxy.fetchJar(url);
-        }
-
-        @Override
         public byte[] fetch(String className) throws ClassNotFoundException {
             return proxy.fetch(className);
         }
@@ -1396,11 +1336,6 @@ final class RemoteClassLoader extends URLClassLoader {
         @Override
         public Map<String, ClassFile2> fetch3(String className) throws ClassNotFoundException {
             throw new ClassNotFoundException(className, cause);
-        }
-
-        @Override
-        public byte[] fetchJar(URL url) throws IOException {
-            throw new IOException("Cannot fetch " + url, cause);
         }
 
         @Override
