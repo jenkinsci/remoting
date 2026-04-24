@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 
 /**
@@ -40,7 +41,7 @@ import java.lang.ref.WeakReference;
  * @see FastPipedOutputStream
  */
 public class FastPipedOutputStream extends OutputStream implements ErrorPropagatingOutputStream {
-
+    private static final Cleaner CLEANER = Cleaner.create();
     WeakReference<FastPipedInputStream> sink;
 
     private final Throwable allocatedAt = new Throwable();
@@ -112,12 +113,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         }
         this.sink = new WeakReference<>(sink);
         sink.source = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
+        CLEANER.register(this, new CleanupTask(this.sink));
     }
 
     @Override
@@ -202,4 +198,25 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     }
 
     static final int TIMEOUT = Integer.getInteger(FastPipedOutputStream.class.getName() + ".timeout", 10 * 1000);
+
+    private static class CleanupTask implements Runnable {
+        private final WeakReference<FastPipedInputStream> sinkRef;
+
+        CleanupTask(WeakReference<FastPipedInputStream> sinkRef) {
+            this.sinkRef = sinkRef;
+        }
+
+        @Override
+        public void run() {
+            FastPipedInputStream s = sinkRef.get();
+            if (s != null) {
+                synchronized (s.buffer) {
+                    if (s.closed == null) {
+                        s.closed = new FastPipedInputStream.ClosedBy(null);
+                        s.buffer.notifyAll();
+                    }
+                }
+            }
+        }
+    }
 }
