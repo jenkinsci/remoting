@@ -134,7 +134,7 @@ class MultiClassLoaderSerializer {
                 channel.classFilter.check(c);
                 return c;
             } catch (ClassNotFoundException ex) {
-                return super.resolveClass(desc);
+                return channel.classFilter.check(super.resolveClass(desc));
             }
         }
 
