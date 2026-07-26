@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.io.PipedInputStream;
 import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,8 +45,6 @@ public class FastPipedInputStream extends InputStream {
 
     private static final Logger LOGGER = Logger.getLogger(FastPipedInputStream.class.getName());
 
-    private static final Cleaner CLEANER = Cleaner.create();
-
     final byte[] buffer;
     /**
      * Once closed, this is set to the stack trace of who closed it.
@@ -60,12 +59,15 @@ public class FastPipedInputStream extends InputStream {
 
     private final Throwable allocatedAt = new Throwable();
 
+    private final CleanupState cleanupState = new CleanupState();
+    private final Cleaner.Cleanable cleanable = Cleaners.CLEANER.register(this, cleanupState);
+
     /**
      * Creates an unconnected PipedInputStream with a default buffer size.
      */
     public FastPipedInputStream() {
         this.buffer = new byte[0x10000];
-        CLEANER.register(this, new CleanupChecker(this.buffer));
+        cleanupState.setBuffer(this.buffer);
     }
 
     /**
@@ -87,7 +89,7 @@ public class FastPipedInputStream extends InputStream {
             connect(source);
         }
         this.buffer = new byte[bufferSize];
-        CLEANER.register(this, new CleanupChecker(this.buffer));
+        cleanupState.setBuffer(this.buffer);
     }
 
     private void checkSource() throws IOException {
@@ -121,6 +123,8 @@ public class FastPipedInputStream extends InputStream {
         if (source == null) {
             throw new IOException("Unconnected pipe");
         }
+        cleanupState.markClosed();
+        cleanable.clean();
         synchronized (buffer) {
             closed = new ClosedBy(null);
             // Release any pending writers.
@@ -214,19 +218,30 @@ public class FastPipedInputStream extends InputStream {
         }
     }
 
-    private static final class CleanupChecker implements Runnable {
-        private final byte[] buffer;
+    /**
+     * Holds mutable cleanup state accessible by the Cleaner without preventing GC of the outer stream.
+     */
+    private static final class CleanupState implements Runnable {
+        private volatile byte[] buffer;
+        private final AtomicBoolean closedByUser = new AtomicBoolean(false);
 
-        CleanupChecker(byte[] buffer) {
+        void setBuffer(byte[] buffer) {
             this.buffer = buffer;
+        }
+
+        void markClosed() {
+            closedByUser.set(true);
         }
 
         @Override
         public void run() {
-            if (buffer != null) {
-                synchronized (buffer) {
-                    LOGGER.log(Level.WARNING, "FastPipedInputStream was not closed before being released");
-                    buffer.notifyAll();
+            byte[] buf = buffer;
+            if (buf != null) {
+                synchronized (buf) {
+                    if (!closedByUser.get()) {
+                        LOGGER.log(Level.WARNING, "FastPipedInputStream was not closed before being released");
+                    }
+                    buf.notifyAll();
                 }
             }
         }

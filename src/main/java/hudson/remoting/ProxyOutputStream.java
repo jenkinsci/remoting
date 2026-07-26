@@ -40,8 +40,6 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
     private static final Logger LOGGER = Logger.getLogger(ProxyOutputStream.class.getName());
 
-    private static final Cleaner CLEANER = Cleaner.create();
-
     private Channel channel;
     private int oid;
 
@@ -59,6 +57,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
     private Throwable error;
 
     private final CleanupState cleanupState = new CleanupState();
+    private final Cleaner.Cleanable cleanable = Cleaners.CLEANER.register(this, new CleanupChecker(cleanupState));
 
     /**
      * Creates unconnected {@link ProxyOutputStream}.
@@ -66,9 +65,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      * when it's {@link #connect(Channel,int) connected} later,
      * the data will be sent at once to the remote stream.
      */
-    public ProxyOutputStream() {
-        CLEANER.register(this, new CleanupChecker(cleanupState));
-    }
+    public ProxyOutputStream() {}
 
     /**
      * Creates an already connected {@link ProxyOutputStream}.
@@ -78,7 +75,6 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      */
     public ProxyOutputStream(@NonNull Channel channel, int oid) throws IOException {
         connect(channel, oid);
-        CLEANER.register(this, new CleanupChecker(cleanupState));
     }
 
     /**
@@ -196,6 +192,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         channel = null;
         oid = -1;
         cleanupState.clear();
+        cleanable.clean();
     }
 
     /**

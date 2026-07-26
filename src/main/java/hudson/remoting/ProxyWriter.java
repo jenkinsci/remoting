@@ -43,14 +43,13 @@ final class ProxyWriter extends Writer {
 
     private static final Logger LOGGER = Logger.getLogger(ProxyWriter.class.getName());
 
-    private static final Cleaner CLEANER = Cleaner.create();
-
     @GuardedBy("this")
     private Channel channel;
 
     private int oid;
 
     private final CleanupState cleanupState = new CleanupState();
+    private final Cleaner.Cleanable cleanable = Cleaners.CLEANER.register(this, new CleanupChecker(cleanupState));
 
     private PipeWindow window;
 
@@ -80,7 +79,6 @@ final class ProxyWriter extends Writer {
      */
     public ProxyWriter(@NonNull Channel channel, int oid) throws IOException {
         connect(channel, oid);
-        CLEANER.register(this, new CleanupChecker(cleanupState));
     }
 
     /**
@@ -248,6 +246,7 @@ final class ProxyWriter extends Writer {
                 channelReleased = true;
                 oid = -1;
                 cleanupState.clear();
+                cleanable.clean();
             }
         }
     }
