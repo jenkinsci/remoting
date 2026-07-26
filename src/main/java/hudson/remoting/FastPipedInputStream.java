@@ -59,15 +59,16 @@ public class FastPipedInputStream extends InputStream {
 
     private final Throwable allocatedAt = new Throwable();
 
-    private final CleanupState cleanupState = new CleanupState();
-    private final Cleaner.Cleanable cleanable = Cleaners.CLEANER.register(this, cleanupState);
+    private final CleanupState cleanupState;
+    private final Cleaner.Cleanable cleanable;
 
     /**
      * Creates an unconnected PipedInputStream with a default buffer size.
      */
     public FastPipedInputStream() {
         this.buffer = new byte[0x10000];
-        cleanupState.setBuffer(this.buffer);
+        this.cleanupState = new CleanupState(this.buffer);
+        this.cleanable = Cleaners.CLEANER.register(this, cleanupState);
     }
 
     /**
@@ -89,7 +90,8 @@ public class FastPipedInputStream extends InputStream {
             connect(source);
         }
         this.buffer = new byte[bufferSize];
-        cleanupState.setBuffer(this.buffer);
+        this.cleanupState = new CleanupState(this.buffer);
+        this.cleanable = Cleaners.CLEANER.register(this, cleanupState);
     }
 
     private void checkSource() throws IOException {
@@ -219,13 +221,13 @@ public class FastPipedInputStream extends InputStream {
     }
 
     /**
-     * Holds mutable cleanup state accessible by the Cleaner without preventing GC of the outer stream.
+     * Holds cleanup state accessible by the Cleaner without preventing GC of the outer stream.
      */
     private static final class CleanupState implements Runnable {
-        private volatile byte[] buffer;
+        private final byte[] buffer;
         private final AtomicBoolean closedByUser = new AtomicBoolean(false);
 
-        void setBuffer(byte[] buffer) {
+        CleanupState(byte[] buffer) {
             this.buffer = buffer;
         }
 
@@ -235,14 +237,11 @@ public class FastPipedInputStream extends InputStream {
 
         @Override
         public void run() {
-            byte[] buf = buffer;
-            if (buf != null) {
-                synchronized (buf) {
-                    if (!closedByUser.get()) {
-                        LOGGER.log(Level.WARNING, "FastPipedInputStream was not closed before being released");
-                    }
-                    buf.notifyAll();
+            synchronized (buffer) {
+                if (!closedByUser.get()) {
+                    LOGGER.log(Level.WARNING, "FastPipedInputStream was not closed before being released");
                 }
+                buffer.notifyAll();
             }
         }
     }
