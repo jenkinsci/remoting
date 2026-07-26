@@ -31,7 +31,7 @@ import java.lang.ref.Cleaner;
  * <p>Using a single shared {@link Cleaner} avoids creating a dedicated background
  * thread per class, which would otherwise multiply thread count unnecessarily
  * when remoting classes are loaded across multiple classloaders or JVMs.
- * 
+ *
  * @author Akash Manna
  */
 final class Cleaners {
