@@ -5,13 +5,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.NotSerializableException;
 import java.io.OutputStream;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
@@ -25,49 +26,46 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
 
     private static final Logger LOGGER = Logger.getLogger(JarLoaderImpl.class.getName());
 
-    @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TODO needs triage")
-    private final ConcurrentMap<Checksum, URL> knownJars = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Checksum, URI> KNOWN_JARS = new ConcurrentHashMap<>();
 
-    @SuppressFBWarnings(
-            value = {"DMI_COLLECTION_OF_URLS", "SE_BAD_FIELD"},
-            justification = "TODO needs triage")
-    private final ConcurrentMap<URL, Checksum> checksums = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<URI, CompletableFuture<Checksum>> CHECKSUMS = new ConcurrentHashMap<>();
 
     @SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "TODO needs triage")
     private final Set<Checksum> presentOnRemote = Collections.synchronizedSet(new HashSet<>());
 
     @Override
     @SuppressFBWarnings(
-            value = {"URLCONNECTION_SSRF_FD", "PATH_TRAVERSAL_IN"},
-            justification = "This is only used for managing the jar cache as files, not URLs.")
+            value = {"URLCONNECTION_SSRF_FD", "PATH_TRAVERSAL_IN", "IMPROPER_UNICODE"},
+            justification =
+                    "This is only used for managing the jar cache as files, not URLs. file scheme matching is correct")
     public void writeJarTo(long sum1, long sum2, OutputStream sink) throws IOException, InterruptedException {
         Checksum k = new Checksum(sum1, sum2);
-        URL url = knownJars.get(k);
-        if (url == null) {
+        URI uri = KNOWN_JARS.get(k);
+        if (uri == null) {
             throw new IOException("Unadvertised jar file " + k);
         }
 
         Channel channel = Channel.current();
         if (channel != null) {
-            if (url.getProtocol().equals("file")) {
+            if ("file".equalsIgnoreCase(uri.getScheme())) {
                 try {
-                    LOGGER.log(Level.FINE, () -> "sending " + url + " to " + channel.getName());
-                    channel.notifyJar(new File(url.toURI()));
-                } catch (URISyntaxException | IllegalArgumentException x) {
-                    LOGGER.log(Level.WARNING, x, () -> "cannot properly report " + url);
+                    LOGGER.log(Level.FINE, () -> "sending " + uri + " to " + channel.getName());
+                    channel.notifyJar(new File(uri));
+                } catch (IllegalArgumentException x) {
+                    LOGGER.log(Level.WARNING, x, () -> "cannot properly report " + uri);
                 }
             } else {
-                LOGGER.log(Level.FINE, "serving non-file URL {0}", url);
+                LOGGER.log(Level.FINE, "serving non-file URI {0}", uri);
             }
         } else {
             LOGGER.log(Level.WARNING, "no active channel");
         }
-        Util.copy(url.openStream(), sink);
+        Util.copy(uri.toURL().openStream(), sink);
         presentOnRemote.add(k);
     }
 
     public Checksum calcChecksum(File jar) throws IOException {
-        return calcChecksum(jar.toURI().toURL());
+        return calcChecksum(jar.toURI());
     }
 
     @Override
@@ -90,19 +88,47 @@ class JarLoaderImpl implements JarLoader, SerializableOnlyOverRemoting {
     }
 
     /**
-     * Obtains the checksum for the jar at the specified URL.
+     * Obtains the checksum for the jar at the specified URI.
      */
-    public Checksum calcChecksum(URL jar) throws IOException {
-        Checksum v = checksums.get(jar); // cache hit
-        if (v != null) {
-            return v;
+    public Checksum calcChecksum(URI jar) throws IOException {
+        // Use Future-based memoizer so that internal map locks (which can be shared for different keys)
+        // are never held during I/O / digest computation.
+
+        CompletableFuture<Checksum> slot = new CompletableFuture<>();
+        CompletableFuture<Checksum> existing = CHECKSUMS.putIfAbsent(jar, slot);
+        if (existing != null) {
+            // another thread already has a slot — wait for their result without locking
+            slot = existing;
+        } else {
+            // we won the race, compute the checksum then update the future
+            try {
+                Checksum c = Checksum.forURL(jar.toURL());
+                KNOWN_JARS.put(c, jar);
+                slot.complete(c);
+            } catch (IOException | Error | RuntimeException e) {
+                CHECKSUMS.remove(jar, slot);
+                slot.completeExceptionally(e);
+                throw e;
+            }
         }
-
-        v = Checksum.forURL(jar);
-
-        knownJars.put(v, jar);
-        checksums.put(jar, v);
-        return v;
+        try {
+            return slot.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted waiting for checksum of " + jar, e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException ioe) {
+                throw ioe;
+            }
+            if (cause instanceof RuntimeException re) {
+                throw re;
+            }
+            if (cause instanceof Error err) {
+                throw err;
+            }
+            throw new IOException("unexpected condition calculating checksum of " + jar, cause);
+        }
     }
 
     /**

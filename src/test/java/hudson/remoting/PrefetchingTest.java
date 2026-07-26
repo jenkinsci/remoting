@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.URISyntaxException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -43,8 +43,14 @@ class PrefetchingTest implements Serializable {
     }
 
     protected void setUp(Channel channel) throws Exception {
-        URL jar1 = getClass().getClassLoader().getResource("remoting-test-client.jar");
-        URL jar2 = getClass().getClassLoader().getResource("remoting-test-client-tests.jar");
+        URI jar1 = getClass()
+                .getClassLoader()
+                .getResource("remoting-test-client.jar")
+                .toURI();
+        URI jar2 = getClass()
+                .getClassLoader()
+                .getResource("remoting-test-client-tests.jar")
+                .toURI();
 
         cl = new URLClassLoader(
                 new URL[] {toFile(jar1).toURI().toURL(), toFile(jar2).toURI().toURL()},
@@ -58,12 +64,8 @@ class PrefetchingTest implements Serializable {
         sum2 = channel.jarLoader.calcChecksum(jar2);
     }
 
-    private File toFile(URL url) {
-        try {
-            return new File(url.toURI());
-        } catch (URISyntaxException e) {
-            return new File(url.getPath());
-        }
+    private File toFile(URI uri) {
+        return new File(uri);
     }
 
     @AfterEach

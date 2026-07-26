@@ -123,7 +123,7 @@ public class X509CertificateExtension implements AfterAllCallback, BeforeAllCall
             nameBuilder.addRDN(BCStyle.CN, id);
         }
         X500Principal subject = new X500Principal(nameBuilder
-                .addRDN(BCStyle.CN, context.getTestClass().orElseThrow().getName())
+                .addRDN(BCStyle.CN, context.getTestClass().orElseThrow().getSimpleName())
                 .addRDN(BCStyle.C, "US")
                 .build()
                 .toString());
