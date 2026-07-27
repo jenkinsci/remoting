@@ -165,7 +165,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
     @Override
     public synchronized void flush() throws IOException {
-        if (channel != null && /* see #finalize */ oid != -1) {
+        if (channel != null && oid != -1) {
             channel.send(new Flush(channel.newIoId(), oid));
         }
     }
