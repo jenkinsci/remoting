@@ -86,12 +86,12 @@ public class FastPipedInputStream extends InputStream {
      * @exception IOException It was already connected.
      */
     public FastPipedInputStream(FastPipedOutputStream source, int bufferSize) throws IOException {
-        if (source != null) {
-            connect(source);
-        }
         this.buffer = new byte[bufferSize];
         this.cleanupState = new CleanupState(this.buffer);
         this.cleanable = Cleaners.CLEANER.register(this, cleanupState);
+        if (source != null) {
+            connect(source);
+        }
     }
 
     private void checkSource() throws IOException {
@@ -142,7 +142,7 @@ public class FastPipedInputStream extends InputStream {
             throw new IOException("Pipe already connected");
         }
         this.source = new WeakReference<>(source);
-        source.sink = new WeakReference<>(this);
+        source.connect(this);
     }
 
     @Override
