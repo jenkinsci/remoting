@@ -21,9 +21,11 @@
 package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PipedInputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
 
 /**
@@ -38,6 +40,12 @@ import java.lang.ref.WeakReference;
  * @see FastPipedOutputStream
  */
 public class FastPipedInputStream extends InputStream {
+    private static final Cleaner CLEANER = Cleaner.create();
+
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "Cleaner registration must be kept strongly reachable")
+    private final Cleaner.Cleanable cleanable;
 
     final byte[] buffer;
     /**
@@ -58,6 +66,7 @@ public class FastPipedInputStream extends InputStream {
      */
     public FastPipedInputStream() {
         this.buffer = new byte[0x10000];
+        this.cleanable = CLEANER.register(this, new CleanupTask(this.buffer));
     }
 
     /**
@@ -79,6 +88,7 @@ public class FastPipedInputStream extends InputStream {
             connect(source);
         }
         this.buffer = new byte[bufferSize];
+        this.cleanable = CLEANER.register(this, new CleanupTask(this.buffer));
     }
 
     private void checkSource() throws IOException {
@@ -128,12 +138,6 @@ public class FastPipedInputStream extends InputStream {
         }
         this.source = new WeakReference<>(source);
         source.sink = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
     }
 
     @Override
@@ -208,6 +212,26 @@ public class FastPipedInputStream extends InputStream {
     static final class ClosedBy extends Throwable {
         ClosedBy(Throwable error) {
             super("The pipe was closed at...", error);
+        }
+    }
+
+    private static class CleanupTask implements Runnable {
+        private final byte[] buffer;
+
+        CleanupTask(byte[] buffer) {
+            this.buffer = buffer;
+        }
+
+        @Override
+        @SuppressFBWarnings(
+                value = "NN_NAKED_NOTIFY",
+                justification = "Waking up threads during GC, state is irrelevant")
+        public void run() {
+            if (buffer != null) {
+                synchronized (buffer) {
+                    buffer.notifyAll(); // Wake up any pending writers
+                }
+            }
         }
     }
 }
