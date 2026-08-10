@@ -61,7 +61,7 @@ public class ObjectInputStreamEx extends ObjectInputStream {
         try {
             return filter.check(Class.forName(filter.check(name), false, cl));
         } catch (ClassNotFoundException ex) {
-            return super.resolveClass(desc);
+            return filter.check(super.resolveClass(desc));
         }
     }
 
