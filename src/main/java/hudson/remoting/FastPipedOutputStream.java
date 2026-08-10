@@ -26,7 +26,10 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.io.PipedOutputStream;
+import java.lang.ref.Cleaner;
 import java.lang.ref.WeakReference;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class is equivalent to {@link PipedOutputStream}. In the
@@ -41,9 +44,14 @@ import java.lang.ref.WeakReference;
  */
 public class FastPipedOutputStream extends OutputStream implements ErrorPropagatingOutputStream {
 
+    private static final Logger LOGGER = Logger.getLogger(FastPipedOutputStream.class.getName());
+
     WeakReference<FastPipedInputStream> sink;
 
     private final Throwable allocatedAt = new Throwable();
+
+    private final CleanupState cleanupState = new CleanupState();
+    private final Cleaner.Cleanable cleanable = Cleaners.CLEANER.register(this, cleanupState);
 
     /**
      * Creates an unconnected PipedOutputStream.
@@ -101,6 +109,8 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
                 flush();
             }
         }
+        cleanupState.markClosed();
+        cleanable.clean();
     }
 
     /**
@@ -112,12 +122,7 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
         }
         this.sink = new WeakReference<>(sink);
         sink.source = new WeakReference<>(this);
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        close();
+        cleanupState.setSink(this.sink);
     }
 
     @Override
@@ -202,4 +207,40 @@ public class FastPipedOutputStream extends OutputStream implements ErrorPropagat
     }
 
     static final int TIMEOUT = Integer.getInteger(FastPipedOutputStream.class.getName() + ".timeout", 10 * 1000);
+
+    /**
+     * Holds mutable cleanup state accessible by the Cleaner without preventing GC of the outer stream.
+     */
+    private static final class CleanupState implements Runnable {
+        private volatile WeakReference<FastPipedInputStream> sink;
+        private volatile boolean closedByUser = false;
+
+        void setSink(WeakReference<FastPipedInputStream> sink) {
+            this.sink = sink;
+        }
+
+        void markClosed() {
+            closedByUser = true;
+        }
+
+        @Override
+        public void run() {
+            if (closedByUser) {
+                return; // properly closed, no warning needed
+            }
+            WeakReference<FastPipedInputStream> sinkRef = sink;
+            if (sinkRef != null) {
+                FastPipedInputStream s = sinkRef.get();
+                if (s != null) {
+                    synchronized (s.buffer) {
+                        if (s.closed == null) {
+                            LOGGER.log(Level.WARNING, "FastPipedOutputStream was not closed before being released");
+                            s.closed = new FastPipedInputStream.ClosedBy(null);
+                            s.buffer.notifyAll();
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

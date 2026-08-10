@@ -27,6 +27,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.OutputStream;
+import java.lang.ref.Cleaner;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,6 +37,9 @@ import java.util.logging.Logger;
  * {@link OutputStream} on a remote machine.
  */
 final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOutputStream {
+
+    private static final Logger LOGGER = Logger.getLogger(ProxyOutputStream.class.getName());
+
     private Channel channel;
     private int oid;
 
@@ -51,6 +55,9 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
      * @see #error(Throwable)
      */
     private Throwable error;
+
+    private final CleanupState cleanupState = new CleanupState();
+    private final Cleaner.Cleanable cleanable = Cleaners.CLEANER.register(this, new CleanupChecker(cleanupState));
 
     /**
      * Creates unconnected {@link ProxyOutputStream}.
@@ -82,6 +89,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         }
         this.channel = channel;
         this.oid = oid;
+        cleanupState.set(channel, oid);
 
         window = channel.getPipeWindow(oid);
 
@@ -157,7 +165,7 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
 
     @Override
     public synchronized void flush() throws IOException {
-        if (channel != null && /* see #finalize */ oid != -1) {
+        if (channel != null && oid != -1) {
             channel.send(new Flush(channel.newIoId(), oid));
         }
     }
@@ -183,17 +191,8 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         channel.send(new EOF(channel.newIoId(), oid, error));
         channel = null;
         oid = -1;
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        // if we haven't done so, release the exported object on the remote side.
-        // if the object is auto-unexported, the export entry could have already been removed.
-        if (channel != null && oid != -1) {
-            channel.send(new Unexport(channel.newIoId(), oid));
-            oid = -1;
-        }
+        cleanupState.clear();
+        cleanable.clean();
     }
 
     /**
@@ -464,5 +463,46 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
         private static final long serialVersionUID = 1L;
     }
 
-    private static final Logger LOGGER = Logger.getLogger(ProxyOutputStream.class.getName());
+    /**
+     * Holds cleanup state that can be accessed by the Cleaner without preventing garbage collection.
+     */
+    private static final class CleanupState {
+        private Channel channel;
+        private int oid = -1;
+
+        synchronized void set(Channel channel, int oid) {
+            this.channel = channel;
+            this.oid = oid;
+        }
+
+        synchronized void clear() {
+            this.channel = null;
+            this.oid = -1;
+        }
+
+        synchronized void cleanup() {
+            if (channel != null && oid != -1) {
+                try {
+                    channel.send(new Unexport(channel.newIoId(), oid));
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Failed to unexport ProxyOutputStream", e);
+                }
+                channel = null;
+                oid = -1;
+            }
+        }
+    }
+
+    private static final class CleanupChecker implements Runnable {
+        private final CleanupState state;
+
+        CleanupChecker(CleanupState state) {
+            this.state = state;
+        }
+
+        @Override
+        public void run() {
+            state.cleanup();
+        }
+    }
 }

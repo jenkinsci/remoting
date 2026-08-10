@@ -25,11 +25,11 @@ package hudson.remoting;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.io.Writer;
+import java.lang.ref.Cleaner;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,10 +41,15 @@ import net.jcip.annotations.GuardedBy;
  */
 final class ProxyWriter extends Writer {
 
+    private static final Logger LOGGER = Logger.getLogger(ProxyWriter.class.getName());
+
     @GuardedBy("this")
     private Channel channel;
 
     private int oid;
+
+    private final CleanupState cleanupState = new CleanupState();
+    private final Cleaner.Cleanable cleanable = Cleaners.CLEANER.register(this, new CleanupChecker(cleanupState));
 
     private PipeWindow window;
 
@@ -88,6 +93,7 @@ final class ProxyWriter extends Writer {
         }
         this.channel = channel;
         this.oid = oid;
+        cleanupState.set(channel, oid);
 
         window = channel.getPipeWindow(oid);
 
@@ -239,25 +245,9 @@ final class ProxyWriter extends Writer {
                 channel = null;
                 channelReleased = true;
                 oid = -1;
+                cleanupState.clear();
+                cleanable.clean();
             }
-        }
-    }
-
-    @Override
-    // TODO: really?
-    @SuppressFBWarnings(value = "FI_FINALIZER_NULLS_FIELDS", justification = "As designed")
-    protected synchronized void finalize() throws Throwable {
-        super.finalize();
-        // if we haven't done so, release the exported object on the remote side.
-        // if the object is auto-unexported, the export entry could have already been removed.
-        if (channel != null) {
-            if (channel.remoteCapability.supportsProxyWriter2_35()) {
-                channel.send(new Unexport(channel.newIoId(), oid));
-            } else {
-                channel.send(new EOF(channel.newIoId(), oid));
-            }
-            channel = null;
-            oid = -1;
         }
     }
 
@@ -488,5 +478,50 @@ final class ProxyWriter extends Writer {
         private static final long serialVersionUID = 1L;
     }
 
-    private static final Logger LOGGER = Logger.getLogger(ProxyWriter.class.getName());
+    /**
+     * Holds cleanup state that can be accessed by the Cleaner without preventing garbage collection.
+     */
+    private static final class CleanupState {
+        private Channel channel;
+        private int oid = -1;
+
+        synchronized void set(Channel channel, int oid) {
+            this.channel = channel;
+            this.oid = oid;
+        }
+
+        synchronized void clear() {
+            this.channel = null;
+            this.oid = -1;
+        }
+
+        synchronized void cleanup() {
+            if (channel != null && oid != -1) {
+                try {
+                    if (channel.remoteCapability.supportsProxyWriter2_35()) {
+                        channel.send(new Unexport(channel.newIoId(), oid));
+                    } else {
+                        channel.send(new EOF(channel.newIoId(), oid));
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Failed to cleanup ProxyWriter", e);
+                }
+                channel = null;
+                oid = -1;
+            }
+        }
+    }
+
+    private static final class CleanupChecker implements Runnable {
+        private final CleanupState state;
+
+        CleanupChecker(CleanupState state) {
+            this.state = state;
+        }
+
+        @Override
+        public void run() {
+            state.cleanup();
+        }
+    }
 }
