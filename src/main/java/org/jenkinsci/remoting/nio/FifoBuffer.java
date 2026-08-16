@@ -238,15 +238,20 @@ public class FifoBuffer implements Closeable {
         }
     }
 
-    // TODO: Value beyond the limit is actually a bug (JENKINS-37514)
     /**
      * Number of bytes writable.
      * @return Number of bytes we can write to the buffer.
-     *         If the buffer is closed, may return the value beyond the limit (JENKINS-37514)
+     *         0 if the buffer is closed and there's no more data to read, since no further writes
+     *         are accepted at that point. {@link #readable()}'s {@code -1} EOF sentinel must not be
+     *         subtracted from {@code limit} directly, or this returns a bogus value beyond the limit.
      */
     public int writable() {
         synchronized (lock) {
-            return Math.max(0, limit - readable());
+            int r = readable();
+            if (r < 0) {
+                return 0;
+            }
+            return Math.max(0, limit - r);
         }
     }
 
