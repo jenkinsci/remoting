@@ -1196,13 +1196,19 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
                         }
                     }
                     executingCalls.clear();
-                    exportedObjects.abort(e);
                     // break any object cycles into simple chains to simplify work for the garbage collector
                     reference.clear(e);
                 } finally {
                     notifyAll();
                 }
             } // JENKINS-14909: leave synch block
+
+            // JENKINS-66526: propagate the termination error to exported objects outside the Channel
+            // lock. ExportTable.abort() calls ErrorPropagatingOutputStream.error() on exported objects
+            // such as ProxyOutputStream, whose synchronized methods call Channel.send(). Running that
+            // while holding the Channel monitor deadlocks against a concurrent ProxyOutputStream write
+            // that already holds the stream monitor and is waiting on the Channel monitor.
+            exportedObjects.abort(e);
         } finally {
             if (e instanceof OrderlyShutdown) {
                 e = null;
