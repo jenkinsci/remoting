@@ -56,6 +56,30 @@ class FifoBufferTest {
     }
 
     @Test
+    void writableIsZeroAfterCloseWithNoDataLeft() throws Exception {
+        buf.write(b(TEN));
+        buf.read(new byte[10]);
+        buf.close();
+
+        // readable() returns -1 here (closed, nothing left), and writable() must not derive from that
+        // sentinel via `limit - readable()`, which would wrongly return a value beyond the limit
+        // (JENKINS-37514).
+        assertEquals(-1, buf.readable());
+        assertEquals(0, buf.writable());
+    }
+
+    @Test
+    void writableReflectsRemainingRoomWhenClosedWithDataStillBuffered() throws Exception {
+        buf.write(b(TEN));
+        buf.close();
+
+        // there is still data to read, so this is not the -1 sentinel case: writable() should keep
+        // reporting the actual remaining room, unchanged from the behavior before this fix.
+        assertEquals(10, buf.readable());
+        assertEquals(256 - 10, buf.writable());
+    }
+
+    @Test
     void nonBlockingWrite() throws Exception {
         buf.setLimit(185);
 
