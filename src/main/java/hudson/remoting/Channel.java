@@ -348,17 +348,24 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
     /**
      * Indicates that close of the channel has been requested.
      * When the value is {@code true}, it does not make sense to execute new user-space commands like {@link UserRequest}.
+     *
+     * <p>Set by {@link #close(Throwable)} and {@link #terminate(IOException)} outside of the {@code this} monitor, and
+     * read from arbitrary caller threads via {@link #isClosingOrClosed()}, so it is {@code volatile} like
+     * {@link #inClosed}/{@link #outClosed}. Both methods assign {@link #closeRequestCause} before this flag, so a
+     * thread that observes the flag also observes the cause.
      */
-    private boolean closeRequested = false;
+    private volatile boolean closeRequested = false;
 
     /**
      * Stores cause of the close Request.
      *
      * In the case of race condition between multiple close operations,
      * this field stores just one of them.
+     *
+     * <p>{@code volatile} and assigned before {@link #closeRequested}; see that field.
      */
     @CheckForNull
-    private Throwable closeRequestCause = null;
+    private volatile Throwable closeRequestCause = null;
 
     /**
      * Communication mode used in conjunction with {@link ClassicCommandTransport}.
@@ -1166,11 +1173,12 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         if (e == null) {
             throw new IllegalArgumentException("Cause is null. Channel cannot be closed properly in such case");
         }
-        closeRequested = true;
         if (closeRequestCause == null) {
             // Cache the cause value just in case it takes long to acquire the lock
             closeRequestCause = e;
         }
+        // Set last: this volatile write publishes closeRequestCause to threads that observe the flag.
+        closeRequested = true;
 
         try {
             synchronized (this) {
@@ -1591,13 +1599,14 @@ public class Channel implements VirtualChannel, IChannel, Closeable {
         if (outClosed != null) {
             return; // already closed
         }
-        closeRequested = true;
         if (closeRequestCause == null) {
             // Cache the cause value just in case it takes long to acquire the lock
             // TODO: This IOException wrapper is copy-pasted from the original logic, but do we actually need it when
             // diagnosis is non-null?
             closeRequestCause = new IOException(diagnosis);
         }
+        // Set last: this volatile write publishes closeRequestCause to threads that observe the flag.
+        closeRequested = true;
 
         synchronized (this) {
             if (outClosed != null) {
