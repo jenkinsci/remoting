@@ -215,7 +215,7 @@ class ClassRemotingTest {
         assertEquals(TESTLINKAGE_TRANSFORMED_CLASSNAME, loadResult.getClass().getName());
     }
 
-    private static void assertTestCallableResults(Object[] result) {
+    static void assertTestCallableResults(Object[] result) {
         assertTrue(result[0].toString().startsWith("hudson.remoting.RemoteClassLoader@"));
 
         // make sure the bytes are what we are expecting
