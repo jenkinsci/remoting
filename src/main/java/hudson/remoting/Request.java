@@ -130,6 +130,17 @@ public abstract class Request<RSP extends Serializable, EXC extends Throwable> e
             // Sender is closed, we won't be able to send anything
             throw new ChannelClosedException(channel, senderCloseCause);
         }
+
+        // JENKINS-45023: also refuse once a close has been requested but has not completed yet.
+        // Otherwise the request would proceed to acquire the Channel lock, which is held for the
+        // duration of close()/terminate(), and block there instead of failing fast.
+        if (channel.isClosingOrClosed()) {
+            throw new ChannelClosedException(
+                    channel,
+                    "The request cannot be executed on channel " + channel + ". "
+                            + "The channel is closing down or has closed down",
+                    channel.getCloseRequestCause());
+        }
     }
 
     /**

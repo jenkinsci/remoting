@@ -24,6 +24,7 @@ import java.net.URLClassLoader;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -31,7 +32,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.remoting.RoleChecker;
 import org.jenkinsci.remoting.SerializableOnlyOverRemoting;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -288,7 +288,6 @@ class ChannelTest {
      * Checks if {@link UserRequest}s can be executed during the pending close operation.
      * @throws Exception Test Error
      */
-    @Disabled("TODO flake timed out after 15 seconds")
     @Issue("JENKINS-45023")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
@@ -315,7 +314,6 @@ class ChannelTest {
      * Checks if {@link UserRequest}s can be executed during the pending close operation.
      * @throws Exception Test Error
      */
-    @Disabled("TODO flake timed out after 15 seconds")
     @Issue("JENKINS-45294")
     @ParameterizedTest
     @MethodSource(ChannelRunners.PROVIDER_METHOD)
@@ -325,17 +323,24 @@ class ChannelTest {
             src.add("Hello");
             src.add("World");
 
-            // TODO: System request will just hang. Once JENKINS-44785 is implemented, all system requests
-            // in Remoting codebase must have a timeout.
-            final Collection<String> remoteList =
+            // A user-space proxy (RPC goes through Channel.call) and an internal proxy (RPC goes
+            // straight through Request.call). Both must refuse the call once close has been requested.
+            final Collection<String> userProxy =
                     channel.call(new RMIObjectExportedCallable<>(src, Collection.class, true));
+            final Collection<String> internalProxy =
+                    channel.call(new RMIObjectExportedCallable<>(src, Collection.class, false));
 
             try (ChannelCloseLock ignored = new ChannelCloseLock(channel)) {
-                // Call Async
                 assertFailsWithChannelClosedException(channel, new TestRunnable() {
                     @Override
                     public void run(Channel channel) throws AssertionError {
-                        remoteList.size();
+                        userProxy.size();
+                    }
+                });
+                assertFailsWithChannelClosedException(channel, new TestRunnable() {
+                    @Override
+                    public void run(Channel channel) throws AssertionError {
+                        internalProxy.size();
                     }
                 });
             }
@@ -390,37 +395,42 @@ class ChannelTest {
 
         final ExecutorService svc;
         final Channel channel;
+        final CountDownLatch releaseMonitor = new CountDownLatch(1);
 
         public ChannelCloseLock(final @NonNull Channel channel) throws AssertionError, InterruptedException {
             this.svc = Executors.newFixedThreadPool(2);
             this.channel = channel;
 
-            // Lock channel
-            java.util.concurrent.Future<Void> lockChannel = svc.submit(() -> {
+            // Hold the Channel monitor so that close() cannot complete.
+            CountDownLatch monitorHeld = new CountDownLatch(1);
+            svc.submit(() -> {
                 synchronized (channel) {
-                    System.out.println("All your channel belongs to us");
-                    Thread.sleep(Long.MAX_VALUE);
-                    return null;
+                    monitorHeld.countDown();
+                    releaseMonitor.await();
                 }
+                return null;
             });
+            assertTrue(
+                    monitorHeld.await(15, TimeUnit.SECONDS), "background task should have taken the Channel monitor");
 
-            // Try to close the channel in another task
-            java.util.concurrent.Future<Void> closeChannel = svc.submit(() -> {
-                System.out.println("Trying to close the channel");
+            // Start closing the channel on another thread. close() sets closeRequested before it tries
+            // to acquire the monitor, so it will get stuck holding the channel in the pending-close state.
+            svc.submit(() -> {
                 channel.close();
-                System.out.println("Channel is closed");
                 return null;
             });
 
-            // Check the state
-            Thread.sleep(1000);
-            System.out.println("Running the tests");
+            long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+            while (!channel.isClosingOrClosed() && System.nanoTime() < deadlineNanos) {
+                Thread.sleep(10);
+            }
             assertTrue(channel.isClosingOrClosed(), "Channel should be closing");
-            assertFalse(channel.isOutClosed(), "Channel should not be closed due to the lock");
+            assertFalse(channel.isOutClosed(), "Channel should not be closed while the monitor is held");
         }
 
         @Override
         public void close() {
+            releaseMonitor.countDown();
             svc.shutdownNow();
         }
     }

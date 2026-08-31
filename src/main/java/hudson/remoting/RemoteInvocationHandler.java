@@ -1066,22 +1066,6 @@ final class RemoteInvocationHandler implements InvocationHandler, Serializable {
         UserRPCRequest(int oid, Method m, Object[] arguments, ClassLoader cl, boolean recordCreatedAt) {
             super(oid, m, arguments, cl, recordCreatedAt);
         }
-
-        // Same implementation as UserRequest
-        @Override
-        public void checkIfCanBeExecutedOnChannel(@NonNull Channel channel) throws IOException {
-            // Default check for all requests
-            super.checkIfCanBeExecutedOnChannel(channel);
-
-            // We also do not want to run UserRequests when the channel is being closed
-            if (channel.isClosingOrClosed()) {
-                throw new ChannelClosedException(
-                        channel,
-                        "The request cannot be executed on channel " + channel + ". "
-                                + "The channel is closing down or has closed down",
-                        channel.getCloseRequestCause());
-            }
-        }
     }
 
     private static final Object[] EMPTY_ARRAY = new Object[0];
