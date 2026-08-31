@@ -111,21 +111,6 @@ final class UserRequest<RSP, EXC extends Throwable> extends Request<UserRequest.
         this.classLoaderProxy = RemoteClassLoader.export(cl, local);
     }
 
-    @Override
-    public void checkIfCanBeExecutedOnChannel(Channel channel) throws IOException {
-        // Default check for all requests
-        super.checkIfCanBeExecutedOnChannel(channel);
-
-        // We also do not want to run UserRequests when the channel is being closed
-        if (channel.isClosingOrClosed()) {
-            throw new ChannelClosedException(
-                    channel,
-                    "The request cannot be executed on channel " + channel + ". "
-                            + "The channel is closing down or has closed down",
-                    channel.getCloseRequestCause());
-        }
-    }
-
     /**
      * Retrieves classloader for the callable.
      * For {@link DelegatingCallable} the method will try to retrieve a classloader specified there.
