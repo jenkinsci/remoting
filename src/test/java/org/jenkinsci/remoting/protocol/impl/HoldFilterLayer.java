@@ -25,6 +25,7 @@ package org.jenkinsci.remoting.protocol.impl;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.IOException;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import org.jenkinsci.remoting.protocol.FilterLayer;
 import org.jenkinsci.remoting.util.ByteBufferQueue;
@@ -62,8 +63,9 @@ public class HoldFilterLayer extends FilterLayer {
                 recvQueue.put(data);
                 ByteBuffer tempBuffer = recvQueue.newByteBuffer();
                 while (recvQueue.hasRemaining()) {
-                    tempBuffer.clear();
+                    ((Buffer) tempBuffer).clear();
                     recvQueue.get(tempBuffer);
+                    ((Buffer) tempBuffer).flip();
                     next().onRecv(tempBuffer);
                 }
             } else if (data.hasRemaining()) {
@@ -87,8 +89,9 @@ public class HoldFilterLayer extends FilterLayer {
                 sendQueue.put(data);
                 ByteBuffer tempBuffer = sendQueue.newByteBuffer();
                 while (sendQueue.hasRemaining()) {
-                    tempBuffer.clear();
+                    ((Buffer) tempBuffer).clear();
                     sendQueue.get(tempBuffer);
+                    ((Buffer) tempBuffer).flip();
                     next().doSend(tempBuffer);
                 }
             } else if (data.hasRemaining()) {

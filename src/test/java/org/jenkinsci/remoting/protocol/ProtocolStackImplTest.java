@@ -57,7 +57,6 @@ import org.jenkinsci.remoting.protocol.impl.ConnectionRefusalException;
 import org.jenkinsci.remoting.protocol.impl.HoldFilterLayer;
 import org.jenkinsci.remoting.protocol.impl.NIONetworkLayer;
 import org.jenkinsci.remoting.protocol.impl.SSLEngineFilterLayer;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
@@ -731,8 +730,6 @@ class ProtocolStackImplTest {
         assertThat(se.getCause(), instanceOf(ConnectionRefusalException.class));
     }
 
-    @Disabled(
-            "TODO flake: ConnectionRefusal Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
     @RepeatedTest(16)
     void pipeChannelFullProtocolNIO_invalidAck() throws Exception {
         Pipe clientToServer = Pipe.open();
@@ -780,8 +777,6 @@ class ProtocolStackImplTest {
                 anyOf(instanceOf(ConnectionRefusalException.class), instanceOf(ClosedChannelException.class)));
     }
 
-    @Disabled(
-            "TODO flake: ConnectionRefusalException: Incorrect acknowledgement received, expected 0x000341436b got 0x0000000000")
     @RepeatedTest(16)
     void socketChannelFullProtocolNIO_invalidAck() throws Exception {
         ServerSocketChannel serverServerSocketChannel = ServerSocketChannel.open();
