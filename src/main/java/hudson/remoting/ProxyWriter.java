@@ -503,6 +503,10 @@ final class ProxyWriter extends Writer {
                     } else {
                         channel.send(new EOF(channel.newIoId(), oid));
                     }
+                } catch (ChannelClosedException e) {
+                    // the remote side and its export table went away with the channel,
+                    // so there is nothing left to clean up.
+                    LOGGER.log(Level.FINE, "Channel already closed; not cleaning up ProxyWriter", e);
                 } catch (Exception e) {
                     LOGGER.log(Level.WARNING, "Failed to cleanup ProxyWriter", e);
                 }

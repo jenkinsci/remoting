@@ -484,6 +484,10 @@ final class ProxyOutputStream extends OutputStream implements ErrorPropagatingOu
             if (channel != null && oid != -1) {
                 try {
                     channel.send(new Unexport(channel.newIoId(), oid));
+                } catch (ChannelClosedException e) {
+                    // the remote side and its export table went away with the channel,
+                    // so there is nothing left to unexport.
+                    LOGGER.log(Level.FINE, "Channel already closed; not unexporting ProxyOutputStream", e);
                 } catch (Exception e) {
                     LOGGER.log(Level.WARNING, "Failed to unexport ProxyOutputStream", e);
                 }
