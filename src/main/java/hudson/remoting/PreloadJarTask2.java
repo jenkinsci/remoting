@@ -31,10 +31,6 @@ import org.jenkinsci.remoting.RoleChecker;
 
 /**
  * {@link Callable} used to deliver a jar file to {@link RemoteClassLoader}.
- * <p>
- *  This replaces {@link hudson.remoting.PreloadJarTask} and delivers the jar contents as part of the Callable rather
- *  than needing to call {@link hudson.remoting.RemoteClassLoader#prefetch(java.net.URL)}.
- * </p>
  * @since TODO 2024-08
  */
 final class PreloadJarTask2 implements DelegatingCallable<Boolean, IOException> {
