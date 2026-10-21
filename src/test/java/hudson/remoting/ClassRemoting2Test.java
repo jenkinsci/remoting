@@ -26,7 +26,10 @@ package hudson.remoting;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
@@ -310,6 +313,100 @@ class ClassRemoting2Test {
             Future<Object> f1 = ClassRemotingTest.scheduleCallableLoad(channel, callable);
 
             assertThrows(ExecutionException.class, f1::get, "Should have timed out, exceeding the max retries.");
+        });
+    }
+
+    /**
+     * Tests that concurrent requests to load the same class by multiple threads all succeed
+     * without deadlock or incorrect results. This validates the fix for JENKINS-72226, where
+     * the underlying deduplication ensures that redundant fetch3 RPCs are avoided when
+     * multiple threads concurrently need to load the same class for the first time.
+     */
+    @Issue("JENKINS-72226")
+    @ParameterizedTest
+    @MethodSource(PROVIDER_METHOD)
+    void testConcurrentClassReferenceLoadingDeduplicatesFetch3(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
+            final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
+            final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
+            final Callable<Object, Exception> callable = (Callable<Object, Exception>) child2.load(TestLinkage.class);
+            assertEquals(child2, callable.getClass().getClassLoader());
+
+            // Stagger the start slightly so the first thread enters fetch3 before the second.
+            // With the deduplication fix, the second thread piggybacks on the in-flight future
+            // rather than issuing a redundant RPC. Without the fix, both threads would race
+            // to issue independent fetch3 calls causing excess latency.
+            CountDownLatch fetch3Entered = new CountDownLatch(1);
+            CountDownLatch fetch3Blocked = new CountDownLatch(1);
+
+            RemoteClassLoader.TESTING_CLASS_REFERENCE_LOAD = () -> {
+                // Signal that the first thread is inside fetch3 then block it.
+                if (fetch3Entered.getCount() > 0) {
+                    fetch3Entered.countDown();
+                    try {
+                        fetch3Blocked.await();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            };
+
+            ExecutorService svc = Executors.newFixedThreadPool(2);
+
+            // Thread 1 will enter fetch3 and block there.
+            Future<Object> f1 = svc.submit(() -> channel.call(callable));
+
+            // Wait for thread 1 to be inside fetch3.
+            fetch3Entered.await();
+
+            // Thread 2 now starts — it should find the in-flight future and wait on it,
+            // rather than issuing a new fetch3 RPC.
+            Future<Object> f2 = svc.submit(() -> channel.call(callable));
+
+            // Release thread 1 to complete fetch3.
+            fetch3Blocked.countDown();
+
+            // Both threads should complete successfully with correct results.
+            Object result1 = f1.get();
+            Object result2 = f2.get();
+
+            ClassRemotingTest.assertTestLinkageResults(channel, parent, child1, child2, callable, result1);
+            ClassRemotingTest.assertTestLinkageResults(channel, parent, child1, child2, callable, result2);
+
+            svc.shutdown();
+        });
+    }
+
+    /**
+     * Verifies that two threads concurrently loading different classes still both succeed,
+     * i.e. the deduplication only merges requests for the same class name.
+     */
+    @Issue("JENKINS-72226")
+    @ParameterizedTest
+    @MethodSource(PROVIDER_METHOD)
+    void testConcurrentClassReferenceLoadingOfDifferentClasses(ChannelRunner channelRunner) throws Exception {
+        channelRunner.withChannel(channel -> {
+            DummyClassLoader parent = new DummyClassLoader(TestLinkage.B.class);
+            final DummyClassLoader child1 = new DummyClassLoader(parent, TestLinkage.A.class);
+            final DummyClassLoader child2 = new DummyClassLoader(child1, TestLinkage.class);
+            final Callable<Object, Exception> callable1 = (Callable<Object, Exception>) child2.load(TestLinkage.class);
+
+            DummyClassLoader dcl = new DummyClassLoader(TestCallable.class);
+            final Callable<Object, Exception> callable2 = (Callable<Object, Exception>) dcl.load(TestCallable.class);
+
+            ExecutorService svc = Executors.newFixedThreadPool(2);
+            Future<Object> f1 = svc.submit(() -> channel.call(callable1));
+            Future<Object> f2 = svc.submit(() -> channel.call(callable2));
+
+            // Both should complete successfully
+            Object result1 = f1.get();
+            Object result2 = f2.get();
+
+            ClassRemotingTest.assertTestLinkageResults(channel, parent, child1, child2, callable1, result1);
+            ClassRemotingTest.assertTestCallableResults((Object[]) result2);
+
+            svc.shutdown();
         });
     }
 
