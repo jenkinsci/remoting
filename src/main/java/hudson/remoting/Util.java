@@ -55,13 +55,10 @@ public class Util {
     }
 
     @NonNull
-    @SuppressFBWarnings(
-            value = "PATH_TRAVERSAL_IN",
-            justification = "This path exists within a temp directory so the potential traversal is limited.")
+    @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "Sanitized by #getBaseName")
     static File makeResource(String name, byte[] image) throws IOException {
         Path tmpDir = Files.createTempDirectory("resource-");
-        File resource = new File(tmpDir.toFile(), name);
-        Files.createDirectories(PathUtils.fileToPath(resource.getParentFile()));
+        File resource = new File(tmpDir.toFile(), getBaseName(name.replace('\\', '/')));
         Files.createFile(PathUtils.fileToPath(resource));
 
         try (FileOutputStream fos = new FileOutputStream(resource)) {
