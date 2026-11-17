@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URL;
 import org.junit.jupiter.api.Test;
 
 class NoProxyEvaluatorTest {
@@ -143,6 +144,21 @@ class NoProxyEvaluatorTest {
         NoProxyEvaluator evaluator = new NoProxyEvaluator(null);
 
         assertFalse(evaluator.shouldProxyHost("0000:0000:0000:0000:0000:0000:0000:0001"));
+    }
+
+    @Test
+    void testIPv6LoopbackFromUrlHost() throws Exception {
+        NoProxyEvaluator evaluator = new NoProxyEvaluator(null);
+
+        assertFalse(evaluator.shouldProxyHost(new URL("http://[::1]:8080/").getHost()));
+    }
+
+    @Test
+    void testIPv6FromUrlHost() throws Exception {
+        NoProxyEvaluator evaluator = new NoProxyEvaluator("2001:db8::1");
+
+        assertFalse(evaluator.shouldProxyHost(new URL("http://[2001:db8::1]:8080/").getHost()));
+        assertTrue(evaluator.shouldProxyHost(new URL("http://[2001:db8::2]:8080/").getHost()));
     }
 
     @Test

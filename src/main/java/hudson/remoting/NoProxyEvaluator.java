@@ -57,6 +57,10 @@ public class NoProxyEvaluator {
     }
 
     boolean shouldProxyHost(String host) {
+        // URL#getHost() returns IPv6 literals enclosed in square brackets, e.g. "[::1]".
+        if (host.length() > 2 && host.startsWith("[") && host.endsWith("]")) {
+            host = host.substring(1, host.length() - 1);
+        }
         if (isLocalhost(host)) {
             return false;
         }
