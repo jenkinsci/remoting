@@ -45,6 +45,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -144,7 +146,22 @@ final class RemoteClassLoader extends URLClassLoader {
     /**
      * {@link ClassFile}s that were sent by remote as pre-fetch.
      */
-    private final Map<String, ClassReference> prefetchedClasses = Collections.synchronizedMap(new HashMap<>());
+    private final Map<String, ClassReference> prefetchedClasses = new ConcurrentHashMap<>();
+
+    /**
+     * Tracks in-flight {@link IClassLoader#fetch3(String)} RPC calls to deduplicate concurrent
+     * requests for the same class name.
+     *
+     * <p>When multiple threads simultaneously need to load the same class for the first time,
+     * only one thread will actually make the remote fetch3 call. All other threads that need
+     * the same class wait on the shared {@link CompletableFuture} and reuse the result.
+     * This prevents redundant network round-trips on freshly-started agents (e.g. ephemeral
+     * Kubernetes agents) where many classes are loaded in parallel during step initialization.
+     *
+     * @see #prefetchClassReference(String, Channel)
+     */
+    private final ConcurrentHashMap<String, CompletableFuture<Map<String, ClassFile2>>> pendingFetch3 =
+            new ConcurrentHashMap<>();
 
     /**
      * Creates a remotable classloader
@@ -352,60 +369,51 @@ final class RemoteClassLoader extends URLClassLoader {
     private ClassReference prefetchClassReference(String name, Channel channel) throws ClassNotFoundException {
         ClassReference cr;
         cr = prefetchedClasses.remove(name);
-        if (cr == null) {
-            LOGGER.log(Level.FINER, "fetch3({0})", name);
+        if (cr != null) {
+            LOGGER.log(Level.FINER, "findClass({0}) -> prefetch hit", name);
+            channel.classLoadingPrefetchCacheCount.incrementAndGet();
+            return cr;
+        }
 
+        LOGGER.log(Level.FINER, "fetch3({0})", name);
+
+        // Deduplicate concurrent fetch3 RPC calls for the same class name.
+        // If another thread is already fetching this class, we reuse that in-flight request
+        // rather than issuing a redundant network round-trip.
+        CompletableFuture<Map<String, ClassFile2>> myFuture = new CompletableFuture<>();
+        CompletableFuture<Map<String, ClassFile2>> existingFuture = pendingFetch3.putIfAbsent(name, myFuture);
+
+        Map<String, ClassFile2> all;
+        if (existingFuture != null) {
+            // Another thread is already fetching this class; wait for it.
+            LOGGER.log(Level.FINER, "fetch3({0}) - reusing in-flight request", name);
+            try {
+                all = existingFuture.get();
+            } catch (InterruptedException x) {
+                Thread.currentThread().interrupt();
+                throw new RemotingSystemException(x);
+            } catch (ExecutionException x) {
+                Throwable cause = x.getCause();
+                if (cause instanceof ClassNotFoundException) {
+                    throw (ClassNotFoundException) cause;
+                }
+                throw new ClassNotFoundException(name, cause);
+            }
+        } else {
+            // We are the designated thread to perform the actual fetch3 RPC.
             int tries = 0;
             while (true) {
                 try {
                     invokeClassReferenceLoadTestingHookIfNeeded();
 
-                    Map<String, ClassFile2> all = proxy.fetch3(name);
-                    synchronized (prefetchedClasses) {
-                        /*
-                         * Converts {@link ClassFile2} to {@link ClassReference} with minimal
-                         * proxy creation. This creates a reference to {@link ClassLoader}, so
-                         * it shouldn't be kept beyond the scope of single {@link #findClass(String)}  call.
-                         */
-                        class ClassReferenceBuilder {
-                            private final Map<Integer, ClassLoader> classLoaders = new HashMap<>();
-
-                            ClassReference toRef(ClassFile2 cf) {
-                                int n = cf.classLoader;
-
-                                ClassLoader cl = classLoaders.get(n);
-                                if (cl == null) {
-                                    classLoaders.put(n, cl = channel.importedClassLoaders.get(n));
-                                }
-
-                                return new ClassReference(cl, cf.image);
-                            }
-                        }
-                        ClassReferenceBuilder crf = new ClassReferenceBuilder();
-
-                        for (Map.Entry<String, ClassFile2> entry : all.entrySet()) {
-                            String cn = entry.getKey();
-                            ClassFile2 cf = entry.getValue();
-                            ClassReference ref = crf.toRef(cf);
-
-                            if (cn.equals(name)) {
-                                cr = ref;
-                            } else {
-                                // where we remember the prefetch is sensitive to who references it,
-                                // because classes need not be transitively visible in Java
-                                if (cf.referer != null) {
-                                    ref.rememberIn(cn, crf.toRef(cf.referer).classLoader);
-                                } else {
-                                    ref.rememberIn(cn, this);
-                                }
-
-                                LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[] {name, cn});
-                            }
-
-                            ref.rememberIn(cn, ref.classLoader);
-                        }
-                    }
+                    all = proxy.fetch3(name);
+                    myFuture.complete(all);
+                    pendingFetch3.remove(name, myFuture);
                     break;
+                } catch (ClassNotFoundException x) {
+                    myFuture.completeExceptionally(x);
+                    pendingFetch3.remove(name, myFuture);
+                    throw x;
                 } catch (InterruptedException | RemotingSystemException x) {
                     tries++;
                     if (shouldRetry(x, tries)) {
@@ -417,18 +425,64 @@ final class RemoteClassLoader extends URLClassLoader {
                                 + ", maximum = " + MAX_RETRIES);
                         continue;
                     }
-                    throw determineRemotingSystemException(x);
+                    RemotingSystemException rse = determineRemotingSystemException(x);
+                    myFuture.completeExceptionally(rse);
+                    pendingFetch3.remove(name, myFuture);
+                    throw rse;
                 }
 
                 // no code is allowed to reach here
             }
-
-            assert cr != null;
-        } else {
-            LOGGER.log(Level.FINER, "findClass({0}) -> prefetch hit", name);
-            channel.classLoadingPrefetchCacheCount.incrementAndGet();
         }
-        return cr;
+
+        // Process the fetch3 results and populate the prefetch cache.
+        // Use a local variable for the result so we can assert it is set.
+        ClassReference result = null;
+        /*
+         * Converts {@link ClassFile2} to {@link ClassReference} with minimal
+         * proxy creation. This creates a reference to {@link ClassLoader}, so
+         * it shouldn't be kept beyond the scope of single {@link #findClass(String)} call.
+         */
+        class ClassReferenceBuilder {
+            private final Map<Integer, ClassLoader> classLoaders = new HashMap<>();
+
+            ClassReference toRef(ClassFile2 cf) {
+                int n = cf.classLoader;
+
+                ClassLoader cl = classLoaders.get(n);
+                if (cl == null) {
+                    classLoaders.put(n, cl = channel.importedClassLoaders.get(n));
+                }
+
+                return new ClassReference(cl, cf.image);
+            }
+        }
+        ClassReferenceBuilder crf = new ClassReferenceBuilder();
+
+        for (Map.Entry<String, ClassFile2> entry : all.entrySet()) {
+            String cn = entry.getKey();
+            ClassFile2 cf = entry.getValue();
+            ClassReference ref = crf.toRef(cf);
+
+            if (cn.equals(name)) {
+                result = ref;
+            } else {
+                // where we remember the prefetch is sensitive to who references it,
+                // because classes need not be transitively visible in Java
+                if (cf.referer != null) {
+                    ref.rememberIn(cn, crf.toRef(cf.referer).classLoader);
+                } else {
+                    ref.rememberIn(cn, this);
+                }
+
+                LOGGER.log(Level.FINER, "prefetch {0} -> {1}", new Object[] {name, cn});
+            }
+
+            ref.rememberIn(cn, ref.classLoader);
+        }
+
+        assert result != null;
+        return result;
     }
 
     private void invokeClassReferenceLoadTestingHookIfNeeded() throws InterruptedException {
