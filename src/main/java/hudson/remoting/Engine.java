@@ -871,6 +871,10 @@ public class Engine extends Thread {
             } catch (Exception x) {
                 events.status("Failed to connect: " + x.getMessage());
             }
+            if (noReconnect) {
+                events.status("Not retrying since -noReconnect was specified");
+                return false;
+            }
             exponentialRetry = exponentialRetry.next(events);
         }
         return false;

@@ -146,6 +146,34 @@ class EngineTest {
     private static class NoReconnectException extends RuntimeException {}
 
     @Test
+    @Timeout(value = 5_000, unit = TimeUnit.MILLISECONDS)
+    void shouldNotReconnectWebSocket() {
+        EngineListener l = new EngineListener() {
+            @Override
+            public void status(String msg) {
+                status(msg, null);
+            }
+
+            @Override
+            public void status(String msg, Throwable t) {
+                LOGGER.log(Level.INFO, msg, t);
+                if (msg.equals("Not retrying since -noReconnect was specified")) {
+                    throw new NoReconnectException();
+                }
+            }
+
+            @Override
+            public void error(Throwable t) {
+                throw new NoReconnectException();
+            }
+        };
+        Engine engine = new Engine(l, jenkinsUrls, SECRET_KEY, AGENT_NAME);
+        engine.setWebSocket(true);
+        engine.setNoReconnect(true);
+        assertThrows(NoReconnectException.class, engine::run);
+    }
+
+    @Test
     @Timeout(value = 30_000, unit = TimeUnit.MILLISECONDS)
     void shouldReconnectOnJnlpAgentEndpointResolutionExceptions() {
         EngineListener l = new EngineListener() {
