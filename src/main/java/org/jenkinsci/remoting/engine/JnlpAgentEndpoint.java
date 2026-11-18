@@ -34,7 +34,6 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URL;
-import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Base64;
@@ -210,12 +209,14 @@ public class JnlpAgentEndpoint {
      * @throws IOException if things go wrong.
      */
     @SuppressFBWarnings(
-            value = "VA_FORMAT_STRING_USES_NEWLINE",
-            justification = "Unsafe endline symbol is a pert of the protocol. Unsafe to fix it. See TODO " + "below")
+            value = {"VA_FORMAT_STRING_USES_NEWLINE", "UNENCRYPTED_SOCKET"},
+            justification = "Unsafe endline symbol is a pert of the protocol. Unsafe to fix it. See TODO below. "
+                    + "Socket is unencrypted here because TLS is negotiated as a protocol upgrade afterwards "
+                    + "(e.g. JnlpProtocol4Handler), not via an SSLSocket from the start.")
     public Socket open(int socketTimeout) throws IOException {
         boolean isHttpProxy = false;
         InetSocketAddress targetAddress = null;
-        SocketChannel channel = null;
+        Socket socket = null;
         try {
             targetAddress = JnlpAgentEndpointResolver.getResolvedHttpProxyAddress(host, port);
 
@@ -225,11 +226,11 @@ public class JnlpAgentEndpoint {
                 isHttpProxy = true;
             }
 
-            // We open the socket using SocketChannel so that we are assured that the socket will always have
-            // a socket channel. Sockets opened via Socket.open will typically not have a SocketChannel
-            // and thus we will not have the ability to use NIO if we want to.
-            channel = SocketChannel.open(targetAddress);
-            Socket socket = channel.socket();
+            // Use a plain Socket rather than SocketChannel: Socket#setSoTimeout (below) is not honored by
+            // blocking reads performed through a SocketChannel (JDK-4614802), which would otherwise let a
+            // half-dead connection hang forever instead of timing out.
+            socket = new Socket();
+            socket.connect(targetAddress);
 
             socket.setTcpNoDelay(true); // we'll do buffering by ourselves
 
@@ -266,9 +267,9 @@ public class JnlpAgentEndpoint {
             }
             return socket;
         } catch (IOException e) {
-            if (channel != null) {
+            if (socket != null) {
                 try {
-                    channel.close();
+                    socket.close();
                 } catch (IOException suppressed) {
                     e = ThrowableUtils.chain(e, suppressed);
                 }
